@@ -325,7 +325,7 @@ final class Class348_Sub24 extends Class348 {
                         Class320.overGameScreen = false;
                         Class216.method1583((byte) -73);
                         Class311.anInt3918++;
-                        if (Class320.overGameScreen && Class320.scrollWheelDiff != 0) {
+                        if (Class320.overGameScreen && Class320.scrollWheelDiff != 0 && !Class351.aBoolean4328) {
                             if (Class192.anInt2581 <= 0 || !Class182.aClass346_2449.method2696(82, -125) || !Class182.aClass346_2449.method2696(81, -126)) {
                                 Class320.zoomStep += -Class320.scrollWheelDiff * Loader.ZOOM_OFFSET_STEP;
                             }
