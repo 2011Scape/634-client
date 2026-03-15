@@ -5,6 +5,9 @@
 final class Class320 {
     static short aShort3992 = 320;
     static int anInt3993;
+    static int zoomStep = Loader.ZOOM_OFFSET_DEFAULT;
+    static boolean overGameScreen = false;
+    static int scrollWheelDiff = 0;
     static float aFloat3994;
 
     static final boolean method2547(int i, byte i_0_) {
