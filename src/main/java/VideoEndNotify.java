@@ -1,0 +1,21 @@
+import com.jagex.game.runetek5.network.packet.TcpPacket;
+import org.openrs2.deob.annotation.OriginalArg;
+import org.openrs2.deob.annotation.OriginalMember;
+import org.openrs2.deob.annotation.Pc;
+import com.jagex.game.runetek5.network.BufferedConnectionContext;
+import com.jagex.game.runetek5.ClientTrigger;
+import com.jagex.game.runetek5.network.packet.ClientProt;
+
+public final class VideoEndNotify {
+
+	@OriginalMember(owner = "client!wp", name = "a", descriptor = "(ZBI)V")
+	public static void playVorbis(@OriginalArg(0) boolean sendPacket, @OriginalArg(2) int fileId) {
+		if (sendPacket) {
+			@Pc(20) TcpPacket packet = TcpPacket.createPacket(ClientProt.aClass94_81, TcpPacket.isaac);
+			packet.buffer.writeShort(fileId);
+			BufferedConnectionContext.queuePacket(packet);
+		} else {
+			CS2Interpreter.executeTrigger(ClientTrigger.aClass350_7, fileId, -1);
+		}
+	}
+}
