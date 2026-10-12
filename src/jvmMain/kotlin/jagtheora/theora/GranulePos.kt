@@ -5,7 +5,7 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!jagtheora/theora/GranulePos")
-class GranulePos : SimplePeer() {
+actual class GranulePos actual constructor() : SimplePeer() {
 
 	@OriginalMember(owner = "client!jagtheora/theora/GranulePos", name = "position", descriptor = "J")
 	private var position: Long = 0L

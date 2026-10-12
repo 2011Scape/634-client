@@ -12,3 +12,8 @@ actual fun defaultLocale(): util.Locale = java.util.Locale.getDefault()
 @Suppress("DEPRECATION") // Locale(String, String, String) is deprecated on JDK 19+
 actual fun localeOf(language: String, country: String, variant: String): util.Locale =
     java.util.Locale(language, country, variant)
+@Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
+actual fun String.lowercase(locale: util.Locale): String = (this as java.lang.String).toLowerCase(locale)
+
+@Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
+actual fun String.uppercase(locale: util.Locale): String = (this as java.lang.String).toUpperCase(locale)

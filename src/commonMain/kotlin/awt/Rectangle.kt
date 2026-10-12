@@ -18,3 +18,8 @@ expect var Rectangle.left: Int
 expect var Rectangle.top: Int
 expect var Rectangle.w: Int
 expect var Rectangle.h: Int
+/* The public fields x, y, width and height under their own names (milestone 3). */
+expect var Rectangle.x: Int
+expect var Rectangle.y: Int
+expect var Rectangle.width: Int
+expect var Rectangle.height: Int

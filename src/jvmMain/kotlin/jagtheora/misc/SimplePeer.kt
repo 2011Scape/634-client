@@ -5,16 +5,16 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!jagtheora/misc/SimplePeer")
-abstract class SimplePeer {
+actual abstract class SimplePeer actual constructor() {
 
 	@OriginalMember(owner = "client!jagtheora/misc/SimplePeer", name = "peer", descriptor = "J")
 	private var peer: Long = 0L
 
 	@OriginalMember(owner = "client!jagtheora/misc/SimplePeer", name = "clear", descriptor = "()V")
-	protected abstract fun clear()
+	protected actual abstract fun clear()
 
 	@OriginalMember(owner = "client!jagtheora/misc/SimplePeer", name = "a", descriptor = "()V")
-	fun a() {
+	actual fun a() {
 		if (!this.b()) {
 			this.clear()
 		}
@@ -22,7 +22,7 @@ abstract class SimplePeer {
 
 	@OriginalMember(owner = "client!jagtheora/misc/SimplePeer", name = "finalize", descriptor = "()V")
 	@Throws(Throwable::class)
-	fun finalize() {
+	actual fun finalize() {
 		if (!this.b()) {
 			this.a()
 		}
@@ -30,7 +30,7 @@ abstract class SimplePeer {
 	}
 
 	@OriginalMember(owner = "client!jagtheora/misc/SimplePeer", name = "b", descriptor = "()Z")
-	fun b(): Boolean {
+	actual fun b(): Boolean {
 		return this.peer == 0L
 	}
 

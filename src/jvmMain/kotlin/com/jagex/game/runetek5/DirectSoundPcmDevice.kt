@@ -12,7 +12,7 @@ import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 
 @OriginalClass("client!ac")
-class DirectSoundPcmDevice : PcmDevice {
+actual class DirectSoundPcmDevice : PcmDevice {
 
 	@OriginalMember(owner = "client!ac", name = "c", descriptor = "[I")
 	private var silence: IntArray? = null
@@ -55,7 +55,7 @@ class DirectSoundPcmDevice : PcmDevice {
 
 	@OriginalMember(owner = "client!ac", name = "<init>", descriptor = "()V")
 	@Throws(Exception::class)
-	constructor() {
+	actual constructor() {
 		for (@Pc(41) i in 0 until 2) {
 			this.bufferDescs[i] = DSBufferDesc()
 		}
@@ -65,7 +65,7 @@ class DirectSoundPcmDevice : PcmDevice {
 	}
 
 	@OriginalMember(owner = "client!ac", name = "b", descriptor = "(BI)V")
-	override fun discardBuffer(@OriginalArg(1) index: Int) {
+	actual override fun discardBuffer(@OriginalArg(1) index: Int) {
 		this.buffers[index]!!.stop()
 		this.playing[index] = false
 		this.buffers[index]!!.setCurrentPosition(0)
@@ -73,7 +73,7 @@ class DirectSoundPcmDevice : PcmDevice {
 	}
 
 	@OriginalMember(owner = "client!ac", name = "a", descriptor = "(IB)V")
-	override fun close(@OriginalArg(0) index: Int) {
+	actual override fun close(@OriginalArg(0) index: Int) {
 		if (this.buffers[index] == null) {
 			return
 		}
@@ -85,7 +85,7 @@ class DirectSoundPcmDevice : PcmDevice {
 	}
 
 	@OriginalMember(owner = "client!ac", name = "a", descriptor = "(I[I)V")
-	override fun write(@OriginalArg(0) index: Int, @OriginalArg(1) samples: IntArray?) {
+	actual override fun write(@OriginalArg(0) index: Int, @OriginalArg(1) samples: IntArray?) {
 		@Pc(2) val count: Int = samples!!.size
 		if (count != this.channels * 256) {
 			throw IllegalArgumentException()
@@ -108,7 +108,7 @@ class DirectSoundPcmDevice : PcmDevice {
 	}
 
 	@OriginalMember(owner = "client!ac", name = "a", descriptor = "(BI)I")
-	override fun position(@OriginalArg(1) index: Int): Int {
+	actual override fun position(@OriginalArg(1) index: Int): Int {
 		if (!this.playing[index]) {
 			return 0
 		}
@@ -128,7 +128,7 @@ class DirectSoundPcmDevice : PcmDevice {
 
 	@OriginalMember(owner = "client!ac", name = "a", descriptor = "(IZLjava/awt/Component;I)V")
 	@Throws(Exception::class)
-	override fun init(@OriginalArg(0) sampleRate: Int, @OriginalArg(1) stereo: Boolean, @OriginalArg(2) component: java.awt.Component?) {
+	actual override fun init(@OriginalArg(0) sampleRate: Int, @OriginalArg(1) stereo: Boolean, @OriginalArg(2) component: java.awt.Component?) {
 		if (this.sampleRate != 0) {
 			return
 		}
@@ -154,7 +154,7 @@ class DirectSoundPcmDevice : PcmDevice {
 
 	@OriginalMember(owner = "client!ac", name = "a", descriptor = "(IIB)V")
 	@Throws(Exception::class)
-	override fun open(@OriginalArg(0) bufferSize: Int, @OriginalArg(1) index: Int) {
+	actual override fun open(@OriginalArg(0) bufferSize: Int, @OriginalArg(1) index: Int) {
 		if (this.sampleRate == 0 || this.buffers[index] != null) {
 			throw IllegalStateException()
 		}

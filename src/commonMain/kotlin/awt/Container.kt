@@ -3,7 +3,7 @@ package awt
 import awt.image.ImageObserver
 
 expect open class Container : Component {
-    fun add(comp: Component): Component
+    fun add(comp: Component?): Component
     fun remove(comp: Component?)
     fun remove(index: Int)
     fun removeAll()
@@ -13,7 +13,7 @@ expect open class Container : Component {
     fun validate()
     fun invalidate()
     fun doLayout()
-//    fun setLayout(layout: LayoutManager)
+    fun setLayout(layout: LayoutManager?)
 }
 
 expect fun Container.getInsets(): Insets

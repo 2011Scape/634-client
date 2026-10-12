@@ -4,7 +4,7 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!jagdx/D3DPSHADERCAPS2_0")
-class D3DPSHADERCAPS2_0 {
+actual class D3DPSHADERCAPS2_0 actual constructor() {
 
 	@OriginalMember(owner = "client!jagdx/D3DPSHADERCAPS2_0", name = "Caps", descriptor = "I")
 	private var Caps: Int = 0

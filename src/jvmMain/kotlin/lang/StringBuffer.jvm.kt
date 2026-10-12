@@ -13,7 +13,7 @@ actual class StringBuffer actual constructor() {
 
     actual val length: Int get() = delegate.length
 
-    actual fun get(index: Int): Char = delegate[index]
+    actual operator fun get(index: Int): Char = delegate[index]
 
     actual fun append(value: Any?, i: Int, i2: Int): StringBuffer = apply {
         delegate.append(value.toString(), i, i2)

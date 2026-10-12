@@ -3,6 +3,7 @@ package io
 expect open class File(pathname: String) {
     constructor(parent: String, child: String?)
     open fun getName(): String
+    open fun getParentFile(): File?
     open fun getPath(): String
     open fun getAbsolutePath(): String
     open fun exists(): Boolean

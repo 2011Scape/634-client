@@ -2,7 +2,7 @@ package awt.image
 
 expect class DataBufferInt {
     constructor(size: Int)
-    constructor(dataArray: IntArray, size: Int)
+    constructor(dataArray: IntArray?, size: Int)
 
     fun getData(): IntArray
     fun getElem(i: Int): Int

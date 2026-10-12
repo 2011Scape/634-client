@@ -6,7 +6,7 @@ expect class StringBuffer() {
 
     val length: Int
 
-    fun get(index: Int): Char
+    operator fun get(index: Int): Char
     fun append(value: Any?, i: Int, i2: Int): StringBuffer
     fun append(value: Any?): StringBuffer
     fun insert(offset: Int, value: Any?): StringBuffer

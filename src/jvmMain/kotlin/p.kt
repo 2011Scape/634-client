@@ -13,25 +13,25 @@ import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.utils.Utils
 
 @OriginalClass("client!p")
-class p : Node, SoftwareObject {
+actual class p : Node, SoftwareObject {
 
 	@OriginalMember(owner = "client!p", name = "nativeid", descriptor = "J")
 	private var nativeid: Long = 0L
 
 	@OriginalMember(owner = "client!p", name = "r", descriptor = "Ljava/awt/Canvas;")
 	@JvmField
-	var canvas: Canvas? = null
+	actual var canvas: Canvas? = null
 
 	@OriginalMember(owner = "client!p", name = "p", descriptor = "I")
 	@JvmField
-	var anInt7778: Int = 0
+	actual var anInt7778: Int = 0
 
 	@OriginalMember(owner = "client!p", name = "s", descriptor = "I")
 	@JvmField
-	var anInt7779: Int = 0
+	actual var anInt7779: Int = 0
 
 	@OriginalMember(owner = "client!p", name = "<init>", descriptor = "(Lclient!oa;Ljava/awt/Canvas;II)V")
-	constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) canvas: Canvas?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
+	actual constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) canvas: Canvas?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
 		this.canvas = canvas
 		this.anInt7778 = arg2
 		this.anInt7779 = arg3
@@ -42,7 +42,7 @@ class p : Node, SoftwareObject {
 	private external fun sa(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: Canvas?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
 
 	@OriginalMember(owner = "client!p", name = "w", descriptor = "(Z)V")
-	external override fun w(@OriginalArg(0) arg0: Boolean)
+	actual external override fun w(@OriginalArg(0) arg0: Boolean)
 
 	@OriginalMember(owner = "client!p", name = "H", descriptor = "(IIII)V")
 	private external fun H(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
@@ -66,7 +66,7 @@ class p : Node, SoftwareObject {
 	private external fun K(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int)
 
 	@OriginalMember(owner = "client!p", name = "c", descriptor = "(II)V")
-	fun method6664(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int) {
+	actual fun method6664(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int) {
 		try {
 			synchronized(this.canvas!!.treeLock) {
 				@Pc(9) val dimension: Dimension = this.canvas!!.size
@@ -79,14 +79,14 @@ class p : Node, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!p", name = "finalize", descriptor = "()V")
-	fun finalize() {
+	actual fun finalize() {
 		if (this.nativeid != 0L) {
 			SoftwareMemoryManager.free(this)
 		}
 	}
 
 	@OriginalMember(owner = "client!p", name = "a", descriptor = "([Ljava/awt/Rectangle;III)V")
-	fun method6665(@OriginalArg(0) rectangles: Array<Rectangle?>?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
+	actual fun method6665(@OriginalArg(0) rectangles: Array<Rectangle?>?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
 		try {
 			synchronized(this.canvas!!.treeLock) {
 				@Pc(7) var i: Int = 0
@@ -105,14 +105,14 @@ class p : Node, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!p", name = "a", descriptor = "(Ljava/awt/Canvas;II)V")
-	fun method6666(@OriginalArg(0) canvas: Canvas?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) {
+	actual fun method6666(@OriginalArg(0) canvas: Canvas?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) {
 		this.anInt7778 = arg1
 		this.anInt7779 = arg2
 		this.oa(canvas, arg1, arg2)
 	}
 
 	@OriginalMember(owner = "client!p", name = "a", descriptor = "()V")
-	fun method6667() {
+	actual fun method6667() {
 		this.w(true)
 		this.nativeid = 0L
 		this.canvas = null

@@ -7,9 +7,9 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!jagdx/IDirect3DVertexShader")
-class IDirect3DVertexShader : IUnknown {
+actual class IDirect3DVertexShader : IUnknown {
 
 	@OriginalMember(owner = "client!jagdx/IDirect3DVertexShader", name = "<init>", descriptor = "(Lclient!jaclib/peer/hb;)V")
-	constructor(@OriginalArg(0) arg0: hb?) : super(arg0) {
+	actual constructor(@OriginalArg(0) arg0: hb?) : super(arg0) {
 	}
 }

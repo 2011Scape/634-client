@@ -41,7 +41,7 @@ import com.jagex.game.runetek5.utils.ColorUtil
 import com.jagex.game.runetek5.NativeLibraryOwner
 
 @OriginalClass("client!oa")
-class oa : Toolkit, SoftwareObject {
+actual class oa : Toolkit, SoftwareObject {
 
 	@OriginalMember(owner = "client!oa", name = "x", descriptor = "Lclient!ya;")
 	private var aYa2: ya? = null
@@ -54,7 +54,7 @@ class oa : Toolkit, SoftwareObject {
 
 	@OriginalMember(owner = "client!oa", name = "R", descriptor = "I")
 	@JvmField
-	var anInt7473: Int = 0
+	actual var anInt7473: Int = 0
 
 	@OriginalMember(owner = "client!oa", name = "T", descriptor = "[Lclient!a;")
 	private var anAArray1: Array<a?>? = null
@@ -64,7 +64,7 @@ class oa : Toolkit, SoftwareObject {
 	// it a plain field and read it; so does this one.
 	@OriginalMember(owner = "client!oa", name = "nativeid", descriptor = "J")
 	@JvmField
-	var nativeid: Long = 0L
+	actual var nativeid: Long = 0L
 
 	@OriginalMember(owner = "client!oa", name = "A", descriptor = "Z")
 	private var aBoolean541: Boolean = false
@@ -88,7 +88,7 @@ class oa : Toolkit, SoftwareObject {
 	private var aClass30_11: Matrix? = null
 
 	@OriginalMember(owner = "client!oa", name = "<init>", descriptor = "(Ljava/awt/Canvas;Lclient!d;II)V")
-	constructor(@OriginalArg(0) canvas: Canvas?, @OriginalArg(1) textureSource: MaterialProvider?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) : super(textureSource) {
+	actual constructor(@OriginalArg(0) canvas: Canvas?, @OriginalArg(1) textureSource: MaterialProvider?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) : super(textureSource) {
 		try {
 			if (!NativeLibraryOwner.loadLibrary("sw3d")) {
 				throw RuntimeException("")
@@ -115,7 +115,7 @@ class oa : Toolkit, SoftwareObject {
 	private external fun MA(@OriginalArg(0) arg0: MaterialProvider?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int)
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(IIIIII)V")
-	override fun outlineRect(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int) {
+	actual override fun outlineRect(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int) {
 		this.U(arg0, arg1, arg2, arg4, arg5)
 		this.U(arg0, arg1 + arg3 - 1, arg2, arg4, arg5)
 		this.P(arg0, arg1 + 1, arg3 - 1, arg4, arg5)
@@ -126,32 +126,32 @@ class oa : Toolkit, SoftwareObject {
 	private external fun ma(@OriginalArg(0) arg0: Long)
 
 	@OriginalMember(owner = "client!oa", name = "d", descriptor = "(IIIIII)Lclient!wh;")
-	override fun createCubeTexture(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int): EnvironmentSampler? {
+	actual override fun createCubeTexture(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int): EnvironmentSampler? {
 		return null
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Lclient!za;)V")
-	override fun setHeap(@OriginalArg(0) memoryPool: MemoryPool?) {
+	actual override fun setHeap(@OriginalArg(0) memoryPool: MemoryPool?) {
 		this.aYa2 = memoryPool as ya?
 		this.va(memoryPool)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "w", descriptor = "(Z)V")
-	external override fun w(@OriginalArg(0) arg0: Boolean)
+	actual external override fun w(@OriginalArg(0) arg0: Boolean)
 
 	@OriginalMember(owner = "client!oa", name = "A", descriptor = "(ILclient!aa;II)V")
-	external override fun A(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: ComponentSurface?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
+	actual external override fun A(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: ComponentSurface?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
 
 	@OriginalMember(owner = "client!oa", name = "aa", descriptor = "(IIIIII)V")
-	external override fun aa(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int)
+	actual external override fun aa(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int)
 
 	@OriginalMember(owner = "client!oa", name = "v", descriptor = "()V")
-	override fun compositeBloomEffects() {
+	actual override fun compositeBloomEffects() {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "([Ljava/awt/Rectangle;III)V")
 	@Throws(FlipException::class)
-	override fun flipDirtyRect(@OriginalArg(0) rectangles: Array<Rectangle?>?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
+	actual override fun flipDirtyRect(@OriginalArg(0) rectangles: Array<Rectangle?>?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
 		if (this.aP1 == null) {
 			throw IllegalStateException("off")
 		}
@@ -164,48 +164,48 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "z", descriptor = "()Z")
-	override fun method7311(): Boolean {
+	actual override fun method7311(): Boolean {
 		return true
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Lclient!mda;I)V")
-	override fun renderOrtho(@OriginalArg(0) particleList: ParticleList?, @OriginalArg(1) arg1: Int) {
+	actual override fun renderOrtho(@OriginalArg(0) particleList: ParticleList?, @OriginalArg(1) arg1: Int) {
 		this.method6407(particleList)
 		this.method6405()!!.method14(this, NativeModelScratch.particlePositions, NativeModelScratch.particleColours, NativeModelScratch.particleSizes, NativeModelScratch.particleMaterialIds, particleList!!.particles.size())
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(IIIIIIIIIIIII)V")
-	override fun drawTriangle() {
+	actual override fun drawTriangle() {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "l", descriptor = "()V")
-	override fun cacheReset() {
+	actual override fun cacheReset() {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Lclient!rh;Z)Lclient!mi;")
-	override fun generateSprite(@OriginalArg(0) indexedImage: SpriteType?, @OriginalArg(1) arg1: Boolean): NativeSprite? {
+	actual override fun generateSprite(@OriginalArg(0) indexedImage: SpriteType?, @OriginalArg(1) arg1: Boolean): NativeSprite? {
 		@Pc(17) val local17: j = j(this, indexedImage!!.pallete, indexedImage.pixels, indexedImage.alpha, 0, indexedImage.width, indexedImage.width, indexedImage.height)
 		local17.setOffsets(indexedImage.minX, indexedImage.minY, indexedImage.borderX, indexedImage.borderY)
 		return local17
 	}
 
 	@OriginalMember(owner = "client!oa", name = "HA", descriptor = "(IIII[I)V")
-	external override fun HA(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: IntArray?)
+	actual external override fun HA(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: IntArray?)
 
 	@OriginalMember(owner = "client!oa", name = "A", descriptor = "()V")
-	override fun stopBloom() {
+	actual override fun stopBloom() {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "AA", descriptor = "(SSIBBIZBBBBZZZZZBZZI)V")
 	private external fun AA(@OriginalArg(0) arg0: Short, @OriginalArg(1) arg1: Short, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Byte, @OriginalArg(4) arg4: Byte, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Boolean, @OriginalArg(7) arg7: Byte, @OriginalArg(8) arg8: Byte, @OriginalArg(9) arg9: Byte, @OriginalArg(10) arg10: Byte, @OriginalArg(11) arg11: Boolean, @OriginalArg(12) arg12: Boolean, @OriginalArg(13) arg13: Boolean, @OriginalArg(14) arg14: Boolean, @OriginalArg(15) arg15: Boolean, @OriginalArg(16) arg16: Byte, @OriginalArg(17) arg17: Boolean, @OriginalArg(18) arg18: Boolean, @OriginalArg(19) arg19: Int)
 
 	@OriginalMember(owner = "client!oa", name = "h", descriptor = "(I)V")
-	override fun setTextureSize(@OriginalArg(0) arg0: Int) {
+	actual override fun setTextureSize(@OriginalArg(0) arg0: Int) {
 		throw IllegalStateException()
 	}
 
 	@OriginalMember(owner = "client!oa", name = "H", descriptor = "(III[I)V")
-	external override fun H(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: IntArray?)
+	actual external override fun H(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: IntArray?)
 
 	@OriginalMember(owner = "client!oa", name = "g", descriptor = "()V")
 	private fun g() {
@@ -215,14 +215,14 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "b", descriptor = "(IIIID)V")
-	external override fun b(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Double)
+	actual external override fun b(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Double)
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(FFF)V")
-	override fun setBloomParams(@OriginalArg(0) arg0: Float, @OriginalArg(1) arg1: Float, @OriginalArg(2) arg2: Float) {
+	actual override fun setBloomParams(@OriginalArg(0) arg0: Float, @OriginalArg(1) arg1: Float, @OriginalArg(2) arg2: Float) {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Lclient!oea;[Lclient!rh;Z)Lclient!da;")
-	override fun createFontRenderer(@OriginalArg(0) fontMetrics: FontMetrics?, @OriginalArg(1) indexedImages: Array<SpriteType?>?): AbstractFontRenderer? {
+	actual override fun createFontRenderer(@OriginalArg(0) fontMetrics: FontMetrics?, @OriginalArg(1) indexedImages: Array<SpriteType?>?): AbstractFontRenderer? {
 		@Pc(3) val local3: IntArray = IntArray(indexedImages!!.size)
 		@Pc(7) val local7: IntArray = IntArray(indexedImages.size)
 		@Pc(9) var local9: Boolean = false
@@ -245,12 +245,12 @@ class oa : Toolkit, SoftwareObject {
 	private external fun wa(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int)
 
 	@OriginalMember(owner = "client!oa", name = "f", descriptor = "()Z")
-	override fun hasTextures(): Boolean {
+	actual override fun hasTextures(): Boolean {
 		return true
 	}
 
 	@OriginalMember(owner = "client!oa", name = "B", descriptor = "()Lclient!a;")
-	fun method6405(): a? {
+	actual fun method6405(): a? {
 		@Pc(1) var i: Int = 0
 		while (i < this.anInt7473) {
 			if (this.anAArray1!![i]!!.aRunnable1 === Thread.currentThread()) {
@@ -265,7 +265,7 @@ class oa : Toolkit, SoftwareObject {
 	private external fun t(@OriginalArg(0) arg0: p?)
 
 	@OriginalMember(owner = "client!oa", name = "y", descriptor = "()Lclient!bca;")
-	override fun scratchMatrix(): Matrix? {
+	actual override fun scratchMatrix(): Matrix? {
 		return this.aClass30_11
 	}
 
@@ -310,12 +310,12 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "e", descriptor = "(I)V")
-	override fun linkThreads(@OriginalArg(0) arg0: Int) {
+	actual override fun linkThreads(@OriginalArg(0) arg0: Int) {
 		this.anAArray1!![arg0]!!.method13()
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "([I)V")
-	override fun accumulateViewportDimensions(@OriginalArg(0) arg0: IntArray?) {
+	actual override fun accumulateViewportDimensions(@OriginalArg(0) arg0: IntArray?) {
 		@Pc(4) val dimension: Dimension = this.aP1!!.canvas!!.size
 		arg0!![0] = dimension.width
 		arg0[1] = dimension.height
@@ -325,17 +325,17 @@ class oa : Toolkit, SoftwareObject {
 	private external fun CA(@OriginalArg(0) arg0: Short, @OriginalArg(1) arg1: IntArray?, @OriginalArg(2) arg2: Short, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Byte, @OriginalArg(5) arg5: Byte, @OriginalArg(6) arg6: Int, @OriginalArg(7) arg7: Boolean, @OriginalArg(8) arg8: Byte, @OriginalArg(9) arg9: Byte, @OriginalArg(10) arg10: Byte, @OriginalArg(11) arg11: Byte, @OriginalArg(12) arg12: Boolean, @OriginalArg(13) arg13: Boolean, @OriginalArg(14) arg14: Boolean, @OriginalArg(15) arg15: Boolean, @OriginalArg(16) arg16: Boolean, @OriginalArg(17) arg17: Byte, @OriginalArg(18) arg18: Boolean, @OriginalArg(19) arg19: Boolean, @OriginalArg(20) arg20: Int)
 
 	@OriginalMember(owner = "client!oa", name = "DA", descriptor = "(IIII)V")
-	external override fun DA(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
+	actual external override fun DA(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
 
 	@OriginalMember(owner = "client!oa", name = "i", descriptor = "(I)Lclient!za;")
-	override fun createHeap(@OriginalArg(0) arg0: Int): MemoryPool? {
+	actual override fun createHeap(@OriginalArg(0) arg0: Int): MemoryPool? {
 		@Pc(5) val local5: ya = ya(this, arg0)
 		this.aClass341_44.addLast(local5)
 		return local5
 	}
 
 	@OriginalMember(owner = "client!oa", name = "c", descriptor = "(I)V")
-	override fun initialize() {
+	actual override fun initialize() {
 		this.anInt7471 = 10000
 		this.anInt7472 = this.anInt7471
 		if (this.anInt7473 > 1) {
@@ -346,17 +346,17 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "e", descriptor = "(II)I")
-	override fun compareFunctionMasks(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int): Int {
+	actual override fun compareFunctionMasks(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int): Int {
 		@Pc(3) val local3: Int = arg0 and 0xFFFFF
 		@Pc(7) val local7: Int = arg1 and 0xFFFFF
 		return (local3 and local7) xor local7
 	}
 
 	@OriginalMember(owner = "client!oa", name = "xa", descriptor = "(F)V")
-	external override fun xa(@OriginalArg(0) arg0: Float)
+	actual external override fun xa(@OriginalArg(0) arg0: Float)
 
 	@OriginalMember(owner = "client!oa", name = "b", descriptor = "(Ljava/awt/Canvas;)V")
-	override fun releaseSurface(@OriginalArg(0) canvas: Canvas?) {
+	actual override fun releaseSurface(@OriginalArg(0) canvas: Canvas?) {
 		if (this.aP1!!.canvas === canvas) {
 			this.setCanvas(null)
 		}
@@ -368,13 +368,13 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(IIIIIILclient!aa;II)V")
-	override fun drawSurfaceLine(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(6) clippingMask: ComponentSurface?, @OriginalArg(7) arg6: Int, @OriginalArg(8) arg7: Int) {
+	actual override fun drawSurfaceLine(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(6) clippingMask: ComponentSurface?, @OriginalArg(7) arg6: Int, @OriginalArg(8) arg7: Int) {
 		this.Z(arg0, arg1, arg2, arg3, arg4, 1, clippingMask, arg6, arg7)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "finalize", descriptor = "()V")
 	@Synchronized
-	override fun finalize() {
+	actual override fun finalize() {
 		this.free()
 		if (this.nativeid != 0L) {
 			SoftwareMemoryManager.free(this)
@@ -385,13 +385,13 @@ class oa : Toolkit, SoftwareObject {
 	private external fun d(@OriginalArg(0) arg0: Int)
 
 	@OriginalMember(owner = "client!oa", name = "i", descriptor = "()I")
-	external override fun i(): Int
+	actual external override fun i(): Int
 
 	@OriginalMember(owner = "client!oa", name = "n", descriptor = "(JJ)V")
 	private external fun n(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: Long)
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Lclient!mda;)V")
-	override fun render(@OriginalArg(0) particleList: ParticleList?) {
+	actual override fun render(@OriginalArg(0) particleList: ParticleList?) {
 		if (particleList!!.particles.size() != 0) {
 			this.method6407(particleList)
 			this.method6405()!!.method14(this, NativeModelScratch.particlePositions, NativeModelScratch.particleColours, NativeModelScratch.particleSizes, NativeModelScratch.particleMaterialIds, particleList.particles.size())
@@ -399,15 +399,15 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "x", descriptor = "()I")
-	override fun getMaxLights(): Int {
+	actual override fun getMaxLights(): Int {
 		return 4
 	}
 
 	@OriginalMember(owner = "client!oa", name = "JA", descriptor = "(IIIIII)I")
-	external override fun JA(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int): Int
+	actual external override fun JA(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int): Int
 
 	@OriginalMember(owner = "client!oa", name = "h", descriptor = "()V")
-	override fun stop() {
+	actual override fun stop() {
 		if (this.aBoolean541) {
 			return
 		}
@@ -433,7 +433,7 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "b", descriptor = "(Ljava/awt/Canvas;II)V")
-	override fun resizeCanvas(@OriginalArg(0) canvas: Canvas?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) {
+	actual override fun resizeCanvas(@OriginalArg(0) canvas: Canvas?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) {
 		@Pc(8) val local8: p? = this.aClass99_52.get(canvas!!.hashCode().toLong()) as p?
 		local8!!.method6666(canvas, arg1, arg2)
 		if (canvas != null && canvas === this.aP1!!.canvas) {
@@ -455,32 +455,32 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "m", descriptor = "()Z")
-	override fun bloom(): Boolean {
+	actual override fun bloom(): Boolean {
 		return false
 	}
 
 	@OriginalMember(owner = "client!oa", name = "Q", descriptor = "(IIIIII[BII)V")
-	external override fun Q(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: ByteArray?, @OriginalArg(7) arg7: Int, @OriginalArg(8) arg8: Int)
+	actual external override fun Q(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: ByteArray?, @OriginalArg(7) arg7: Int, @OriginalArg(8) arg8: Int)
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(IIZ)Lclient!mi;")
-	override fun generateEmptySprite(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Boolean): NativeSprite? {
+	actual override fun generateEmptySprite(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Boolean): NativeSprite? {
 		return j(this, arg0, arg1)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "ya", descriptor = "()V")
-	external override fun ya()
+	actual external override fun ya()
 
 	@OriginalMember(owner = "client!oa", name = "I", descriptor = "()I")
-	external override fun I(): Int
+	actual external override fun I(): Int
 
 	@OriginalMember(owner = "client!oa", name = "f", descriptor = "(II)V")
-	external override fun f(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int)
+	actual external override fun f(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int)
 
 	@OriginalMember(owner = "client!oa", name = "KA", descriptor = "(IIII)V")
-	external override fun KA(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
+	actual external override fun KA(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
 
 	@OriginalMember(owner = "client!oa", name = "b", descriptor = "(I)V")
-	override fun tick(@OriginalArg(0) arg0: Int) {
+	actual override fun tick(@OriginalArg(0) arg0: Int) {
 		SoftwareMemoryManager.freePending()
 		this.d(arg0)
 		@Pc(10) var local10: ya? = this.aClass341_44.first() as ya?
@@ -491,59 +491,59 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "g", descriptor = "(II)I")
-	override fun combineFunctionMasks(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int): Int {
+	actual override fun combineFunctionMasks(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int): Int {
 		return arg0 or arg1
 	}
 
 	@OriginalMember(owner = "client!oa", name = "ra", descriptor = "(IIII)V")
-	external override fun ra(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
+	actual external override fun ra(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
 
 	@OriginalMember(owner = "client!oa", name = "E", descriptor = "()I")
-	external override fun E(): Int
+	actual external override fun E(): Int
 
 	@OriginalMember(owner = "client!oa", name = "pa", descriptor = "()V")
-	external override fun pa()
+	actual external override fun pa()
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(IIIIIII)V")
-	override fun strongLine(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int) {
+	actual override fun strongLine(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int) {
 		this.method6405()!!.method9(this, arg0, arg1, arg2, arg3, arg4, arg5)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "GA", descriptor = "(I)V")
-	external override fun GA(@OriginalArg(0) arg0: Int)
+	actual external override fun GA(@OriginalArg(0) arg0: Int)
 
 	@OriginalMember(owner = "client!oa", name = "n", descriptor = "()Z")
-	override fun extendBuildArea(): Boolean {
+	actual override fun extendBuildArea(): Boolean {
 		return true
 	}
 
 	@OriginalMember(owner = "client!oa", name = "X", descriptor = "(I)V")
-	external override fun X(@OriginalArg(0) arg0: Int)
+	actual external override fun X(@OriginalArg(0) arg0: Int)
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Lclient!bh;IIII)Lclient!ka;")
-	override fun createModel(@OriginalArg(0) mesh: Mesh?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int): Model? {
+	actual override fun createModel(@OriginalArg(0) mesh: Mesh?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int): Model? {
 		return i(this, this.aYa2, mesh, arg1, arg2, arg3, arg4)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "c", descriptor = "()Lclient!fia;")
-	override fun renderer(): Renderer? {
+	actual override fun renderer(): Renderer? {
 		return Renderer(0, "SSE", 1, "CPU", 0L)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(IIIIIIIII)V")
-	override fun drawLine(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(6) arg5: Int, @OriginalArg(7) arg6: Int, @OriginalArg(8) arg7: Int) {
+	actual override fun drawLine(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(6) arg5: Int, @OriginalArg(7) arg6: Int, @OriginalArg(8) arg7: Int) {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "F", descriptor = "(II)V")
-	external override fun F(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int)
+	actual external override fun F(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int)
 
 	@OriginalMember(owner = "client!oa", name = "b", descriptor = "(IIIIZ)Lclient!mi;")
-	override fun createNativeSprite(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Boolean): NativeSprite? {
+	actual override fun createNativeSprite(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Boolean): NativeSprite? {
 		return j(this, arg0, arg1, arg2, arg3, !arg4)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(I)V")
-	override fun allocateThreads(@OriginalArg(0) arg0: Int) {
+	actual override fun allocateThreads(@OriginalArg(0) arg0: Int) {
 		this.anInt7473 = arg0
 		this.anAArray1 = arrayOfNulls<a>(this.anInt7473)
 		@Pc(9) var i: Int = 0
@@ -554,13 +554,13 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "r", descriptor = "(IIIIIII)I")
-	external override fun r(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Int): Int
+	actual external override fun r(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Int): Int
 
 	@OriginalMember(owner = "client!oa", name = "va", descriptor = "(Lclient!za;)V")
 	private external fun va(@OriginalArg(0) arg0: MemoryPool?)
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Ljava/awt/Canvas;II)V")
-	override fun addCanvas(@OriginalArg(0) canvas: Canvas?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) {
+	actual override fun addCanvas(@OriginalArg(0) canvas: Canvas?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) {
 		@Pc(8) var local8: p? = this.aClass99_52.get(canvas!!.hashCode().toLong()) as p?
 		if (local8 == null) {
 			try {
@@ -577,21 +577,21 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Lclient!wh;Lclient!wh;FLclient!wh;)Lclient!wh;")
-	override fun drawQuad(@OriginalArg(0) environmentSampler: EnvironmentSampler?, @OriginalArg(1) environmentSampler2: EnvironmentSampler?, @OriginalArg(2) arg2: Float, @OriginalArg(3) environmentSampler3: EnvironmentSampler?): EnvironmentSampler? {
+	actual override fun drawQuad(@OriginalArg(0) environmentSampler: EnvironmentSampler?, @OriginalArg(1) environmentSampler2: EnvironmentSampler?, @OriginalArg(2) arg2: Float, @OriginalArg(3) environmentSampler3: EnvironmentSampler?): EnvironmentSampler? {
 		return null
 	}
 
 	@OriginalMember(owner = "client!oa", name = "K", descriptor = "([I)V")
-	external override fun K(@OriginalArg(0) arg0: IntArray?)
+	actual external override fun K(@OriginalArg(0) arg0: IntArray?)
 
 	@OriginalMember(owner = "client!oa", name = "t", descriptor = "()Z")
-	override fun replaceCanvasOnDisplayUpdate(): Boolean {
+	actual override fun replaceCanvasOnDisplayUpdate(): Boolean {
 		return true
 	}
 
 	@OriginalMember(owner = "client!oa", name = "b", descriptor = "(II)V")
 	@Throws(FlipException::class)
-	override fun flip(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int) {
+	actual override fun flip(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int) {
 		if (this.aP1 == null) {
 			throw IllegalStateException("off")
 		}
@@ -632,12 +632,12 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "d", descriptor = "(II)Lclient!he;")
-	override fun method7268(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int): Sprite? {
+	actual override fun method7268(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int): Sprite? {
 		return this.generateEmptySprite(arg0, arg1, false)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(I[Lclient!ab;)V")
-	override fun copyLights(@OriginalArg(0) arg0: Int, @OriginalArg(1) pointLights: Array<PointLight?>?) {
+	actual override fun copyLights(@OriginalArg(0) arg0: Int, @OriginalArg(1) pointLights: Array<PointLight?>?) {
 		@Pc(1) var local1: Int = 0
 		@Pc(3) var i: Int = 0
 		while (i < arg0) {
@@ -653,22 +653,22 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "za", descriptor = "(IIIII)V")
-	external override fun za(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int)
+	actual external override fun za(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int)
 
 	@OriginalMember(owner = "client!oa", name = "na", descriptor = "(IIII)[I")
-	external override fun na(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int): IntArray?
+	actual external override fun na(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int): IntArray?
 
 	@OriginalMember(owner = "client!oa", name = "b", descriptor = "(Z)V")
-	override fun method7250(@OriginalArg(0) arg0: Boolean) {
+	actual override fun method7250(@OriginalArg(0) arg0: Boolean) {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(IIIIIF)Lclient!ab;")
-	override fun createPointLight(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) range: Int, @OriginalArg(5) intensity: Float): PointLight? {
+	actual override fun createPointLight(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) range: Int, @OriginalArg(5) intensity: Float): PointLight? {
 		return SsePointLight(arg0, arg1, arg2, arg3, range, intensity)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Ljava/awt/Canvas;)V")
-	override fun setCanvas(@OriginalArg(0) canvas: Canvas?) {
+	actual override fun setCanvas(@OriginalArg(0) canvas: Canvas?) {
 		if (canvas == null) {
 			this.aP1 = null
 			this.t(null)
@@ -680,81 +680,81 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "r", descriptor = "()Z")
-	override fun hardShadow(): Boolean {
+	actual override fun hardShadow(): Boolean {
 		return true
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Lclient!wh;)V")
-	override fun setSunCubeTexture(@OriginalArg(0) environmentSampler: EnvironmentSampler?) {
+	actual override fun setSunCubeTexture(@OriginalArg(0) environmentSampler: EnvironmentSampler?) {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "j", descriptor = "()Lclient!bca;")
-	override fun createMatrix(): Matrix? {
+	actual override fun createMatrix(): Matrix? {
 		return ja()
 	}
 
 	@OriginalMember(owner = "client!oa", name = "f", descriptor = "(I)V")
-	override fun method7281(@OriginalArg(0) arg0: Int) {
+	actual override fun method7281(@OriginalArg(0) arg0: Int) {
 		this.anAArray1!![arg0]!!.method15()
 	}
 
 	@OriginalMember(owner = "client!oa", name = "EA", descriptor = "(IIII)V")
-	external override fun EA(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
+	actual external override fun EA(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
 
 	@OriginalMember(owner = "client!oa", name = "b", descriptor = "()V")
-	override fun finish() {
+	actual override fun finish() {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(IIII)V")
-	override fun method7261(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
+	actual override fun method7261(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "FA", descriptor = "()V")
 	private external fun FA()
 
 	@OriginalMember(owner = "client!oa", name = "P", descriptor = "(IIIII)V")
-	external override fun P(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int)
+	actual external override fun P(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int)
 
 	@OriginalMember(owner = "client!oa", name = "u", descriptor = "()Z")
-	override fun forceFixedScreenmode(): Boolean {
+	actual override fun forceFixedScreenmode(): Boolean {
 		return true
 	}
 
 	@OriginalMember(owner = "client!oa", name = "U", descriptor = "(IIIII)V")
-	external override fun U(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int)
+	actual external override fun U(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int)
 
 	@OriginalMember(owner = "client!oa", name = "Y", descriptor = "()[I")
-	external override fun Y(): IntArray?
+	actual external override fun Y(): IntArray?
 
 	@OriginalMember(owner = "client!oa", name = "ZA", descriptor = "(IFFFFF)V")
-	external override fun ZA(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Float, @OriginalArg(2) arg2: Float, @OriginalArg(3) arg3: Float, @OriginalArg(4) arg4: Float, @OriginalArg(5) arg5: Float)
+	actual external override fun ZA(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Float, @OriginalArg(2) arg2: Float, @OriginalArg(3) arg3: Float, @OriginalArg(4) arg4: Float, @OriginalArg(5) arg5: Float)
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Lclient!he;Lclient!vm;)Lclient!is;")
-	override fun createOffscreenSurface(@OriginalArg(0) surface: Sprite?, @OriginalArg(1) depthBuffer: DepthBuffer?): OffscreenSurface? {
+	actual override fun createOffscreenSurface(@OriginalArg(0) surface: Sprite?, @OriginalArg(1) depthBuffer: DepthBuffer?): OffscreenSurface? {
 		return wa(this, surface as j?, depthBuffer as xa?)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Lclient!is;)V")
-	override fun swapSurface(@OriginalArg(0) offscreenSurface: OffscreenSurface?) {
+	actual override fun swapSurface(@OriginalArg(0) offscreenSurface: OffscreenSurface?) {
 		@Pc(2) val local2: wa? = offscreenSurface as wa?
 		this.n(local2!!.aJ1!!.nativeid, local2.aXa1!!.nativeid)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "da", descriptor = "(III[I)V")
-	external override fun da(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: IntArray?)
+	actual external override fun da(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: IntArray?)
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(II[I[I)Lclient!aa;")
-	override fun createMask(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: IntArray?, @OriginalArg(3) arg3: IntArray?): ComponentSurface? {
+	actual override fun createMask(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: IntArray?, @OriginalArg(3) arg3: IntArray?): ComponentSurface? {
 		return na(this, this.aYa2, arg0, arg1, arg2, arg3)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "e", descriptor = "()Lclient!bca;")
-	override fun camera(): Matrix? {
+	actual override fun camera(): Matrix? {
 		return this.matrix
 	}
 
 	@OriginalMember(owner = "client!oa", name = "e", descriptor = "(IIIIII)V")
-	override fun line(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int) {
+	actual override fun line(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int) {
 		this.wa(arg0, arg1, arg2, arg3, arg4, arg5)
 	}
 
@@ -762,38 +762,38 @@ class oa : Toolkit, SoftwareObject {
 	private external fun Z(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: ComponentSurface?, @OriginalArg(7) arg7: Int, @OriginalArg(8) arg8: Int)
 
 	@OriginalMember(owner = "client!oa", name = "C", descriptor = "(Z)V")
-	external override fun C(@OriginalArg(0) arg0: Boolean)
+	actual external override fun C(@OriginalArg(0) arg0: Boolean)
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(II)Lclient!vm;")
-	override fun createDepthBuffer(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int): DepthBuffer? {
+	actual override fun createDepthBuffer(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int): DepthBuffer? {
 		return xa(arg0, arg1)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "d", descriptor = "()Z")
-	override fun stillwaterEffectLoaded(): Boolean {
+	actual override fun stillwaterEffectLoaded(): Boolean {
 		return true
 	}
 
 	@OriginalMember(owner = "client!oa", name = "L", descriptor = "(III)V")
-	external override fun L(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int)
+	actual external override fun L(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int)
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "([IIIIIZ)Lclient!mi;")
-	override fun createNativeSprite(@OriginalArg(0) arg0: IntArray?, @OriginalArg(2) arg1: Int, @OriginalArg(3) arg2: Int, @OriginalArg(4) arg3: Int, @OriginalArg(5) arg4: Boolean): NativeSprite? {
+	actual override fun createNativeSprite(@OriginalArg(0) arg0: IntArray?, @OriginalArg(2) arg1: Int, @OriginalArg(3) arg2: Int, @OriginalArg(4) arg3: Int, @OriginalArg(5) arg4: Boolean): NativeSprite? {
 		return j(this, arg0, 0, arg1, arg2, arg3, false)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "la", descriptor = "()V")
-	external override fun la()
+	actual external override fun la()
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Z)V")
-	override fun setShrinkTextures(@OriginalArg(0) arg0: Boolean) {
+	actual override fun setShrinkTextures(@OriginalArg(0) arg0: Boolean) {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "M", descriptor = "()I")
-	external override fun M(): Int
+	actual external override fun M(): Int
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "()Z")
-	override fun supportsBloom(): Boolean {
+	actual override fun supportsBloom(): Boolean {
 		return false
 	}
 
@@ -803,55 +803,55 @@ class oa : Toolkit, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "k", descriptor = "()Z")
-	override fun supportsFullscreen(): Boolean {
+	actual override fun supportsFullscreen(): Boolean {
 		return true
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(IIIIIILclient!aa;IIIII)V")
-	override fun drawTexturedLine(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(6) clippingMask: ComponentSurface?, @OriginalArg(7) arg6: Int, @OriginalArg(8) arg7: Int, @OriginalArg(9) arg8: Int, @OriginalArg(10) arg9: Int, @OriginalArg(11) arg10: Int) {
+	actual override fun drawTexturedLine(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(6) clippingMask: ComponentSurface?, @OriginalArg(7) arg6: Int, @OriginalArg(8) arg7: Int, @OriginalArg(9) arg8: Int, @OriginalArg(10) arg9: Int, @OriginalArg(11) arg10: Int) {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Lclient!bca;)V")
-	override fun setCamera(@OriginalArg(0) matrix: Matrix?) {
+	actual override fun setCamera(@OriginalArg(0) matrix: Matrix?) {
 		this.matrix = matrix
 		this.ma((matrix as ja).nativeid)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "p", descriptor = "()V")
-	override fun restoreSurface() {
+	actual override fun restoreSurface() {
 		this.setCanvas(this.aP1!!.canvas)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(II[[I[[IIII)Lclient!s;")
-	override fun createGround(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) tileHeights: Array<IntArray?>?, @OriginalArg(3) arg3: Array<IntArray?>?, @OriginalArg(5) arg4: Int, @OriginalArg(6) arg5: Int): Ground? {
+	actual override fun createGround(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) tileHeights: Array<IntArray?>?, @OriginalArg(3) arg3: Array<IntArray?>?, @OriginalArg(5) arg4: Int, @OriginalArg(6) arg5: Int): Ground? {
 		return t(this, this.aYa2, arg0, arg1, tileHeights, arg3, 512, arg4, arg5)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "XA", descriptor = "()I")
-	external override fun XA(): Int
+	actual external override fun XA(): Int
 
 	@OriginalMember(owner = "client!oa", name = "N", descriptor = "(I[I[F)V")
 	private external fun N(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: IntArray?, @OriginalArg(2) arg2: FloatArray?)
 
 	@OriginalMember(owner = "client!oa", name = "T", descriptor = "(IIII)V")
-	external override fun T(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
+	actual external override fun T(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
 
 	@OriginalMember(owner = "client!oa", name = "s", descriptor = "()Z")
-	override fun utilisesNativeHeap(): Boolean {
+	actual override fun utilisesNativeHeap(): Boolean {
 		return true
 	}
 
 	@OriginalMember(owner = "client!oa", name = "q", descriptor = "()V")
-	override fun renderLastFrame() {
+	actual override fun renderLastFrame() {
 	}
 
 	@OriginalMember(owner = "client!oa", name = "o", descriptor = "()Z")
-	override fun hasBloom(): Boolean {
+	actual override fun hasBloom(): Boolean {
 		return false
 	}
 
 	@OriginalMember(owner = "client!oa", name = "w", descriptor = "()Z")
-	override fun supportsAntiAliasing(): Boolean {
+	actual override fun supportsAntiAliasing(): Boolean {
 		return false
 	}
 }

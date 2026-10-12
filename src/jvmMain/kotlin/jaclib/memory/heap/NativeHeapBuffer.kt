@@ -7,14 +7,14 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!jaclib/memory/heap/NativeHeapBuffer")
-class NativeHeapBuffer @OriginalMember(owner = "client!jaclib/memory/heap/NativeHeapBuffer", name = "<init>", descriptor = "(Lclient!jaclib/memory/heap/NativeHeap;II)V") constructor(@OriginalArg(0) nativeHeap: NativeHeap?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) : Buffer, Source {
+actual class NativeHeapBuffer @OriginalMember(owner = "client!jaclib/memory/heap/NativeHeapBuffer", name = "<init>", descriptor = "(Lclient!jaclib/memory/heap/NativeHeap;II)V") actual constructor(@OriginalArg(0) nativeHeap: NativeHeap?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) : Buffer, Source {
 
 	@OriginalMember(owner = "client!jaclib/memory/heap/NativeHeapBuffer", name = "c", descriptor = "Z")
 	private var c: Boolean = true
 
 	@OriginalMember(owner = "client!jaclib/memory/heap/NativeHeapBuffer", name = "b", descriptor = "I")
 	@JvmField
-	val b: Int
+	actual val b: Int
 
 	@OriginalMember(owner = "client!jaclib/memory/heap/NativeHeapBuffer", name = "a", descriptor = "Lclient!jaclib/memory/heap/NativeHeap;")
 	private val a: NativeHeap?
@@ -29,7 +29,7 @@ class NativeHeapBuffer @OriginalMember(owner = "client!jaclib/memory/heap/Native
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/heap/NativeHeapBuffer", name = "getAddress", descriptor = "()J")
-	override fun getAddress(): Long {
+	actual override fun getAddress(): Long {
 		return this.a!!.getBufferAddress(this.d)
 	}
 
@@ -50,7 +50,7 @@ class NativeHeapBuffer @OriginalMember(owner = "client!jaclib/memory/heap/Native
 
 	@OriginalMember(owner = "client!jaclib/memory/heap/NativeHeapBuffer", name = "a", descriptor = "([BIII)V")
 	@Synchronized
-	override fun a(@OriginalArg(0) arg0: ByteArray?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
+	actual override fun a(@OriginalArg(0) arg0: ByteArray?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
 		if ((arg1 < 0) or (arg0 == null) or !this.a() or (arg3 + arg1 > arg0!!.size) or (arg2 < 0) or (this.b < arg2 + arg3)) {
 			throw RuntimeException()
 		}
@@ -60,13 +60,13 @@ class NativeHeapBuffer @OriginalMember(owner = "client!jaclib/memory/heap/Native
 	@OriginalMember(owner = "client!jaclib/memory/heap/NativeHeapBuffer", name = "finalize", descriptor = "()V")
 	@Synchronized
 	@Throws(Throwable::class)
-	fun finalize() {
+	actual fun finalize() {
 		// super.finalize() is Object.finalize(), which does nothing and is not callable from Kotlin
 		this.b()
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/heap/NativeHeapBuffer", name = "getSize", descriptor = "()I")
-	override fun getSize(): Int {
+	actual override fun getSize(): Int {
 		return this.b
 	}
 }

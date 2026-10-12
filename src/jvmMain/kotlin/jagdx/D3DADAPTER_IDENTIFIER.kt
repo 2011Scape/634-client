@@ -4,7 +4,7 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!jagdx/D3DADAPTER_IDENTIFIER")
-class D3DADAPTER_IDENTIFIER {
+actual class D3DADAPTER_IDENTIFIER actual constructor() {
 
 	@OriginalMember(owner = "client!jagdx/D3DADAPTER_IDENTIFIER", name = "DeviceName", descriptor = "Ljava/lang/String;")
 	private var DeviceName: String? = null
@@ -17,15 +17,15 @@ class D3DADAPTER_IDENTIFIER {
 
 	@OriginalMember(owner = "client!jagdx/D3DADAPTER_IDENTIFIER", name = "VendorID", descriptor = "I")
 	@JvmField
-	var VendorID: Int = 0
+	actual var VendorID: Int = 0
 
 	@OriginalMember(owner = "client!jagdx/D3DADAPTER_IDENTIFIER", name = "Description", descriptor = "Ljava/lang/String;")
 	@JvmField
-	var Description: String? = null
+	actual var Description: String? = null
 
 	@OriginalMember(owner = "client!jagdx/D3DADAPTER_IDENTIFIER", name = "DriverVersion", descriptor = "J")
 	@JvmField
-	var DriverVersion: Long = 0L
+	actual var DriverVersion: Long = 0L
 
 	@OriginalMember(owner = "client!jagdx/D3DADAPTER_IDENTIFIER", name = "Driver", descriptor = "Ljava/lang/String;")
 	private var Driver: String? = null

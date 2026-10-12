@@ -8,7 +8,7 @@ import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 
 @OriginalClass("client!jaclib/peer/hb")
-class hb {
+actual class hb actual constructor() {
 
 	@OriginalMember(owner = "client!jaclib/peer/hb", name = "b", descriptor = "Lclient!jaclib/peer/PeerReference;")
 	private var b: PeerReference? = null
@@ -21,7 +21,7 @@ class hb {
 	val a: ReferenceQueue<Any?> = ReferenceQueue<Any?>()
 
 	@OriginalMember(owner = "client!jaclib/peer/hb", name = "a", descriptor = "(B)V")
-	fun a(@OriginalArg(0) arg0: Byte) {
+	actual fun a(@OriginalArg(0) arg0: Byte) {
 		this.a(21492)
 		while (this.b != null) {
 			this.a(19236, this.b)
@@ -54,7 +54,7 @@ class hb {
 	}
 
 	@OriginalMember(owner = "client!jaclib/peer/hb", name = "b", descriptor = "(B)V")
-	fun b(@OriginalArg(0) arg0: Byte) {
+	actual fun b(@OriginalArg(0) arg0: Byte) {
 		this.a(arg0 + 21574)
 	}
 

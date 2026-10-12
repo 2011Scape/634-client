@@ -5,7 +5,7 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!jaclib/memory/NativeBuffer")
-open class NativeBuffer : Buffer, Source {
+actual open class NativeBuffer actual constructor() : Buffer, Source {
 
 	@OriginalMember(owner = "client!jaclib/memory/NativeBuffer", name = "a", descriptor = "J")
 	private var a: Long = 0L
@@ -14,12 +14,12 @@ open class NativeBuffer : Buffer, Source {
 	private var b: Int = -1
 
 	@OriginalMember(owner = "client!jaclib/memory/NativeBuffer", name = "getAddress", descriptor = "()J")
-	final override fun getAddress(): Long {
+	actual final override fun getAddress(): Long {
 		return this.a
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/NativeBuffer", name = "a", descriptor = "([BIII)V")
-	override fun a(@OriginalArg(0) arg0: ByteArray?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
+	actual override fun a(@OriginalArg(0) arg0: ByteArray?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
 		if ((arg2 + arg3 > this.b) or (arg2 < 0) or (arg0!!.size < arg3 + arg1) or (arg1 < 0) or (arg0 == null) or (this.a == 0L)) {
 			throw RuntimeException()
 		}
@@ -27,12 +27,12 @@ open class NativeBuffer : Buffer, Source {
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/NativeBuffer", name = "getSize", descriptor = "()I")
-	final override fun getSize(): Int {
+	actual final override fun getSize(): Int {
 		return this.b
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/NativeBuffer", name = "a", descriptor = "(JI)V")
-	fun a(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: Int) {
+	actual fun a(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: Int) {
 		this.b = arg1
 		this.a = arg0
 	}

@@ -1,7 +1,7 @@
 package io
 
 expect open class InputStreamReader : Reader {
-    constructor(input: InputStream)
+    constructor(input: InputStream?)
     constructor(input: InputStream, charsetName: String)
 
     override fun read(): Int

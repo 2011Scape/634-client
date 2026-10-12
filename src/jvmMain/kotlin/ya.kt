@@ -6,24 +6,24 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!ya")
-class ya : MemoryPool, SoftwareObject {
+actual class ya : MemoryPool, SoftwareObject {
 
 	@OriginalMember(owner = "client!ya", name = "nativeid", descriptor = "J")
 	private var nativeid: Long = 0L
 
 	@OriginalMember(owner = "client!ya", name = "<init>", descriptor = "(Lclient!oa;I)V")
-	constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: Int) {
+	actual constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: Int) {
 		this.aa(arg0, arg1)
 	}
 
 	@OriginalMember(owner = "client!ya", name = "w", descriptor = "(Z)V")
-	external override fun w(@OriginalArg(0) arg0: Boolean)
+	actual external override fun w(@OriginalArg(0) arg0: Boolean)
 
 	@OriginalMember(owner = "client!ya", name = "ga", descriptor = "()V")
-	external fun ga()
+	actual external fun ga()
 
 	@OriginalMember(owner = "client!ya", name = "finalize", descriptor = "()V")
-	fun finalize() {
+	actual fun finalize() {
 		if (this.nativeid != 0L) {
 			SoftwareMemoryManager.free(this)
 		}
@@ -33,6 +33,6 @@ class ya : MemoryPool, SoftwareObject {
 	private external fun aa(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: Int)
 
 	@OriginalMember(owner = "client!ya", name = "r", descriptor = "()V")
-	external fun r()
+	actual external fun r()
 }
 

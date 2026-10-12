@@ -28,8 +28,10 @@ actual class MixerInfo internal constructor(internal val delegate: JMixer.Info) 
     actual fun getName(): String = delegate.name
 }
 
-actual class DataLineInfo actual constructor(format: AudioFormat) {
-    internal val delegate = JDataLine.Info(JSourceDataLine::class.java, format.delegate)
+actual class DataLineInfo internal constructor(internal val delegate: JDataLine.Info) {
+    actual constructor(format: AudioFormat) : this(JDataLine.Info(JSourceDataLine::class.java, format.delegate))
+
+    actual constructor(format: AudioFormat?, bufferSize: Int) : this(JDataLine.Info(JSourceDataLine::class.java, format?.delegate, bufferSize))
 }
 
 actual class SourceDataLine internal constructor(internal val delegate: JSourceDataLine) {
@@ -38,7 +40,7 @@ actual class SourceDataLine internal constructor(internal val delegate: JSourceD
     actual fun start() = delegate.start()
     actual fun close() = delegate.close()
     actual fun flush() = delegate.flush()
-    actual fun write(data: ByteArray, offset: Int, length: Int): Int = delegate.write(data, offset, length)
+    actual fun write(data: ByteArray?, offset: Int, length: Int): Int = delegate.write(data, offset, length)
     actual fun available(): Int = delegate.available()
 
     private inline fun wrapLUE(block: () -> Unit) {

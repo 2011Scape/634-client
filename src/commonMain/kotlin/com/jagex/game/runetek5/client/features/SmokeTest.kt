@@ -1,0 +1,1222 @@
+package com.jagex.game.runetek5.client.features
+
+import com.jagex.game.runetek5.ObjStackEntity
+import com.jagex.game.runetek5.MapRegion
+import com.jagex.game.runetek5.cache.node.ObjStackEntry
+import com.jagex.game.runetek5.cache.node.ObjStack
+import com.jagex.game.runetek5.statics.StatBaseLevels
+import com.jagex.game.runetek5.config.rsinterface.MediaType
+import com.jagex.game.runetek5.entity.NPCEntityNode
+import com.jagex.game.runetek5.NPCList
+import com.jagex.game.runetek5.vardomain.PlayerVarDomain
+import com.jagex.game.runetek5.config.TypeLists
+import com.jagex.game.runetek5.graphics.model.Model
+import com.jagex.game.runetek5.core.constants.MiniMenuAction
+import com.jagex.game.runetek5.client.menu.MiniMenuEntry
+import com.jagex.game.runetek5.client.menu.MiniMenu
+import com.jagex.game.runetek5.config.iftype.SubInterfaceType
+import com.jagex.game.runetek5.InterfaceManager
+import com.jagex.game.runetek5.config.rsinterface.ComponentType
+import com.jagex.game.runetek5.config.rsinterface.Component
+import com.jagex.game.runetek5.config.rsinterface.Interface
+import com.jagex.game.runetek5.config.rsinterface.SubInterface
+import com.jagex.game.runetek5.client.window.WindowModeType
+import com.jagex.game.runetek5.graphics.Toolkit
+import com.jagex.game.runetek5.core.constants.MainLogicStep
+import com.jagex.game.runetek5.entity.PathingEntitySpotAnimation
+import com.jagex.game.runetek5.entity.PlayerEntity
+import awt.image.BufferedImage
+import io.File
+import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
+import com.jagex.game.runetek5.client.window.WindowMode
+import com.jagex.game.runetek5.OverlayManager
+import com.jagex.game.runetek5.client.login.LoginManager
+import com.jagex.game.runetek5.preference.GamePreferences
+import com.jagex.game.runetek5.client.ClientState
+import kotlin.jvm.JvmField
+import kotlin.jvm.JvmStatic
+import lang.Class
+import lang.getMethod
+import lang.jClass
+import lang.javaSplit
+import lang.javaTrim
+import ClientCommandProcessor
+import MiniMenuActionExecutor
+import ModalInterfaceClose
+import SubInterfaceOpener
+import ToolkitSwitch
+
+/**
+ * Not part of the original client. With client.test=smoke the client logs itself in and exits
+ * with a verdict, so a change can be checked without a person at the keyboard:
+ *
+ * - on the login screen it logs in as client.test.user (default smoketest) with
+ *   client.test.password (default smoketest1), once;
+ * - once in game, with a local player, it waits for client.test.frames frames (default 250) to be
+ *   drawn, then reads the last one through the toolkit, saves it to client.test.shot, and checks
+ *   it is not blank and, when client.test.reference names a directory holding a reference for this
+ *   toolkit (smoke-toolkit<id>.png), that it is close to it. The frame is cut into 32 by 24 blocks.
+ *   The mean difference of the blocks' average colours, out of 255, may be at most
+ *   client.test.tolerance (default 12); it catches a missing scene or a moved camera. The mean
+ *   difference of the blocks' contrast (the spread of brightness inside each) may be at most
+ *   client.test.detailTolerance (default 6); it catches lost textures and detail. Two runs of an
+ *   unchanged client differ by about 7 and 3;
+ *   then it prints "SMOKE PASS ..." and exits 0;
+ * - with client.test.command (for example "gfx level_up", which needs an admin account), it sends
+ *   that command once the first frame passes, waits for a gfx command's graphic to arrive (up to
+ *   150 frames; the server answers on its next tick), then client.test.commandFrames more frames
+ *   (default 60), and checks the frame again, against smoke-toolkit<id>-<first word of the command>.png. For
+ *   a gfx command, one of the local player's spot animation slots must also have taken the graphic
+ *   and advanced its frames;
+ * - if that has not happened within client.test.timeout seconds (default 180), or the client
+ *   throws, it prints "SMOKE FAIL ..." with the step it reached and exits 1.
+ *
+ * - with client.test.toolkit (a ToolkitType id: 0 Java, 1 Java OpenGL, 2 native software,
+ *   5 native OpenGL), it first switches to that toolkit once in game, through the client's own
+ *   switch, and fails if the client does not end up on it; every check then runs on that toolkit,
+ *   against its own references. At the end it switches back to the toolkit it started on, a saved
+ *   preference, and waits for that to settle before exiting.
+ *
+ * It runs when the client is started with client.test=smoke against a local Void server.
+ */
+object SmokeTest {
+
+	@JvmField
+	val ENABLED: Boolean = "smoke" == lang.getProperty("client.test")
+
+	private val USER: String = lang.getProperty("client.test.user", "smoketest")
+
+	private val PASSWORD: String = lang.getProperty("client.test.password", "smoketest1")
+
+	private val FRAMES: Int = lang.getInteger("client.test.frames", 250)
+
+	private val TIMEOUT: Long = lang.getInteger("client.test.timeout", 180).toLong() * 1000L
+
+	private val SHOT: String = lang.getProperty("client.test.shot", "build/smoke/frame.png")
+
+	private val REFERENCE: String = lang.getProperty("client.test.reference", "")
+
+	private val TOLERANCE: Int = lang.getInteger("client.test.tolerance", 12)
+
+	private val DETAIL_TOLERANCE: Int = lang.getInteger("client.test.detailTolerance", 6)
+
+	private const val BLOCKS_X: Int = 32
+
+	private const val BLOCKS_Y: Int = 24
+
+	private val COMMAND: String = lang.getProperty("client.test.command", "")
+
+	private val COMMAND_FRAMES: Int = lang.getInteger("client.test.commandFrames", 60)
+
+	private val CHAT: String = lang.getProperty("client.test.chat", "smoke test chat")
+
+	private val CHAT_FRAMES: Int = lang.getInteger("client.test.chatFrames", 150)
+
+	private var firstImage: String? = null
+
+	private var spotModelBuilt: Boolean = false
+
+	private var chatFrame: Int = -1
+
+	private var chatSeen: String? = null
+
+	private var chatColour: Int = -1
+
+	private var chatTicksFirst: Int = -1
+
+	private var chatTicksLast: Int = -1
+
+	private var chatQueued: Boolean = false
+
+	private var lastText: String? = null
+
+	private val WINDOW_MODES: Boolean = "false" != lang.getProperty("client.test.windowModes")
+
+	private const val WINDOW_FRAMES: Int = 30
+
+	private var startMode: WindowModeType? = null
+
+	private var windowFrame: Int = -1
+
+	private var windowStep: Int = 0
+
+	private val SUB_INTERFACES: Boolean = "false" != lang.getProperty("client.test.subInterfaces")
+
+	private const val SUB_INTERFACE_FRAMES: Int = 20
+
+	private var subInterfaceStep: Int = 0
+
+	private var subInterfaceFrame: Int = -1
+
+	private var modalParent: Long = -1L
+
+	private var overlaysAtStart: Int = 0
+
+	private val GROUND_ITEMS: Boolean = "false" != lang.getProperty("client.test.groundItems")
+
+	private const val COINS: Int = 995
+
+	private const val BRONZE_AXE: Int = 1351
+
+	private var groundStep: Int = 0
+
+	private var groundFrame: Int = -1
+
+	private var groundWasEnabled: Boolean = false
+
+	private var groundX: Int = -1
+
+	private var groundY: Int = -1
+
+	private val NPC_LABELS: Boolean = "false" != lang.getProperty("client.test.npcLabels")
+
+	/** The Tutorial Island guide, who stands beside the test account. */
+	private const val GUIDE_NPC: Int = 945
+
+	private const val NPC_LABEL_WAIT: Int = 200
+
+	private var npcLabelStep: Int = 0
+
+	private var npcLabelFrame: Int = -1
+
+	private var npcLabelsWereEnabled: Boolean = false
+
+	private var npcLabelStart: Int = -1
+
+	private val XP_DROPS: Boolean = "false" != lang.getProperty("client.test.xpDrops")
+
+	private const val XP_WAIT: Int = 300
+
+	private var xpStep: Int = 0
+
+	private var xpFrame: Int = -1
+
+	private var xpWasEnabled: Boolean = false
+
+	private var xpDrawn: Int = 0
+
+	private var xpDrawnFrame: Int = -1
+
+	private val MARKERS: Boolean = "false" != lang.getProperty("client.test.markers")
+
+	private const val MARKER_FRAMES: Int = 40
+
+	private var markerStep: Int = 0
+
+	private var markerFrame: Int = -1
+
+	private var markersWereEnabled: Boolean = false
+
+	private val MEDIA: Boolean = "false" != lang.getProperty("client.test.media")
+
+	private const val MEDIA_FRAMES: Int = 300
+
+	private var mediaStep: Int = 0
+
+	private var mediaFrame: Int = -1
+
+	private var mediaBuilt: String = ""
+
+	private val MENU_WALK: Boolean = "false" != lang.getProperty("client.test.menuWalk")
+
+	private const val MENU_WALK_FRAMES: Int = 400
+
+	private var menuWalkFrame: Int = -1
+
+	private var menuWalkStartX: Int = -1
+
+	private var menuWalkStartY: Int = -1
+
+	private var menuWalkStep: Int = 0
+
+	private var menuWalkHomeX: Int = -1
+
+	private var menuWalkHomeY: Int = -1
+
+	private var menuWalkAwayX: Int = -1
+
+	private var menuWalkAwayY: Int = -1
+
+	private val TOOLKIT: Int = lang.getInteger("client.test.toolkit", -1)
+
+	private var startToolkit: Int = -1
+
+	private var toolkitSwitched: Boolean = false
+
+	private var passLine: String? = null
+
+	private var restoreFrame: Int = -1
+
+	private var commandFrame: Int = -1
+
+	private var spotSeen: Int = -1
+
+	private var spotSeenFrame: Int = -1
+
+	private const val COMMAND_WAIT: Int = 150
+
+	private var spotFrameMax: Int = 0
+
+	private val START: Long = lang.currentTimeMillis()
+
+	private var loginSent: Boolean = false
+
+	private var highestStep: Int = 0
+
+	private var lastStep: Int = -1
+
+	private var gameFrames: Int = 0
+
+	private var frames: Int = 0
+
+	/**
+	 * Called at the start of every logic tick.
+	 */
+	@JvmStatic
+	fun tick() {
+		if (!ENABLED) {
+			return
+		}
+		val step: Int = ClientState.mainLogicStep!!.id()
+		if (step != lastStep) {
+			lastStep = step
+			highestStep = kotlin.math.max(highestStep, step)
+			println("SMOKE step " + step + " at " + elapsed() + "s")
+		}
+		if (ClientState.mainLogicStep === MainLogicStep.STEP_LOGIN_SCREEN && !loginSent) {
+			loginSent = true
+			println("SMOKE logging in as " + USER)
+			LoginManager.lobbyLogin(USER, PASSWORD)
+		}
+		if (lang.currentTimeMillis() - START > TIMEOUT) {
+			fail("timed out after " + elapsed() + "s at step " + step + " (highest " + highestStep + "), " + frames + " frames drawn")
+		}
+	}
+
+	/**
+	 * Called after every frame is drawn.
+	 */
+	@JvmStatic
+	fun frame() {
+		if (!ENABLED) {
+			return
+		}
+		frames++
+		if (restoreFrame >= 0) {
+			// switched back to the starting toolkit: let it settle, then report
+			if (frames - restoreFrame >= 50) {
+				println(passLine)
+				lang.flushOut()
+				lang.halt(0)
+			}
+			return
+		}
+		val player: PlayerEntity? = PlayerUpdate.localPlayer
+		if (ClientState.mainLogicStep !== MainLogicStep.STEP_GAME_SCREEN || player == null) {
+			return
+		}
+		if (TOOLKIT >= 0 && !toolkitSwitched) {
+			toolkitSwitched = true
+			startToolkit = GamePreferences.uid!!.toolkit!!.getValue()
+			if (startToolkit != TOOLKIT) {
+				println("SMOKE switching from toolkit " + startToolkit + " to " + TOOLKIT)
+				switchToolkit(TOOLKIT)
+				if (GamePreferences.uid!!.toolkit!!.getValue() != TOOLKIT) {
+					fail("toolkit " + TOOLKIT + " could not start; the client is on toolkit " + GamePreferences.uid!!.toolkit!!.getValue())
+				}
+				println("SMOKE now on toolkit " + TOOLKIT + " (" + ClientState.activeToolkit!!.jClass.getSimpleName() + ")")
+				gameFrames = 0
+				return
+			}
+		}
+		if (++gameFrames < FRAMES) {
+			return
+		}
+		if (firstImage == null) {
+			firstImage = checkImage("", SHOT)
+			if (COMMAND.length > 0) {
+				println("SMOKE sending ::" + COMMAND)
+				sendCommand(COMMAND)
+				commandFrame = gameFrames
+			}
+		}
+		if (commandFrame >= 0) {
+			val slots: Array<PathingEntitySpotAnimation> = arrayOf(player.primarySpotAnimation, player.secondarySpotAnimation)
+			for (i in 0 until slots.size) {
+				if (slots[i].spotAnimationId != -1) {
+					if (spotSeen == -1) {
+						println("SMOKE " + (if (i == 0) "primary" else "secondary") + " spot animation slot took graphic " + slots[i].spotAnimationId)
+					}
+					spotSeen = slots[i].spotAnimationId
+					spotFrameMax = kotlin.math.max(spotFrameMax, slots[i].currentFrameId)
+				}
+			}
+			// the server answers on its next tick, up to 600 ms away: count from when the graphic arrives
+			if (spotSeen != -1 && spotSeenFrame < 0) {
+				spotSeenFrame = gameFrames
+			}
+			val gfx: Boolean = COMMAND.javaSplit(" ")[0] == "gfx"
+			if (gfx && spotSeen == -1 && gameFrames - commandFrame < COMMAND_WAIT) {
+				return
+			}
+			if (gameFrames - (if (spotSeenFrame >= 0) spotSeenFrame else commandFrame) < COMMAND_FRAMES) {
+				return
+			}
+			val word: String = COMMAND.javaSplit(" ")[0]
+			if (word == "gfx" && (spotSeen == -1 || spotFrameMax == 0)) {
+				fail("::" + COMMAND + " did not play: neither spot animation slot " + (if (spotSeen == -1) "took a graphic" else "took graphic " + spotSeen + " but never advanced its frame"))
+			}
+			if (word == "gfx" && !spotModelBuilt) {
+				fail("::" + COMMAND + " played in the spot animation slot, but its model was never drawn")
+			}
+			if (chatFrame < 0) {
+				val second: String? = checkImage("-" + word, SHOT.replace(".png", "-" + word + ".png"))
+				firstImage += "; after ::" + COMMAND + (if (spotSeen == -1) "" else " (spot animation " + spotSeen + ", frame up to " + spotFrameMax + ", model built)") + ": " + second
+			}
+		}
+		if (CHAT.length > 0) {
+			if (chatFrame < 0) {
+				println("SMOKE forcing overhead chat \"" + CHAT + "\"")
+				sendCommand("chat \"" + CHAT + "\"")
+				chatFrame = gameFrames
+				commandFrame = -1
+				return
+			}
+			val expected: String = CHAT
+			if (player.hintDetails.text != null && player.hintDetails.text != lastText) {
+				lastText = player.hintDetails.text
+				println("SMOKE overhead chat now \"" + lastText + "\"")
+			}
+			if (expected.equals(player.hintDetails.text, ignoreCase = true)) {
+				if (chatSeen == null) {
+					println("SMOKE overhead chat took \"" + player.hintDetails.text + "\", colour " + player.hintDetails.colorType + ", " + player.hintDetails.ticksLeft + " ticks")
+					chatTicksFirst = player.hintDetails.ticksLeft
+				}
+				chatSeen = player.hintDetails.text
+				chatColour = player.hintDetails.colorType
+				chatTicksLast = player.hintDetails.ticksLeft
+				for (i in 0 until OverlayManager.overheadTextCount) {
+					if (expected.equals(OverlayManager.OVERHEAD_TEXTS[i], ignoreCase = true)) {
+						chatQueued = true
+					}
+				}
+			}
+			if (gameFrames - chatFrame < CHAT_FRAMES) {
+				return
+			}
+			if (chatSeen == null) {
+				fail("the overhead chat never took \"" + expected + "\"")
+			}
+			if (chatTicksLast >= chatTicksFirst) {
+				fail("the overhead chat's ticks did not count down (" + chatTicksFirst + " to " + chatTicksLast + ")")
+			}
+			if (!chatQueued) {
+				fail("the overhead chat never reached the overlay's text queue")
+			}
+			if (!firstImage!!.contains("; overhead chat")) {
+				firstImage += "; overhead chat \"" + chatSeen + "\" colour " + chatColour + ", ticks " + chatTicksFirst + " to " + chatTicksLast + ", drawn"
+			}
+		}
+		if (WINDOW_MODES && !windowModesDone()) {
+			return
+		}
+		if (SUB_INTERFACES && !subInterfacesDone()) {
+			return
+		}
+		if (MENU_WALK && !menuWalkDone(player)) {
+			return
+		}
+		if (MEDIA && !mediaDone(player)) {
+			return
+		}
+		if (MARKERS && !markersDone(player)) {
+			return
+		}
+		if (XP_DROPS && !xpDropsDone()) {
+			return
+		}
+		if (NPC_LABELS && !npcLabelsDone()) {
+			return
+		}
+		if (GROUND_ITEMS && !groundItemsDone(player)) {
+			return
+		}
+		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
+		if (toolkitSwitched && startToolkit != TOOLKIT) {
+			println("SMOKE switching back to toolkit " + startToolkit)
+			switchToolkit(startToolkit)
+			restoreFrame = frames
+			return
+		}
+		println(passLine)
+		lang.flushOut()
+		lang.halt(0)
+	}
+
+	/**
+	 * Reads the frame just drawn, saves it, and fails the test if it is blank or too far from the
+	 * reference. Returns a summary for the pass line.
+	 */
+	private fun checkImage(suffix: String, shotPath: String): String? {
+		val toolkit: Toolkit? = ClientState.activeToolkit
+		val size: IntArray = IntArray(2)
+		toolkit!!.accumulateViewportDimensions(size)
+		val width: Int = size[0]
+		val height: Int = size[1]
+		val pixels: IntArray? = toolkit.na(0, 0, width, height)
+		val shot: BufferedImage = BufferedImage(width, height, awt.image.BUFFERED_IMAGE_TYPE_INT_RGB)
+		shot.setRGB(0, 0, width, height, pixels, 0, width)
+		val toolkitId: Int = GamePreferences.uid!!.toolkit!!.getValue()
+		try {
+			val file: File = File(shotPath)
+			if (file.getParentFile() != null) {
+				file.getParentFile()!!.mkdirs()
+			}
+			writePng(shot, file)
+		} catch (ex: Exception) {
+			fail("cannot save " + SHOT + ": " + ex)
+		}
+		val blocks: DoubleArray = blocks(shot)
+		val detail: Double = spread(blocks)
+		if (detail < 8.0) {
+			fail("the frame is blank: block brightness varies by " + format(detail) + " (toolkit " + toolkitId + ", " + width + "x" + height + ", saved to " + shotPath + ")")
+		}
+		val summary: String = "toolkit " + toolkitId + ", " + width + "x" + height + ", detail " + format(detail)
+		if (REFERENCE.length == 0) {
+			return summary + ", no reference given"
+		}
+		// a check may keep several references taken in different runs (smoke-toolkit<id><suffix>.png,
+		// then .2.png, .3.png, ...): the guide wanders, and a frame need only be close to one of them
+		var reference: File? = null
+		var difference: Double = Double.MAX_VALUE
+		var detailDifference: Double = Double.MAX_VALUE
+		val shotContrast: DoubleArray = contrast(shot)
+		var n: Int = 1
+		while (true) {
+			val candidate: File = File(REFERENCE, "smoke-toolkit" + toolkitId + suffix + (if (n == 1) "" else "." + n) + ".png")
+			if (!candidate.isFile()) {
+				break
+			}
+			val expected: BufferedImage?
+			try {
+				expected = readImage(candidate)
+			} catch (ex: Exception) {
+				fail("cannot read " + candidate + ": " + ex)
+				return null
+			}
+			val colour: Double = difference(blocks, blocks(expected))
+			val contrastDifference: Double = difference(shotContrast, contrast(expected))
+			if (kotlin.math.max(colour / TOLERANCE, contrastDifference / DETAIL_TOLERANCE) < kotlin.math.max(difference / TOLERANCE, detailDifference / DETAIL_TOLERANCE)) {
+				reference = candidate
+				difference = colour
+				detailDifference = contrastDifference
+			}
+			n++
+		}
+		if (reference == null) {
+			return summary + ", no reference at " + File(REFERENCE, "smoke-toolkit" + toolkitId + suffix + ".png")
+		}
+		if (difference > TOLERANCE || detailDifference > DETAIL_TOLERANCE) {
+			fail("the frame differs from its closest reference, " + reference + ": colour by " + format(difference) + " (at most " + TOLERANCE + "), detail by " + format(detailDifference) + " (at most " + DETAIL_TOLERANCE + "); " + summary + ", saved to " + shotPath)
+		}
+		return summary + ", from the reference " + reference.getName() + ": colour " + format(difference) + ", detail " + format(detailDifference)
+	}
+
+	/**
+	 * The mean red, green and blue of each of BLOCKS_X by BLOCKS_Y blocks, row by row.
+	 */
+	private fun blocks(image: BufferedImage?): DoubleArray {
+		val out: DoubleArray = DoubleArray(BLOCKS_X * BLOCKS_Y * 3)
+		val width: Int = image!!.getWidth()
+		val height: Int = image.getHeight()
+		for (by in 0 until BLOCKS_Y) {
+			for (bx in 0 until BLOCKS_X) {
+				val x0: Int = bx * width / BLOCKS_X
+				val x1: Int = (bx + 1) * width / BLOCKS_X
+				val y0: Int = by * height / BLOCKS_Y
+				val y1: Int = (by + 1) * height / BLOCKS_Y
+				var red: Long = 0L
+				var green: Long = 0L
+				var blue: Long = 0L
+				var count: Int = 0
+				for (y in y0 until y1) {
+					for (x in x0 until x1) {
+						val rgb: Int = image.getRGB(x, y)
+						red += (rgb shr 16 and 0xFF).toLong()
+						green += (rgb shr 8 and 0xFF).toLong()
+						blue += (rgb and 0xFF).toLong()
+						count++
+					}
+				}
+				val at: Int = (by * BLOCKS_X + bx) * 3
+				if (count > 0) {
+					out[at] = red.toDouble() / count
+					out[at + 1] = green.toDouble() / count
+					out[at + 2] = blue.toDouble() / count
+				}
+			}
+		}
+		return out
+	}
+
+	/**
+	 * The spread of brightness inside each of BLOCKS_X by BLOCKS_Y blocks, row by row: textures and
+	 * edges raise it, blur and blank areas lower it.
+	 */
+	private fun contrast(image: BufferedImage?): DoubleArray {
+		val out: DoubleArray = DoubleArray(BLOCKS_X * BLOCKS_Y)
+		val width: Int = image!!.getWidth()
+		val height: Int = image.getHeight()
+		for (by in 0 until BLOCKS_Y) {
+			for (bx in 0 until BLOCKS_X) {
+				var sum: Double = 0.0
+				var squares: Double = 0.0
+				var count: Int = 0
+				for (y in by * height / BLOCKS_Y until (by + 1) * height / BLOCKS_Y) {
+					for (x in bx * width / BLOCKS_X until (bx + 1) * width / BLOCKS_X) {
+						val rgb: Int = image.getRGB(x, y)
+						val brightness: Double = ((rgb shr 16 and 0xFF) * 299 + (rgb shr 8 and 0xFF) * 587 + (rgb and 0xFF) * 114) / 1000.0
+						sum += brightness
+						squares += brightness * brightness
+						count++
+					}
+				}
+				if (count > 0) {
+					val mean: Double = sum / count
+					out[by * BLOCKS_X + bx] = kotlin.math.sqrt(kotlin.math.max(0.0, squares / count - mean * mean))
+				}
+			}
+		}
+		return out
+	}
+
+	/**
+	 * The standard deviation of the blocks' brightness: near 0 for a blank frame.
+	 */
+	private fun spread(blocks: DoubleArray): Double {
+		val n: Int = blocks.size / 3
+		var sum: Double = 0.0
+		var squares: Double = 0.0
+		for (i in 0 until n) {
+			val brightness: Double = (blocks[i * 3] + blocks[i * 3 + 1] + blocks[i * 3 + 2]) / 3.0
+			sum += brightness
+			squares += brightness * brightness
+		}
+		val mean: Double = sum / n
+		return kotlin.math.sqrt(kotlin.math.max(0.0, squares / n - mean * mean))
+	}
+
+	private fun difference(a: DoubleArray, b: DoubleArray): Double {
+		var total: Double = 0.0
+		for (i in 0 until a.size) {
+			total += kotlin.math.abs(a[i] - b[i])
+		}
+		return total / a.size
+	}
+
+	/**
+	 * Runs a console command as typed, through ClientCommandProcessor.executeCommand.
+	 */
+	private fun sendCommand(command: String) {
+		try {
+			ClientCommandProcessor.executeCommand(command, false, false)
+		} catch (ex: Exception) {
+			fail("cannot send ::" + command + ": " + ex)
+		}
+	}
+
+	/**
+	 * Switches toolkit through ToolkitSwitch.loadAssets, the client's own switch.
+	 */
+	private fun switchToolkit(toolkit: Int) {
+		try {
+			ToolkitSwitch.loadAssets(false, toolkit)
+		} catch (ex: Exception) {
+			fail("cannot switch to toolkit " + toolkit + ": " + ex)
+		}
+	}
+
+	private fun format(value: Double): String {
+		return (lang.round(value * 10.0) / 10.0).toString()
+	}
+
+	/**
+	 * Steps through the sub-interface check, a frame at a time: the overlays the server opened at login
+	 * are there, a modal opened into a free container of the root interface draws, and closing modals
+	 * removes it and leaves the overlays. True once it is done.
+	 */
+	private fun subInterfacesDone(): Boolean {
+		if (subInterfaceStep == 0) {
+			var overlay: Int = -1
+			overlaysAtStart = 0
+			var sub: SubInterface? = InterfaceManager.OPEN_INTERFACES.first() as SubInterface?
+			while (sub != null) {
+				if (sub.openType === SubInterfaceType.OVERLAY) {
+					overlaysAtStart++
+					overlay = sub.interfaceId
+				}
+				sub = InterfaceManager.OPEN_INTERFACES.next() as SubInterface?
+			}
+			if (overlaysAtStart == 0) {
+				fail("no overlay sub-interface is open after login")
+			}
+			val root: Array<Component?>? = Interface.interfaces!![ClientState.BASE_WINDOW_ID]
+			var i: Int = 0
+			while (root != null && i < root.size && modalParent == -1L) {
+				val c: Component? = root[i]
+				if (c != null && c.type === ComponentType.CONTAINER && c.parentId != -1 && InterfaceManager.OPEN_INTERFACES.get(c.idHash.toLong()) == null) {
+					modalParent = c.idHash.toLong()
+				}
+				i++
+			}
+			if (modalParent == -1L) {
+				fail("the root interface " + ClientState.BASE_WINDOW_ID + " has no free container to open a modal into")
+			}
+			openSubInterface(overlay, modalParent.toInt(), SubInterfaceType.MODAL)
+			subInterfaceFrame = frames
+			subInterfaceStep = 1
+			return false
+		}
+		if (frames - subInterfaceFrame < SUB_INTERFACE_FRAMES) {
+			return false
+		}
+		if (subInterfaceStep == 1) {
+			val modal: SubInterface? = InterfaceManager.OPEN_INTERFACES.get(modalParent) as SubInterface?
+			if (modal == null || modal.openType !== SubInterfaceType.MODAL) {
+				fail("the modal opened into " + modalParent + " is " + (if (modal == null) "not open" else "open as " + modal.openType))
+			}
+			closeModals()
+			if (InterfaceManager.OPEN_INTERFACES.get(modalParent) != null) {
+				fail("closing modals left the modal in " + modalParent + " open")
+			}
+			subInterfaceFrame = frames
+			subInterfaceStep = 2
+			return false
+		}
+		var overlays: Int = 0
+		var sub: SubInterface? = InterfaceManager.OPEN_INTERFACES.first() as SubInterface?
+		while (sub != null) {
+			if (sub.openType === SubInterfaceType.OVERLAY) {
+				overlays++
+			}
+			sub = InterfaceManager.OPEN_INTERFACES.next() as SubInterface?
+		}
+		if (overlays != overlaysAtStart) {
+			fail("closing modals changed the overlays open from " + overlaysAtStart + " to " + overlays)
+		}
+		firstImage += "; modal opened into " + (modalParent shr 16) + ":" + (modalParent and 0xFFFFL) + " and closed, " + overlays + " overlays kept"
+		return true
+	}
+
+	/**
+	 * Steps through the mini-menu check: adds a "Walk here" entry for the tile two squares east of the
+	 * player and runs it the way a click does (MiniMenuActionExecutor.processMenuClick), requires the
+	 * player to leave its tile, then walks it back the same way and requires it home again. The
+	 * account's position is saved by the server, so the next run starts where this one did. Home is
+	 * the starting tile, or the scene tile client.test.menuWalkHome ("x,y") to put a moved account
+	 * back. True once it is done.
+	 */
+	private fun menuWalkDone(player: PlayerEntity): Boolean {
+		val x: Int = player.movementBaseX[0]
+		val y: Int = player.movementBaseY[0]
+		if (menuWalkStep == 0) {
+			menuWalkStartX = x
+			menuWalkStartY = y
+			menuWalkHomeX = x
+			menuWalkHomeY = y
+			val home: String = lang.getProperty("client.test.menuWalkHome", "")
+			if (home.length > 0) {
+				menuWalkHomeX = lang.parseInt((home.javaSplit(",")[0]).javaTrim())
+				menuWalkHomeY = lang.parseInt((home.javaSplit(",")[1]).javaTrim())
+			}
+			walkFromMenu(x + 2, y)
+			menuWalkStep = 1
+			return false
+		}
+		if (menuWalkStep == 1) {
+			if (x == menuWalkStartX && y == menuWalkStartY) {
+				if (frames - menuWalkFrame >= MENU_WALK_FRAMES) {
+					fail("the player never left scene tile " + menuWalkStartX + "," + menuWalkStartY + " after a walk from the mini menu")
+				}
+				return false
+			}
+			menuWalkAwayX = x
+			menuWalkAwayY = y
+			walkFromMenu(menuWalkHomeX, menuWalkHomeY)
+			menuWalkStep = 2
+			return false
+		}
+		if (x != menuWalkHomeX || y != menuWalkHomeY) {
+			if (frames - menuWalkFrame >= MENU_WALK_FRAMES) {
+				fail("the player never got back to scene tile " + menuWalkHomeX + "," + menuWalkHomeY + " (it is at " + x + "," + y + ")")
+			}
+			return false
+		}
+		firstImage += "; walked from the mini menu to " + menuWalkAwayX + "," + menuWalkAwayY + " and back to " + x + "," + y
+		return true
+	}
+
+	/**
+	 * Steps through the ground item label check: turns the labels on and puts a pile of 1000 coins
+	 * and a bronze axe on the tile east of the player the way the server's ground item packet does
+	 * (ObjStack.addGroundItem, then ObjStackEntity.refreshObjStack), client side only. It requires a
+	 * label whose bottom line is "Coins (1000)" (the pile lists its most valuable item first) inside
+	 * the frame, checks that frame against its own reference, and takes the pile away the way the
+	 * server's removal does. True once it is done.
+	 */
+	private fun groundItemsDone(player: PlayerEntity): Boolean {
+		if (groundStep == 3) {
+			return true
+		}
+		val level: Int = player.level.toInt()
+		if (groundStep == 0) {
+			groundWasEnabled = GroundItemLabels.enabled
+			GroundItemLabels.enabled = true
+			groundX = player.movementBaseX[0] + 1
+			groundY = player.movementBaseY[0]
+			ObjStack.addGroundItem(ObjStackEntry(COINS, 1000), level, MapRegion.sceneBaseY + groundY, MapRegion.sceneBaseX + groundX)
+			ObjStack.addGroundItem(ObjStackEntry(BRONZE_AXE, 1), level, MapRegion.sceneBaseY + groundY, MapRegion.sceneBaseX + groundX)
+			ObjStackEntity.refreshObjStack(groundY, groundX, level)
+			groundFrame = frames
+			groundStep = 1
+			return false
+		}
+		var label: Int = -1
+		for (i in 0 until GroundItemLabels.drawnLastFrame) {
+			if ("Coins (1000)" == GroundItemLabels.lastTexts[i]) {
+				label = i
+			}
+		}
+		if (groundStep == 1) {
+			if (label == -1) {
+				if (frames - groundFrame >= 200) {
+					fail("no frame labelled the pile on scene tile " + groundX + "," + groundY + " \"Coins (1000)\" (" + GroundItemLabels.drawnLastFrame + " piles labelled" + (if (GroundItemLabels.drawnLastFrame > 0) ", the first \"" + GroundItemLabels.lastTexts[0] + "\"" else "") + ")")
+				}
+				return false
+			}
+			// the screen shows a frame a little after it is drawn: let the label be on it before the shot
+			groundFrame = frames
+			groundStep = 2
+			return false
+		}
+		if (frames - groundFrame < 10) {
+			return false
+		}
+		if (label == -1) {
+			groundStep = 1
+			return false
+		}
+		val size: IntArray = IntArray(2)
+		ClientState.activeToolkit!!.accumulateViewportDimensions(size)
+		val x: Int = GroundItemLabels.lastX[label]
+		val y: Int = GroundItemLabels.lastY[label]
+		if (x < 0 || y < 0 || x >= size[0] || y >= size[1]) {
+			fail("the pile's label is at " + x + "," + y + ", outside the " + size[0] + "x" + size[1] + " frame")
+		}
+		val image: String? = checkImage("-grounditems", SHOT.replace(".png", "-grounditems.png"))
+		val pile: ObjStack? = ObjStack.GROUND_ITEMS.get(((MapRegion.sceneBaseY + groundY shl 14) or (level shl 28) or (MapRegion.sceneBaseX + groundX)).toLong()) as ObjStack?
+		if (pile != null) {
+			pile.unlink()
+		}
+		ObjStackEntity.refreshObjStack(groundY, groundX, level)
+		GroundItemLabels.enabled = groundWasEnabled
+		firstImage += "; ground items labelled \"Coins (1000)\" at " + x + "," + y + ": " + image
+		groundStep = 3
+		return true
+	}
+
+	/**
+	 * Steps through the npc label check: turns the labels on and requires, within NPC_LABEL_WAIT
+	 * frames, a label for the Tutorial Island guide at a point inside the frame. The frame with the
+	 * labels is saved for a look but never compared: the guide walks. True once it is done.
+	 */
+	private fun npcLabelsDone(): Boolean {
+		if (npcLabelStep == 3) {
+			return true
+		}
+		if (npcLabelStep == 0) {
+			npcLabelStart = frames
+			npcLabelsWereEnabled = NpcLabels.enabled
+			NpcLabels.enabled = true
+			npcLabelFrame = frames
+			npcLabelStep = 1
+			return false
+		}
+		var guide: Int = -1
+		for (i in 0 until NpcLabels.drawnLastFrame) {
+			if (NpcLabels.lastTypes[i] == GUIDE_NPC) {
+				guide = i
+			}
+		}
+		if (npcLabelStep == 1) {
+			if (guide == -1) {
+				if (frames - npcLabelFrame >= NPC_LABEL_WAIT) {
+					fail("no frame labelled the guide (npc " + GUIDE_NPC + "); the last frame labelled " + NpcLabels.drawnLastFrame + " npcs")
+				}
+				return false
+			}
+			// the screen shows a frame a little after it is drawn: let the labels be on it before the shot
+			npcLabelFrame = frames
+			npcLabelStep = 2
+			return false
+		}
+		if (frames - npcLabelFrame < 10) {
+			return false
+		}
+		if (guide == -1) {
+			// the guide walked out of view while the screen caught up: wait for him again
+			if (frames - npcLabelStart >= NPC_LABEL_WAIT * 3) {
+				fail("the guide's label kept going away")
+			}
+			npcLabelStep = 1
+			return false
+		}
+		val x: Int = NpcLabels.lastX[guide]
+		val y: Int = NpcLabels.lastY[guide]
+		val size: IntArray = IntArray(2)
+		ClientState.activeToolkit!!.accumulateViewportDimensions(size)
+		if (x < 0 || y < 0 || x >= size[0] || y >= size[1]) {
+			fail("the guide's label is at " + x + "," + y + ", outside the " + size[0] + "x" + size[1] + " frame")
+		}
+		checkImage("-npclabels", SHOT.replace(".png", "-npclabels.png"))
+		NpcLabels.enabled = npcLabelsWereEnabled
+		firstImage += "; " + NpcLabels.drawnLastFrame + " npc labels, the guide's \"" + NpcLabels.label(TypeLists.NPC!!.list(GUIDE_NPC)) + "\" at " + x + "," + y
+		npcLabelStep = 3
+		return true
+	}
+
+	/**
+	 * Steps through the experience drop check: logging in must have made no drops. Void sends no
+	 * stats at login, so it first sets the test account's Attack to 1 with its admin command
+	 * ::level (the update only primes the skill), then to 2, which must make a "+83 Attack" drop
+	 * that frames draw, and then back to 1. True once it is done.
+	 */
+	private fun xpDropsDone(): Boolean {
+		val level: Int = StatBaseLevels.statBaseLevels[0]
+		if (xpStep == 0) {
+			if (XpDrops.dropCount() != 0 || XpDrops.lastDropText != null) {
+				fail("logging in made experience drops (" + XpDrops.lastDropText + ")")
+			}
+			xpWasEnabled = XpDrops.enabled
+			XpDrops.enabled = true
+			sendCommand("level attack 1")
+			xpFrame = frames
+			xpStep = 1
+			return false
+		}
+		if (xpStep == 1) {
+			if (level != 1) {
+				if (frames - xpFrame >= XP_WAIT) {
+					fail("::level attack 1 did not reach the client (Attack is " + level + ")")
+				}
+				return false
+			}
+			if (XpDrops.lastDropText != null) {
+				fail("setting Attack to 1 made the drop \"" + XpDrops.lastDropText + "\"")
+			}
+			println("SMOKE raising Attack from 1 to 2")
+			sendCommand("level attack 2")
+			xpFrame = frames
+			xpStep = 2
+			return false
+		}
+		if (xpStep == 2) {
+			if (XpDrops.drawnLastFrame > 0) {
+				xpDrawn = kotlin.math.max(xpDrawn, XpDrops.drawnLastFrame)
+			}
+			if (XpDrops.lastDropText == null || xpDrawn == 0) {
+				if (frames - xpFrame >= XP_WAIT) {
+					fail("raising Attack made " + (if (XpDrops.lastDropText == null) "no experience drop" else "the drop \"" + XpDrops.lastDropText + "\" but no frame drew it"))
+				}
+				return false
+			}
+			// the screen shows a frame a little after it is drawn: let the drop be on it before the shot
+			if (xpDrawnFrame < 0) {
+				xpDrawnFrame = frames
+			}
+			if (frames - xpDrawnFrame < 10) {
+				return false
+			}
+			if ("+83 Attack" != XpDrops.lastDropText) {
+				fail("the experience drop reads \"" + XpDrops.lastDropText + "\", not \"+83 Attack\"")
+			}
+			// saved for a look, never compared: the drop rises and fades, so no two runs catch the same frame
+			checkImage("-xpdrop", SHOT.replace(".png", "-xpdrop.png"))
+			println("SMOKE experience drop \"" + XpDrops.lastDropText + "\" drawn; setting Attack back to 1")
+			sendCommand("level attack 1")
+			xpFrame = frames
+			xpStep = 3
+			return false
+		}
+		if (xpStep == 3) {
+			if (level != 1) {
+				if (frames - xpFrame >= XP_WAIT) {
+					fail("Attack did not go back to 1 (it is " + level + ")")
+				}
+				return false
+			}
+			XpDrops.enabled = xpWasEnabled
+			firstImage += "; experience drop \"" + XpDrops.lastDropText + "\" drawn, Attack back to 1"
+			xpStep = 4
+		}
+		return true
+	}
+
+	/**
+	 * Steps through the tile marker check: turns the markers on, marks the tile east of the player
+	 * through its mini menu entry, and after MARKER_FRAMES frames requires one marker that the last
+	 * frame drew, with the marker's yellow on the frame at the middle of each of its edges. Then it unmarks the tile the same
+	 * way, requires no markers, and puts the switch back. True once it is done.
+	 */
+	private fun markersDone(player: PlayerEntity): Boolean {
+		val x: Int = player.movementBaseX[0] + 1
+		val y: Int = player.movementBaseY[0]
+		if (markerStep == 0) {
+			markersWereEnabled = TileMarkers.enabled
+			TileMarkers.enabled = true
+			runMenuEntry(MiniMenuAction.TILE_MARKER, x, y, "Mark tile")
+			if (TileMarkers.markerCount() != 1 || !TileMarkers.isMarked(x, y)) {
+				fail("the Mark tile entry did not mark scene tile " + x + "," + y + " (" + TileMarkers.markerCount() + " markers)")
+			}
+			markerFrame = frames
+			markerStep = 1
+			return false
+		}
+		if (frames - markerFrame < MARKER_FRAMES) {
+			return false
+		}
+		if (markerStep == 1) {
+			if (TileMarkers.drawnLastFrame != 1) {
+				fail("the marked tile " + x + "," + y + " was not drawn (" + TileMarkers.drawnLastFrame + " markers drawn in the last frame)")
+			}
+			// saved for a look; the check is the outline's own pixels, not the whole frame, which the
+			// walking guide changes from run to run
+			checkImage("-tilemarker", SHOT.replace(".png", "-tilemarker.png"))
+			val image: String = markerPixels()
+			runMenuEntry(MiniMenuAction.TILE_MARKER, x, y, "Unmark tile")
+			if (TileMarkers.markerCount() != 0) {
+				fail("the Unmark tile entry left " + TileMarkers.markerCount() + " markers")
+			}
+			TileMarkers.enabled = markersWereEnabled
+			firstImage += "; tile " + x + "," + y + " marked, drawn and unmarked: " + image
+			markerStep = 2
+		}
+		return true
+	}
+
+	/**
+	 * Reads the frame around the middle of each edge of the last marker drawn and requires the
+	 * marker's yellow within a few pixels of it. Returns a summary for the pass line.
+	 */
+	private fun markerPixels(): String {
+		val size: IntArray = IntArray(2)
+		ClientState.activeToolkit!!.accumulateViewportDimensions(size)
+		val pixels: IntArray? = ClientState.activeToolkit!!.na(0, 0, size[0], size[1])
+		var found: Int = 0
+		for (edge in 0 until 4) {
+			val next: Int = (edge + 1) % 4
+			val midX: Int = (TileMarkers.lastCorners[edge * 2] + TileMarkers.lastCorners[next * 2]) / 2
+			val midY: Int = (TileMarkers.lastCorners[edge * 2 + 1] + TileMarkers.lastCorners[next * 2 + 1]) / 2
+			var yellow: Boolean = false
+			var dy: Int = -3
+			while (dy <= 3 && !yellow) {
+				var dx: Int = -3
+				while (dx <= 3 && !yellow) {
+					val x: Int = midX + dx
+					val y: Int = midY + dy
+					if (x >= 0 && y >= 0 && x < size[0] && y < size[1]) {
+						val rgb: Int = pixels!![y * size[0] + x]
+						yellow = (rgb shr 16 and 0xFF) > 180 && (rgb shr 8 and 0xFF) > 180 && (rgb and 0xFF) < 100
+					}
+					dx++
+				}
+				dy++
+			}
+			if (!yellow) {
+				fail("no marker yellow in the frame near " + midX + "," + midY + ", the middle of the marked tile's edge " + edge)
+			}
+			found++
+		}
+		return "yellow on all " + found + " edges"
+	}
+
+	/**
+	 * Steps through the component media check: a scratch component takes each kind of media
+	 * getAnimatedMediaModel builds (a raw model, the local player's head, an item, an npc's body and,
+	 * if a nearby npc has one, its head) and must get a model for it within MEDIA_FRAMES frames,
+	 * while the cache loads what it needs. True once it is done.
+	 */
+	private fun mediaDone(player: PlayerEntity): Boolean {
+		val cases: Array<IntArray?> = mediaCases()
+		if (mediaStep >= cases.size) {
+			firstImage += "; component media built: " + mediaBuilt.substring(2)
+			return true
+		}
+		if (mediaFrame < 0) {
+			mediaFrame = frames
+		}
+		val media: IntArray? = cases[mediaStep]
+		if (media == null) {
+			mediaStep++
+			mediaFrame = -1
+			return false
+		}
+		val component: Component = Component()
+		component.mediaType = MediaType.fromId(media[0])
+		component.primaryMediaId = media[1]
+		val model: Model? = component.getAnimatedMediaModel(TypeLists.IDK, TypeLists.SEQ, 2048, ClientState.activeToolkit, -1, 0, TypeLists.OBJ, PlayerVarDomain.playerVarProvider, player.playerModel, null, TypeLists.BAS, TypeLists.NPC, -1)
+		if (model != null) {
+			mediaBuilt += ", type " + media[0] + " (" + media[1] + ")"
+			mediaStep++
+			mediaFrame = -1
+			return false
+		}
+		if (frames - mediaFrame >= MEDIA_FRAMES) {
+			fail("a component with media type " + media[0] + " and id " + media[1] + " never got a model" + (if (Component.missingMedia) " (still loading)" else ""))
+		}
+		return false
+	}
+
+	/**
+	 * The media the check builds, as { type, id }: a null entry is skipped (no nearby npc).
+	 */
+	private fun mediaCases(): Array<IntArray?> {
+		var npc: Int = -1
+		var i: Int = 0
+		while (i < NPCList.npcCount && npc == -1) {
+			val node: NPCEntityNode? = NPCList.NPC_ARRAY[i]
+			if (node != null && node.npc != null && node.npc.npcType != null) {
+				npc = node.npc.npcType!!.id
+			}
+			i++
+		}
+		return arrayOf<IntArray?>(intArrayOf(1, 0), intArrayOf(3, -1), intArrayOf(4, 995), if (npc == -1) null else intArrayOf(6, npc))
+	}
+
+	/**
+	 * Adds a "Walk here" entry for a scene tile to the mini menu and runs it through
+	 * MiniMenuActionExecutor.processMenuClick, in the root package.
+	 */
+	private fun walkFromMenu(tileX: Int, tileY: Int) {
+		runMenuEntry(MiniMenuAction.WALK, tileX, tileY, MiniMenu.walkHereText)
+		println("SMOKE walking from the mini menu to scene tile " + tileX + "," + tileY)
+		menuWalkFrame = frames
+	}
+
+	/**
+	 * Adds a tile entry of the given click type to the mini menu and runs it through
+	 * MiniMenuActionExecutor.processMenuClick, in the root package, as a click does.
+	 */
+	private fun runMenuEntry(clickType: Int, tileX: Int, tileY: Int, op: String?) {
+		MiniMenu.addEntry(false, "", tileY, true, tileX, -1, true, clickType, (tileY or (tileX shl 0)).toLong(), op, 0L, -1)
+		var found: MiniMenuEntry? = null
+		var entry: MiniMenuEntry? = MiniMenu.entryList.first() as MiniMenuEntry?
+		while (entry != null) {
+			if (entry.clickType == clickType && entry.param0 == tileX && entry.param1 == tileY) {
+				found = entry
+			}
+			entry = MiniMenu.entryList.next() as MiniMenuEntry?
+		}
+		if (found == null) {
+			fail("the \"" + op + "\" entry added to the mini menu is not in its entry list")
+		}
+		try {
+			MiniMenuActionExecutor.processMenuClick(found, 0, 0)
+		} catch (ex: Exception) {
+			fail("cannot run the \"" + op + "\" entry: " + ex)
+		}
+	}
+
+	/**
+	 * Opens a sub-interface through SubInterfaceOpener.openSubInterface, without its load scripts.
+	 */
+	private fun openSubInterface(interfaceId: Int, parentHash: Int, openType: SubInterfaceType) {
+		try {
+			SubInterfaceOpener.openSubInterface(interfaceId, parentHash, openType, true)
+		} catch (ex: Exception) {
+			fail("cannot open interface " + interfaceId + ": " + ex)
+		}
+	}
+
+	/**
+	 * Closes the open modals through ModalInterfaceClose.closeInterface.
+	 */
+	private fun closeModals() {
+		try {
+			ModalInterfaceClose.closeInterface()
+		} catch (ex: Exception) {
+			fail("cannot close the modals: " + ex)
+		}
+	}
+
+	/**
+	 * Steps through the window mode check, a frame at a time. True once it is done.
+	 */
+	private fun windowModesDone(): Boolean {
+		if (windowStep == 0) {
+			startMode = WindowMode.getWindowMode()
+			if (startMode === WindowModeType.FULLSCREEN) {
+				firstImage += "; window modes skipped (full screen)"
+				return true
+			}
+			val other: WindowModeType = if (startMode === WindowModeType.FIXED) WindowModeType.RESIZABLE else WindowModeType.FIXED
+			println("SMOKE window mode " + startMode + ", switching to " + other)
+			sendCommand(if (other === WindowModeType.FIXED) "wm1" else "wm2")
+			if (WindowMode.getWindowMode() !== other) {
+				fail("the window mode is " + WindowMode.getWindowMode() + " after switching to " + other)
+			}
+			windowFrame = frames
+			windowStep = 1
+			return false
+		}
+		if (frames - windowFrame < WINDOW_FRAMES) {
+			return false
+		}
+		if (windowStep == 1) {
+			println("SMOKE drew " + (frames - windowFrame) + " frames in " + WindowMode.getWindowMode() + ", switching back to " + startMode)
+			sendCommand(if (startMode === WindowModeType.FIXED) "wm1" else "wm2")
+			if (WindowMode.getWindowMode() !== startMode) {
+				fail("the window mode is " + WindowMode.getWindowMode() + " after switching back to " + startMode)
+			}
+			windowFrame = frames
+			windowStep = 2
+			return false
+		}
+		firstImage += "; window modes " + startMode + " to " + (if (startMode === WindowModeType.FIXED) WindowModeType.RESIZABLE else WindowModeType.FIXED) + " and back, drawn in both"
+		return true
+	}
+
+	/**
+	 * Called by PlayerEntity as it draws, with the models it built: the body, then the primary and
+	 * secondary spot animation. Records that the local player drew a spot animation model.
+	 */
+	@JvmStatic
+	fun drawn(player: PlayerEntity?, models: Array<com.jagex.game.runetek5.graphics.model.Model?>?) {
+		if (ENABLED && commandFrame >= 0 && player === PlayerUpdate.localPlayer) {
+			if (player!!.primarySpotAnimation.spotAnimationId != -1 && models!![1] != null ||
+				player.secondarySpotAnimation.spotAnimationId != -1 && models!![2] != null) {
+				spotModelBuilt = true
+			}
+		}
+	}
+
+	/**
+	 * Called when the client reports an error it would otherwise only log.
+	 */
+	@JvmStatic
+	fun error(message: String?, ex: Throwable?) {
+		if (ENABLED) {
+			fail("client error: " + message + (if (ex == null) "" else " " + ex))
+		}
+	}
+
+	private fun fail(why: String) {
+		println("SMOKE FAIL " + why)
+		lang.flushOut()
+		lang.halt(1)
+	}
+
+	private fun elapsed(): Long {
+		return (lang.currentTimeMillis() - START) / 1000L
+	}
+}

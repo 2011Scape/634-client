@@ -17,16 +17,16 @@ import java.util.Hashtable
 import java.util.Vector
 
 @OriginalClass("client!bc")
-class NativeLibraryOwner {
+actual class NativeLibraryOwner {
 
 	@OriginalMember(owner = "client!bc", name = "<init>", descriptor = "()V")
 	private constructor() {
 	}
 
-	companion object {
+	actual companion object {
 		@OriginalMember(owner = "client!gba", name = "a", descriptor = "(Ljava/lang/Class;BLjava/lang/String;)Z")
 		@JvmStatic
-		fun loadLibrary(@OriginalArg(0) class2: Class<*>?, @OriginalArg(2) string: String?): Boolean {
+		actual fun loadLibrary(@OriginalArg(0) class2: Class<*>?, @OriginalArg(2) string: String?): Boolean {
 			@Pc(8) val class3: Class<*>? = NativeLibraryOwner.nativeLibraryOwners.get(string) as Class<*>?
 			if (class3 != null) {
 				return class3.getClassLoader() === class2!!.getClassLoader()
@@ -59,19 +59,19 @@ class NativeLibraryOwner {
 
 		@OriginalMember(owner = "client!qu", name = "a", descriptor = "(ILjava/lang/String;)Z")
 		@JvmStatic
-		fun loadLibrary(@OriginalArg(1) string: String?): Boolean {
+		actual fun loadLibrary(@OriginalArg(1) string: String?): Boolean {
 			return NativeLibraryOwner.loadLibrary(NativeLibraryOwner::class.java, string)
 		}
 
 		@OriginalMember(owner = "client!vn", name = "a", descriptor = "(BLjava/lang/String;)Z")
 		@JvmStatic
-		fun isLibraryLoaded(@OriginalArg(1) string: String?): Boolean {
+		actual fun isLibraryLoaded(@OriginalArg(1) string: String?): Boolean {
 			return NativeLibraryOwner.nativeLibraryOwners.containsKey(string)
 		}
 
 		@OriginalMember(owner = "client!hw", name = "a", descriptor = "(Lclient!in;Lclient!wea;B)V")
 		@JvmStatic
-		fun init(@OriginalArg(0) nativesResource: Js5ResourceProvider?, @OriginalArg(1) signLink: SignLink?) {
+		actual fun init(@OriginalArg(0) nativesResource: Js5ResourceProvider?, @OriginalArg(1) signLink: SignLink?) {
 			NativeLibraryOwner.nativeLibraryPathPrefix = ""
 			NativeLibraryOwner.signLink = signLink
 			Resource.aClass157_219 = nativesResource
@@ -96,11 +96,11 @@ class NativeLibraryOwner {
 		}
 		@OriginalMember(owner = "client!ke", name = "me", descriptor = "Ljava/util/Hashtable;")
 		@JvmField
-		var nativeLibraryOwners: Hashtable<Any?, Any?> = Hashtable<Any?, Any?>()
+		actual var nativeLibraryOwners: Hashtable<Any?, Any?> = Hashtable<Any?, Any?>()
 
 		@OriginalMember(owner = "client!dk", name = "a", descriptor = "(Ljava/lang/String;I)Ljava/lang/String;")
 		@JvmStatic
-		fun getNativeLibraryFileName(@OriginalArg(0) string: String?): String? {
+		actual fun getNativeLibraryFileName(@OriginalArg(0) string: String?): String? {
 			if (ColorImageCacheEntry.osName.startsWith("win")) {
 				return string + ".dll"
 			} else if (ColorImageCacheEntry.osName.startsWith("linux")) {
@@ -114,27 +114,27 @@ class NativeLibraryOwner {
 
 		@OriginalMember(owner = "client!km", name = "a", descriptor = "(Ljava/lang/String;I)Z")
 		@JvmStatic
-		fun hasNativeLibraryFile(@OriginalArg(0) string: String?): Boolean {
+		actual fun hasNativeLibraryFile(@OriginalArg(0) string: String?): Boolean {
 			return NativeLibraryOwner.nativeLibraryFiles.containsKey(string)
 		}
 
 		@OriginalMember(owner = "client!rga", name = "K", descriptor = "Lclient!wea;")
 		@JvmField
-		var signLink: SignLink? = null
+		actual var signLink: SignLink? = null
 
 		@OriginalMember(owner = "client!uba", name = "q", descriptor = "Ljava/lang/String;")
 		@JvmField
-		var nativeLibraryPathPrefix: String? = null
+		actual var nativeLibraryPathPrefix: String? = null
 
 		@OriginalMember(owner = "client!pg", name = "a", descriptor = "(Ljava/io/File;ILjava/lang/String;)V")
 		@JvmStatic
-		fun registerNativeLibraryFile(@OriginalArg(0) file: File?, @OriginalArg(2) string: String?) {
+		actual fun registerNativeLibraryFile(@OriginalArg(0) file: File?, @OriginalArg(2) string: String?) {
 			NativeLibraryOwner.nativeLibraryFiles.put(string, file)
 		}
 
 		@OriginalMember(owner = "client!si", name = "a", descriptor = "(Z)Z")
 		@JvmStatic
-		fun unloadNativeLibraries(): Boolean {
+		actual fun unloadNativeLibraries(): Boolean {
 			@Pc(9) val hashtable: Hashtable<Any?, Any?> = Hashtable<Any?, Any?>()
 			@Pc(12) var enumeration: Enumeration<Any?> = NativeLibraryOwner.nativeLibraryOwners.keys()
 			while (enumeration.hasMoreElements()) {
@@ -198,6 +198,6 @@ class NativeLibraryOwner {
 
 		@OriginalMember(owner = "client!vb", name = "a", descriptor = "Ljava/util/Hashtable;")
 		@JvmField
-		val nativeLibraryFiles: Hashtable<Any?, Any?> = Hashtable<Any?, Any?>()
+		actual val nativeLibraryFiles: Hashtable<Any?, Any?> = Hashtable<Any?, Any?>()
 	}
 }

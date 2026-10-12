@@ -6,7 +6,7 @@ import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 
 @OriginalClass("client!jaclib/memory/Stream")
-class Stream @OriginalMember(owner = "client!jaclib/memory/Stream", name = "<init>", descriptor = "(I)V") private constructor(@OriginalArg(0) arg0: Int) {
+actual class Stream @OriginalMember(owner = "client!jaclib/memory/Stream", name = "<init>", descriptor = "(I)V") private actual constructor(@OriginalArg(0) arg0: Int) {
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "a", descriptor = "I")
 	private var a: Int = 0
@@ -24,18 +24,18 @@ class Stream @OriginalMember(owner = "client!jaclib/memory/Stream", name = "<ini
 	private val e: ByteArray = ByteArray(arg0)
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "<init>", descriptor = "()V")
-	constructor() : this(4096)
+	actual constructor() : this(4096)
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "<init>", descriptor = "(Lclient!jaclib/memory/Buffer;)V")
-	constructor(@OriginalArg(0) buffer: Buffer?) : this(buffer, 0, buffer!!.getSize())
+	actual constructor(@OriginalArg(0) buffer: Buffer?) : this(buffer, 0, buffer!!.getSize())
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "<init>", descriptor = "(Lclient!jaclib/memory/Buffer;II)V")
-	constructor(@OriginalArg(0) buffer: Buffer?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) : this(if (buffer!!.getSize() >= 4096) 4096 else buffer.getSize()) {
+	actual constructor(@OriginalArg(0) buffer: Buffer?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) : this(if (buffer!!.getSize() >= 4096) 4096 else buffer.getSize()) {
 		this.a(buffer, arg1, arg2)
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "a", descriptor = "(I)V")
-	fun a(@OriginalArg(0) arg0: Int) {
+	actual fun a(@OriginalArg(0) arg0: Int) {
 		if (this.c + 1 >= this.e.size) {
 			this.a()
 		}
@@ -44,7 +44,7 @@ class Stream @OriginalMember(owner = "client!jaclib/memory/Stream", name = "<ini
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "a", descriptor = "(F)V")
-	fun a(@OriginalArg(0) arg0: Float) {
+	actual fun a(@OriginalArg(0) arg0: Float) {
 		if (this.e.size <= this.c + 3) {
 			this.a()
 		}
@@ -56,7 +56,7 @@ class Stream @OriginalMember(owner = "client!jaclib/memory/Stream", name = "<ini
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "a", descriptor = "(IIII)V")
-	fun a(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
+	actual fun a(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
 		if (this.c + 3 >= this.e.size) {
 			this.a()
 		}
@@ -67,12 +67,12 @@ class Stream @OriginalMember(owner = "client!jaclib/memory/Stream", name = "<ini
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "a", descriptor = "(Lclient!jaclib/memory/Buffer;)V")
-	fun a(@OriginalArg(0) buffer: Buffer?) {
+	actual fun a(@OriginalArg(0) buffer: Buffer?) {
 		this.a(buffer, 0, buffer!!.getSize())
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "b", descriptor = "(I)V")
-	fun b(@OriginalArg(0) arg0: Int) {
+	actual fun b(@OriginalArg(0) arg0: Int) {
 		if (this.c + 3 >= this.e.size) {
 			this.a()
 		}
@@ -83,7 +83,7 @@ class Stream @OriginalMember(owner = "client!jaclib/memory/Stream", name = "<ini
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "a", descriptor = "()V")
-	fun a() {
+	actual fun a() {
 		if (this.c <= 0) {
 			return
 		}
@@ -107,7 +107,7 @@ class Stream @OriginalMember(owner = "client!jaclib/memory/Stream", name = "<ini
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "b", descriptor = "(IIII)V")
-	fun b(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
+	actual fun b(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
 		if (this.e.size <= this.c + 3) {
 			this.a()
 		}
@@ -118,7 +118,7 @@ class Stream @OriginalMember(owner = "client!jaclib/memory/Stream", name = "<ini
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "c", descriptor = "(I)V")
-	fun c(@OriginalArg(0) arg0: Int) {
+	actual fun c(@OriginalArg(0) arg0: Int) {
 		if (this.e.size <= this.c + 3) {
 			this.a()
 		}
@@ -129,12 +129,12 @@ class Stream @OriginalMember(owner = "client!jaclib/memory/Stream", name = "<ini
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "b", descriptor = "()I")
-	fun b(): Int {
+	actual fun b(): Int {
 		return this.d + this.c
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "d", descriptor = "(I)V")
-	fun d(@OriginalArg(0) arg0: Int) {
+	actual fun d(@OriginalArg(0) arg0: Int) {
 		if (this.e.size <= this.c + 1) {
 			this.a()
 		}
@@ -143,13 +143,13 @@ class Stream @OriginalMember(owner = "client!jaclib/memory/Stream", name = "<ini
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "e", descriptor = "(I)V")
-	fun e(@OriginalArg(0) arg0: Int) {
+	actual fun e(@OriginalArg(0) arg0: Int) {
 		this.a()
 		this.d = arg0
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "b", descriptor = "(F)V")
-	fun b(@OriginalArg(0) arg0: Float) {
+	actual fun b(@OriginalArg(0) arg0: Float) {
 		if (this.e.size <= this.c + 3) {
 			this.a()
 		}
@@ -161,24 +161,24 @@ class Stream @OriginalMember(owner = "client!jaclib/memory/Stream", name = "<ini
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/Stream", name = "f", descriptor = "(I)V")
-	fun f(@OriginalArg(0) arg0: Int) {
+	actual fun f(@OriginalArg(0) arg0: Int) {
 		if (this.c >= this.e.size) {
 			this.a()
 		}
 		this.e[this.c++] = arg0.toByte()
 	}
 
-	companion object {
+	actual companion object {
 
 		@OriginalMember(owner = "client!jaclib/memory/Stream", name = "floatToRawIntBits", descriptor = "(F)I")
-		@JvmStatic external fun floatToRawIntBits(@OriginalArg(0) arg0: Float): Int
+		@JvmStatic actual external fun floatToRawIntBits(@OriginalArg(0) arg0: Float): Int
 
 		@OriginalMember(owner = "client!jaclib/memory/Stream", name = "getLSB", descriptor = "(I)B")
 		@JvmStatic private external fun getLSB(@OriginalArg(0) arg0: Int): Byte
 
 		@OriginalMember(owner = "client!jaclib/memory/Stream", name = "c", descriptor = "()Z")
 		@JvmStatic
-		fun c(): Boolean {
+		actual fun c(): Boolean {
 			return getLSB(-65536).toInt() == -1
 		}
 	}

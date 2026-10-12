@@ -4,7 +4,7 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!jagdx/D3DCAPS")
-class D3DCAPS {
+actual class D3DCAPS actual constructor() {
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "PixelShader1xMaxValue", descriptor = "F")
 	private var PixelShader1xMaxValue: Float = 0.0f
@@ -68,7 +68,7 @@ class D3DCAPS {
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "MaxSimultaneousTextures", descriptor = "I")
 	@JvmField
-	var MaxSimultaneousTextures: Int = 0
+	actual var MaxSimultaneousTextures: Int = 0
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "GuardBandLeft", descriptor = "F")
 	private var GuardBandLeft: Float = 0.0f
@@ -87,7 +87,7 @@ class D3DCAPS {
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "DevCaps", descriptor = "I")
 	@JvmField
-	var DevCaps: Int = 0
+	actual var DevCaps: Int = 0
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "MaxPrimitiveCount", descriptor = "I")
 	private var MaxPrimitiveCount: Int = 0
@@ -97,14 +97,14 @@ class D3DCAPS {
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "SrcBlendCaps", descriptor = "I")
 	@JvmField
-	var SrcBlendCaps: Int = 0
+	actual var SrcBlendCaps: Int = 0
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "Caps", descriptor = "I")
 	private var Caps: Int = 0
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "RasterCaps", descriptor = "I")
 	@JvmField
-	var RasterCaps: Int = 0
+	actual var RasterCaps: Int = 0
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "MaxVertexIndex", descriptor = "I")
 	private var MaxVertexIndex: Int = 0
@@ -114,18 +114,18 @@ class D3DCAPS {
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "MaxStreams", descriptor = "I")
 	@JvmField
-	var MaxStreams: Int = 0
+	actual var MaxStreams: Int = 0
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "VertexShaderVersion", descriptor = "I")
 	@JvmField
-	var VertexShaderVersion: Int = 0
+	actual var VertexShaderVersion: Int = 0
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "DeviceType", descriptor = "I")
 	private var DeviceType: Int = 0
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "TextureCaps", descriptor = "I")
 	@JvmField
-	var TextureCaps: Int = 0
+	actual var TextureCaps: Int = 0
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "MaxVolumeExtent", descriptor = "I")
 	private var MaxVolumeExtent: Int = 0
@@ -138,7 +138,7 @@ class D3DCAPS {
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "TextureOpCaps", descriptor = "I")
 	@JvmField
-	var TextureOpCaps: Int = 0
+	actual var TextureOpCaps: Int = 0
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "TextureFilterCaps", descriptor = "I")
 	private var TextureFilterCaps: Int = 0
@@ -151,14 +151,14 @@ class D3DCAPS {
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "DestBlendCaps", descriptor = "I")
 	@JvmField
-	var DestBlendCaps: Int = 0
+	actual var DestBlendCaps: Int = 0
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "FVFCaps", descriptor = "I")
 	private var FVFCaps: Int = 0
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "MaxActiveLights", descriptor = "I")
 	@JvmField
-	var MaxActiveLights: Int = 0
+	actual var MaxActiveLights: Int = 0
 
 	@OriginalMember(owner = "client!jagdx/D3DCAPS", name = "MaxTextureBlendStages", descriptor = "I")
 	private var MaxTextureBlendStages: Int = 0

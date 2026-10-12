@@ -1,6 +1,8 @@
 package awt
 
 import awt.event.FocusListener
+import awt.event.MouseEvent
+import awt.event.MouseWheelEvent
 import awt.event.KeyListener
 import awt.event.MouseListener
 import awt.event.MouseMotionListener
@@ -28,7 +30,7 @@ expect abstract class Component : ImageObserver {
     fun getGraphics(): Graphics
     fun setCursor(cursor: Cursor?)
     fun getToolkit(): Toolkit
-    fun prepareImage(image: Image, observer: ImageObserver): Boolean
+    fun prepareImage(image: Image?, observer: ImageObserver?): Boolean
     open fun update(graphics: Graphics?)
     open fun paint(graphics: Graphics?)
     fun addKeyListener(keyListener: KeyListener)
@@ -43,6 +45,10 @@ expect abstract class Component : ImageObserver {
     fun removeMouseWheelListener(mouseWheelListener: MouseWheelListener)
     fun getFontMetrics(font: Font): FontMetrics
     override fun imageUpdate(img: Image, infoflags: Int, x: Int, y: Int, width: Int, height: Int): Boolean
+    open fun getSize(): Dimension
+    protected open fun processMouseEvent(e: MouseEvent?)
+    protected open fun processMouseMotionEvent(e: MouseEvent?)
+    protected open fun processMouseWheelEvent(e: MouseWheelEvent?)
 }
 
 expect val Component.pxWidth: Int

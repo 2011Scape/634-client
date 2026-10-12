@@ -1,8 +1,11 @@
 package awt.event
 
-expect class MouseWheelEvent {
-    fun getX(): Int
-    fun getY(): Int
+import awt.Component
+
+expect class MouseWheelEvent : MouseEvent {
+    constructor(source: Component?, id: Int, `when`: Long, modifiers: Int, x: Int, y: Int, xAbs: Int, yAbs: Int, clickCount: Int, popupTrigger: Boolean, scrollType: Int, scrollAmount: Int, wheelRotation: Int, preciseWheelRotation: Double)
     fun getWheelRotation(): Int
-    fun consume()
+    fun getScrollType(): Int
+    fun getScrollAmount(): Int
+    fun getPreciseWheelRotation(): Double
 }

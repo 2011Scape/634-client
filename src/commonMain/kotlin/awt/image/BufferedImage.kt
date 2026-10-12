@@ -13,6 +13,8 @@ expect open class BufferedImage : Image {
     )
 
     fun getType(): Int
+    fun getWidth(): Int
+    fun getHeight(): Int
     fun getColorModel(): ColorModel
     fun getRaster(): WritableRaster
     fun getSource(): ImageProducer
@@ -25,7 +27,7 @@ expect open class BufferedImage : Image {
     ): IntArray
     fun setRGB(
         startX: Int, startY: Int, w: Int, h: Int,
-        rgbArray: IntArray, offset: Int, scansize: Int,
+        rgbArray: IntArray?, offset: Int, scansize: Int,
     )
 }
 

@@ -7,9 +7,9 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!jagdx/IDirect3DBaseTexture")
-open class IDirect3DBaseTexture : IUnknown {
+actual open class IDirect3DBaseTexture : IUnknown {
 
 	@OriginalMember(owner = "client!jagdx/IDirect3DBaseTexture", name = "<init>", descriptor = "(Lclient!jaclib/peer/hb;)V")
-	constructor(@OriginalArg(0) arg0: hb?) : super(arg0) {
+	actual constructor(@OriginalArg(0) arg0: hb?) : super(arg0) {
 	}
 }

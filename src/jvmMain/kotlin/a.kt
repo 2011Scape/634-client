@@ -10,14 +10,14 @@ import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 
 @OriginalClass("client!a")
-class a : SoftwareObject {
+actual class a : SoftwareObject {
 
 	@OriginalMember(owner = "client!a", name = "nativeid", descriptor = "J")
 	private var nativeid: Long = 0L
 
 	@OriginalMember(owner = "client!a", name = "h", descriptor = "Ljava/lang/Runnable;")
 	@JvmField
-	var aRunnable1: Runnable? = null
+	actual var aRunnable1: Runnable? = null
 
 	@OriginalMember(owner = "client!a", name = "k", descriptor = "Lclient!oa;")
 	private val anOa1: oa?
@@ -53,7 +53,7 @@ class a : SoftwareObject {
 	private val anI9: i
 
 	@OriginalMember(owner = "client!a", name = "<init>", descriptor = "(Lclient!oa;II)V")
-	constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) {
+	actual constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) {
 		this.anOa1 = arg0
 		this.anI2 = i(this.anOa1)
 		this.anI7 = i(this.anOa1)
@@ -69,7 +69,7 @@ class a : SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!a", name = "a", descriptor = "(Lclient!s;II)V")
-	fun method1(@OriginalArg(0) ground: Ground?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) {
+	actual fun method1(@OriginalArg(0) ground: Ground?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) {
 		this.H(this.nativeid, (ground as t).nativeid, arg1, arg2)
 	}
 
@@ -77,12 +77,12 @@ class a : SoftwareObject {
 	private external fun R(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: Long, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Long, @OriginalArg(5) arg5: Boolean): Boolean
 
 	@OriginalMember(owner = "client!a", name = "a", descriptor = "(Lclient!ka;IILclient!bca;ZI)Z")
-	fun method2(@OriginalArg(0) model: Model?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) matrix: Matrix?, @OriginalArg(4) arg4: Boolean, @OriginalArg(5) arg5: Int): Boolean {
+	actual fun method2(@OriginalArg(0) model: Model?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) matrix: Matrix?, @OriginalArg(4) arg4: Boolean, @OriginalArg(5) arg5: Int): Boolean {
 		return this.n(this.nativeid, (model as i).nativeid, arg1, arg2, (matrix as ja).nativeid, arg4, arg5)
 	}
 
 	@OriginalMember(owner = "client!a", name = "a", descriptor = "(Lclient!ka;Lclient!ka;IIIZ)V")
-	fun method3(@OriginalArg(0) model: Model?, @OriginalArg(1) model2: Model?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Boolean) {
+	actual fun method3(@OriginalArg(0) model: Model?, @OriginalArg(1) model2: Model?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Boolean) {
 		this.r(this.nativeid, (model as i).nativeid, (model2 as i).nativeid, arg2, arg3, arg4, arg5)
 	}
 
@@ -96,14 +96,14 @@ class a : SoftwareObject {
 	private external fun W(@OriginalArg(0) arg0: Long)
 
 	@OriginalMember(owner = "client!a", name = "finalize", descriptor = "()V")
-	fun finalize() {
+	actual fun finalize() {
 		if (this.nativeid != 0L) {
 			SoftwareMemoryManager.free(this)
 		}
 	}
 
 	@OriginalMember(owner = "client!a", name = "a", descriptor = "(Lclient!ka;Lclient!bca;[II)V")
-	fun method4(@OriginalArg(0) model: Model?, @OriginalArg(1) matrix: Matrix?, @OriginalArg(2) arg2: IntArray?, @OriginalArg(3) arg3: Int) {
+	actual fun method4(@OriginalArg(0) model: Model?, @OriginalArg(1) matrix: Matrix?, @OriginalArg(2) arg2: IntArray?, @OriginalArg(3) arg3: Int) {
 		this.UA(this.nativeid, (model as i).nativeid, (matrix as ja).nativeid, arg2, arg3)
 	}
 
@@ -111,27 +111,27 @@ class a : SoftwareObject {
 	private external fun n(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: Long, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Long, @OriginalArg(5) arg5: Boolean, @OriginalArg(6) arg6: Int): Boolean
 
 	@OriginalMember(owner = "client!a", name = "a", descriptor = "(Lclient!ka;IILclient!bca;Z)Z")
-	fun method5(@OriginalArg(0) model: Model?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) matrix: Matrix?, @OriginalArg(4) arg4: Boolean): Boolean {
+	actual fun method5(@OriginalArg(0) model: Model?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) matrix: Matrix?, @OriginalArg(4) arg4: Boolean): Boolean {
 		return this.R(this.nativeid, (model as i).nativeid, arg1, arg2, (matrix as ja).nativeid, arg4)
 	}
 
 	@OriginalMember(owner = "client!a", name = "a", descriptor = "(Lclient!s;III)V")
-	fun method6(@OriginalArg(0) ground: Ground?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
+	actual fun method6(@OriginalArg(0) ground: Ground?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
 		this.Z(this.nativeid, (ground as t).nativeid, arg1, arg2, arg3)
 	}
 
 	@OriginalMember(owner = "client!a", name = "w", descriptor = "(Z)V")
-	override fun w(@OriginalArg(0) arg0: Boolean) {
+	actual override fun w(@OriginalArg(0) arg0: Boolean) {
 		this.E(this.nativeid, arg0)
 	}
 
 	@OriginalMember(owner = "client!a", name = "a", descriptor = "(Lclient!s;IIIIIII[[Z)V")
-	fun method7(@OriginalArg(0) ground: Ground?, @OriginalArg(4) arg1: Int, @OriginalArg(5) arg2: Int, @OriginalArg(6) arg3: Int, @OriginalArg(7) arg4: Int, @OriginalArg(8) arg5: Array<BooleanArray?>?) {
+	actual fun method7(@OriginalArg(0) ground: Ground?, @OriginalArg(4) arg1: Int, @OriginalArg(5) arg2: Int, @OriginalArg(6) arg3: Int, @OriginalArg(7) arg4: Int, @OriginalArg(8) arg5: Array<BooleanArray?>?) {
 		this.ta(this.nativeid, (ground as t).nativeid, 0, 0, 1024, arg1, arg2, arg3, arg4, arg5)
 	}
 
 	@OriginalMember(owner = "client!a", name = "a", descriptor = "(Lclient!ka;Lclient!bca;[III)V")
-	fun method8(@OriginalArg(0) model: Model?, @OriginalArg(1) matrix: Matrix?, @OriginalArg(2) arg2: IntArray?, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int) {
+	actual fun method8(@OriginalArg(0) model: Model?, @OriginalArg(1) matrix: Matrix?, @OriginalArg(2) arg2: IntArray?, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int) {
 		this.f(this.nativeid, (model as i).nativeid, (matrix as ja).nativeid, arg2, arg3, arg4)
 	}
 
@@ -142,7 +142,7 @@ class a : SoftwareObject {
 	private external fun O(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: Toolkit?, @OriginalArg(2) arg2: IntArray?, @OriginalArg(3) arg3: IntArray?, @OriginalArg(4) arg4: IntArray?, @OriginalArg(5) arg5: ShortArray?, @OriginalArg(6) arg6: Int)
 
 	@OriginalMember(owner = "client!a", name = "a", descriptor = "(Lclient!ha;IIIIIII)V")
-	fun method9(@OriginalArg(0) toolkit: Toolkit?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Int) {
+	actual fun method9(@OriginalArg(0) toolkit: Toolkit?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Int) {
 		this.na(this.nativeid, toolkit, arg1, arg2, arg3, arg4, arg5, arg6, 0)
 	}
 
@@ -153,12 +153,12 @@ class a : SoftwareObject {
 	private external fun r(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: Long, @OriginalArg(2) arg2: Long, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Boolean)
 
 	@OriginalMember(owner = "client!a", name = "a", descriptor = "(Lclient!ka;[ILclient!bca;)V")
-	fun method10(@OriginalArg(0) model: Model?, @OriginalArg(1) arg1: IntArray?, @OriginalArg(2) matrix: Matrix?) {
+	actual fun method10(@OriginalArg(0) model: Model?, @OriginalArg(1) arg1: IntArray?, @OriginalArg(2) matrix: Matrix?) {
 		this.e(this.nativeid, (model as i).nativeid, arg1, (matrix as ja).nativeid)
 	}
 
 	@OriginalMember(owner = "client!a", name = "a", descriptor = "(Lclient!i;BIZ)Lclient!ka;")
-	fun method11(@OriginalArg(0) arg0: i?, @OriginalArg(1) arg1: Byte, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Boolean): Model? {
+	actual fun method11(@OriginalArg(0) arg0: i?, @OriginalArg(1) arg1: Byte, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Boolean): Model? {
 		@Pc(8) val local8: i
 		@Pc(5) val local5: i
 		if (arg1.toInt() == 1) {
@@ -198,7 +198,7 @@ class a : SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!a", name = "b", descriptor = "()V")
-	fun method13() {
+	actual fun method13() {
 		this.aRunnable1 = Thread.currentThread()
 		this.method16()
 	}
@@ -213,7 +213,7 @@ class a : SoftwareObject {
 	private external fun UA(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: Long, @OriginalArg(2) arg2: Long, @OriginalArg(3) arg3: IntArray?, @OriginalArg(4) arg4: Int)
 
 	@OriginalMember(owner = "client!a", name = "a", descriptor = "(Lclient!ha;[I[I[I[SI)V")
-	fun method14(@OriginalArg(0) toolkit: Toolkit?, @OriginalArg(1) arg1: IntArray?, @OriginalArg(2) arg2: IntArray?, @OriginalArg(3) arg3: IntArray?, @OriginalArg(4) arg4: ShortArray?, @OriginalArg(5) arg5: Int) {
+	actual fun method14(@OriginalArg(0) toolkit: Toolkit?, @OriginalArg(1) arg1: IntArray?, @OriginalArg(2) arg2: IntArray?, @OriginalArg(3) arg3: IntArray?, @OriginalArg(4) arg4: ShortArray?, @OriginalArg(5) arg5: Int) {
 		this.O(this.nativeid, toolkit, arg1, arg2, arg3, arg4, arg5)
 	}
 
@@ -221,7 +221,7 @@ class a : SoftwareObject {
 	private external fun HA(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: Toolkit?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int)
 
 	@OriginalMember(owner = "client!a", name = "c", descriptor = "()V")
-	fun method15() {
+	actual fun method15() {
 		this.aRunnable1 = null
 		this.method12()
 	}

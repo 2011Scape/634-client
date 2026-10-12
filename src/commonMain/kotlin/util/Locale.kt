@@ -19,3 +19,7 @@ expect val LOCALE_UK: Locale
 expect fun defaultLocale(): Locale
 
 expect fun localeOf(language: String, country: String = "", variant: String = ""): Locale
+/* Not part of void-client's shim: String.toLowerCase(Locale) and toUpperCase(Locale) (milestone 3). */
+expect fun String.lowercase(locale: Locale): String
+
+expect fun String.uppercase(locale: Locale): String

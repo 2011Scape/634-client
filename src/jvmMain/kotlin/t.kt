@@ -10,11 +10,11 @@ import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 
 @OriginalClass("client!t")
-class t : Ground, SoftwareObject {
+actual class t : Ground, SoftwareObject {
 
 	@OriginalMember(owner = "client!t", name = "nativeid", descriptor = "J")
 	@JvmField
-	var nativeid: Long = 0L
+	actual var nativeid: Long = 0L
 
 	@OriginalMember(owner = "client!t", name = "k", descriptor = "Lclient!uh;")
 	private val aClass341_63: Deque = Deque()
@@ -26,13 +26,13 @@ class t : Ground, SoftwareObject {
 	private val anOa3: oa?
 
 	@OriginalMember(owner = "client!t", name = "<init>", descriptor = "(Lclient!oa;Lclient!ya;II[[I[[IIII)V")
-	constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: ya?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) tileHeights: Array<IntArray?>?, @OriginalArg(5) arg5: Array<IntArray?>?, @OriginalArg(6) arg6: Int, @OriginalArg(7) arg7: Int, @OriginalArg(8) arg8: Int) : super(arg2, arg3, arg6, tileHeights) {
+	actual constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: ya?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) tileHeights: Array<IntArray?>?, @OriginalArg(5) arg5: Array<IntArray?>?, @OriginalArg(6) arg6: Int, @OriginalArg(7) arg7: Int, @OriginalArg(8) arg8: Int) : super(arg2, arg3, arg6, tileHeights) {
 		this.anOa3 = arg0
 		this.ga(this.anOa3, arg1, arg2, arg3, super.tileHeights, arg5, arg6, arg7, arg8)
 	}
 
 	@OriginalMember(owner = "client!t", name = "a", descriptor = "(III[[ZZII)V")
-	override fun renderFloor(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Array<BooleanArray?>?, @OriginalArg(4) arg4: Boolean, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Int) {
+	actual override fun renderFloor(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Array<BooleanArray?>?, @OriginalArg(4) arg4: Boolean, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Int) {
 		this.anInt9622 = arg5
 		@Pc(4) var local4: Int = 0
 		@Pc(10) val local10: FloatArray = FloatArray(this.aClass341_63.size())
@@ -60,10 +60,10 @@ class t : Ground, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!t", name = "wa", descriptor = "(Lclient!r;IIIIZ)V")
-	external override fun wa(@OriginalArg(0) arg0: Shadow?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Boolean)
+	actual external override fun wa(@OriginalArg(0) arg0: Shadow?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Boolean)
 
 	@OriginalMember(owner = "client!t", name = "a", descriptor = "(II)V")
-	override fun renderTile(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int) {
+	actual override fun renderTile(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int) {
 		if (this.anInt9622 < 0) {
 			this.anOa3!!.method6405()!!.method1(this, arg0, arg1)
 		} else {
@@ -72,10 +72,10 @@ class t : Ground, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!t", name = "w", descriptor = "(Z)V")
-	external override fun w(@OriginalArg(0) arg0: Boolean)
+	actual external override fun w(@OriginalArg(0) arg0: Boolean)
 
 	@OriginalMember(owner = "client!t", name = "a", descriptor = "(II[I[I[I[I[I[I[I[I[I[I[IIIIZ)V")
-	override fun addTile(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: IntArray?, @OriginalArg(3) arg3: IntArray?, @OriginalArg(4) arg4: IntArray?, @OriginalArg(5) arg5: IntArray?, @OriginalArg(6) arg6: IntArray?, @OriginalArg(7) arg7: IntArray?, @OriginalArg(8) arg8: IntArray?, @OriginalArg(9) arg9: IntArray?, @OriginalArg(10) arg10: IntArray?, @OriginalArg(11) arg11: IntArray?, @OriginalArg(12) arg12: IntArray?, @OriginalArg(13) arg13: Int, @OriginalArg(14) arg14: Int, @OriginalArg(15) arg15: Int) {
+	actual override fun addTile(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: IntArray?, @OriginalArg(3) arg3: IntArray?, @OriginalArg(4) arg4: IntArray?, @OriginalArg(5) arg5: IntArray?, @OriginalArg(6) arg6: IntArray?, @OriginalArg(7) arg7: IntArray?, @OriginalArg(8) arg8: IntArray?, @OriginalArg(9) arg9: IntArray?, @OriginalArg(10) arg10: IntArray?, @OriginalArg(11) arg11: IntArray?, @OriginalArg(12) arg12: IntArray?, @OriginalArg(13) arg13: Int, @OriginalArg(14) arg14: Int, @OriginalArg(15) arg15: Int) {
 		@Pc(1) var local1: Boolean = false
 		if (arg9 != null) {
 			@Pc(7) var i: Int = 0
@@ -156,22 +156,22 @@ class t : Ground, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!t", name = "a", descriptor = "(Lclient!ab;[I)V")
-	override fun addLight(@OriginalArg(0) pointLight: PointLight?, @OriginalArg(1) arg1: IntArray?) {
+	actual override fun addLight(@OriginalArg(0) pointLight: PointLight?, @OriginalArg(1) arg1: IntArray?) {
 		this.aClass341_63.addLast(pointLight)
 		this.V(pointLight!!.hashCode(), pointLight.getX(), pointLight.getY(), pointLight.getZ(), pointLight.getRadius(), pointLight.getColour(), arg1)
 	}
 
 	@OriginalMember(owner = "client!t", name = "CA", descriptor = "(Lclient!r;IIIIZ)V")
-	external override fun CA(@OriginalArg(0) arg0: Shadow?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Boolean)
+	actual external override fun CA(@OriginalArg(0) arg0: Shadow?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Boolean)
 
 	@OriginalMember(owner = "client!t", name = "q", descriptor = "([F)V")
 	private external fun q(@OriginalArg(0) arg0: FloatArray?)
 
 	@OriginalMember(owner = "client!t", name = "ka", descriptor = "(III)V")
-	external override fun ka(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int)
+	actual external override fun ka(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int)
 
 	@OriginalMember(owner = "client!t", name = "a", descriptor = "(Lclient!r;IIIIZ)Z")
-	override fun method8002(@OriginalArg(0) shadow: Shadow?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int): Boolean {
+	actual override fun method8002(@OriginalArg(0) shadow: Shadow?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int): Boolean {
 		return true
 	}
 
@@ -179,10 +179,10 @@ class t : Ground, SoftwareObject {
 	private external fun V(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: IntArray?)
 
 	@OriginalMember(owner = "client!t", name = "YA", descriptor = "()V")
-	external override fun YA()
+	actual external override fun YA()
 
 	@OriginalMember(owner = "client!t", name = "a", descriptor = "(III[[ZZI)V")
-	override fun renderTiles(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Array<BooleanArray?>?, @OriginalArg(4) arg4: Boolean, @OriginalArg(5) arg5: Int) {
+	actual override fun renderTiles(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Array<BooleanArray?>?, @OriginalArg(4) arg4: Boolean, @OriginalArg(5) arg5: Int) {
 		this.anInt9622 = -1
 		@Pc(4) var local4: Int = 0
 		@Pc(10) val local10: FloatArray = FloatArray(this.aClass341_63.size())
@@ -210,10 +210,10 @@ class t : Ground, SoftwareObject {
 	}
 
 	@OriginalMember(owner = "client!t", name = "fa", descriptor = "(IILclient!r;)Lclient!r;")
-	external override fun fa(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Shadow?): Shadow?
+	actual external override fun fa(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Shadow?): Shadow?
 
 	@OriginalMember(owner = "client!t", name = "finalize", descriptor = "()V")
-	fun finalize() {
+	actual fun finalize() {
 		if (this.nativeid != 0L) {
 			SoftwareMemoryManager.free(this)
 		}
@@ -223,10 +223,10 @@ class t : Ground, SoftwareObject {
 	private external fun ga(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: ya?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Array<IntArray?>?, @OriginalArg(5) arg5: Array<IntArray?>?, @OriginalArg(6) arg6: Int, @OriginalArg(7) arg7: Int, @OriginalArg(8) arg8: Int)
 
 	@OriginalMember(owner = "client!t", name = "U", descriptor = "(II[I[I[I[I[I[I[I[IIIIZ)V")
-	external override fun U(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: IntArray?, @OriginalArg(3) arg3: IntArray?, @OriginalArg(4) arg4: IntArray?, @OriginalArg(5) arg5: IntArray?, @OriginalArg(6) arg6: IntArray?, @OriginalArg(7) arg7: IntArray?, @OriginalArg(8) arg8: IntArray?, @OriginalArg(9) arg9: IntArray?, @OriginalArg(10) arg10: Int, @OriginalArg(11) arg11: Int, @OriginalArg(12) arg12: Int, @OriginalArg(13) arg13: Boolean)
+	actual external override fun U(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: IntArray?, @OriginalArg(3) arg3: IntArray?, @OriginalArg(4) arg4: IntArray?, @OriginalArg(5) arg5: IntArray?, @OriginalArg(6) arg6: IntArray?, @OriginalArg(7) arg7: IntArray?, @OriginalArg(8) arg8: IntArray?, @OriginalArg(9) arg9: IntArray?, @OriginalArg(10) arg10: Int, @OriginalArg(11) arg11: Int, @OriginalArg(12) arg12: Int, @OriginalArg(13) arg13: Boolean)
 
 	@OriginalMember(owner = "client!t", name = "a", descriptor = "(IIIIIII[[Z)V")
-	override fun drawMinimap(@OriginalArg(3) arg0: Int, @OriginalArg(4) arg1: Int, @OriginalArg(5) arg2: Int, @OriginalArg(6) arg3: Int, @OriginalArg(7) arg4: Array<BooleanArray?>?) {
+	actual override fun drawMinimap(@OriginalArg(3) arg0: Int, @OriginalArg(4) arg1: Int, @OriginalArg(5) arg2: Int, @OriginalArg(6) arg3: Int, @OriginalArg(7) arg4: Array<BooleanArray?>?) {
 		this.anOa3!!.method6405()!!.method7(this, arg0, arg1, arg2, arg3, arg4)
 	}
 }

@@ -7,29 +7,29 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!j")
-class j : NativeSprite, SoftwareObject {
+actual class j : NativeSprite, SoftwareObject {
 
 	@OriginalMember(owner = "client!j", name = "nativeid", descriptor = "J")
 	@JvmField
-	var nativeid: Long = 0L
+	actual var nativeid: Long = 0L
 
 	@OriginalMember(owner = "client!j", name = "<init>", descriptor = "(Lclient!oa;II)V")
-	constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) {
+	actual constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int) {
 		this.EA(arg0, arg1, arg2)
 	}
 
 	@OriginalMember(owner = "client!j", name = "<init>", descriptor = "(Lclient!oa;[IIIIIZ)V")
-	constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: IntArray?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Boolean) {
+	actual constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: IntArray?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Boolean) {
 		this.ua(arg0, arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 
 	@OriginalMember(owner = "client!j", name = "<init>", descriptor = "(Lclient!oa;[I[B[BIIII)V")
-	constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: IntArray?, @OriginalArg(2) arg2: ByteArray?, @OriginalArg(3) arg3: ByteArray?, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Int, @OriginalArg(7) arg7: Int) {
+	actual constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: IntArray?, @OriginalArg(2) arg2: ByteArray?, @OriginalArg(3) arg3: ByteArray?, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Int, @OriginalArg(7) arg7: Int) {
 		this.ma(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 
 	@OriginalMember(owner = "client!j", name = "<init>", descriptor = "(Lclient!oa;IIIIZ)V")
-	constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Boolean) {
+	actual constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Boolean) {
 		this.h(arg0, arg1, arg2, arg3, arg4, arg5)
 	}
 
@@ -40,7 +40,7 @@ class j : NativeSprite, SoftwareObject {
 	private external fun P(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Int, @OriginalArg(7) arg7: Int)
 
 	@OriginalMember(owner = "client!j", name = "a", descriptor = "(IIIII)V")
-	override fun render(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int) {
+	actual override fun render(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int) {
 		this.W(this.nativeid, arg0, arg1, arg2, arg3, arg4)
 	}
 
@@ -57,22 +57,22 @@ class j : NativeSprite, SoftwareObject {
 	private external fun M(@OriginalArg(0) arg0: Long): Int
 
 	@OriginalMember(owner = "client!j", name = "a", descriptor = "(IILclient!aa;II)V")
-	override fun drawWithSurface(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) clippingMask: ComponentSurface?, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int) {
+	actual override fun drawWithSurface(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) clippingMask: ComponentSurface?, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int) {
 		this.V(this.nativeid, arg0, arg1, (clippingMask as na).nativeid, arg3, arg4)
 	}
 
 	@OriginalMember(owner = "client!j", name = "a", descriptor = "([I)V")
-	override fun projectOffsets(@OriginalArg(0) arg0: IntArray?) {
+	actual override fun projectOffsets(@OriginalArg(0) arg0: IntArray?) {
 		this.CA(this.nativeid, arg0)
 	}
 
 	@OriginalMember(owner = "client!j", name = "w", descriptor = "(Z)V")
-	override fun w(@OriginalArg(0) arg0: Boolean) {
+	actual override fun w(@OriginalArg(0) arg0: Boolean) {
 		this.R(this.nativeid, arg0)
 	}
 
 	@OriginalMember(owner = "client!j", name = "d", descriptor = "()I")
-	override fun scaleHeight(): Int {
+	actual override fun scaleHeight(): Int {
 		return this.JA(this.nativeid)
 	}
 
@@ -80,7 +80,7 @@ class j : NativeSprite, SoftwareObject {
 	private external fun EA(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int)
 
 	@OriginalMember(owner = "client!j", name = "c", descriptor = "(IIII)V")
-	override fun setOffsets(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
+	actual override fun setOffsets(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
 		this.A(this.nativeid, arg0, arg1, arg2, arg3)
 	}
 
@@ -88,17 +88,17 @@ class j : NativeSprite, SoftwareObject {
 	private external fun ma(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: IntArray?, @OriginalArg(2) arg2: ByteArray?, @OriginalArg(3) arg3: ByteArray?, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Int, @OriginalArg(7) arg7: Int)
 
 	@OriginalMember(owner = "client!j", name = "a", descriptor = "(III)V")
-	override fun copyAlpha(@OriginalArg(2) arg0: Int) {
+	actual override fun copyAlpha(@OriginalArg(2) arg0: Int) {
 		this.N(this.nativeid, 0, 0, arg0)
 	}
 
 	@OriginalMember(owner = "client!j", name = "a", descriptor = "(FFFFFFILclient!aa;II)V")
-	override fun renderParallelogramImpl(@OriginalArg(0) arg0: Float, @OriginalArg(1) arg1: Float, @OriginalArg(2) arg2: Float, @OriginalArg(3) arg3: Float, @OriginalArg(4) arg4: Float, @OriginalArg(5) arg5: Float, @OriginalArg(7) clippingMask: ComponentSurface?, @OriginalArg(8) arg7: Int, @OriginalArg(9) arg8: Int) {
+	actual override fun renderParallelogramImpl(@OriginalArg(0) arg0: Float, @OriginalArg(1) arg1: Float, @OriginalArg(2) arg2: Float, @OriginalArg(3) arg3: Float, @OriginalArg(4) arg4: Float, @OriginalArg(5) arg5: Float, @OriginalArg(7) clippingMask: ComponentSurface?, @OriginalArg(8) arg7: Int, @OriginalArg(9) arg8: Int) {
 		this.UA(this.nativeid, arg0, arg1, arg2, arg3, arg4, arg5, 1, (clippingMask as na).nativeid, arg7, arg8)
 	}
 
 	@OriginalMember(owner = "client!j", name = "b", descriptor = "()I")
-	override fun getHeight(): Int {
+	actual override fun getHeight(): Int {
 		return this.I(this.nativeid)
 	}
 
@@ -109,12 +109,12 @@ class j : NativeSprite, SoftwareObject {
 	private external fun W(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int)
 
 	@OriginalMember(owner = "client!j", name = "a", descriptor = "(IIIIIIII)V")
-	override fun renderImpl(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Int) {
+	actual override fun renderImpl(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Int) {
 		this.RA(this.nativeid, arg0, arg1, arg2, arg3, arg4, arg5, arg6, 1)
 	}
 
 	@OriginalMember(owner = "client!j", name = "c", descriptor = "()I")
-	override fun getWidth(): Int {
+	actual override fun getWidth(): Int {
 		return this.M(this.nativeid)
 	}
 
@@ -137,7 +137,7 @@ class j : NativeSprite, SoftwareObject {
 	private external fun I(@OriginalArg(0) arg0: Long): Int
 
 	@OriginalMember(owner = "client!j", name = "finalize", descriptor = "()V")
-	fun finalize() {
+	actual fun finalize() {
 		if (this.nativeid != 0L) {
 			SoftwareMemoryManager.free(this)
 		}
@@ -147,7 +147,7 @@ class j : NativeSprite, SoftwareObject {
 	private external fun ua(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: IntArray?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Boolean)
 
 	@OriginalMember(owner = "client!j", name = "a", descriptor = "(IIIIII)V")
-	override fun captureScreenRegion(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int) {
+	actual override fun captureScreenRegion(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int) {
 		this.YA(this.nativeid, arg0, arg1, arg2, arg3, arg4, arg5)
 	}
 
@@ -155,17 +155,17 @@ class j : NativeSprite, SoftwareObject {
 	private external fun h(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Boolean)
 
 	@OriginalMember(owner = "client!j", name = "a", descriptor = "(IIIIIII)V")
-	override fun drawScaledColored(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Int) {
+	actual override fun drawScaledColored(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int, @OriginalArg(6) arg6: Int) {
 		this.P(this.nativeid, arg0, arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 
 	@OriginalMember(owner = "client!j", name = "a", descriptor = "()I")
-	override fun scaleWidth(): Int {
+	actual override fun scaleWidth(): Int {
 		return this.wa(this.nativeid)
 	}
 
 	@OriginalMember(owner = "client!j", name = "a", descriptor = "(FFFFFFIIII)V")
-	override fun method6201(@OriginalArg(0) arg0: Float, @OriginalArg(1) arg1: Float, @OriginalArg(2) arg2: Float, @OriginalArg(3) arg3: Float, @OriginalArg(4) arg4: Float, @OriginalArg(5) arg5: Float, @OriginalArg(6) arg6: Int, @OriginalArg(7) arg7: Int) {
+	actual override fun method6201(@OriginalArg(0) arg0: Float, @OriginalArg(1) arg1: Float, @OriginalArg(2) arg2: Float, @OriginalArg(3) arg3: Float, @OriginalArg(4) arg4: Float, @OriginalArg(5) arg5: Float, @OriginalArg(6) arg6: Int, @OriginalArg(7) arg7: Int) {
 		this.b(this.nativeid, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, 1, 1)
 	}
 

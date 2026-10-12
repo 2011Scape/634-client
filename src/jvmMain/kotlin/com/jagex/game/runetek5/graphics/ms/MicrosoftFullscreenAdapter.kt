@@ -15,13 +15,13 @@ import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 
 @OriginalClass("client!nt")
-class MicrosoftFullscreenAdapter : IEnumModesCallback {
+actual class MicrosoftFullscreenAdapter : IEnumModesCallback {
 
 	@OriginalMember(owner = "client!nt", name = "b", descriptor = "Lcom/ms/directX/DirectDraw;")
 	private val draw: DirectDraw = DirectDraw()
 
 	@OriginalMember(owner = "client!nt", name = "<init>", descriptor = "()V")
-	constructor() {
+	actual constructor() {
 		this.draw.initialize(null)
 	}
 
@@ -38,7 +38,7 @@ class MicrosoftFullscreenAdapter : IEnumModesCallback {
 	}
 
 	@OriginalMember(owner = "client!nt", name = "a", descriptor = "(Z)[I")
-	fun listModes(): IntArray? {
+	actual fun listModes(): IntArray? {
 		this.draw.enumDisplayModes(0, null, null, this)
 		MicrosoftFullscreenAdapter.data = IntArray(MicrosoftFullscreenAdapter.pos)
 		MicrosoftFullscreenAdapter.pos = 0
@@ -50,7 +50,7 @@ class MicrosoftFullscreenAdapter : IEnumModesCallback {
 	}
 
 	@OriginalMember(owner = "client!nt", name = "a", descriptor = "(IIIIILjava/awt/Frame;)V")
-	fun enter(@OriginalArg(0) height: Int, @OriginalArg(1) bits: Int, @OriginalArg(2) width: Int, @OriginalArg(4) refreshRate: Int, @OriginalArg(5) frame: Frame?) {
+	actual fun enter(@OriginalArg(0) height: Int, @OriginalArg(1) bits: Int, @OriginalArg(2) width: Int, @OriginalArg(4) refreshRate: Int, @OriginalArg(5) frame: Frame?) {
 		frame!!.setVisible(true)
 		// Not part of the original client, which called arg4.getPeer() directly; current JDKs have no such method.
 		var getPeer: Method? = null
@@ -77,7 +77,7 @@ class MicrosoftFullscreenAdapter : IEnumModesCallback {
 	}
 
 	@OriginalMember(owner = "client!nt", name = "a", descriptor = "(Ljava/awt/Frame;I)V")
-	fun exit(@OriginalArg(0) frame: Frame?) {
+	actual fun exit(@OriginalArg(0) frame: Frame?) {
 		this.draw.restoreDisplayMode()
 		this.draw.setCooperativeLevel(frame, 8)
 	}

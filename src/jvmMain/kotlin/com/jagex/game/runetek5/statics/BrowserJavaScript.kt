@@ -7,12 +7,12 @@ import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 
-object BrowserJavaScript {
+actual object BrowserJavaScript {
 
 	@OriginalMember(owner = "client!bt", name = "a", descriptor = "(Ljava/applet/Applet;ILjava/lang/String;)V")
 	@JvmStatic
 	@Throws(Throwable::class)
-	fun evalJavaScript(@OriginalArg(0) applet: Applet?, @OriginalArg(2) string: String?) {
+	actual fun evalJavaScript(@OriginalArg(0) applet: Applet?, @OriginalArg(2) string: String?) {
 		// Not part of the original client, which called JSObject.getWindow(arg0).eval(arg1) here.
 		invokeOnWindow(applet, "eval", arrayOf<Class<*>>(String::class.java), arrayOf<Any?>(string))
 	}
@@ -20,7 +20,7 @@ object BrowserJavaScript {
 	@OriginalMember(owner = "client!bt", name = "a", descriptor = "(Ljava/lang/String;[Ljava/lang/Object;Ljava/applet/Applet;B)Ljava/lang/Object;")
 	@JvmStatic
 	@Throws(Throwable::class)
-	fun callJavaScriptWithArgs(@OriginalArg(0) string: String?, @OriginalArg(1) objects: Array<Any?>?, @OriginalArg(2) applet: Applet?): Any? {
+	actual fun callJavaScriptWithArgs(@OriginalArg(0) string: String?, @OriginalArg(1) objects: Array<Any?>?, @OriginalArg(2) applet: Applet?): Any? {
 		// Not part of the original client, which called JSObject.getWindow(arg2).call(arg0, arg1) here.
 		return invokeOnWindow(applet, "call", arrayOf<Class<*>>(String::class.java, Array<Any>::class.java), arrayOf<Any?>(string, objects))
 	}
@@ -28,7 +28,7 @@ object BrowserJavaScript {
 	@OriginalMember(owner = "client!bt", name = "a", descriptor = "(BLjava/applet/Applet;Ljava/lang/String;)Ljava/lang/Object;")
 	@JvmStatic
 	@Throws(Throwable::class)
-	fun callJavaScript(@OriginalArg(1) applet: Applet?, @OriginalArg(2) string: String?): Any? {
+	actual fun callJavaScript(@OriginalArg(1) applet: Applet?, @OriginalArg(2) string: String?): Any? {
 		// Not part of the original client, which called JSObject.getWindow(arg0).call(arg1, (Object[]) null) here.
 		return invokeOnWindow(applet, "call", arrayOf<Class<*>>(String::class.java, Array<Any>::class.java), arrayOf<Any?>(string, null))
 	}
@@ -54,11 +54,11 @@ object BrowserJavaScript {
 
 	@OriginalMember(owner = "client!vs", name = "b", descriptor = "Z")
 	@JvmField
-	var javaScriptEnabled: Boolean = false
+	actual var javaScriptEnabled: Boolean = false
 
 	@OriginalMember(owner = "client!tfa", name = "b", descriptor = "(I)Z")
 	@JvmStatic
-	fun isNotShowingVideoAd(): Boolean {
+	actual fun isNotShowingVideoAd(): Boolean {
 		if (BrowserJavaScript.javaScriptEnabled) {
 			try {
 				if (BrowserJavaScript.callJavaScript(GameShell.applet, "showingVideoAd") as Boolean) {
@@ -73,7 +73,7 @@ object BrowserJavaScript {
 
 	@OriginalMember(owner = "client!kd", name = "c", descriptor = "(I)Z")
 	@JvmStatic
-	fun showVideoAd(): Boolean {
+	actual fun showVideoAd(): Boolean {
 		if (BrowserJavaScript.javaScriptEnabled) {
 			try {
 				BrowserJavaScript.callJavaScript(GameShell.applet, "showVideoAd")

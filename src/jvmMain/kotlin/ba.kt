@@ -6,23 +6,23 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!ba")
-class ba : Shadow, SoftwareObject {
+actual class ba : Shadow, SoftwareObject {
 
 	@OriginalMember(owner = "client!ba", name = "nativeid", descriptor = "J")
 	private var nativeid: Long = 0L
 
 	@OriginalMember(owner = "client!ba", name = "<init>", descriptor = "(Lclient!oa;)V")
-	constructor(@OriginalArg(0) arg0: oa?) {
+	actual constructor(@OriginalArg(0) arg0: oa?) {
 	}
 
 	@OriginalMember(owner = "client!ba", name = "finalize", descriptor = "()V")
-	fun finalize() {
+	actual fun finalize() {
 		if (this.nativeid != 0L) {
 			SoftwareMemoryManager.free(this)
 		}
 	}
 
 	@OriginalMember(owner = "client!ba", name = "w", descriptor = "(Z)V")
-	external override fun w(@OriginalArg(0) arg0: Boolean)
+	actual external override fun w(@OriginalArg(0) arg0: Boolean)
 }
 

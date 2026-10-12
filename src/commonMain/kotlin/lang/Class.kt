@@ -1,6 +1,7 @@
 package lang
 
 import lang.reflect.Field
+import lang.reflect.Constructor
 import lang.reflect.Method
 
 expect class Class<T> {
@@ -8,6 +9,8 @@ expect class Class<T> {
 
 //    val simpleName: String
 
+    fun getName(): String
+    fun getSimpleName(): String
     fun isInstance(obj: Any?): Boolean
 
     fun isAssignableFrom(other: Class<*>): Boolean
@@ -27,5 +30,8 @@ expect val <T : Any> T.jClass: Class<T>
 expect val <T : Any> kotlin.reflect.KClass<T>.jClass: Class<T>
 
 expect fun <T> Class<T>.getClassLoader(): ClassLoader?
-expect fun <T> Class<T>.getMethod(name: String?, vararg parameterTypes: Class<*>): Method
-expect fun <T> Class<T>.getDeclaredMethod(name: String?, vararg parameterTypes: Class<*>): Method
+expect fun <T> Class<T>.getMethod(name: String?, vararg parameterTypes: Class<*>?): Method
+expect fun <T> Class<T>.getDeclaredMethod(name: String?, vararg parameterTypes: Class<*>?): Method
+
+/* Class.getDeclaredConstructor (milestone 3). */
+expect fun <T> Class<T>.getDeclaredConstructor(vararg parameterTypes: Class<*>?): Constructor<T>

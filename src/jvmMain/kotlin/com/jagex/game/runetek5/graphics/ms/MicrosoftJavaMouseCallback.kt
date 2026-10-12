@@ -12,7 +12,7 @@ import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 
 @OriginalClass("client!lq")
-class MicrosoftJavaMouseCallback : Callback() {
+actual class MicrosoftJavaMouseCallback actual constructor() : Callback() {
 
 	@OriginalMember(owner = "client!lq", name = "b", descriptor = "I")
 	@Volatile
@@ -33,12 +33,12 @@ class MicrosoftJavaMouseCallback : Callback() {
 	private var delete: Boolean = true
 
 	@OriginalMember(owner = "client!lq", name = "a", descriptor = "(IBI)V")
-	fun movemouse(@OriginalArg(0) x: Int, @OriginalArg(2) y: Int) {
+	actual fun movemouse(@OriginalArg(0) x: Int, @OriginalArg(2) y: Int) {
 		User32.SetCursorPos(x, y)
 	}
 
 	@OriginalMember(owner = "client!lq", name = "a", descriptor = "(ZILjava/awt/Component;)V")
-	fun setCursorVisible(@OriginalArg(0) delete: Boolean, @OriginalArg(2) component: java.awt.Component?) {
+	actual fun setCursorVisible(@OriginalArg(0) delete: Boolean, @OriginalArg(2) component: java.awt.Component?) {
 		// Not part of the original client, which called arg1.getPeer() directly; current JDKs have no such method.
 		var getPeer: Method? = null
 		var local3: WComponentPeer? = null

@@ -20,7 +20,10 @@ expect class MixerInfo {
     fun getName(): String
 }
 
-expect class DataLineInfo(format: AudioFormat)
+expect class DataLineInfo(format: AudioFormat) {
+    /* DataLine.Info(SourceDataLine.class, format, bufferSize) (milestone 3). */
+    constructor(format: AudioFormat?, bufferSize: Int)
+}
 
 expect class SourceDataLine {
     fun open(format: AudioFormat)
@@ -28,7 +31,7 @@ expect class SourceDataLine {
     fun start()
     fun close()
     fun flush()
-    fun write(data: ByteArray, offset: Int, length: Int): Int
+    fun write(data: ByteArray?, offset: Int, length: Int): Int
     fun available(): Int
 }
 

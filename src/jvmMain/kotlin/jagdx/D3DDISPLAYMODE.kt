@@ -4,7 +4,7 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!jagdx/D3DDISPLAYMODE")
-class D3DDISPLAYMODE {
+actual class D3DDISPLAYMODE actual constructor() {
 
 	@OriginalMember(owner = "client!jagdx/D3DDISPLAYMODE", name = "Width", descriptor = "I")
 	private var Width: Int = 0
@@ -17,5 +17,5 @@ class D3DDISPLAYMODE {
 
 	@OriginalMember(owner = "client!jagdx/D3DDISPLAYMODE", name = "Format", descriptor = "I")
 	@JvmField
-	var Format: Int = 0
+	actual var Format: Int = 0
 }

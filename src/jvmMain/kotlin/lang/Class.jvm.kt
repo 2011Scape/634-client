@@ -16,8 +16,11 @@ actual fun forName(name: String?) = java.lang.Class.forName(name)
 actual fun <T> Class<T>.getClassLoader(): ClassLoader? =
     this.classLoader?.let { ClassLoader.wrap(it) }
 
-actual fun <T> Class<T>.getMethod(name: String?, vararg parameterTypes: Class<*>): Method =
+actual fun <T> Class<T>.getMethod(name: String?, vararg parameterTypes: Class<*>?): Method =
     this.getMethod(name, *parameterTypes)
 
-actual fun <T> Class<T>.getDeclaredMethod(name: String?, vararg parameterTypes: Class<*>): Method =
+actual fun <T> Class<T>.getDeclaredMethod(name: String?, vararg parameterTypes: Class<*>?): Method =
     this.getDeclaredMethod(name, *parameterTypes)
+
+actual fun <T> Class<T>.getDeclaredConstructor(vararg parameterTypes: Class<*>?): lang.reflect.Constructor<T> =
+    this.getDeclaredConstructor(*parameterTypes)

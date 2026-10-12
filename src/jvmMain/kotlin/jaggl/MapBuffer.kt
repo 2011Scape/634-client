@@ -7,13 +7,13 @@ import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 
 @OriginalClass("client!jaggl/MapBuffer")
-class MapBuffer : NativeBuffer() {
+actual class MapBuffer actual constructor() : NativeBuffer() {
 
 	@OriginalMember(owner = "client!jaggl/MapBuffer", name = "c", descriptor = "I")
 	private var c: Int = 0
 
 	@OriginalMember(owner = "client!jaggl/MapBuffer", name = "a", descriptor = "([BIII)V")
-	override fun a(@OriginalArg(0) arg0: ByteArray?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
+	actual override fun a(@OriginalArg(0) arg0: ByteArray?, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int) {
 		if (this.c == 0) {
 			throw RuntimeException()
 		}
@@ -21,7 +21,7 @@ class MapBuffer : NativeBuffer() {
 	}
 
 	@OriginalMember(owner = "client!jaggl/MapBuffer", name = "a", descriptor = "(III)Z")
-	fun a(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int): Boolean {
+	actual fun a(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int): Boolean {
 		if (this.c != 0) {
 			return false
 		}
@@ -36,12 +36,12 @@ class MapBuffer : NativeBuffer() {
 	}
 
 	@OriginalMember(owner = "client!jaggl/MapBuffer", name = "a", descriptor = "()Z")
-	fun a(): Boolean {
+	actual fun a(): Boolean {
 		return this.c != 0
 	}
 
 	@OriginalMember(owner = "client!jaggl/MapBuffer", name = "b", descriptor = "()Z")
-	fun b(): Boolean {
+	actual fun b(): Boolean {
 		@Pc(1) var local1: Boolean = true
 		if (this.c != 0) {
 			local1 = OpenGL.glUnmapBufferARB(this.c)

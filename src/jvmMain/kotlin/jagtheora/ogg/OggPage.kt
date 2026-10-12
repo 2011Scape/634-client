@@ -5,7 +5,7 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!jagtheora/ogg/OggPage")
-class OggPage : SimplePeer() {
+actual class OggPage actual constructor() : SimplePeer() {
 
 	@OriginalMember(owner = "client!jagtheora/ogg/OggPage", name = "getVersion", descriptor = "()I")
 	private external fun getVersion(): Int
@@ -14,7 +14,7 @@ class OggPage : SimplePeer() {
 	private external fun isContinued(): Boolean
 
 	@OriginalMember(owner = "client!jagtheora/ogg/OggPage", name = "getSerialNumber", descriptor = "()I")
-	external fun getSerialNumber(): Int
+	actual external fun getSerialNumber(): Int
 
 	@OriginalMember(owner = "client!jagtheora/ogg/OggPage", name = "isEOS", descriptor = "()Z")
 	private external fun isEOS(): Boolean
@@ -23,7 +23,7 @@ class OggPage : SimplePeer() {
 	private external fun getGranulePos(): Long
 
 	@OriginalMember(owner = "client!jagtheora/ogg/OggPage", name = "isBOS", descriptor = "()Z")
-	external fun isBOS(): Boolean
+	actual external fun isBOS(): Boolean
 
 	@OriginalMember(owner = "client!jagtheora/ogg/OggPage", name = "clear", descriptor = "()V")
 	protected external override fun clear()

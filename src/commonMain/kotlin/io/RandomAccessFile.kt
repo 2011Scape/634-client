@@ -1,15 +1,16 @@
 package io
 
-expect open class RandomAccessFile(name: String, mode: String) : AutoCloseable {
+expect open class RandomAccessFile(name: String?, mode: String?) : AutoCloseable {
+    constructor(file: File?, mode: String?)
     open fun read(): Int
-    open fun read(b: ByteArray): Int
-    open fun read(b: ByteArray, off: Int, len: Int): Int
-    fun readFully(b: ByteArray)
-    fun readFully(b: ByteArray, off: Int, len: Int)
+    open fun read(b: ByteArray?): Int
+    open fun read(b: ByteArray?, off: Int, len: Int): Int
+    fun readFully(b: ByteArray?)
+    fun readFully(b: ByteArray?, off: Int, len: Int)
 
     open fun write(b: Int)
-    open fun write(b: ByteArray)
-    open fun write(b: ByteArray, off: Int, len: Int)
+    open fun write(b: ByteArray?)
+    open fun write(b: ByteArray?, off: Int, len: Int)
 
     open fun seek(pos: Long)
     open fun getFilePointer(): Long

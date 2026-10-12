@@ -5,7 +5,7 @@ expect open class ObjectInputStream(input: InputStream) : InputStream {
     /** `final` on the JVM. */
     fun readObject(): Any?
 
-    open fun readFully(b: ByteArray)
+    open fun readFully(b: ByteArray?)
     open fun skipBytes(n: Int): Int
     open fun readBoolean(): Boolean
     open fun readByte(): Byte

@@ -5,10 +5,10 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
 @OriginalClass("client!jagtheora/vorbis/VorbisComment")
-class VorbisComment : SimplePeer {
+actual class VorbisComment : SimplePeer {
 
 	@OriginalMember(owner = "client!jagtheora/vorbis/VorbisComment", name = "<init>", descriptor = "()V")
-	constructor() : super() {
+	actual constructor() : super() {
 		this.init()
 		if (this.b()) {
 			throw IllegalStateException()

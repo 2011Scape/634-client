@@ -1,9 +1,9 @@
 package io
 
 expect open class DataInputStream(input: InputStream) : FilterInputStream {
-    final override fun read(b: ByteArray): Int
-    final override fun read(b: ByteArray, off: Int, len: Int): Int
-    fun readFully(b: ByteArray)
+    final override fun read(b: ByteArray?): Int
+    final override fun read(b: ByteArray?, off: Int, len: Int): Int
+    fun readFully(b: ByteArray?)
     fun readFully(b: ByteArray?, off: Int, len: Int)
     fun skipBytes(n: Int): Int
     fun readBoolean(): Boolean
