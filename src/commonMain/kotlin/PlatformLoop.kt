@@ -35,3 +35,12 @@ expect val executeWorkerTasksInline: Boolean
  * ends its turn of runLoop instead; the next turn finds the work the wait was for.
  */
 expect val canBlock: Boolean
+
+/*
+ * How many JS5 blocks Js5WorkerThread reads in one call. The original reads at most 100 (about
+ * 51 KB a tick): on the JVM the socket can refill while the loop runs, and the cap keeps one call
+ * from starving the tick. In a browser the WebSocket delivers only between turns, so available()
+ * cannot grow during the loop and reading all of it is already bounded; the cap only slows down
+ * filling the cache.
+ */
+expect val js5ReadsPerTick: Int

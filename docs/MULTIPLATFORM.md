@@ -174,8 +174,10 @@ How it went, for the milestones after it:
   the original string literal holds lone surrogates that a UTF-8 bundle turns into U+FFFD.
 - void-client's game-code changes are mostly coroutine rewrites of its stream classes and speed work
   (the JS5 read budget per tick, Whirlpool, region loading); the ones above were what this client
-  needed to run. A fresh browser fills its cache slowly (the original reads at most 100 JS5 blocks a
-  tick); void-client's raised budget is a candidate for later.
+  needed to run. The original reads at most 100 JS5 blocks a tick; in the browser `js5ReadsPerTick`
+  lifts that cap (void-client's raised budget, written again on this client), and stays 100 on
+  the JVM. Against a local server both fill the cache about as fast; it matters when the page ticks
+  slowly (a background tab, a low frame rate), since the cap is per tick.
 - `oa` in the browser is built on this client's own refactored code, by decision: it hands its
   calls to a `JavaToolkit` (the software renderer of toolkit 0), rather than porting void-client's
   `oa`, a 2,535-line copy of that renderer translated from the obfuscated deob. It runs in the

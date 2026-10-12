@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.js5
 
 import com.jagex.game.runetek5.core.constants.CompressionType
+import js5ReadsPerTick
 import com.jagex.game.runetek5.cache.node.Queue
 import com.jagex.game.runetek5.core.io.BufferedSocket
 import com.jagex.game.runetek5.buffer.Packet
@@ -124,7 +125,8 @@ class Js5WorkerThread {
 				js5WorkerRequestMessage2 = this.prefetchRequests.next() as Js5NetQueueRequest?
 			}
 			var readIteration: Int = 0
-			while (readIteration < 100) {
+			// Not part of the original client: 100 on the JVM, as in the original (PlatformLoop.kt)
+			while (readIteration < js5ReadsPerTick) {
 				@Pc(176) val available: Int = this.socket!!.available()
 				if (available < 0) {
 					throw IOException()
