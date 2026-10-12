@@ -8,17 +8,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # 21 builds (the toolchain) and is the default; 25 is the newest JDK the client runs on, for checkClasses
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: |
             25
             21
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
 
       # Both targets: the JVM client and checks, commonMain compiled against the common standard
       # library alone (compileCommonMainKotlinMetadata), and the browser bundle
@@ -31,14 +31,14 @@ jobs:
         run: ./gradlew checkClasses -PcheckClasses.java=25 -Porg.gradle.java.installations.fromEnv=JAVA_HOME_25_X64 --console=plain
 
       - name: Upload the release jar
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: runetek5-634-${{ github.sha }}
           path: build/release/*.jar
           if-no-files-found: error
 
       - name: Upload the browser bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: runetek5-634-browser-${{ github.sha }}
           path: build/dist/js/productionExecutable
