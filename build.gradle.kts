@@ -11,13 +11,22 @@ description = "The RuneScape client from December 2010 (build 634), with a launc
 kotlin {
     jvmToolchain(21)
     jvm()
+    /*
+     * -PcommonCheck adds a browser target, only so that compileCommonMainKotlinMetadata compiles
+     * commonMain against the common standard library (CI runs it). With the JVM as the only target,
+     * common code would still see the JDK, through Kotlin's default java.lang imports.
+     */
+    if (providers.gradleProperty("commonCheck").isPresent) {
+        js {
+            browser()
+        }
+    }
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
     sourceSets {
         jvmMain.dependencies {
             implementation(files("lib/stub.jar"))
-            implementation(libs.openrs2.deob.annotations)
         }
     }
 }

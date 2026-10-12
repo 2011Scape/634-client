@@ -12,7 +12,6 @@ plugins {
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
-        maven(url = "https://repo.openrs2.org/repository/openrs2-snapshots")
     }
 }
 
