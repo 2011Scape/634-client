@@ -66,9 +66,9 @@ object IgnoreList {
 			return
 		}
 		@Pc(202) val packet: TcpPacket = TcpPacket.createPacket(ClientProt.IGNORELIST_ADD, TcpPacket.isaac)
-		packet.buffer.writeByte(Utils.getEncodedStringLength(displayName) + 1)
-		packet.buffer.writeString(displayName)
-		packet.buffer.writeByte(if (temporary) 1 else 0)
+		packet.buffer!!.writeByte(Utils.getEncodedStringLength(displayName) + 1)
+		packet.buffer!!.writeString(displayName)
+		packet.buffer!!.writeByte(if (temporary) 1 else 0)
 		BufferedConnectionContext.queuePacket(packet)
 	}
 	@OriginalMember(owner = "client!iv", name = "pb", descriptor = "[Ljava/lang/String;")
@@ -134,8 +134,8 @@ object IgnoreList {
 				}
 				FriendList.lastFriendIgnoreUpdateTick = ClientState.serverTick
 				@Pc(121) val packet: TcpPacket = TcpPacket.createPacket(ClientProt.IGNORELIST_DEL, TcpPacket.isaac)
-				packet.buffer.writeByte(Utils.getEncodedStringLength(string))
-				packet.buffer.writeString(string)
+				packet.buffer!!.writeByte(Utils.getEncodedStringLength(string))
+				packet.buffer!!.writeString(string)
 				BufferedConnectionContext.queuePacket(packet)
 				return
 			}

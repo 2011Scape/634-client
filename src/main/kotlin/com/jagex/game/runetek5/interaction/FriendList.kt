@@ -80,8 +80,8 @@ object FriendList {
 				}
 				FriendList.lastFriendIgnoreUpdateTick = ClientState.serverTick
 				@Pc(120) val packet: TcpPacket = TcpPacket.createPacket(ClientProt.FRIENDLIST_DEL, TcpPacket.isaac)
-				packet.buffer.writeByte(Utils.getEncodedStringLength(string))
-				packet.buffer.writeString(string)
+				packet.buffer!!.writeByte(Utils.getEncodedStringLength(string))
+				packet.buffer!!.writeString(string)
 				BufferedConnectionContext.queuePacket(packet)
 				break
 			}
@@ -145,8 +145,8 @@ object FriendList {
 			ChatBox.writeGameMessage(LocalizedText.aClass351_43.get(ClientState.language))
 		} else {
 			@Pc(214) val packet: TcpPacket = TcpPacket.createPacket(ClientProt.FRIENDLIST_ADD, TcpPacket.isaac)
-			packet.buffer.writeByte(Utils.getEncodedStringLength(string))
-			packet.buffer.writeString(string)
+			packet.buffer!!.writeByte(Utils.getEncodedStringLength(string))
+			packet.buffer!!.writeString(string)
 			BufferedConnectionContext.queuePacket(packet)
 		}
 	}
@@ -184,9 +184,9 @@ object FriendList {
 	@JvmStatic
 	fun setFriendRank(@OriginalArg(1) rank: Int, @OriginalArg(2) string: String?) {
 		@Pc(14) val packet: TcpPacket = TcpPacket.createPacket(ClientProt.FRIEND_SETRANK, TcpPacket.isaac)
-		packet.buffer.writeByte(Utils.getEncodedStringLength(string!!) + 1)
-		packet.buffer.writeByteSubtract(rank)
-		packet.buffer.writeString(string)
+		packet.buffer!!.writeByte(Utils.getEncodedStringLength(string!!) + 1)
+		packet.buffer!!.writeByteSubtract(rank)
+		packet.buffer!!.writeString(string)
 		BufferedConnectionContext.queuePacket(packet)
 	}
 	@OriginalMember(owner = "client!nia", name = "e", descriptor = "I")

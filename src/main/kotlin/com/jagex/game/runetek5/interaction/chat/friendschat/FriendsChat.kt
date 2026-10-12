@@ -24,8 +24,8 @@ object FriendsChat {
 	fun kickFriendsChatUser(@OriginalArg(1) string: String?) {
 		if (FriendsChat.clanChatUsers != null) {
 			@Pc(15) val packet: TcpPacket = TcpPacket.createPacket(ClientProt.FRIENDCHAT_KICKUSER, TcpPacket.isaac)
-			packet.buffer.writeByte(Utils.getEncodedStringLength(string!!))
-			packet.buffer.writeString(string)
+			packet.buffer!!.writeByte(Utils.getEncodedStringLength(string!!))
+			packet.buffer!!.writeString(string)
 			BufferedConnectionContext.queuePacket(packet)
 		}
 	}
@@ -33,7 +33,7 @@ object FriendsChat {
 	@JvmStatic
 	fun sendLeaveFriendChat() {
 		@Pc(18) val packet: TcpPacket = TcpPacket.createPacket(CS2Executor.FRIENDCHAT_JOIN_LEAVE, TcpPacket.isaac)
-		packet.buffer.writeByte(0)
+		packet.buffer!!.writeByte(0)
 		BufferedConnectionContext.queuePacket(packet)
 	}
 
@@ -46,8 +46,8 @@ object FriendsChat {
 	fun sendJoinFriendChat(@OriginalArg(0) string: String?) {
 		if (!string!!.equals("")) {
 			@Pc(25) val packet: TcpPacket = TcpPacket.createPacket(CS2Executor.FRIENDCHAT_JOIN_LEAVE, TcpPacket.isaac)
-			packet.buffer.writeByte(Utils.getEncodedStringLength(string))
-			packet.buffer.writeString(string)
+			packet.buffer!!.writeByte(Utils.getEncodedStringLength(string))
+			packet.buffer!!.writeString(string)
 			BufferedConnectionContext.queuePacket(packet)
 		}
 	}
