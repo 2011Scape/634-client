@@ -54,6 +54,7 @@ import lang.jClass
 import util.lowercase
 import lang.getDeclaredConstructor
 import lang.ThreadDeath
+import runLoop
 
 @OriginalClass("client!wea")
 class SignLink : Runnable {
@@ -249,179 +250,191 @@ class SignLink : Runnable {
 
 	@OriginalMember(owner = "client!wea", name = "run", descriptor = "()V")
 	override fun run() {
-		while (true) {
-			@Pc(15) var signedResource: SignedResource
-			withLock(this) {
-				while (true) {
-					if (this.stopped) {
-						return
-					}
-					if (this.current != null) {
-						signedResource = this.current!!
-						this.current = this.current!!.next
-						if (this.current == null) {
-							this.last = null
-						}
-						break
-					}
-					try {
-						lockWait(this)
-					} catch (@Pc(31) ex: InterruptedException) {
-					}
+		// Not part of the original client: the loop goes through runLoop (PlatformLoop), the original
+		// blocking loop on the JVM and an event-loop chain where a platform has no threads; runStep is
+		// one turn of the original while.
+		runLoop(
+			prelude = { true },
+			step = { this.runStep() },
+			onError = { throw it },
+			onFinally = { },
+		)
+	}
+
+	/* Not part of the original client: one turn of run's loop (one request), false when the worker stops. */
+	private fun runStep(): Boolean {
+		@Pc(15) var signedResource: SignedResource
+		withLock(this) {
+			while (true) {
+				if (this.stopped) {
+					return false
 				}
-			}
-			try {
-				@Pc(41) val kind: SignedResourceType? = signedResource.kind
-				if (kind === SignedResourceType.SOCKET) {
-					if (Utils.currentTimeMillis() < SignLink.timeout) {
-						throw IOException()
+				if (this.current != null) {
+					signedResource = this.current!!
+					this.current = this.current!!.next
+					if (this.current == null) {
+						this.last = null
 					}
-					signedResource.result = Socket(net.getByName(signedResource.objectData as String?), signedResource.intData1)
-				} else if (kind === SignedResourceType.SOCKET_PROXY) {
-					if (Utils.currentTimeMillis() < SignLink.timeout) {
-						throw IOException()
-					}
-					try {
-						signedResource.result = SocketManager.create(signedResource.intData1, signedResource.objectData as String?).open()
-					} catch (@Pc(834) ex2: ProxyAuthenticationException) {
-						signedResource.result = ex2.message
-						throw ex2
-					}
-				} else if (kind === SignedResourceType.START_THREAD) {
-					@Pc(59) val thread: Thread = Thread(signedResource.objectData as Runnable?)
-					thread.setDaemon(true)
-					thread.start()
-					thread.setPriority(signedResource.intData1)
-					signedResource.result = thread
-				} else if (kind === SignedResourceType.OPEN_STREAM) {
-					if (SignLink.timeout > Utils.currentTimeMillis()) {
-						throw IOException()
-					}
-					signedResource.result = DataInputStream((signedResource.objectData as URL?)!!.openStream())
-				} else {
-					@Pc(403) var objects: Array<Any?>?
-					if (kind === SignedResourceType.METHOD) {
-						objects = signedResource.objectData as Array<Any?>?
-						if (this.signed && (objects!![0] as Class<*>?)!!.getClassLoader() == null) {
-							throw SecurityException()
-						}
-						signedResource.result = (objects!![0] as Class<*>?)!!.getDeclaredMethod(objects[1] as String?, *((objects[2] as Array<Class<*>?>?) ?: arrayOfNulls<Class<*>>(0)))
-					} else if (kind === SignedResourceType.FIELD) {
-						objects = signedResource.objectData as Array<Any?>?
-						if (this.signed && (objects!![0] as Class<*>?)!!.getClassLoader() == null) {
-							throw SecurityException()
-						}
-						signedResource.result = (objects!![0] as Class<*>?)!!.getDeclaredField(objects[1] as String?)
-					} else if (kind === SignedResourceType.GET_CLIPBOARD_CONTENTS) {
-						@Pc(740) val clipboard: Clipboard = awt.getDefaultToolkit().getSystemClipboard()
-						signedResource.result = clipboard.getContents(null)
-					} else if (kind === SignedResourceType.SET_CLIPBOARD_CONTENTS) {
-						@Pc(118) val transferable: Transferable? = signedResource.objectData as Transferable?
-						@Pc(121) val clipboard2: Clipboard = awt.getDefaultToolkit().getSystemClipboard()
-						clipboard2.setContents(transferable, null)
-					} else if (this.signed) {
-						@Pc(180) var string: String?
-						if (kind === SignedResourceType.HOSTNAME) {
-							if (SignLink.timeout > Utils.currentTimeMillis()) {
-								throw IOException()
-							}
-							string = (signedResource.intData1 shr 24 and 0xFF).toString() + "." + (signedResource.intData1 shr 16 and 0xFF) + "." + (signedResource.intData1 shr 8 and 0xFF) + "." + (signedResource.intData1 and 0xFF)
-							signedResource.result = net.getByName(string).getHostName()
-						} else if (kind === SignedResourceType.ADDRESS) {
-							if (Utils.currentTimeMillis() < SignLink.timeout) {
-								throw IOException()
-							}
-							signedResource.result = net.getByName(signedResource.objectData as String?).getAddress()
-						} else if (kind === SignedResourceType.FULLSCREEN_MODES) {
-							if (this.microsoftJava) {
-								signedResource.result = this.microsoftFullscreenAdapter!!.listModes()
-							} else {
-								signedResource.result = windowModeListModes(this.windowMode)
-							}
-						} else if (kind === SignedResourceType.FULLSCREEN_ENTER) {
-							// Not part of the original client: the full screen window is titled Void, not Jagex.
-							@Pc(593) val frame: Frame = Frame("Void Full Screen")
-							// Not part of the original client: the full screen window carries Void's icon too (WindowIcons).
-							WindowIcons.apply(frame)
-							signedResource.result = frame
-							frame.setResizable(false)
-							if (this.microsoftJava) {
-								this.microsoftFullscreenAdapter!!.enter(signedResource.intData1 and 0xFFFF, signedResource.intData2 shr 16, signedResource.intData1 ushr 16, signedResource.intData2 and 0xFFFF, frame)
-							} else {
-								windowModeEnter(this.windowMode, frame, signedResource.intData1 ushr 16, signedResource.intData1 and 0xFFFF, signedResource.intData2 shr 16, signedResource.intData2 and 0xFFFF)
-							}
-						} else if (kind !== SignedResourceType.FULLSCREEN_EXIT) {
-							@Pc(254) var fileOnDisk: JFS32?
-							if (kind === SignedResourceType.OPEN_CACHE_FILE) {
-								fileOnDisk = SignLink.openPreferencesFile(signedResource.objectData as String?, SignLinkEnvironment.gameName, SignLink.cacheId)
-								signedResource.result = fileOnDisk
-							} else if (kind === SignedResourceType.PREFERENCES) {
-								fileOnDisk = SignLink.openPreferencesFile(signedResource.objectData as String?, "", SignLink.cacheId)
-								signedResource.result = fileOnDisk
-							} else if (this.signed && kind === SignedResourceType.MOVE_MOUSE) {
-								@Pc(272) val intData1: Int = signedResource.intData1
-								@Pc(275) val type: Int = signedResource.intData2
-								if (this.microsoftJava) {
-									this.mouseCallback!!.movemouse(intData1, type)
-								} else {
-									cursorManagerMoveMouse(this.cursorManager, intData1, type)
-								}
-							} else if (this.signed && kind === SignedResourceType.UPDATE_MOUSE_COMPONENT) {
-								@Pc(338) val visible: Boolean = signedResource.intData1 != 0
-								@Pc(342) val component: Component? = signedResource.objectData as Component?
-								if (this.microsoftJava) {
-									this.mouseCallback!!.setCursorVisible(visible, component)
-								} else {
-									cursorManagerShowCursor(this.cursorManager, component, visible)
-								}
-							} else if (!this.microsoftJava && kind === SignedResourceType.UPDATE_MOUSE_CURSOR) {
-								objects = signedResource.objectData as Array<Any?>?
-								cursorManagerSetCustomCursor(this.cursorManager, objects!![0] as Component?, objects[1] as IntArray?, signedResource.intData1, signedResource.intData2, objects[2] as Point?)
-							} else if (kind === SignedResourceType.OPEN_PAGE) {
-								try {
-									if (!SystemInfo.operatingSystemLowercase!!.startsWith("win")) {
-										throw Exception()
-									}
-									string = signedResource.objectData as String?
-									if (!string!!.startsWith("http://") && !string.startsWith("https://")) {
-										throw Exception()
-									}
-									@Pc(525) val string2: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?&=,.%+-_#:/*"
-									@Pc(527) var i: Int = 0
-									while (string.length > i) {
-										if (string2.indexOf(string[i]) == -1) {
-											throw Exception()
-										}
-										i++
-									}
-									openUrlWithCmd(string)
-									signedResource.result = null
-								} catch (@Pc(566) ex3: Exception) {
-									signedResource.result = ex3
-									throw ex3
-								}
-							} else {
-								throw Exception("")
-							}
-						} else if (this.microsoftJava) {
-							this.microsoftFullscreenAdapter!!.exit(signedResource.objectData as Frame?)
-						} else {
-							windowModeExit(this.windowMode)
-						}
-					} else {
-						throw Exception("")
-					}
+					break
 				}
-				signedResource.status = SignedResourceStatus.SUCCESS
-			} catch (@Pc(869) threadDeath: ThreadDeath) {
-				throw threadDeath
-			} catch (@Pc(872) ex4: Throwable) {
-				signedResource.status = SignedResourceStatus.ERROR
-			}
-			withLock(signedResource) {
-				lockNotify(signedResource)
+				try {
+					lockWait(this)
+				} catch (@Pc(31) ex: InterruptedException) {
+				}
 			}
 		}
+		try {
+			@Pc(41) val kind: SignedResourceType? = signedResource.kind
+			if (kind === SignedResourceType.SOCKET) {
+				if (Utils.currentTimeMillis() < SignLink.timeout) {
+					throw IOException()
+				}
+				signedResource.result = Socket(net.getByName(signedResource.objectData as String?), signedResource.intData1)
+			} else if (kind === SignedResourceType.SOCKET_PROXY) {
+				if (Utils.currentTimeMillis() < SignLink.timeout) {
+					throw IOException()
+				}
+				try {
+					signedResource.result = SocketManager.create(signedResource.intData1, signedResource.objectData as String?).open()
+				} catch (@Pc(834) ex2: ProxyAuthenticationException) {
+					signedResource.result = ex2.message
+					throw ex2
+				}
+			} else if (kind === SignedResourceType.START_THREAD) {
+				@Pc(59) val thread: Thread = Thread(signedResource.objectData as Runnable?)
+				thread.setDaemon(true)
+				thread.start()
+				thread.setPriority(signedResource.intData1)
+				signedResource.result = thread
+			} else if (kind === SignedResourceType.OPEN_STREAM) {
+				if (SignLink.timeout > Utils.currentTimeMillis()) {
+					throw IOException()
+				}
+				signedResource.result = DataInputStream((signedResource.objectData as URL?)!!.openStream())
+			} else {
+				@Pc(403) var objects: Array<Any?>?
+				if (kind === SignedResourceType.METHOD) {
+					objects = signedResource.objectData as Array<Any?>?
+					if (this.signed && (objects!![0] as Class<*>?)!!.getClassLoader() == null) {
+						throw SecurityException()
+					}
+					signedResource.result = (objects!![0] as Class<*>?)!!.getDeclaredMethod(objects[1] as String?, *((objects[2] as Array<Class<*>?>?) ?: arrayOfNulls<Class<*>>(0)))
+				} else if (kind === SignedResourceType.FIELD) {
+					objects = signedResource.objectData as Array<Any?>?
+					if (this.signed && (objects!![0] as Class<*>?)!!.getClassLoader() == null) {
+						throw SecurityException()
+					}
+					signedResource.result = (objects!![0] as Class<*>?)!!.getDeclaredField(objects[1] as String?)
+				} else if (kind === SignedResourceType.GET_CLIPBOARD_CONTENTS) {
+					@Pc(740) val clipboard: Clipboard = awt.getDefaultToolkit().getSystemClipboard()
+					signedResource.result = clipboard.getContents(null)
+				} else if (kind === SignedResourceType.SET_CLIPBOARD_CONTENTS) {
+					@Pc(118) val transferable: Transferable? = signedResource.objectData as Transferable?
+					@Pc(121) val clipboard2: Clipboard = awt.getDefaultToolkit().getSystemClipboard()
+					clipboard2.setContents(transferable, null)
+				} else if (this.signed) {
+					@Pc(180) var string: String?
+					if (kind === SignedResourceType.HOSTNAME) {
+						if (SignLink.timeout > Utils.currentTimeMillis()) {
+							throw IOException()
+						}
+						string = (signedResource.intData1 shr 24 and 0xFF).toString() + "." + (signedResource.intData1 shr 16 and 0xFF) + "." + (signedResource.intData1 shr 8 and 0xFF) + "." + (signedResource.intData1 and 0xFF)
+						signedResource.result = net.getByName(string).getHostName()
+					} else if (kind === SignedResourceType.ADDRESS) {
+						if (Utils.currentTimeMillis() < SignLink.timeout) {
+							throw IOException()
+						}
+						signedResource.result = net.getByName(signedResource.objectData as String?).getAddress()
+					} else if (kind === SignedResourceType.FULLSCREEN_MODES) {
+						if (this.microsoftJava) {
+							signedResource.result = this.microsoftFullscreenAdapter!!.listModes()
+						} else {
+							signedResource.result = windowModeListModes(this.windowMode)
+						}
+					} else if (kind === SignedResourceType.FULLSCREEN_ENTER) {
+						// Not part of the original client: the full screen window is titled Void, not Jagex.
+						@Pc(593) val frame: Frame = Frame("Void Full Screen")
+						// Not part of the original client: the full screen window carries Void's icon too (WindowIcons).
+						WindowIcons.apply(frame)
+						signedResource.result = frame
+						frame.setResizable(false)
+						if (this.microsoftJava) {
+							this.microsoftFullscreenAdapter!!.enter(signedResource.intData1 and 0xFFFF, signedResource.intData2 shr 16, signedResource.intData1 ushr 16, signedResource.intData2 and 0xFFFF, frame)
+						} else {
+							windowModeEnter(this.windowMode, frame, signedResource.intData1 ushr 16, signedResource.intData1 and 0xFFFF, signedResource.intData2 shr 16, signedResource.intData2 and 0xFFFF)
+						}
+					} else if (kind !== SignedResourceType.FULLSCREEN_EXIT) {
+						@Pc(254) var fileOnDisk: JFS32?
+						if (kind === SignedResourceType.OPEN_CACHE_FILE) {
+							fileOnDisk = SignLink.openPreferencesFile(signedResource.objectData as String?, SignLinkEnvironment.gameName, SignLink.cacheId)
+							signedResource.result = fileOnDisk
+						} else if (kind === SignedResourceType.PREFERENCES) {
+							fileOnDisk = SignLink.openPreferencesFile(signedResource.objectData as String?, "", SignLink.cacheId)
+							signedResource.result = fileOnDisk
+						} else if (this.signed && kind === SignedResourceType.MOVE_MOUSE) {
+							@Pc(272) val intData1: Int = signedResource.intData1
+							@Pc(275) val type: Int = signedResource.intData2
+							if (this.microsoftJava) {
+								this.mouseCallback!!.movemouse(intData1, type)
+							} else {
+								cursorManagerMoveMouse(this.cursorManager, intData1, type)
+							}
+						} else if (this.signed && kind === SignedResourceType.UPDATE_MOUSE_COMPONENT) {
+							@Pc(338) val visible: Boolean = signedResource.intData1 != 0
+							@Pc(342) val component: Component? = signedResource.objectData as Component?
+							if (this.microsoftJava) {
+								this.mouseCallback!!.setCursorVisible(visible, component)
+							} else {
+								cursorManagerShowCursor(this.cursorManager, component, visible)
+							}
+						} else if (!this.microsoftJava && kind === SignedResourceType.UPDATE_MOUSE_CURSOR) {
+							objects = signedResource.objectData as Array<Any?>?
+							cursorManagerSetCustomCursor(this.cursorManager, objects!![0] as Component?, objects[1] as IntArray?, signedResource.intData1, signedResource.intData2, objects[2] as Point?)
+						} else if (kind === SignedResourceType.OPEN_PAGE) {
+							try {
+								if (!SystemInfo.operatingSystemLowercase!!.startsWith("win")) {
+									throw Exception()
+								}
+								string = signedResource.objectData as String?
+								if (!string!!.startsWith("http://") && !string.startsWith("https://")) {
+									throw Exception()
+								}
+								@Pc(525) val string2: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?&=,.%+-_#:/*"
+								@Pc(527) var i: Int = 0
+								while (string.length > i) {
+									if (string2.indexOf(string[i]) == -1) {
+										throw Exception()
+									}
+									i++
+								}
+								openUrlWithCmd(string)
+								signedResource.result = null
+							} catch (@Pc(566) ex3: Exception) {
+								signedResource.result = ex3
+								throw ex3
+							}
+						} else {
+							throw Exception("")
+						}
+					} else if (this.microsoftJava) {
+						this.microsoftFullscreenAdapter!!.exit(signedResource.objectData as Frame?)
+					} else {
+						windowModeExit(this.windowMode)
+					}
+				} else {
+					throw Exception("")
+				}
+			}
+			signedResource.status = SignedResourceStatus.SUCCESS
+		} catch (@Pc(869) threadDeath: ThreadDeath) {
+			throw threadDeath
+		} catch (@Pc(872) ex4: Throwable) {
+			signedResource.status = SignedResourceStatus.ERROR
+		}
+		withLock(signedResource) {
+			lockNotify(signedResource)
+		}
+		return true
 	}
 
 	@OriginalMember(owner = "client!wea", name = "a", descriptor = "(B)V")

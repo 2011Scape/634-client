@@ -10,6 +10,7 @@ import org.openrs2.deob.annotation.Pc
 import kotlin.concurrent.Volatile
 import kotlin.jvm.JvmField
 import lang.Runnable
+import runLoop
 
 @OriginalClass("client!tm")
 class PcmPlayerThread : Runnable {
@@ -35,24 +36,40 @@ class PcmPlayerThread : Runnable {
 	@OriginalMember(owner = "client!tm", name = "run", descriptor = "()V")
 	override fun run() {
 		this.running = true
-		try {
-			while (!this.stopping) {
-				@Pc(12) var i: Int = 0
-				while (i < 2) {
-					@Pc(19) val pcmPlayer: PcmPlayer? = this.players[i]
-					if (pcmPlayer != null) {
-						pcmPlayer.cycle()
-					}
-					i++
+		// Not part of the original client: the loop goes through runLoop (PlatformLoop), the original
+		// blocking loop on the JVM and an event-loop chain where a platform has no threads; runStep is
+		// one turn of the original while.
+		runLoop(
+			prelude = { true },
+			step = { this.runStep() },
+			onError = { throwable ->
+				if (throwable !is Exception) {
+					throw throwable
 				}
-				TimeUtils.sleep(10L)
-				GameShell.performDummyActionEvent(null, this.signLink)
-			}
-		} catch (@Pc(41) ex: Exception) {
-			ExplicitRuntimeException.reportError(null, ex)
-		} finally {
-			@Pc(51) val `object`: Any? = null
-			this.running = false
+				ExplicitRuntimeException.reportError(null, throwable)
+			},
+			onFinally = {
+				@Pc(51) val `object`: Any? = null
+				this.running = false
+			},
+		)
+	}
+
+	/* Not part of the original client: one turn of run's loop, false when the thread stops. */
+	private fun runStep(): Boolean {
+		if (this.stopping) {
+			return false
 		}
+		@Pc(12) var i: Int = 0
+		while (i < 2) {
+			@Pc(19) val pcmPlayer: PcmPlayer? = this.players[i]
+			if (pcmPlayer != null) {
+				pcmPlayer.cycle()
+			}
+			i++
+		}
+		TimeUtils.sleep(10L)
+		GameShell.performDummyActionEvent(null, this.signLink)
+		return true
 	}
 }

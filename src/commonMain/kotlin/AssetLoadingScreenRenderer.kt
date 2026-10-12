@@ -17,6 +17,7 @@ import lang.Synchronized
 import lang.Runnable
 import withLock
 import awt.getInsets
+import runLoop
 
 @OriginalClass("client!ae")
 class AssetLoadingScreenRenderer : Runnable {
@@ -78,87 +79,102 @@ class AssetLoadingScreenRenderer : Runnable {
 
 	@OriginalMember(owner = "client!ae", name = "run", descriptor = "()V")
 	override fun run() {
-		while (!this.stopped) {
-			@Pc(10) val cycleStart: Long = Utils.currentTimeMillis()
-			// Kotlin: `continue` out of the synchronized block is carried by this flag.
-			var skip: Boolean = false
-			withLock(this) {
-				try {
-					this.cycles++
-					if (this.frontComponent is AwtLoadingScreen) {
-						this.frontComponent!!.render(this.fullRepaint)
-					} else {
-						@Pc(35) val currentTime: Long = Utils.currentTimeMillis()
-						if (ClientState.activeToolkit == null || this.backComponent == null || this.backComponent!!.getFadeDuration() == 0 || this.lastComponentUpdate < currentTime - this.backComponent!!.getFadeDuration().toLong()) {
-							if (this.backComponent != null) {
-								this.fullRepaint = true
-								this.backComponent!!.cleanup()
-								this.backComponent = null
-							}
-							if (this.fullRepaint) {
-								GameShell.clearCanvasBackground()
-								if (ClientState.activeToolkit != null) {
-									ClientState.activeToolkit!!.GA(0)
-								}
-							}
-							this.frontComponent!!.render(this.fullRepaint || ClientState.activeToolkit != null && ClientState.activeToolkit!!.supportsFullscreen())
-						} else {
-							@Pc(71) val dstAlpha: Int = ((currentTime - this.lastComponentUpdate) * 255L / this.backComponent!!.getFadeDuration().toLong()).toInt()
-							@Pc(76) val srcAlpha: Int = 255 - dstAlpha
-							@Pc(82) val srcColor: Int = (srcAlpha shl 24) or 0xFFFFFF
-							@Pc(88) val dstColor: Int = (dstAlpha shl 24) or 0xFFFFFF
+		// Not part of the original client: the loop goes through runLoop (PlatformLoop), the original
+		// blocking loop on the JVM and an event-loop chain where a platform has no threads; runStep is
+		// one turn of the original while.
+		runLoop(
+			prelude = { true },
+			step = { this.runStep() },
+			onError = { throw it },
+			onFinally = { },
+		)
+	}
+
+	/* Not part of the original client: one turn of run's loop, false when the loop ends. */
+	private fun runStep(): Boolean {
+		if (this.stopped) {
+			return false
+		}
+		@Pc(10) val cycleStart: Long = Utils.currentTimeMillis()
+		// Kotlin: `continue` out of the synchronized block is carried by this flag.
+		var skip: Boolean = false
+		withLock(this) {
+			try {
+				this.cycles++
+				if (this.frontComponent is AwtLoadingScreen) {
+					this.frontComponent!!.render(this.fullRepaint)
+				} else {
+					@Pc(35) val currentTime: Long = Utils.currentTimeMillis()
+					if (ClientState.activeToolkit == null || this.backComponent == null || this.backComponent!!.getFadeDuration() == 0 || this.lastComponentUpdate < currentTime - this.backComponent!!.getFadeDuration().toLong()) {
+						if (this.backComponent != null) {
+							this.fullRepaint = true
+							this.backComponent!!.cleanup()
+							this.backComponent = null
+						}
+						if (this.fullRepaint) {
 							GameShell.clearCanvasBackground()
-							ClientState.activeToolkit!!.GA(0)
-							@Pc(99) val sprite: NativeSprite? = ClientState.activeToolkit!!.generateEmptySprite(GameShell.screenCanvasWidth, GameShell.screenCanvasHeight, true)
-							ClientState.activeToolkit!!.renderToSprite(sprite)
-							this.backComponent!!.render(true)
-							ClientState.activeToolkit!!.restoreSurface()
-							sprite!!.render(0, 0, 0, srcColor, 1)
-							ClientState.activeToolkit!!.renderToSprite(sprite)
-							ClientState.activeToolkit!!.GA(0)
-							this.frontComponent!!.render(true)
-							ClientState.activeToolkit!!.restoreSurface()
-							sprite.render(0, 0, 0, dstColor, 1)
-						}
-						try {
-							if (ClientState.activeToolkit != null && this.frontComponent !is AwtLoadingScreen) {
-								ClientState.activeToolkit!!.renderFrame()
+							if (ClientState.activeToolkit != null) {
+								ClientState.activeToolkit!!.GA(0)
 							}
-						} catch (@Pc(189) ex: FlipException) {
-							ExplicitRuntimeException.reportError(ex.message + " (Recovered) " + ActiveClient.activeClient!!.getDebugString(), ex)
-							ToolkitSwitch.loadAssets(true, 0)
 						}
-					}
-					@Pc(214) val container: Container?
-					if (GameShell.engineFrame != null) {
-						container = GameShell.engineFrame
-					} else if (GameShell.applet == null) {
-						container = GameShell.anApplet_Sub1_1
+						this.frontComponent!!.render(this.fullRepaint || ClientState.activeToolkit != null && ClientState.activeToolkit!!.supportsFullscreen())
 					} else {
-						container = GameShell.applet
+						@Pc(71) val dstAlpha: Int = ((currentTime - this.lastComponentUpdate) * 255L / this.backComponent!!.getFadeDuration().toLong()).toInt()
+						@Pc(76) val srcAlpha: Int = 255 - dstAlpha
+						@Pc(82) val srcColor: Int = (srcAlpha shl 24) or 0xFFFFFF
+						@Pc(88) val dstColor: Int = (dstAlpha shl 24) or 0xFFFFFF
+						GameShell.clearCanvasBackground()
+						ClientState.activeToolkit!!.GA(0)
+						@Pc(99) val sprite: NativeSprite? = ClientState.activeToolkit!!.generateEmptySprite(GameShell.screenCanvasWidth, GameShell.screenCanvasHeight, true)
+						ClientState.activeToolkit!!.renderToSprite(sprite)
+						this.backComponent!!.render(true)
+						ClientState.activeToolkit!!.restoreSurface()
+						sprite!!.render(0, 0, 0, srcColor, 1)
+						ClientState.activeToolkit!!.renderToSprite(sprite)
+						ClientState.activeToolkit!!.GA(0)
+						this.frontComponent!!.render(true)
+						ClientState.activeToolkit!!.restoreSurface()
+						sprite.render(0, 0, 0, dstColor, 1)
 					}
-					container!!.getSize()
-					container.getSize()
-					if (GameShell.engineFrame === container) {
-						GameShell.engineFrame!!.getInsets()
+					try {
+						if (ClientState.activeToolkit != null && this.frontComponent !is AwtLoadingScreen) {
+							ClientState.activeToolkit!!.renderFrame()
+						}
+					} catch (@Pc(189) ex: FlipException) {
+						ExplicitRuntimeException.reportError(ex.message + " (Recovered) " + ActiveClient.activeClient!!.getDebugString(), ex)
+						ToolkitSwitch.loadAssets(true, 0)
 					}
-					this.fullRepaint = false
-					if (ClientState.activeToolkit != null && this.frontComponent !is AwtLoadingScreen && this.loadingStage!!.getStep() < LoadingStage.aClass167_21.getStep()) {
-						GameCanvasLayout.adjustActiveWindow()
-					}
-				} catch (@Pc(257) ex2: Exception) {
-					skip = true
 				}
-			}
-			if (skip) {
-				continue
-			}
-			@Pc(269) val cycleEnd: Long = Utils.currentTimeMillis()
-			@Pc(278) val sleepDuration: Int = (cycleStart + 20L - cycleEnd).toInt()
-			if (sleepDuration > 0) {
-				TimeUtils.sleep(sleepDuration.toLong())
+				@Pc(214) val container: Container?
+				if (GameShell.engineFrame != null) {
+					container = GameShell.engineFrame
+				} else if (GameShell.applet == null) {
+					container = GameShell.anApplet_Sub1_1
+				} else {
+					container = GameShell.applet
+				}
+				container!!.getSize()
+				container.getSize()
+				if (GameShell.engineFrame === container) {
+					GameShell.engineFrame!!.getInsets()
+				}
+				this.fullRepaint = false
+				if (ClientState.activeToolkit != null && this.frontComponent !is AwtLoadingScreen && this.loadingStage!!.getStep() < LoadingStage.aClass167_21.getStep()) {
+					GameCanvasLayout.adjustActiveWindow()
+				}
+			} catch (@Pc(257) ex2: Exception) {
+				skip = true
 			}
 		}
+		if (skip) {
+			return true
+		}
+		@Pc(269) val cycleEnd: Long = Utils.currentTimeMillis()
+		@Pc(278) val sleepDuration: Int = (cycleStart + 20L - cycleEnd).toInt()
+		if (sleepDuration > 0) {
+			TimeUtils.sleep(sleepDuration.toLong())
+		}
+		return true
 	}
 
 	@OriginalMember(owner = "client!ae", name = "a", descriptor = "(I)Ljava/lang/String;")

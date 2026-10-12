@@ -62,6 +62,7 @@ import util.lowercase
 import awt.height
 import awt.width
 import lang.ThreadDeath
+import runLoop
 
 @OriginalClass("client!km")
 abstract class GameShell : Applet(), Runnable, FocusListener, WindowListener {
@@ -372,77 +373,96 @@ abstract class GameShell : Applet(), Runnable, FocusListener, WindowListener {
 
 	@OriginalMember(owner = "client!km", name = "run", descriptor = "()V")
 	final override fun run() {
-		try {
-			if (PlayerUpdate.javaVendor != null) {
-				@Pc(10) val string: String = PlayerUpdate.javaVendor!!.lowercase(util.defaultLocale())
-				if (string.indexOf("sun") != -1 || string.indexOf("apple") != -1) {
-					@Pc(23) val string2: String? = SystemInfo.javaVersion
-					if (string2!! == "1.1" || string2.startsWith("1.1.") || string2 == "1.2" || string2.startsWith("1.2.")) {
-						this.raiseErrorScreen("wrongjava")
-						return
-					}
-				} else if (string.indexOf("ibm") != -1 && (SystemInfo.javaVersion == null || SystemInfo.javaVersion == "1.4.2")) {
+		// Not part of the original client: the loop goes through runLoop (PlatformLoop), the
+		// original try/while/catch/finally on the JVM and an event-loop chain where a platform has
+		// no threads; runPrelude and runStep are the original code before and inside the while.
+		runLoop(
+			prelude = { this.runPrelude() },
+			step = { this.runStep() },
+			onError = { throwable ->
+				if (throwable is ThreadDeath) {
+					throw throwable
+				}
+				ExplicitRuntimeException.reportError(this.getDebugString(), throwable)
+				this.raiseErrorScreen("crash")
+			},
+			onFinally = {
+				@Pc(207) val obj: Any? = null
+				this.prepareExit(true)
+			},
+		)
+	}
+
+	/* Not part of the original client: the setup of run, false where the original returned before the loop. */
+	private fun runPrelude(): Boolean {
+		if (PlayerUpdate.javaVendor != null) {
+			@Pc(10) val string: String = PlayerUpdate.javaVendor!!.lowercase(util.defaultLocale())
+			if (string.indexOf("sun") != -1 || string.indexOf("apple") != -1) {
+				@Pc(23) val string2: String? = SystemInfo.javaVersion
+				if (string2!! == "1.1" || string2.startsWith("1.1.") || string2 == "1.2" || string2.startsWith("1.2.")) {
 					this.raiseErrorScreen("wrongjava")
-					return
+					return false
 				}
+			} else if (string.indexOf("ibm") != -1 && (SystemInfo.javaVersion == null || SystemInfo.javaVersion == "1.4.2")) {
+				this.raiseErrorScreen("wrongjava")
+				return false
 			}
-			if (SystemInfo.javaVersion != null && SystemInfo.javaVersion!!.startsWith("1.")) {
-				@Pc(71) var charIndex: Int = 2
-				@Pc(73) var javaVersionNumber: Int = 0
-				while (charIndex < SystemInfo.javaVersion!!.length) {
-					@Pc(79) val versionChar: Char = SystemInfo.javaVersion!![charIndex]
-					if (versionChar < '0' || versionChar > '9') {
-						break
-					}
-					charIndex++
-					javaVersionNumber = javaVersionNumber * 10 + versionChar.code - 48
-				}
-				if (javaVersionNumber >= 5) {
-					GameShell.java5OrLater = true
-				}
-			}
-			@Pc(114) var applet: Applet? = GameShell.anApplet_Sub1_1
-			if (GameShell.applet != null) {
-				applet = GameShell.applet
-			}
-			@Pc(120) val method: Method? = SignLinkEnvironment.setFocusCycleRootMethod
-			if (method != null) {
-				try {
-					method.invoke(applet, true)
-				} catch (@Pc(134) ex: Throwable) {
-				}
-			}
-			GameShell.detectMaxMemory()
-			GameShell.detectAvailableProcessors()
-			this.addcanvas()
-			this.maininit()
-			GameShell.cycleManager = AbstractCycleManager.create()
-			while (GameShell.killTime == 0L || GameShell.killTime > Utils.currentTimeMillis()) {
-				if (ClientFeatures.FPS > 0) {
-					// Not part of the original client: client.fps paces the frames, and the game ticks
-					// are counted from the clock at the client's own interval, so the game keeps its speed.
-					GameShell.cycleManager!!.loopCycle(1000000000L / ClientFeatures.FPS.toLong())
-					GameShell.loopsInCycle = ClientFeatures.ticksDue(GameShell.pulseIntervalNanos)
-				} else {
-					GameShell.loopsInCycle = GameShell.cycleManager!!.loopCycle(GameShell.pulseIntervalNanos)
-				}
-				@Pc(157) var i: Int = 0
-				while (i < GameShell.loopsInCycle) {
-					this.onPulseWrapper()
-					i++
-				}
-				this.mainRedrawWrapper()
-				GameShell.performDummyActionEvent(GameShell.gameCanvas, GameShell.signLink)
-			}
-		} catch (@Pc(188) threadDeath: ThreadDeath) {
-			throw threadDeath
-		} catch (@Pc(191) ex2: Throwable) {
-			ExplicitRuntimeException.reportError(this.getDebugString(), ex2)
-			this.raiseErrorScreen("crash")
-		} finally {
-			@Pc(207) val obj: Any? = null
-			this.prepareExit(true)
 		}
+		if (SystemInfo.javaVersion != null && SystemInfo.javaVersion!!.startsWith("1.")) {
+			@Pc(71) var charIndex: Int = 2
+			@Pc(73) var javaVersionNumber: Int = 0
+			while (charIndex < SystemInfo.javaVersion!!.length) {
+				@Pc(79) val versionChar: Char = SystemInfo.javaVersion!![charIndex]
+				if (versionChar < '0' || versionChar > '9') {
+					break
+				}
+				charIndex++
+				javaVersionNumber = javaVersionNumber * 10 + versionChar.code - 48
+			}
+			if (javaVersionNumber >= 5) {
+				GameShell.java5OrLater = true
+			}
+		}
+		@Pc(114) var applet: Applet? = GameShell.anApplet_Sub1_1
+		if (GameShell.applet != null) {
+			applet = GameShell.applet
+		}
+		@Pc(120) val method: Method? = SignLinkEnvironment.setFocusCycleRootMethod
+		if (method != null) {
+			try {
+				method.invoke(applet, true)
+			} catch (@Pc(134) ex: Throwable) {
+			}
+		}
+		GameShell.detectMaxMemory()
+		GameShell.detectAvailableProcessors()
+		this.addcanvas()
+		this.maininit()
+		GameShell.cycleManager = AbstractCycleManager.create()
+		return true
+	}
+
+	/* Not part of the original client: one turn of run's loop, false when the loop ends. */
+	private fun runStep(): Boolean {
+		if (!(GameShell.killTime == 0L || GameShell.killTime > Utils.currentTimeMillis())) {
+			return false
+		}
+		if (ClientFeatures.FPS > 0) {
+			// Not part of the original client: client.fps paces the frames, and the game ticks
+			// are counted from the clock at the client's own interval, so the game keeps its speed.
+			GameShell.cycleManager!!.loopCycle(1000000000L / ClientFeatures.FPS.toLong())
+			GameShell.loopsInCycle = ClientFeatures.ticksDue(GameShell.pulseIntervalNanos)
+		} else {
+			GameShell.loopsInCycle = GameShell.cycleManager!!.loopCycle(GameShell.pulseIntervalNanos)
+		}
+		@Pc(157) var i: Int = 0
+		while (i < GameShell.loopsInCycle) {
+			this.onPulseWrapper()
+			i++
+		}
+		this.mainRedrawWrapper()
+		GameShell.performDummyActionEvent(GameShell.gameCanvas, GameShell.signLink)
+		return true
 	}
 
 	@OriginalMember(owner = "client!km", name = "e", descriptor = "(I)V")
