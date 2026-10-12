@@ -25,6 +25,7 @@ fun main() {
     // Leaving the page logs out: a page kept in the back/forward cache would otherwise hold the
     // player's connection open. Coming back to such a page starts the client again.
     window.addEventListener("pagehide", { net.closeAllSockets() })
+    holdPageAwake()
     window.addEventListener("pageshow", { event -> if (event.asDynamic().persisted == true) window.location.reload() })
     GlobalScope.launch {
         CachePersistence.hydrate()

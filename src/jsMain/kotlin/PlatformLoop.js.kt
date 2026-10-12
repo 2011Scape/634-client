@@ -44,10 +44,10 @@ actual fun runLoop(
             onFinally()
             return
         }
-        window.setTimeout({ tick() }, pendingSleepMillis.coerceIn(1L, 50L).toInt())
+        scheduleTurn(pendingSleepMillis.coerceIn(1L, 50L).toInt()) { tick() }
     }
 
-    window.setTimeout({ tick() }, 0)
+    scheduleTurn(0) { tick() }
 }
 
 actual val executeWorkerTasksInline: Boolean = true
