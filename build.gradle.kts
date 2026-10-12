@@ -12,9 +12,8 @@ java {
 }
 
 /*
- * The client is moving from Java to Kotlin a package batch at a time (docs/MULTIPLATFORM.md,
- * milestone 2). Kotlin sources are in src/main/kotlin and compile together with the Java in
- * src/main/java: each side sees the other.
+ * The client is Kotlin, in src/main/kotlin (docs/MULTIPLATFORM.md, milestone 2): a straight
+ * conversion of the Java, with the native classes keeping their JNI names and signatures.
  */
 kotlin {
     jvmToolchain(21)

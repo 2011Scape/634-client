@@ -171,7 +171,15 @@ object ScriptRunner {
 
 	@OriginalMember(owner = "client!kca", name = "m", descriptor = "[[I")
 	@JvmField
-	val arrayVars: Array<IntArray?> = Array<IntArray?>(5) { IntArray(5000) }
+	// Java: new int[5][5000]. Written as a loop: Kotlin 2.2.20 emits unverifiable bytecode (an unset loop
+	// counter, "Bad local variable type") for Array(5) { IntArray(5000) } in this object's static initializer.
+	val arrayVars: Array<IntArray?> = arrayOfNulls<IntArray>(5).also { rows ->
+		var row = 0
+		while (row < 5) {
+			rows[row] = IntArray(5000)
+			row++
+		}
+	}
 
 	@OriginalMember(owner = "client!kca", name = "p", descriptor = "[I")
 	@JvmField

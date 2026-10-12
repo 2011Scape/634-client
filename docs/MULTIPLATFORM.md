@@ -75,7 +75,7 @@ the extras onto void-client instead.
 /goal Read docs/MULTIPLATFORM.md and CLAUDE.md, then complete milestone 1 only. Produce a name mapping between void-client commit 228561a (/home/pixel/Documents/Projects/void-client, client/src, Java) and this repository's commit f2649c4, using FabricMC Matcher headless if it supports that; if it does not, stop and ask me to run Matcher and export the mapping to docs/multiplatform/void-client-228561a.tiny. Done when: the mapping file exists under docs/multiplatform/; docs/multiplatform/COVERAGE.md states how many classes, methods and fields of each side are matched (show the numbers in the conversation), lists the root-package native classes (oa, a, ba, i, j, ja, ...) and confirms each maps to itself, and lists the 20 largest unmatched classes; and milestone 1 is ticked in docs/MULTIPLATFORM.md. Do not change any source file. Stop and report if fewer than 70% of classes match, or after 20 turns.
 ```
 
-### [ ] 2. Kotlin on the JVM
+### [x] 2. Kotlin on the JVM
 
 Convert the Java sources to Kotlin, still a JVM-only project with AWT, behaving exactly as before.
 Add the `kotlin("jvm")` plugin first: Java and Kotlin compile together in one module, so the
@@ -102,8 +102,8 @@ The batches, smallest risk first:
 | [x] | d. `entity`, `scene`, `preference`, `sound` | 120 |
 | [x] | e. `graphics`, `toolkit` | 176 |
 | [x] | f. `client` (with `client/features`) and the 188 classes directly in `com/jagex/game/runetek5` | about 250 |
-| [ ] | g. The native packages `jaclib`, `jaggl`, `jagdx`, `jagtheora`, `jagex3` | 59 |
-| [ ] | h. The root package, last: the native classes, `client`, the launcher `RuneTek5` | 165 |
+| [x] | g. The native packages `jaclib`, `jaggl`, `jagdx`, `jagtheora`, `jagex3` | 59 |
+| [x] | h. The root package, last: the native classes, `client`, the launcher `RuneTek5` | 165 |
 
 For each batch, replace `<batch>` in this goal with its letter and file list:
 
