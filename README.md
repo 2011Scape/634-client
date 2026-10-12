@@ -144,9 +144,9 @@ needs Java 21 to 25 installed.
 
 ## For developers
 
-The client is written in Kotlin, as a Kotlin Multiplatform project with a JVM target: the game is
-in `src/commonMain/kotlin`, on shims of the Java APIs it uses, and the JVM side (the native classes,
-the launcher `RuneTek5`) in `src/jvmMain/kotlin`. It is a straight conversion of the deobfuscated
+The client is written in Kotlin, as a Kotlin Multiplatform project with a JVM and a browser target:
+the game is in `src/commonMain/kotlin`, on shims of the Java APIs it uses, the JVM side (the native
+classes, the launcher `RuneTek5`) in `src/jvmMain/kotlin`, and the browser side in `src/jsMain/kotlin`. It is a straight conversion of the deobfuscated
 Java, which keeps the original's structure, names and annotations, and the names and signatures the
 native libraries bind to. Code added to the
 2010 client is marked with a comment that starts "Not part of the original client".
@@ -165,6 +165,9 @@ native libraries bind to. Code added to the
   - [`docs/CLIENT.md`](docs/CLIENT.md): the main loop, map building, scene and sound.
 - **Trying a change:** `./gradlew runClient` starts the client itself against a Void server on
   this computer, with `-Pclient.*` switches such as `-Pclient.debug=true`.
+- **The browser client:** the same game runs in a browser through a WebSocket relay
+  (`node tools/relay.mjs`); [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md#running-the-browser-client)
+  says how to build, serve and open it.
 - **Checking a change:** `./gradlew check` (what CI runs, with no server needed) loads and verifies
   every class from the release jar, and fails on a method over HotSpot's 8000-byte JIT limit unless
   `config/huge-methods.txt` lists it. `./gradlew compileCommonMainKotlinMetadata -PcommonCheck=true`

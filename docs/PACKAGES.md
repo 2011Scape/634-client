@@ -7,6 +7,7 @@ in two source sets:
 |---|---|
 | `src/commonMain/kotlin` | The game, and everything it needs that is not tied to a platform. Common code names no `java.*` or `javax.*` package; CI compiles it against the common standard library alone (`./gradlew compileCommonMainKotlinMetadata -PcommonCheck=true`). |
 | `src/jvmMain/kotlin` | The JVM side: the native classes, the launcher `RuneTek5`, and the actuals of the shims and seams below. |
+| `src/jsMain/kotlin` | The browser side ([MULTIPLATFORM.md](MULTIPLATFORM.md#running-the-browser-client)): the entry point `main.js.kt`, browser actuals of every shim and seam, the WebSocket `net.Socket`, the IndexedDB-backed file system in `io`, the class registry behind `lang.forName`, and the native classes, which throw `NativeUnavailableException` (an `Exception`, so the client falls back as from a missing library) except `oa`, which draws with the client's software renderer. |
 
 Inside `commonMain` the game keeps its layout:
 
@@ -41,7 +42,12 @@ Other `Math` functions are `kotlin.math`'s, which compile to the same `java.lang
 - **A JDK class or method common code needs** goes in the shims: an `expect` declaration in the
   shim package, and its JVM `actual`, usually a type alias. Add only what the code uses; the browser
   target will have to implement each one.
-- **Code that only the JVM can run** goes in `jvmMain`, behind an `expect` function in `commonMain`.
+- **Code that only the JVM can run** goes in `jvmMain`, behind an `expect` function in `commonMain`,
+  with a browser actual in `jsMain` (often one that throws an `Exception` the caller handles).
+- **A loop that waits for another thread** goes through `runLoop`, and checks `canBlock` before it
+  waits (`PlatformLoop.kt`): in a browser there are no threads, and a wait would spin for ever.
+- **A class the client creates by name** (`lang.forName(...).getDeclaredConstructor()`) needs an
+  entry in `jsMain/kotlin/lang/ClassRegistry.js.kt` to exist in a browser.
 - **New code for a native class** goes in its `jvmMain` file, with the `expect` side updated if
   common code calls it.
 - **A feature** goes in `com/jagex/game/runetek5/client/features`, with its hooks where

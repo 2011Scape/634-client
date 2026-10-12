@@ -162,6 +162,38 @@ in local mode; `websockify 8081 localhost:43594` is one such relay).
 /goal Read docs/MULTIPLATFORM.md, CLAUDE.md and /home/pixel/Documents/Projects/void-client/CLAUDE.md (including its "JS rules learned the hard way"), then complete milestone 4 only: add a js(IR) browser target, copy void-client's jsMain actuals for the Java API shims, the native shims, the socket, the IndexedDB file system, threads and PlatformLoop, and carry over its browser-specific changes to the game code, translated through the docs/multiplatform mapping. Done when: the browser bundle builds; with a WebSocket relay on localhost:8081 to the local Void server, the browser client on the software toolkit (0) logs in as smoketest and loads a region, which is shown by its console output or a screenshot in the conversation; the desktop smoke test still prints SMOKE PASS on toolkits 0, 1, 2 and 5 (show every SMOKE line); milestone 4 is ticked; and the work is committed on feature/multi-platform-shim. Stop and report after 60 turns or if the relay or server is not reachable.
 ```
 
+How it went, for the milestones after it:
+
+- The browser needs no worker threads: `SignLink` runs each request when it is queued
+  (`executeWorkerTasksInline`), and the worker loops (the cache worker, the socket reader and
+  writers, the ping worker) go through `runLoop` and end their turn where they would wait
+  (`canBlock` false). On the JVM both flags keep the original behaviour.
+- Three game-code fixes, each a no-op on the JVM: the JS5 handshake waits until its bytes are in
+  (void-client's fix); `AsyncInputStream` does not take an empty buffer for a full one (a race the
+  original only survives because its reader blocks); and Whirlpool's S-box is a `CharArray`, because
+  the original string literal holds lone surrogates that a UTF-8 bundle turns into U+FFFD.
+- void-client's game-code changes are mostly coroutine rewrites of its stream classes and speed work
+  (the JS5 read budget per tick, Whirlpool, region loading); the ones above were what this client
+  needed to run. A fresh browser fills its cache slowly (the original reads at most 100 JS5 blocks a
+  tick); void-client's raised budget is a candidate for later.
+- `oa` in the browser hands its calls to a `JavaToolkit`, where void-client's is a copy of its
+  software renderer; the other root native classes are only ever made by the JVM's `oa`.
+
+### Running the browser client
+
+1. A Void server on this computer, as for the desktop smoke test.
+2. The relay, from WebSockets to the server's TCP port: `node tools/relay.mjs` (no dependencies;
+   arguments `[listenPort=8081] [serverHost=localhost] [serverPort=43594]`), or
+   `websockify 8081 localhost:43594`. The client connects to `ws://localhost:8081/proxy`, or to
+   `window.CONFIG.url` when the page sets it.
+3. `./gradlew jsBrowserDevelopmentWebpack`, then serve the folder:
+   `python3 -m http.server -d build/kotlin-webpack/js/developmentExecutable 8080`, and open
+   `http://localhost:8080/`. `./gradlew build` makes the minified bundle in
+   `build/dist/js/productionExecutable`.
+4. The first visit downloads the cache into IndexedDB; later visits load it from there. The client
+   starts as `./gradlew runClient` does, on the Java software toolkit (0); `::tk2` switches to the
+   software toolkit's browser version. `window.__log` holds the last 500 console lines.
+
 ### [ ] 5. WebGL
 
 Bring the Java OpenGL toolkit (1) to the browser on void-client's WebGL 2 emulator
