@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
  */
 fun main() {
     keepConsoleLog()
+    readClientSwitches()
     // Leaving the page logs out: a page kept in the back/forward cache would otherwise hold the
     // player's connection open. Coming back to such a page starts the client again.
     window.addEventListener("pagehide", { net.closeAllSockets() })
@@ -44,3 +45,27 @@ private fun keepConsoleLog() {
         window.addEventListener('error', function (e) { window.__log.push('uncaught: ' + e.message); });
     """)
 }
+
+/*
+ * The client.* switches (docs/FEATURES.md) from the page's query string, as runClient takes them from
+ * -P: ?client.msaa=4&client.smaa=true. A switch without a value is true (?client.smaa). They must be
+ * set before client.main, because ClientFeatures reads them once.
+ */
+private fun readClientSwitches() {
+    val query: String = window.location.search.removePrefix("?")
+    if (query.isEmpty()) return
+    for (pair in query.split('&')) {
+        val equals: Int = pair.indexOf('=')
+        val key: String = js("decodeURIComponent")(if (equals < 0) pair else pair.substring(0, equals)) as String
+        val value: String = if (equals < 0) "true" else js("decodeURIComponent")(pair.substring(equals + 1)) as String
+        if (key.startsWith("client.")) {
+            lang.setProperty(key, value)
+        }
+    }
+    // SMAA's shaders are desktop GLSL 1.30, which the WebGL 2 emulator does not translate
+    // (docs/FEATURES.md); without its resources GlSmaaFilter leaves it off.
+    if (lang.getBoolean("client.smaa")) {
+        console.log("client.smaa: not available in the browser; SMAA is off")
+    }
+}
+

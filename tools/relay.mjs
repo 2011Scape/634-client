@@ -13,6 +13,7 @@ const listenPort = Number(process.argv[2] ?? 8081)
 const serverHost = process.argv[3] ?? 'localhost'
 const serverPort = Number(process.argv[4] ?? 43594)
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
+const log = (line) => console.log(new Date().toISOString().slice(11, 19) + ' ' + line)
 
 const server = createServer((req, res) => {
   res.writeHead(426, { 'Content-Type': 'text/plain' })
@@ -41,13 +42,13 @@ server.on('upgrade', (req, socket) => {
   const upstream = connect(serverPort, serverHost)
   upstream.setNoDelay(true)
   const id = `${req.socket.remoteAddress}:${req.socket.remotePort}`
-  console.log(`relay ${id} -> ${serverHost}:${serverPort}`)
+  log(`relay ${id} -> ${serverHost}:${serverPort}`)
 
   let toServer = 0
   let toClient = 0
   upstream.on('data', (data) => { toClient += data.length; socket.write(frame(0x2, data)) })
-  upstream.on('close', () => { if (!socket.destroyed) socket.end(frame(0x8, Buffer.alloc(0))) })
-  upstream.on('error', (err) => { console.log(`relay ${id}: server ${err.message}`); socket.destroy() })
+  upstream.on('close', () => { log(`relay ${id}: the server closed`); if (!socket.destroyed) socket.end(frame(0x8, Buffer.alloc(0))) })
+  upstream.on('error', (err) => { log(`relay ${id}: server ${err.message}`); socket.destroy() })
 
   let buffer = Buffer.alloc(0)
   socket.on('data', (chunk) => {
@@ -63,7 +64,7 @@ server.on('upgrade', (req, socket) => {
       upstream.write(parsed.payload)
     }
   })
-  socket.on('close', () => { upstream.destroy(); console.log(`relay ${id} closed: ${toServer} bytes to the server, ${toClient} to the client`) })
+  socket.on('close', () => { upstream.destroy(); log(`relay ${id} closed: ${toServer} bytes to the server, ${toClient} to the client`) })
   socket.on('error', () => upstream.destroy())
 })
 
