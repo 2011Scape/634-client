@@ -148,7 +148,7 @@ How it went, for the milestones after it:
 /goal Read docs/MULTIPLATFORM.md, CLAUDE.md and /home/pixel/Documents/Projects/void-client/CLAUDE.md, then complete milestone 3 only: make this a Kotlin Multiplatform project with only a jvm() target, move the game into src/commonMain/kotlin, copy void-client's expect shims (awt, io, lang, net, util, sound) and their jvmMain actuals, and the root platform seams (PlatformLoop, Clock, Lock, SoftRef, BigInt, TimedRecordAccessor), adapting their call sites to this client's names through the docs/multiplatform mapping. commonMain must not import any java.* or javax.* package (show the output of a grep that proves it). Done when: ./gradlew assemble succeeds; ./gradlew runClient -Pclient.test=smoke -Pclient.test.toolkit=<id> prints SMOKE PASS for each of 0, 1, 2 and 5 (show every SMOKE line); ./gradlew release builds a jar that starts with java -jar; milestone 3 is ticked; and the work is committed on feature/multi-platform-shim. Stop and report if two attempts to fix a failing smoke test do not pass, or after 40 turns.
 ```
 
-### [ ] 4. The browser target, in software
+### [x] 4. The browser target, in software
 
 Add the `js(IR) { browser() }` target and void-client's browser actuals: the Java API shims, `oa`
 and the other native-class shims, the WebSocket socket, the IndexedDB file system, the threads and the
