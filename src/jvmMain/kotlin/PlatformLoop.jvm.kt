@@ -28,3 +28,5 @@ actual val js5ReadsPerTick: Int = 100
 actual val clientArraysAvailable: Boolean = true
 
 actual val textAntialiased: Boolean = false
+
+actual val classFieldsAvailable: Boolean = true

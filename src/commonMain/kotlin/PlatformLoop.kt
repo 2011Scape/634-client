@@ -58,3 +58,9 @@ expect val clientArraysAvailable: Boolean
  * exact-black colour key misses (HelveticaFont).
  */
 expect val textAntialiased: Boolean
+
+/*
+ * Whether a class's fields can be listed (Class.getDeclaredFields). True on the JVM; a browser has
+ * no reflection, so there GamePreferences sizes its save without counting its fields.
+ */
+expect val classFieldsAvailable: Boolean

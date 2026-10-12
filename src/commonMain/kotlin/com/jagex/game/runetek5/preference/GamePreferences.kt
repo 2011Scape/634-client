@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.preference
 
+import classFieldsAvailable
 import com.jagex.game.runetek5.preference.AnimateBackgroundOption
 import com.jagex.game.runetek5.preference.impl.AntiAliasingPreference
 import com.jagex.game.runetek5.preference.BloomOption
@@ -617,6 +618,12 @@ class GamePreferences : Node {
 		@OriginalMember(owner = "client!mr", name = "c", descriptor = "(I)I")
 		@JvmStatic
 		fun getEncodedSize(): Int {
+			// Not part of the original client: without reflection (the browser, PlatformLoop.kt) the fields
+			// cannot be counted, and a 1-byte buffer made every save throw; there the size is a bound on
+			// what encode writes (a version byte and one byte a preference).
+			if (!classFieldsAvailable) {
+				return 64
+			}
 			@Pc(7) var count: Int = 0
 			@Pc(25) val fields: Array<Field> = GamePreferences::class.jClass.getDeclaredFields()
 			@Pc(29) var i: Int = 0
