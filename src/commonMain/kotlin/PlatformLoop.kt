@@ -44,3 +44,10 @@ expect val canBlock: Boolean
  * filling the cache.
  */
 expect val js5ReadsPerTick: Int
+
+/*
+ * Whether OpenGL can draw from client-side vertex arrays (glVertexPointer with a memory address).
+ * True on the JVM. The browser's WebGL 2 emulator draws only from buffer objects, so there the Java
+ * OpenGL toolkit keeps its changing (dynamic) vertex data in buffer objects too, as it does on AMD.
+ */
+expect val clientArraysAvailable: Boolean

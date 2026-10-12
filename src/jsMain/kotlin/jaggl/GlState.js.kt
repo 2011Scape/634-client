@@ -1,0 +1,422 @@
+/*
+ * Not part of the original client: the WebGL 2 emulator and jaclib memory behind the Java OpenGL
+ * toolkit (1) in a browser, from void-client's jsMain (milestone 5).
+ */
+package jaggl
+
+sealed class ShaderOrProgram {
+    class Program(val program: WebGLProgram) : ShaderOrProgram() {
+        var compat: CompatUniformLocations? = null
+        val attachedTypes = mutableSetOf<Int>()
+        var hasSyntheticVertexShader = false
+    }
+    class Shader(val shader: WebGLShader, val type: Int) : ShaderOrProgram()
+}
+
+class CompatUniformLocations(gl: WebGL2RenderingContext, program: WebGLProgram) {
+    val modelView = gl.getUniformLocation(program, "uModelViewMatrix")
+    val projection = gl.getUniformLocation(program, "uProjectionMatrix")
+    val modelViewProjection = gl.getUniformLocation(program, "uModelViewProjectionMatrix")
+    val normalMatrix = gl.getUniformLocation(program, "uNormalMatrix")
+    val textureMatrix = gl.getUniformLocation(program, "uTextureMatrix[0]")
+    val fogDensity = gl.getUniformLocation(program, "uFog.density")
+    val fogStart = gl.getUniformLocation(program, "uFog.start")
+    val fogEnd = gl.getUniformLocation(program, "uFog.end")
+    val fogScale = gl.getUniformLocation(program, "uFog.scale")
+    val fogColor = gl.getUniformLocation(program, "uFog.color")
+
+    // Per-program dirty tracking for GlState.prepareDraw()'s compat branch. This program has its
+    // own independent uniform storage (a separate linked WebGLProgram), so these must live here
+    // rather than globally - re-uploads are only skippable against *this* program's last values.
+    var lastModelViewVersion = -1
+    var lastProjectionVersion = -1
+    var lastTextureMatrixVersion = -1
+    var lastFogStart = Float.NaN
+    var lastFogEnd = Float.NaN
+    val lastFogColor = floatArrayOf(Float.NaN, Float.NaN, Float.NaN, Float.NaN)
+}
+
+private const val SYNTHETIC_VERTEX_SOURCE = """
+void main() {
+    gl_TexCoord[0] = gl_MultiTexCoord0;
+    gl_TexCoord[1] = gl_MultiTexCoord1;
+    gl_Position = ftransform();
+}
+"""
+
+class ClientArrayPointer {
+    var enabled: Boolean = false
+    var size: Int = 4
+    var type: Int = WebGL2RenderingContext.FLOAT
+    var stride: Int = 0
+    var offset: Int = 0
+    var normalized: Boolean = false
+    var sourceBuffer: WebGLBuffer? = null
+}
+
+internal const val CUBE_SAMPLER_UNIT = 5
+
+private fun defaultTexGenPlanes(): Array<FloatArray> =
+    arrayOf(floatArrayOf(1f, 0f, 0f, 0f), floatArrayOf(0f, 1f, 0f, 0f), FloatArray(4), FloatArray(4))
+
+class GlState(val gl: WebGL2RenderingContext) {
+    val textures = IntHandleTable<WebGLTexture>()
+    val buffers = IntHandleTable<WebGLBuffer>()
+    val framebuffers = IntHandleTable<WebGLFramebuffer>()
+    val renderbuffers = IntHandleTable<WebGLRenderbuffer>()
+    val glObjects = LongHandleTable<ShaderOrProgram>()
+    val uniforms = IntHandleTable<WebGLUniformLocation>()
+    internal val arbPrograms = IntHandleTable<ArbProgramRuntime>()
+
+    val matrixStack = MatrixStack()
+    val displayLists = DisplayListManager()
+    lateinit var immediateMode: ImmediateModeEmulator
+    lateinit var fixedFunctionShader: FixedFunctionShader
+
+    val syntheticVertexShader: WebGLShader by lazy {
+        val shader = gl.createShader(WebGL2RenderingContext.VERTEX_SHADER) ?: error("createShader failed")
+        gl.shaderSource(shader, translateLegacyGlsl(SYNTHETIC_VERTEX_SOURCE, WebGL2RenderingContext.VERTEX_SHADER))
+        gl.compileShader(shader)
+        if (gl.getShaderParameter(shader, WebGL2RenderingContext.COMPILE_STATUS) == false) {
+            error("Synthetic fallback vertex shader compile failed: ${gl.getShaderInfoLog(shader)}")
+        }
+        shader
+    }
+
+    var activeTextureUnit = 0
+    var boundTexture2D = arrayOfNulls<WebGLTexture>(32)
+    var boundTextureCubeMap = arrayOfNulls<WebGLTexture>(32)
+    var boundTexture3D = arrayOfNulls<WebGLTexture>(32)
+    var boundArrayBuffer: WebGLBuffer? = null
+    var boundElementArrayBuffer: WebGLBuffer? = null
+    var boundProgram: WebGLProgram? = null
+    var boundProgramObj: ShaderOrProgram.Program? = null
+    var boundFramebuffer: WebGLFramebuffer? = null
+    var readbackFramebuffer: WebGLFramebuffer? = null
+
+    // ARB vertex program state (GL_VERTEX_PROGRAM_ARB = 34336 emulation).
+    var vertexProgramEnabled = false
+    internal var boundVertexProgram: ArbProgramRuntime? = null
+    // GL_PROGRAM_ERROR_POSITION_ARB: -1 means no error after the last program load.
+    var arbErrorPosition = -1
+
+    val clientElementBuffer: WebGLBuffer by lazy { gl.createBuffer()!! }
+
+    val quadIndexBuffer: WebGLBuffer by lazy { gl.createBuffer()!! }
+
+    // Indexed by attribute location (ATTRIB_POSITION..ATTRIB_TEXCOORD1 are 0..4).
+    val clientArrays: Array<ClientArrayPointer> = Array(ATTRIB_COUNT) { ClientArrayPointer() }
+
+    /**
+     * What the WebGL context currently holds for each vertex attribute, so bindClientArrays()
+     * only issues the calls that change something. Every draw used to re-issue bindBuffer +
+     * enableVertexAttribArray + vertexAttribPointer for all five attributes, and each of those
+     * is a serialized command to Firefox's out-of-process WebGL host. Anything else that sets
+     * attribute state directly (ImmediateModeEmulator) must call [invalidateAttribCache].
+     */
+    val glAttribEnabled = BooleanArray(ATTRIB_COUNT)
+    val glAttribBuffer = arrayOfNulls<WebGLBuffer>(ATTRIB_COUNT)
+    val glAttribSize = IntArray(ATTRIB_COUNT) { -1 }
+    val glAttribType = IntArray(ATTRIB_COUNT)
+    val glAttribNormalized = BooleanArray(ATTRIB_COUNT)
+    val glAttribStride = IntArray(ATTRIB_COUNT)
+    val glAttribOffset = IntArray(ATTRIB_COUNT)
+    // Generic (constant) attribute value used while the array is disabled; context state, not VAO.
+    val glAttribConstant = Array(ATTRIB_COUNT) { floatArrayOf(Float.NaN, Float.NaN, Float.NaN, Float.NaN) }
+
+    fun invalidateAttribCache() {
+        glAttribSize.fill(-1)
+        glAttribBuffer.fill(null)
+        for (i in 0 until ATTRIB_COUNT) glAttribEnabled[i] = true // forces a disable to be re-issued
+    }
+
+    // The WebGLProgram last passed to gl.useProgram; every useProgram must go through [useProgram].
+    private var currentGlProgram: WebGLProgram? = null
+    private var currentGlProgramKnown = false
+
+    fun useProgram(program: WebGLProgram?) {
+        if (currentGlProgramKnown && program === currentGlProgram) return
+        gl.useProgram(program)
+        currentGlProgram = program
+        currentGlProgramKnown = true
+    }
+
+    /** Call after anything that invokes gl.useProgram without going through [useProgram]. */
+    fun invalidateProgramCache() {
+        currentGlProgramKnown = false
+    }
+
+    var lightingEnabled = false
+    var fogEnabled = false
+    var alphaTestEnabled = false
+    var ffpStateDirty = true
+    // Separate from ffpStateDirty: the fixed-function *vertex* lighting uniforms
+    // (uLightingEnabled/uGlobalAmbient/uLight*) live only in fixedFunctionShader.program and
+    // are never touched by the ARB vertex-program path (which uploads its own uArbLight*
+    // uniforms unconditionally every draw). ffpStateDirty, by contrast, is also consumed by
+    // uploadFfFragmentUniforms on behalf of whichever program draws next (FF or ARB). Sharing
+    // one flag between these meant an ARB draw could silently consume ffpStateDirty and skip
+    // the fixed-function lighting re-upload for the rest of that frame - surfacing as
+    // terrain/objects flipping between stale and fresh lighting depending on whether a water
+    // (ARB) draw happened to run first, i.e. camera-angle/visibility dependent.
+    var ffpLightingDirty = true
+    // Bit i set = light i's uniforms must be re-uploaded to fixedFunctionShader.program. Kept
+    // per light so a change to one light no longer re-sends all 8 lights (40 uniform calls).
+    var lightDirtyMask = (1 shl MAX_LIGHTS) - 1
+    val texEnvDirty = booleanArrayOf(true, true, true)
+    // The fixed-function fragment stage is shared (by source) between the fixed-function
+    // program and every transpiled ARB vertex program, but each is a distinct WebGLProgram
+    // with independent uniform storage. texEnvDirty/ffpStateDirty alone would only reach
+    // whichever program happens to draw first after a state change; track which program last
+    // received the upload so a switch to a different program forces a full re-upload too.
+    internal var lastFragUniformProgram: WebGLProgram? = null
+
+    /** The interface scale while [ImmediateModeEmulator] draws scaled 2D to the window, else 0. */
+    var logicalSampleScale = 0f
+    // TexGen state only feeds the fixed-function *vertex* stage (uTexGenMode); kept separate
+    // so transpiled-ARB draws can consume texEnvDirty without losing texgen updates.
+    val texGenDirty = booleanArrayOf(true, true, true)
+    // Planes rarely change, while material passes toggle texgen enables/modes per switch; kept
+    // apart so a toggle re-sends one uTexGenMode uniform rather than all 8 plane uniforms too.
+    val texGenPlaneDirty = booleanArrayOf(true, true, true)
+    private var lastProjectionVersion = -1
+    // Models issue one draw per material group under the same modelview, so the matrix only
+    // needs re-sending when the stack actually changed.
+    private var lastModelViewVersion = -1
+    private val lastTextureMatrixVersion = intArrayOf(-1, -1, -1)
+
+    var alphaFunc = GL_ALWAYS
+    var alphaRef = 0f
+
+    val texturingEnabled = booleanArrayOf(false, false, false)
+    val textureTarget = IntArray(3) { WebGL2RenderingContext.TEXTURE_2D }
+    // GL texgen state per unit and per coordinate (s, t, r, q). Defaults follow the GL spec:
+    // mode GL_EYE_LINEAR, planes S = (1,0,0,0), T = (0,1,0,0), R = Q = 0. Eye planes are stored
+    // already transformed by the inverse modelview current when they were specified.
+    val texGenEnabled = Array(3) { BooleanArray(4) }
+    val texGenMode = Array(3) { IntArray(4) { GL_EYE_LINEAR } }
+    val texGenObjectPlane = Array(3) { defaultTexGenPlanes() }
+    val texGenEyePlane = Array(3) { defaultTexGenPlanes() }
+    val combineRgb = IntArray(3) { GL_MODULATE }
+    val combineAlpha = IntArray(3) { GL_MODULATE }
+    val source0Rgb = IntArray(3) { GL_TEXTURE }
+    val source1Rgb = IntArray(3) { GL_PREVIOUS }
+    val source2Rgb = IntArray(3) { GL_CONSTANT }
+    val operand0Rgb = IntArray(3) { GL_SRC_COLOR }
+    val operand1Rgb = IntArray(3) { GL_SRC_COLOR }
+    val operand2Rgb = IntArray(3) { GL_SRC_ALPHA }
+    val source0Alpha = IntArray(3) { GL_TEXTURE }
+    val source1Alpha = IntArray(3) { GL_PREVIOUS }
+    val source2Alpha = IntArray(3) { GL_CONSTANT }
+    val operand0Alpha = IntArray(3) { GL_SRC_ALPHA }
+    val operand1Alpha = IntArray(3) { GL_SRC_ALPHA }
+    val operand2Alpha = IntArray(3) { GL_SRC_ALPHA }
+    val rgbScale = FloatArray(3) { 1f }
+    val alphaScale = FloatArray(3) { 1f }
+    val textureEnvColor = Array(3) { floatArrayOf(0f, 0f, 0f, 0f) }
+    val fogColor = floatArrayOf(0f, 0f, 0f, 1f)
+    var fogStart = 0f
+    var fogEnd = 1f
+    val globalAmbient = floatArrayOf(0.2f, 0.2f, 0.2f, 1f)
+    val lightEnabled = BooleanArray(MAX_LIGHTS)
+    val lightAmbient = Array(MAX_LIGHTS) { floatArrayOf(0f, 0f, 0f, 1f) }
+    val lightDiffuse = Array(MAX_LIGHTS) { floatArrayOf(0f, 0f, 0f, 1f) }
+    // xyz = eye-space position (or direction, when w == 0), w mirrors the w passed to
+    // glLightfv(GL_POSITION): 0 = directional light, 1 = positional light with attenuation.
+    val lightPosition = Array(MAX_LIGHTS) { floatArrayOf(0f, 0f, -1f, 0f) }
+    // (constant, linear, quadratic) attenuation factors; GL defaults to (1, 0, 0), i.e. no falloff.
+    val lightAttenuation = Array(MAX_LIGHTS) { floatArrayOf(1f, 0f, 0f) }
+
+    val currentColor = floatArrayOf(1f, 1f, 1f, 1f)
+    // Three components: glTexCoord3f/3i and glMultiTexCoord3i(GL_TEXTURE0, ...) supply a real
+    // R coordinate for 3D-texture slice lookups and cube-map face directions.
+    val currentTexCoord = floatArrayOf(0f, 0f, 0f)
+    val currentTexCoord1 = floatArrayOf(0f, 0f, 0f)
+    val currentNormal = floatArrayOf(0f, 0f, 1f)
+
+    fun prepareDraw() {
+        val program = boundProgramObj
+        if (program == null) {
+            // Transpiled ARB vertex program path: the ARB assembly (paired with the shared
+            // fixed-function fragment stage) replaces the fixed-function vertex stage.
+            val arb = boundVertexProgram
+            if (vertexProgramEnabled && arb != null &&
+                arb.status == ArbProgramRuntime.Status.OK && arb.useAndUpload(gl, this)
+            ) {
+                return
+            }
+
+            useProgram(fixedFunctionShader.program)
+            val s = fixedFunctionShader
+            val modelViewVersion = matrixStack.version(GL_MODELVIEW)
+            val modelViewChanged = modelViewVersion != lastModelViewVersion
+            if (modelViewChanged) {
+                lastModelViewVersion = modelViewVersion
+                gl.uniformMatrix4fv(s.uModelView, false, matrixStack.modelview().asFloat32Array())
+            }
+
+            val projectionVersion = matrixStack.version(GL_PROJECTION)
+            val projectionChanged = projectionVersion != lastProjectionVersion
+            if (projectionChanged) lastProjectionVersion = projectionVersion
+            if (modelViewChanged || projectionChanged) {
+                gl.uniformMatrix4fv(s.uModelViewProjection, false, matrixStack.mvp().asFloat32Array())
+            }
+
+            for (unit in 0 until 3) {
+                val version = matrixStack.version(GL_TEXTURE_MATRIX, unit)
+                if (version == lastTextureMatrixVersion[unit]) continue
+                lastTextureMatrixVersion[unit] = version
+                gl.uniformMatrix4fv(s.uTextureMatrixU[unit], false, matrixStack.textureMatrix(unit).asFloat32Array())
+            }
+
+            if (ffpLightingDirty) {
+                ffpLightingDirty = false
+                gl.uniform1i(s.uLightingEnabled, if (lightingEnabled) 1 else 0)
+                gl.uniform4fv(s.uGlobalAmbient, globalAmbient.asFloat32Array())
+            }
+            if (lightDirtyMask != 0) {
+                for (i in 0 until MAX_LIGHTS) {
+                    if ((lightDirtyMask and (1 shl i)) == 0) continue
+                    gl.uniform1i(s.uLightEnabled[i], if (lightEnabled[i]) 1 else 0)
+                    gl.uniform4fv(s.uLightAmbient[i], lightAmbient[i].asFloat32Array())
+                    gl.uniform4fv(s.uLightDiffuse[i], lightDiffuse[i].asFloat32Array())
+                    gl.uniform4fv(s.uLightPosition[i], lightPosition[i].asFloat32Array())
+                    gl.uniform3fv(s.uLightAttenuation[i], lightAttenuation[i].asFloat32Array())
+                }
+                lightDirtyMask = 0
+            }
+            val ffpWasDirty = ffpStateDirty
+
+            for (unit in 0 until 3) {
+                if (texGenDirty[unit]) {
+                    texGenDirty[unit] = false
+                    val en = texGenEnabled[unit]
+                    val md = texGenMode[unit]
+                    gl.uniform4i(
+                        s.uTexGenMode[unit],
+                        if (en[0]) md[0] else 0, if (en[1]) md[1] else 0,
+                        if (en[2]) md[2] else 0, if (en[3]) md[3] else 0,
+                    )
+                }
+                if (texGenPlaneDirty[unit]) {
+                    texGenPlaneDirty[unit] = false
+                    for (c in 0 until 4) {
+                        gl.uniform4fv(s.uTexGenObjPlane[unit * 4 + c], texGenObjectPlane[unit][c].asFloat32Array())
+                        gl.uniform4fv(s.uTexGenEyePlane[unit * 4 + c], texGenEyePlane[unit][c].asFloat32Array())
+                    }
+                }
+            }
+            uploadFfFragmentUniforms(gl, this, s.frag, s.program, ffpWasDirty)
+            return
+        }
+        val c = program.compat ?: return
+        val mv = matrixStack.modelview()
+        val proj = matrixStack.projection()
+
+        val mvVersion = matrixStack.version(GL_MODELVIEW)
+        val mvChanged = mvVersion != c.lastModelViewVersion
+        if (mvChanged) {
+            c.lastModelViewVersion = mvVersion
+            gl.uniformMatrix4fv(c.modelView, false, mv.asFloat32Array())
+            gl.uniformMatrix3fv(c.normalMatrix, false, upperLeft3x3(mv).asFloat32Array())
+        }
+
+        val projVersion = matrixStack.version(GL_PROJECTION)
+        val projChanged = projVersion != c.lastProjectionVersion
+        if (projChanged) {
+            c.lastProjectionVersion = projVersion
+            gl.uniformMatrix4fv(c.projection, false, proj.asFloat32Array())
+        }
+
+        if (mvChanged || projChanged) {
+            gl.uniformMatrix4fv(c.modelViewProjection, false, matrixStack.mvp().asFloat32Array())
+        }
+
+        val texVersion = matrixStack.version(GL_TEXTURE_MATRIX)
+        if (texVersion != c.lastTextureMatrixVersion) {
+            c.lastTextureMatrixVersion = texVersion
+            gl.uniformMatrix4fv(c.textureMatrix, false, matrixStack.textureMatrix().asFloat32Array())
+        }
+
+        if (fogStart != c.lastFogStart || fogEnd != c.lastFogEnd ||
+            fogColor[0] != c.lastFogColor[0] || fogColor[1] != c.lastFogColor[1] ||
+            fogColor[2] != c.lastFogColor[2] || fogColor[3] != c.lastFogColor[3]
+        ) {
+            c.lastFogStart = fogStart
+            c.lastFogEnd = fogEnd
+            c.lastFogColor[0] = fogColor[0]; c.lastFogColor[1] = fogColor[1]
+            c.lastFogColor[2] = fogColor[2]; c.lastFogColor[3] = fogColor[3]
+            val fogRange = if (fogEnd - fogStart == 0f) 1f else 1f / (fogEnd - fogStart)
+            gl.uniform1f(c.fogDensity, 1f)
+            gl.uniform1f(c.fogStart, fogStart)
+            gl.uniform1f(c.fogEnd, fogEnd)
+            gl.uniform1f(c.fogScale, fogRange)
+            gl.uniform4fv(c.fogColor, fogColor.asFloat32Array())
+        }
+    }
+
+    /** Binds [texture] as [target] on a reserved sampler unit, restoring the active unit. */
+    fun bindSampler(target: Int, glUnit: Int, texture: WebGLTexture?) {
+        gl.activeTexture(WebGL2RenderingContext.TEXTURE0 + glUnit)
+        gl.bindTexture(target, texture)
+        gl.activeTexture(WebGL2RenderingContext.TEXTURE0 + activeTextureUnit)
+    }
+
+    fun boundTextureFor(target: Int): WebGLTexture? = when {
+        target == WebGL2RenderingContext.TEXTURE_2D || target == GL_TEXTURE_1D -> boundTexture2D[activeTextureUnit]
+        target == GL_TEXTURE_3D -> boundTexture3D[activeTextureUnit]
+        target == WebGL2RenderingContext.TEXTURE_CUBE_MAP || target in 34069..34074 ->
+            boundTextureCubeMap[activeTextureUnit]
+        else -> null
+    }
+
+    fun recordTextureInternalFormat(target: Int, internalformat: Int) {
+        boundTextureFor(target)?.asDynamic()?.__jagglInternalFormat = internalformat
+    }
+
+    fun textureInternalFormat(target: Int): Int {
+        val v = boundTextureFor(target)?.asDynamic()?.__jagglInternalFormat
+        return if (v == null || v == undefined) 0 else v as Int
+    }
+
+    fun recordTextureSize(target: Int, width: Int, height: Int) {
+        val t = boundTextureFor(target)?.asDynamic() ?: return
+        t.__jagglWidth = width
+        t.__jagglHeight = height
+    }
+
+    /** Level-0 size recorded by the last glTexImage2D on the bound texture, or null if unknown. */
+    fun textureSize(target: Int): IntArray? {
+        val t = boundTextureFor(target)?.asDynamic() ?: return null
+        val w = t.__jagglWidth
+        val h = t.__jagglHeight
+        if (w == null || w == undefined || h == null || h == undefined) return null
+        return intArrayOf(w as Int, h as Int)
+    }
+
+    fun transformLightPosition(v: FloatArray): FloatArray {
+        val m = matrixStack.modelview()
+        val w = v[3]
+        return floatArrayOf(
+            m[0] * v[0] + m[4] * v[1] + m[8] * v[2] + m[12] * w,
+            m[1] * v[0] + m[5] * v[1] + m[9] * v[2] + m[13] * w,
+            m[2] * v[0] + m[6] * v[1] + m[10] * v[2] + m[14] * w,
+            w,
+        )
+    }
+
+    private fun upperLeft3x3(m: FloatArray): FloatArray = floatArrayOf(
+        m[0], m[1], m[2],
+        m[4], m[5], m[6],
+        m[8], m[9], m[10],
+    )
+
+    fun readbackFbo(): WebGLFramebuffer {
+        var fbo = readbackFramebuffer
+        if (fbo == null) {
+            fbo = gl.createFramebuffer()!!
+            readbackFramebuffer = fbo
+        }
+        return fbo
+    }
+}

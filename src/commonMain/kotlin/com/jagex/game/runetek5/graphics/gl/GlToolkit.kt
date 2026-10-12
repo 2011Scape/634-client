@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.graphics.gl
 
+import clientArraysAvailable
 import com.jagex.game.runetek5.client.GameCanvas
 import com.jagex.game.runetek5.sound.jagtheora.OggStreamDecoder
 import com.jagex.game.runetek5.toolkit.opengl.buffer.GlVboElementsArrayBuffer
@@ -827,6 +828,11 @@ class GlToolkit : Toolkit {
 				}
 				if (this.gpuCompanyString!!.indexOf("intel") != -1) {
 					this.extFramebufferObject = false
+				}
+				// Not part of the original client: without client-side arrays (the browser), dynamic vertex
+				// data goes in buffer objects too (PlatformLoop.kt).
+				if (!clientArraysAvailable) {
+					this.shouldUseArbVbo = this.vertexbufferSupported
 				}
 				this.checkScenePipeline() // Not part of the original client: see checkScenePipeline.
 				this.s3Graphics = this.gpuCompanyString != "s3 graphics"

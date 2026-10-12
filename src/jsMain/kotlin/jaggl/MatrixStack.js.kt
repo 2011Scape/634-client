@@ -1,0 +1,214 @@
+/*
+ * Not part of the original client: the WebGL 2 emulator and jaclib memory behind the Java OpenGL
+ * toolkit (1) in a browser, from void-client's jsMain (milestone 5).
+ */
+package jaggl
+
+const val GL_MODELVIEW = 5888
+const val GL_PROJECTION = 5889
+const val GL_TEXTURE_MATRIX = 5890
+
+object Mat4 {
+    fun identity(): FloatArray = floatArrayOf(
+        1f, 0f, 0f, 0f,
+        0f, 1f, 0f, 0f,
+        0f, 0f, 1f, 0f,
+        0f, 0f, 0f, 1f
+    )
+
+    fun multiply(a: FloatArray, b: FloatArray): FloatArray {
+        val r = FloatArray(16)
+        for (col in 0 until 4) {
+            for (row in 0 until 4) {
+                var sum = 0f
+                for (k in 0 until 4) {
+                    sum += a[k * 4 + row] * b[col * 4 + k]
+                }
+                r[col * 4 + row] = sum
+            }
+        }
+        return r
+    }
+
+    /** General 4x4 inverse (same flat layout in and out); null when singular. */
+    fun invert(m: FloatArray): FloatArray? {
+        val inv = FloatArray(16)
+        inv[0] = m[5] * m[10] * m[15] - m[5] * m[11] * m[14] - m[9] * m[6] * m[15] + m[9] * m[7] * m[14] + m[13] * m[6] * m[11] - m[13] * m[7] * m[10]
+        inv[4] = -m[4] * m[10] * m[15] + m[4] * m[11] * m[14] + m[8] * m[6] * m[15] - m[8] * m[7] * m[14] - m[12] * m[6] * m[11] + m[12] * m[7] * m[10]
+        inv[8] = m[4] * m[9] * m[15] - m[4] * m[11] * m[13] - m[8] * m[5] * m[15] + m[8] * m[7] * m[13] + m[12] * m[5] * m[11] - m[12] * m[7] * m[9]
+        inv[12] = -m[4] * m[9] * m[14] + m[4] * m[10] * m[13] + m[8] * m[5] * m[14] - m[8] * m[6] * m[13] - m[12] * m[5] * m[10] + m[12] * m[6] * m[9]
+        inv[1] = -m[1] * m[10] * m[15] + m[1] * m[11] * m[14] + m[9] * m[2] * m[15] - m[9] * m[3] * m[14] - m[13] * m[2] * m[11] + m[13] * m[3] * m[10]
+        inv[5] = m[0] * m[10] * m[15] - m[0] * m[11] * m[14] - m[8] * m[2] * m[15] + m[8] * m[3] * m[14] + m[12] * m[2] * m[11] - m[12] * m[3] * m[10]
+        inv[9] = -m[0] * m[9] * m[15] + m[0] * m[11] * m[13] + m[8] * m[1] * m[15] - m[8] * m[3] * m[13] - m[12] * m[1] * m[11] + m[12] * m[3] * m[9]
+        inv[13] = m[0] * m[9] * m[14] - m[0] * m[10] * m[13] - m[8] * m[1] * m[14] + m[8] * m[2] * m[13] + m[12] * m[1] * m[10] - m[12] * m[2] * m[9]
+        inv[2] = m[1] * m[6] * m[15] - m[1] * m[7] * m[14] - m[5] * m[2] * m[15] + m[5] * m[3] * m[14] + m[13] * m[2] * m[7] - m[13] * m[3] * m[6]
+        inv[6] = -m[0] * m[6] * m[15] + m[0] * m[7] * m[14] + m[4] * m[2] * m[15] - m[4] * m[3] * m[14] - m[12] * m[2] * m[7] + m[12] * m[3] * m[6]
+        inv[10] = m[0] * m[5] * m[15] - m[0] * m[7] * m[13] - m[4] * m[1] * m[15] + m[4] * m[3] * m[13] + m[12] * m[1] * m[7] - m[12] * m[3] * m[5]
+        inv[14] = -m[0] * m[5] * m[14] + m[0] * m[6] * m[13] + m[4] * m[1] * m[14] - m[4] * m[2] * m[13] - m[12] * m[1] * m[6] + m[12] * m[2] * m[5]
+        inv[3] = -m[1] * m[6] * m[11] + m[1] * m[7] * m[10] + m[5] * m[2] * m[11] - m[5] * m[3] * m[10] - m[9] * m[2] * m[7] + m[9] * m[3] * m[6]
+        inv[7] = m[0] * m[6] * m[11] - m[0] * m[7] * m[10] - m[4] * m[2] * m[11] + m[4] * m[3] * m[10] + m[8] * m[2] * m[7] - m[8] * m[3] * m[6]
+        inv[11] = -m[0] * m[5] * m[11] + m[0] * m[7] * m[9] + m[4] * m[1] * m[11] - m[4] * m[3] * m[9] - m[8] * m[1] * m[7] + m[8] * m[3] * m[5]
+        inv[15] = m[0] * m[5] * m[10] - m[0] * m[6] * m[9] - m[4] * m[1] * m[10] + m[4] * m[2] * m[9] + m[8] * m[1] * m[6] - m[8] * m[2] * m[5]
+        val det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12]
+        if (det == 0f) return null
+        val invDet = 1f / det
+        for (i in 0 until 16) inv[i] *= invDet
+        return inv
+    }
+
+    fun translate(x: Float, y: Float, z: Float): FloatArray {
+        val m = identity()
+        m[12] = x; m[13] = y; m[14] = z
+        return m
+    }
+
+    fun scale(x: Float, y: Float, z: Float): FloatArray {
+        val m = identity()
+        m[0] = x; m[5] = y; m[10] = z
+        return m
+    }
+
+    /**
+     * Equivalent to `multiply(a, translate(x, y, z))` but without building the throwaway identity
+     * matrix or running the general 4x4 multiply (most of whose terms are known to be zero for a
+     * translation) - same arithmetic, same operand order, so results are bit-identical.
+     */
+    fun translateBy(a: FloatArray, x: Float, y: Float, z: Float): FloatArray {
+        val r = a.copyOf()
+        r[12] = a[0] * x + a[4] * y + a[8] * z + a[12]
+        r[13] = a[1] * x + a[5] * y + a[9] * z + a[13]
+        r[14] = a[2] * x + a[6] * y + a[10] * z + a[14]
+        r[15] = a[3] * x + a[7] * y + a[11] * z + a[15]
+        return r
+    }
+
+    /** Equivalent to `multiply(a, scale(x, y, z))`, specialized the same way as [translateBy]. */
+    fun scaleBy(a: FloatArray, x: Float, y: Float, z: Float): FloatArray {
+        val r = a.copyOf()
+        r[0] = a[0] * x; r[1] = a[1] * x; r[2] = a[2] * x; r[3] = a[3] * x
+        r[4] = a[4] * y; r[5] = a[5] * y; r[6] = a[6] * y; r[7] = a[7] * y
+        r[8] = a[8] * z; r[9] = a[9] * z; r[10] = a[10] * z; r[11] = a[11] * z
+        return r
+    }
+
+    fun rotate(angleDeg: Float, x: Float, y: Float, z: Float): FloatArray {
+        val len = kotlin.math.sqrt(x * x + y * y + z * z)
+        if (len == 0f) return identity()
+        val nx = x / len; val ny = y / len; val nz = z / len
+        val rad = angleDeg * (kotlin.math.PI.toFloat() / 180f)
+        val c = kotlin.math.cos(rad); val s = kotlin.math.sin(rad)
+        val t = 1f - c
+        val m = identity()
+        m[0] = t * nx * nx + c
+        m[1] = t * nx * ny + s * nz
+        m[2] = t * nx * nz - s * ny
+        m[4] = t * nx * ny - s * nz
+        m[5] = t * ny * ny + c
+        m[6] = t * ny * nz + s * nx
+        m[8] = t * nx * nz + s * ny
+        m[9] = t * ny * nz - s * nx
+        m[10] = t * nz * nz + c
+        return m
+    }
+
+    fun ortho(left: Double, right: Double, bottom: Double, top: Double, near: Double, far: Double): FloatArray {
+        val m = FloatArray(16)
+        m[0] = (2.0 / (right - left)).toFloat()
+        m[5] = (2.0 / (top - bottom)).toFloat()
+        m[10] = (-2.0 / (far - near)).toFloat()
+        m[12] = (-(right + left) / (right - left)).toFloat()
+        m[13] = (-(top + bottom) / (top - bottom)).toFloat()
+        m[14] = (-(far + near) / (far - near)).toFloat()
+        m[15] = 1f
+        return m
+    }
+
+    fun frustum(left: Double, right: Double, bottom: Double, top: Double, near: Double, far: Double): FloatArray {
+        val m = FloatArray(16)
+        m[0] = (2.0 * near / (right - left)).toFloat()
+        m[5] = (2.0 * near / (top - bottom)).toFloat()
+        m[8] = ((right + left) / (right - left)).toFloat()
+        m[9] = ((top + bottom) / (top - bottom)).toFloat()
+        m[10] = (-(far + near) / (far - near)).toFloat()
+        m[11] = -1f
+        m[14] = (-(2.0 * far * near) / (far - near)).toFloat()
+        return m
+    }
+}
+
+class MatrixStack {
+    // Indexed by slot(): 0 = modelview, 1 = projection, 2 + unit = texture matrix of that unit.
+    // Plain arrays rather than HashMap<Int, ...>: version()/modelview() run on every draw call.
+    private val stacks = arrayOfNulls<ArrayDeque<FloatArray>>(2 + MAX_TEXTURE_MATRIX_UNITS)
+    private val versions = IntArray(2 + MAX_TEXTURE_MATRIX_UNITS)
+    var mode: Int = GL_MODELVIEW
+
+    var textureUnit: Int = 0
+
+    private fun slot(mode: Int, unit: Int): Int = when (mode) {
+        GL_MODELVIEW -> 0
+        GL_PROJECTION -> 1
+        else -> 2 + unit
+    }
+
+    private fun stack(slot: Int): ArrayDeque<FloatArray> =
+        stacks[slot] ?: ArrayDeque<FloatArray>().apply { addLast(Mat4.identity()) }.also { stacks[slot] = it }
+
+    private fun current(): ArrayDeque<FloatArray> = stack(slot(mode, textureUnit))
+
+    private fun bump() {
+        versions[slot(mode, textureUnit)]++
+    }
+
+    fun version(mode: Int, unit: Int = 0): Int = versions[slot(mode, unit)]
+
+    fun top(): FloatArray = current().last()
+
+    private fun setTop(m: FloatArray) {
+        val s = current()
+        s.removeLast()
+        s.addLast(m)
+        bump()
+    }
+
+    fun push() { current().addLast(top().copyOf()); bump() }
+    fun pop() { if (current().size > 1) current().removeLast(); bump() }
+    fun loadIdentity() { setTop(Mat4.identity()) }
+    fun loadMatrix(m: FloatArray) { setTop(m.copyOf(16)) }
+    fun mult(m: FloatArray) { setTop(Mat4.multiply(top(), m)) }
+    fun translate(x: Float, y: Float, z: Float) { setTop(Mat4.translateBy(top(), x, y, z)) }
+    fun scale(x: Float, y: Float, z: Float) { setTop(Mat4.scaleBy(top(), x, y, z)) }
+    fun rotate(a: Float, x: Float, y: Float, z: Float) { mult(Mat4.rotate(a, x, y, z)) }
+    fun ortho(l: Double, r: Double, b: Double, t: Double, n: Double, f: Double) { mult(Mat4.ortho(l, r, b, t, n, f)) }
+    fun frustum(l: Double, r: Double, b: Double, t: Double, n: Double, f: Double) { mult(Mat4.frustum(l, r, b, t, n, f)) }
+
+    fun modelview(): FloatArray = stack(0).last()
+    fun projection(): FloatArray = stack(1).last()
+    fun textureMatrix(unit: Int = 0): FloatArray = stack(2 + unit).last()
+    private var mvpCache: FloatArray? = null
+    private var mvpModelViewVersion = -1
+    private var mvpProjectionVersion = -1
+
+    /**
+     * projection * modelview, recomputed only when either matrix changed. Returns a fresh array
+     * per recompute (never mutated afterwards), so callers may hold on to it. Every program that
+     * positions geometry uploads this one product rather than multiplying on the GPU, so the
+     * fixed-function shader and the transpiled ARB programs see bit-identical clip transforms.
+     */
+    fun mvp(): FloatArray {
+        val mvVersion = versions[0]
+        val projVersion = versions[1]
+        val cached = mvpCache
+        if (cached != null && mvVersion == mvpModelViewVersion && projVersion == mvpProjectionVersion) return cached
+        val m = Mat4.multiply(projection(), modelview())
+        mvpCache = m
+        mvpModelViewVersion = mvVersion
+        mvpProjectionVersion = projVersion
+        return m
+    }
+
+    private companion object {
+        // glActiveTexture accepts GL_TEXTURE0..GL_TEXTURE31.
+        const val MAX_TEXTURE_MATRIX_UNITS = 32
+    }
+}

@@ -1,30 +1,49 @@
 /*
- * Not part of the original client: the browser side of a native class (milestone 4). The native
- * library behind it is not available in a browser, so it throws NativeUnavailableException, which
- * the client treats like a missing library.
+ * Not part of the original client: the browser side of NativeHeapBuffer (milestone 5). The same logic
+ * as the JVM class; the heap it writes to is NativeHeap's byte arrays.
  */
 package jaclib.memory.heap
 
-import NativeUnavailableException
 import jaclib.memory.Buffer
 import jaclib.memory.Source
-import nativeUnavailable
 
 actual class NativeHeapBuffer actual constructor(nativeHeap: NativeHeap?, arg1: Int, arg2: Int) : Buffer, Source {
-	init {
-		throw NativeUnavailableException("NativeHeapBuffer")
-	}
-	actual val b: Int = 0
+
+	private var c: Boolean = true
+
+	actual val b: Int = arg2
+
+	private val a: NativeHeap? = nativeHeap
+
+	private val d: Int = arg1
+
 	actual override fun getAddress(): Long {
-		throw NativeUnavailableException("getAddress")
+		return this.a!!.getBufferAddress(this.d)
 	}
+
+	private fun a(): Boolean {
+		return this.a!!.a() && this.c
+	}
+
+	private fun b() {
+		if (this.a()) {
+			this.a!!.deallocateBuffer(this.d)
+		}
+		this.c = false
+	}
+
 	actual override fun a(arg0: ByteArray?, arg1: Int, arg2: Int, arg3: Int) {
-		throw NativeUnavailableException("a")
+		if ((arg1 < 0) or (arg0 == null) or !this.a() or (arg3 + arg1 > arg0!!.size) or (arg2 < 0) or (this.b < arg2 + arg3)) {
+			throw RuntimeException()
+		}
+		this.a!!.put(this.d, arg0, arg1, arg2, arg3)
 	}
+
 	actual fun finalize() {
-		throw NativeUnavailableException("finalize")
+		this.b()
 	}
+
 	actual override fun getSize(): Int {
-		throw NativeUnavailableException("getSize")
+		return this.b
 	}
 }

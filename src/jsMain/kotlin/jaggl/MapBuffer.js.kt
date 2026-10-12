@@ -1,28 +1,47 @@
 /*
- * Not part of the original client: the browser side of a native class (milestone 4). The native
- * library behind it is not available in a browser, so it throws NativeUnavailableException, which
- * the client treats like a missing library.
+ * Not part of the original client: the browser side of MapBuffer (milestone 5). The same logic as the
+ * JVM class, over the WebGL emulator's glMapBufferARB.
  */
 package jaggl
 
-import NativeUnavailableException
 import jaclib.memory.NativeBuffer
-import nativeUnavailable
 
-actual class MapBuffer : NativeBuffer {
-	actual constructor() : super() {
-		throw NativeUnavailableException("MapBuffer")
-	}
+actual class MapBuffer actual constructor() : NativeBuffer() {
+
+	private var c: Int = 0
+
 	actual override fun a(arg0: ByteArray?, arg1: Int, arg2: Int, arg3: Int) {
-		throw NativeUnavailableException("a")
+		if (this.c == 0) {
+			throw RuntimeException()
+		}
+		super.a(arg0, arg1, arg2, arg3)
 	}
+
 	actual fun a(arg0: Int, arg1: Int, arg2: Int): Boolean {
-		throw NativeUnavailableException("a")
+		if (this.c != 0) {
+			return false
+		}
+		val local8: Long = OpenGL.glMapBufferARB(arg0, arg2)
+		if (local8 == 0L) {
+			return false
+		} else {
+			this.a(local8, arg1)
+			this.c = arg0
+			return true
+		}
 	}
+
 	actual fun a(): Boolean {
-		throw NativeUnavailableException("a")
+		return this.c != 0
 	}
+
 	actual fun b(): Boolean {
-		throw NativeUnavailableException("b")
+		var local1: Boolean = true
+		if (this.c != 0) {
+			local1 = OpenGL.glUnmapBufferARB(this.c)
+			this.a(0L, 0)
+			this.c = 0
+		}
+		return local1
 	}
 }

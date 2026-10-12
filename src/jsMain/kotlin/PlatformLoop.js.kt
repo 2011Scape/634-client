@@ -46,3 +46,5 @@ actual val executeWorkerTasksInline: Boolean = true
 actual val canBlock: Boolean = false
 
 actual val js5ReadsPerTick: Int = Int.MAX_VALUE
+
+actual val clientArraysAvailable: Boolean = false
