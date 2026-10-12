@@ -41,4 +41,6 @@ actual val fastRaster: Boolean = false
 
 actual fun spanToInt(value: Float): Int = value.toInt()
 
+actual val emulatedLong: Boolean = false
+
 actual fun turnElapsedMs(): Double = -1.0

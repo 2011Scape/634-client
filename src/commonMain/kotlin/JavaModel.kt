@@ -1,4 +1,6 @@
 import com.jagex.game.runetek5.graphics.texture.TextureTransformationMatrix
+import emulatedLong
+import com.jagex.game.runetek5.utils.IntPairSort
 import com.jagex.game.runetek5.TextureCombineSource
 import com.jagex.game.runetek5.JavaMatrix
 import com.jagex.game.runetek5.graphics.model.billboard.BillboardType
@@ -331,6 +333,9 @@ class JavaModel : Model {
 			faceOrder!![index] = index++
 		}
 		@Pc(135) val sortKeys: LongArray? = LongArray(this.faceCount)
+		// Not part of the original client: with emulatedLong (PlatformLoop.kt), the keys as Int pairs for IntPairSort
+		val sortKeysHi: IntArray? = if (emulatedLong) IntArray(this.faceCount) else null
+		val sortKeysLo: IntArray? = if (emulatedLong) IntArray(this.faceCount) else null
 		@Pc(144) val usePriority: Boolean = (this.functionMask and 0x100) != 0
 		@Pc(151) var local151: Int
 		@Pc(315) var local315: Int
@@ -389,11 +394,22 @@ class JavaModel : Model {
 			keyHigh += effectParam1.toInt() and 0xFF
 			val materialKey: Int = materialKeyBase.toInt() + ((material.toInt() and 0xFFFF) shl 16)
 			@Pc(321) val keyLow: Int = materialKey + (i and 0xFFFF)
-			sortKeys!![i] = (keyHigh.toLong() shl 32) + keyLow.toLong()
+			if (emulatedLong) {
+				// Not part of the original client: (keyHigh shl 32) + keyLow as an Int pair, keyLow sign-extended as in the sum
+				sortKeysHi!![i] = keyHigh + (keyLow shr 31)
+				sortKeysLo!![i] = keyLow
+			} else {
+				sortKeys!![i] = (keyHigh.toLong() shl 32) + keyLow.toLong()
+			}
 			this.transparent = this.transparent or transparentFace
 			i++
 		}
-		ArrayUtils.quicksort(faceOrder, sortKeys)
+		if (emulatedLong) {
+			// Not part of the original client: the same sort without Long (IntPairSort)
+			IntPairSort.quicksort(faceOrder!!, sortKeysHi!!, sortKeysLo!!)
+		} else {
+			ArrayUtils.quicksort(faceOrder, sortKeys)
+		}
 		if (mesh.billboards != null) {
 			this.billboardCount = mesh.billboards!!.size
 			this.billboardFaces = arrayOfNulls<JavaBillboardFace>(this.billboardCount)

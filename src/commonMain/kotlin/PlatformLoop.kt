@@ -105,6 +105,13 @@ expect val fastRaster: Boolean
 expect fun spanToInt(value: Float): Int
 
 /*
+ * Whether Long is emulated, so that code can keep a 64-bit key as two Ints instead: true in a
+ * browser, where Kotlin/JS makes every Long operation an object allocation; false on the JVM, which
+ * runs the original Long code. JavaModel's face sort uses IntPairSort then.
+ */
+expect val emulatedLong: Boolean
+
+/*
  * How long the current turn of runLoop has run, in milliseconds, or -1 where it is not measured (the
  * JVM). SmokeTest's benchmark reads it at the end of a frame for the frame's work, apart from waiting.
  */
