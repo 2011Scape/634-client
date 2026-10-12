@@ -64,3 +64,10 @@ expect val textAntialiased: Boolean
  * no reflection, so there GamePreferences sizes its save without counting its fields.
  */
 expect val classFieldsAvailable: Boolean
+
+/*
+ * The version line GlSmaaFilter starts its shaders with. "#version 130" on the JVM. In a browser it
+ * is empty: the WebGL 2 emulator then translates the shaders to GLSL ES 3.00 (it leaves a source
+ * that names its own version as it is, and WebGL has no GLSL 1.30).
+ */
+expect val smaaGlslVersion: String

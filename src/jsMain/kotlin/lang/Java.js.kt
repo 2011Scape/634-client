@@ -136,8 +136,13 @@ actual fun Throwable.printStackTraceTo(writer: io.PrintWriter?) {
     writer!!.println(this.stackTraceToString())
 }
 
-/* Class path resources are not bundled into the page; the callers treat null as "not found". */
-actual fun readResource(path: String): ByteArray? = null
+/*
+ * Class path resources the page fetched before the client started (main.js.kt: the SMAA files, with
+ * client.smaa); any other path is not found, which the callers handle.
+ */
+internal val pageResources: MutableMap<String, ByteArray> = mutableMapOf()
+
+actual fun readResource(path: String): ByteArray? = pageResources[path]
 
 actual fun String.javaIntern(): String = this
 

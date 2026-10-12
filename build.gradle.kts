@@ -197,6 +197,16 @@ tasks.check {
  * copied in beside runetek5-634.js. Serve it (python3 -m http.server -d build/kotlin-webpack/js/
  * developmentExecutable 8080) with the relay running (node tools/relay.mjs), as MULTIPLATFORM.md says.
  */
+/*
+ * The SMAA shader and lookup textures (src/jvmMain/resources/smaa) go beside the browser bundle too:
+ * with client.smaa the page fetches them before the client starts (main.js.kt).
+ */
+tasks.named<ProcessResources>("jsProcessResources") {
+    from("src/jvmMain/resources") {
+        include("smaa/**")
+    }
+}
+
 val jsCopyDevResources = tasks.register<Copy>("jsCopyDevResources") {
     from(tasks.named("jsProcessResources"))
     into(layout.buildDirectory.dir("kotlin-webpack/js/developmentExecutable"))

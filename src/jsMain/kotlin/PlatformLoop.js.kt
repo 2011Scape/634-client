@@ -60,3 +60,5 @@ actual val clientArraysAvailable: Boolean = false
 actual val textAntialiased: Boolean = true
 
 actual val classFieldsAvailable: Boolean = false
+
+actual val smaaGlslVersion: String = ""

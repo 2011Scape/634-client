@@ -7,6 +7,7 @@ import io.IOException
 import io.InputStream
 import kotlin.jvm.JvmField
 import lang.jClass
+import smaaGlslVersion
 
 /**
  * Not part of the original client: SMAA 1x (Jimenez et al., github.com/iryoku/smaa, MIT licence;
@@ -63,7 +64,8 @@ class GlSmaaFilter {
 	}
 
 	private fun program(smaa: String, vertexMain: String, fragmentMain: String): GlProgram? {
-		val header: String = "#version 130\n#define SMAA_GLSL_3\n#define SMAA_PRESET_HIGH\n#define SMAA_RT_METRICS rtMetrics\n#define SMAA_AREATEX_SELECT(sample) sample.ra\n#define SMAA_SEARCHTEX_SELECT(sample) sample.r\nuniform vec4 rtMetrics;\n"
+		// the version line is "#version 130" on the JVM, and none in a browser (PlatformLoop.kt)
+		val header: String = smaaGlslVersion + "#define SMAA_GLSL_3\n#define SMAA_PRESET_HIGH\n#define SMAA_RT_METRICS rtMetrics\n#define SMAA_AREATEX_SELECT(sample) sample.ra\n#define SMAA_SEARCHTEX_SELECT(sample) sample.r\nuniform vec4 rtMetrics;\n"
 		val vertex: GlShader? = GlShader.compile(GL_VERTEX_SHADER, this.toolkit, header + "#define SMAA_INCLUDE_VS 1\n#define SMAA_INCLUDE_PS 0\n" + smaa + "\n" + vertexMain)
 		val fragment: GlShader? = GlShader.compile(GL_FRAGMENT_SHADER, this.toolkit, header + "#define SMAA_INCLUDE_VS 0\n#define SMAA_INCLUDE_PS 1\n" + smaa + "\n" + fragmentMain)
 		if (vertex == null || fragment == null) {

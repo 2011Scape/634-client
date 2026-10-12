@@ -3,6 +3,7 @@ import io.CachePersistence
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.await
 import kotlinx.coroutines.launch
 
 /*
@@ -26,6 +27,7 @@ fun main() {
     window.addEventListener("pageshow", { event -> if (event.asDynamic().persisted == true) window.location.reload() })
     GlobalScope.launch {
         CachePersistence.hydrate()
+        fetchPageResources()
         if ("smoke" == lang.getProperty("client.test")) {
             // the reference frames are served beside the page (tools/serve.mjs, from ~/634-smoke-ref/browser)
             if (lang.getProperty("client.test.reference") == null) {
@@ -75,11 +77,6 @@ private fun readClientSwitches() {
             lang.setProperty(key, value)
         }
     }
-    // SMAA's shaders are desktop GLSL 1.30, which the WebGL 2 emulator does not translate
-    // (docs/FEATURES.md); without its resources GlSmaaFilter leaves it off.
-    if (lang.getBoolean("client.smaa")) {
-        console.log("client.smaa: not available in the browser; SMAA is off")
-    }
 }
 
 /*
@@ -125,5 +122,23 @@ fun haltPage(status: Int) {
     element.textContent = result
     element.setAttribute("data-status", status.toString())
     document.title = if (status == 0) "SMOKE PASS" else "SMOKE FAIL"
+}
+
+/*
+ * The class path resources the switches need, fetched from beside the bundle into lang.readResource:
+ * the SMAA shader and lookup textures when client.smaa is on. A file that cannot be fetched stays
+ * missing, and SMAA turns itself off as it does on the JVM.
+ */
+private suspend fun fetchPageResources() {
+    if (!lang.getBoolean("client.smaa")) return
+    for (name in arrayOf("SMAA.hlsl", "AreaTex.bin", "SearchTex.bin")) {
+        try {
+            val response: dynamic = window.fetch("smaa/" + name).await()
+            if (response.ok != true) continue
+            val buffer: org.khronos.webgl.ArrayBuffer = (response.arrayBuffer() as kotlin.js.Promise<org.khronos.webgl.ArrayBuffer>).await()
+            lang.pageResources["/smaa/" + name] = org.khronos.webgl.Int8Array(buffer).unsafeCast<ByteArray>()
+        } catch (e: Throwable) {
+        }
+    }
 }
 
