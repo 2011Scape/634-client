@@ -6,6 +6,7 @@ import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
+import emulatedLong
 import kotlin.jvm.JvmStatic
 
 @OriginalClass("client!lda")
@@ -217,6 +218,10 @@ class Whirlpool {
 		@OriginalMember(owner = "client!dga", name = "a", descriptor = "(II[BI)[B")
 		@JvmStatic
 		fun digest(@OriginalArg(1) srcPosition: Int, @OriginalArg(2) src: ByteArray?, @OriginalArg(3) size: Int): ByteArray {
+			if (emulatedLong) {
+				// Not part of the original client: the same digest without Long (IntWhirlpool)
+				return IntWhirlpool.digest(srcPosition, src!!, size)
+			}
 			@Pc(22) val dst: ByteArray?
 			if (srcPosition > 0) {
 				dst = ByteArray(size)
