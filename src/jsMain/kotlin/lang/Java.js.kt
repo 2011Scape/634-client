@@ -1,5 +1,7 @@
 package lang
 
+import haltPage
+
 /* The browser side of lang/Java.kt: the java.lang statics, with the JDK's behaviour. */
 
 @Suppress("NOTHING_TO_INLINE")
@@ -98,9 +100,14 @@ actual val LONG_TYPE: Class<*> = Long::class.jClass
 actual val FLOAT_TYPE: Class<*> = Float::class.jClass
 actual val DOUBLE_TYPE: Class<*> = Double::class.jClass
 
+/* The page cannot exit: it reports the end and stops the client (main.js.kt), then unwinds the caller. */
 actual fun halt(status: Int) {
-    exit(status)
+    haltPage(status)
+    throw HaltSignal(status)
 }
+
+/* Thrown by halt to leave the code that called it; runLoop drops it once halted is set. */
+class HaltSignal(status: Int) : Error("halt($status)")
 
 actual fun String.javaTrim(): String = this.trim { it <= ' ' }
 

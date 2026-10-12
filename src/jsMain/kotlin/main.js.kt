@@ -15,13 +15,24 @@ fun main() {
     keepConsoleLog()
     readClientSwitches()
     readPageConfig()
-    com.jagex.game.runetek5.client.features.LauncherDefaults.apply(window.screen.height)
+    // The smoke test starts the client as ./gradlew runClient -Pclient.test=smoke does, with every
+    // extra off unless the address turns it on, so that its frames compare with the desktop's.
+    if ("smoke" != lang.getProperty("client.test")) {
+        com.jagex.game.runetek5.client.features.LauncherDefaults.apply(window.screen.height)
+    }
     // Leaving the page logs out: a page kept in the back/forward cache would otherwise hold the
     // player's connection open. Coming back to such a page starts the client again.
     window.addEventListener("pagehide", { net.closeAllSockets() })
     window.addEventListener("pageshow", { event -> if (event.asDynamic().persisted == true) window.location.reload() })
     GlobalScope.launch {
         CachePersistence.hydrate()
+        if ("smoke" == lang.getProperty("client.test")) {
+            // the reference frames are served beside the page (tools/serve.mjs, from ~/634-smoke-ref/browser)
+            if (lang.getProperty("client.test.reference") == null) {
+                lang.setProperty("client.test.reference", "/smoke-ref")
+            }
+            com.jagex.game.runetek5.client.features.preloadSmokeReferences(lang.getProperty("client.test.reference")!!)
+        }
         client.main(arrayOf("3594", "3594", "0", "live", "english", "game0"))
         val frame = GameShell.engineFrame
         if (frame != null) {
@@ -85,5 +96,34 @@ private fun readPageConfig() {
             lang.setProperty(key, config[key].toString())
         }
     }
+}
+
+/*
+ * lang.halt in a browser, where the client finished as a JVM would by exiting (SmokeTest does, with
+ * 0 for a pass and 1 for a failure): every loop stops, the relay connections close (the server logs
+ * the player out), and the last SMOKE PASS/FAIL line goes in the page, in #smoke-result (made if the
+ * page has none) and the title, for whoever is watching.
+ */
+fun haltPage(status: Int) {
+    if (halted) return
+    halted = true
+    net.closeAllSockets()
+    val lines: Array<String> = window.asDynamic().__log.unsafeCast<Array<String>>()
+    var result: String = "halt(" + status + ")"
+    for (line in lines) {
+        val at: Int = line.indexOf("SMOKE PASS")
+        val atFail: Int = line.indexOf("SMOKE FAIL")
+        if (at >= 0) result = line.substring(at)
+        if (atFail >= 0) result = line.substring(atFail)
+    }
+    var element: org.w3c.dom.Element? = document.getElementById("smoke-result")
+    if (element == null) {
+        element = document.createElement("pre")
+        element.id = "smoke-result"
+        document.body!!.insertBefore(element, document.body!!.firstChild)
+    }
+    element.textContent = result
+    element.setAttribute("data-status", status.toString())
+    document.title = if (status == 0) "SMOKE PASS" else "SMOKE FAIL"
 }
 

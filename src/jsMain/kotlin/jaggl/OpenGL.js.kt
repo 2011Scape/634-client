@@ -1583,10 +1583,31 @@ actual class OpenGL {
         actual fun glPixelStorei(arg0: Int, arg1: Int) = gl.pixelStorei(arg0, arg1)
         actual fun glPixelTransferf(arg0: Int, arg1: Float) {}
         fun glPixelZoom(arg0: Float, arg1: Float) {}
+        /*
+         * Not part of void-client's emulator (milestone 6): GlToolkit.na reads the frame a row at a
+         * time as GL_BGRA, UNSIGNED_BYTE or UNSIGNED_INT_8_8_8_8_REV, which WebGL cannot read, into
+         * arg6 at offset arg7. Read RGBA bytes instead (at the window's scale, taking every
+         * readScale-th pixel) and pack each pixel as the int the client asked for: 0xAARRGGBB for BGRA,
+         * 0xAABBGGRR for RGBA.
+         */
         actual fun glReadPixelsi(arg0: Int, arg1: Int, arg2: Int, arg3: Int, arg4: Int, arg5: Int, arg6: IntArray?, arg7: Int) {
             arg6 ?: return
-            if (readScale != 1) return readWindowPixels(arg0, arg1, arg2, arg3, arg4, arg5, arg6.asInt32Array(), arg7)
-            gl.readPixels(arg0, arg1, arg2, arg3, arg4, arg5, arg6.asInt32Array())
+            if (arg2 <= 0 || arg3 <= 0) return
+            val n = readScale
+            val rgba = Uint8Array(arg2 * n * arg3 * n * 4)
+            gl.readPixels(arg0 * n, arg1 * n, arg2 * n, arg3 * n, GL_RGBA, WebGL2RenderingContext.UNSIGNED_BYTE, rgba)
+            val bgra = arg4 == GL_BGRA
+            for (row in 0 until arg3) {
+                for (col in 0 until arg2) {
+                    val i = ((row * n) * arg2 * n + col * n) * 4
+                    val r = rgba[i].toInt() and 0xFF
+                    val g = rgba[i + 1].toInt() and 0xFF
+                    val b = rgba[i + 2].toInt() and 0xFF
+                    val a = rgba[i + 3].toInt() and 0xFF
+                    arg6[arg7 + row * arg2 + col] = if (bgra) (a shl 24) or (r shl 16) or (g shl 8) or b
+                        else (a shl 24) or (b shl 16) or (g shl 8) or r
+                }
+            }
         }
 
         fun glReadPixelsub(arg0: Int, arg1: Int, arg2: Int, arg3: Int, arg4: Int, arg5: Int, arg6: ByteArray?, arg7: Int) {

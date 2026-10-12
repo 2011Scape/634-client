@@ -239,6 +239,9 @@ object SmokeTest {
 
 	private val TOOLKIT: Int = lang.getInteger("client.test.toolkit", -1)
 
+	/** The checks done so far, one bit each in the order frame() runs them. */
+	private var checksDone: Int = 0
+
 	private var startToolkit: Int = -1
 
 	private var toolkitSwitched: Boolean = false
@@ -417,29 +420,55 @@ object SmokeTest {
 				firstImage += "; overhead chat \"" + chatSeen + "\" colour " + chatColour + ", ticks " + chatTicksFirst + " to " + chatTicksLast + ", drawn"
 			}
 		}
-		if (WINDOW_MODES && !windowModesDone()) {
-			return
+		// each check runs until it is done, once: a done check is not asked again (and so does not add its
+		// summary to the pass line on every later frame)
+		if (WINDOW_MODES && (checksDone and 1) == 0) {
+			if (!windowModesDone()) {
+				return
+			}
+			checksDone = checksDone or 1
 		}
-		if (SUB_INTERFACES && !subInterfacesDone()) {
-			return
+		if (SUB_INTERFACES && (checksDone and 2) == 0) {
+			if (!subInterfacesDone()) {
+				return
+			}
+			checksDone = checksDone or 2
 		}
-		if (MENU_WALK && !menuWalkDone(player)) {
-			return
+		if (MENU_WALK && (checksDone and 4) == 0) {
+			if (!menuWalkDone(player)) {
+				return
+			}
+			checksDone = checksDone or 4
 		}
-		if (MEDIA && !mediaDone(player)) {
-			return
+		if (MEDIA && (checksDone and 8) == 0) {
+			if (!mediaDone(player)) {
+				return
+			}
+			checksDone = checksDone or 8
 		}
-		if (MARKERS && !markersDone(player)) {
-			return
+		if (MARKERS && (checksDone and 16) == 0) {
+			if (!markersDone(player)) {
+				return
+			}
+			checksDone = checksDone or 16
 		}
-		if (XP_DROPS && !xpDropsDone()) {
-			return
+		if (XP_DROPS && (checksDone and 32) == 0) {
+			if (!xpDropsDone()) {
+				return
+			}
+			checksDone = checksDone or 32
 		}
-		if (NPC_LABELS && !npcLabelsDone()) {
-			return
+		if (NPC_LABELS && (checksDone and 64) == 0) {
+			if (!npcLabelsDone()) {
+				return
+			}
+			checksDone = checksDone or 64
 		}
-		if (GROUND_ITEMS && !groundItemsDone(player)) {
-			return
+		if (GROUND_ITEMS && (checksDone and 128) == 0) {
+			if (!groundItemsDone(player)) {
+				return
+			}
+			checksDone = checksDone or 128
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
