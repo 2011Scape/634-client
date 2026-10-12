@@ -14,6 +14,8 @@ import kotlinx.coroutines.launch
 fun main() {
     keepConsoleLog()
     readClientSwitches()
+    readPageConfig()
+    com.jagex.game.runetek5.client.features.LauncherDefaults.apply(window.screen.height)
     // Leaving the page logs out: a page kept in the back/forward cache would otherwise hold the
     // player's connection open. Coming back to such a page starts the client again.
     window.addEventListener("pagehide", { net.closeAllSockets() })
@@ -66,6 +68,22 @@ private fun readClientSwitches() {
     // (docs/FEATURES.md); without its resources GlSmaaFilter leaves it off.
     if (lang.getBoolean("client.smaa")) {
         console.log("client.smaa: not available in the browser; SMAA is off")
+    }
+}
+
+/*
+ * The client.* options a hosted page gives in its configuration, before the bundle loads:
+ * window.CONFIG = { url: "wss://example.org/relay", "client.msaa": 4, "client.zoom": false }.
+ * A URL switch wins over the configuration, and both over the launcher's defaults.
+ */
+private fun readPageConfig() {
+    val config: dynamic = window.asDynamic().CONFIG
+    if (config == null || config == undefined) return
+    val keys: Array<String> = js("Object.keys")(config) as Array<String>
+    for (key in keys) {
+        if (key.startsWith("client.") && lang.getProperty(key) == null) {
+            lang.setProperty(key, config[key].toString())
+        }
     }
 }
 

@@ -39,8 +39,16 @@ actual abstract class Graphics {
 internal class CanvasGraphics(
     private val ctx: CanvasRenderingContext2D,
     /** Device pixels per logical pixel ([UiScale.factor] for the on-screen canvas, 1 for images). */
-    private val scale: Int = 1
+    private val scale: Int = 1,
+    /** client.scale on top of that (FeaturePlatform.scaleGraphics2D); 1 otherwise. */
+    private val extraScale: Double = 1.0,
+    /** Whether a fractional extraScale filters the image, as the desktop does; whole scales stay crisp. */
+    private val smooth: Boolean = false
 ) : Graphics() {
+
+    /* The same surface drawn at factor more (client.scale); see FeaturePlatform.scaleGraphics2D. */
+    internal fun scaledBy(factor: Double, smoothScale: Boolean): CanvasGraphics = CanvasGraphics(ctx, scale, factor, smoothScale)
+
 
     private var color: Color = Color(0, 0, 0)
     private var font: Font = Font("sans-serif", FONT_PLAIN, 12)
@@ -63,8 +71,9 @@ internal class CanvasGraphics(
         ctx.restore()
         // The scale is part of the saved baseline, so applyClip's restore()/save() keeps it.
         // Nearest-neighbour keeps upscaled images crisp pixel art rather than blurred.
-        ctx.setTransform(scale.toDouble(), 0.0, 0.0, scale.toDouble(), 0.0, 0.0)
-        ctx.imageSmoothingEnabled = scale == 1
+        val total: Double = scale * extraScale
+        ctx.setTransform(total, 0.0, 0.0, total, 0.0, 0.0)
+        ctx.imageSmoothingEnabled = if (extraScale != 1.0) smooth else scale == 1
         ctx.save()
     }
 

@@ -1,3 +1,4 @@
+import com.jagex.game.runetek5.client.features.LauncherDefaults
 import com.jagex.game.runetek5.client.login.LoginManager
 import com.jagex.game.runetek5.js5.request.RequestManager
 import java.awt.GraphicsEnvironment
@@ -141,15 +142,8 @@ object RuneTek5 {
         }
         setDefault("client.address", DEFAULT_ADDRESS)
 
-        // The launcher's defaults, each kept only when no option set it.
-        setDefault("client.fps", "144")
-        setDefault("client.renderDistance", "2")
-        setDefault("client.zoom", "true")
-        setDefault("client.console", "true")
-        setDefault("client.shiftDrop", "true")
-        if (System.getProperty("client.scale") == null) {
-            System.setProperty("client.scale", screenScale())
-        }
+        // The launcher's defaults (shared with the browser page), each kept only when no option set it.
+        LauncherDefaults.apply(screenHeight())
 
         // ClientFeatures reads the switches when the client first uses it, which is after this point.
         if (loginModulus != null) {
@@ -218,18 +212,12 @@ object RuneTek5 {
         }
     }
 
-    /**
-     * The scale for the screen the client opens on: 2 on a screen 2160 lines high (4K) or more, 1.5
-     * from 1080 lines (1080p, 1440p), otherwise 1. The height is in the desktop's own units, so on a
-     * display the system already enlarges (Windows at 150%, say) it reads smaller and the two scales
-     * do not stack.
-     */
-    private fun screenScale(): String {
+    /** The height of the screen the client opens on, in the desktop's own units; 0 when headless. */
+    private fun screenHeight(): Int {
         if (GraphicsEnvironment.isHeadless()) {
-            return "1.0"
+            return 0
         }
-        val height = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration.bounds.height
-        return if (height >= 2160) "2.0" else if (height >= 1080) "1.5" else "1.0"
+        return GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration.bounds.height
     }
 
     private fun value(args: Array<String>, index: Int, option: String): String {

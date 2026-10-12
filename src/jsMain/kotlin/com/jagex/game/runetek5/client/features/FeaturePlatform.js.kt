@@ -9,5 +9,6 @@ actual fun readPacketSizes(file: String, sizes: IntArray) {
 	lang.printlnErr("client.packets: cannot read " + file + " in a browser")
 }
 
-/* The canvas graphics already draw at the page's scale (awt.UiScale); client.scale is milestone 6. */
-actual fun scaleGraphics2D(graphics: Graphics?, scale: Double, whole: Boolean): Graphics? = graphics
+/* The canvas graphics drawn at client.scale: whole scales nearest-neighbour, others filtered, as on the desktop. */
+actual fun scaleGraphics2D(graphics: Graphics?, scale: Double, whole: Boolean): Graphics? =
+    (graphics as? awt.CanvasGraphics)?.scaledBy(scale, !whole) ?: graphics
