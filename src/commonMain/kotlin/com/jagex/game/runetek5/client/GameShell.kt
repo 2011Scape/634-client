@@ -379,11 +379,12 @@ abstract class GameShell : Applet(), Runnable, FocusListener, WindowListener {
 		runLoop(
 			prelude = { this.runPrelude() },
 			step = { this.runStep() },
-			onError = { throwable ->
-				if (throwable is ThreadDeath) {
-					throw throwable
+			onError = fun(@Pc(191) ex2: Throwable) {
+				if (ex2 is ThreadDeath) {
+					@Pc(188) val threadDeath: ThreadDeath = ex2
+					throw threadDeath
 				}
-				ExplicitRuntimeException.reportError(this.getDebugString(), throwable)
+				ExplicitRuntimeException.reportError(this.getDebugString(), ex2)
 				this.raiseErrorScreen("crash")
 			},
 			onFinally = {

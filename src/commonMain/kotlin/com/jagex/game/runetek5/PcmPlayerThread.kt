@@ -42,11 +42,11 @@ class PcmPlayerThread : Runnable {
 		runLoop(
 			prelude = { true },
 			step = { this.runStep() },
-			onError = { throwable ->
-				if (throwable !is Exception) {
-					throw throwable
+			onError = fun(@Pc(41) ex: Throwable) {
+				if (ex !is Exception) {
+					throw ex
 				}
-				ExplicitRuntimeException.reportError(null, throwable)
+				ExplicitRuntimeException.reportError(null, ex)
 			},
 			onFinally = {
 				@Pc(51) val `object`: Any? = null
