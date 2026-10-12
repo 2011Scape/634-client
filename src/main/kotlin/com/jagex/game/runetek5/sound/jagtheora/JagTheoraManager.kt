@@ -343,7 +343,7 @@ abstract class JagTheoraManager {
 					this.vorbisDecoder = JagTheoraVorbisNode(oggStreamState)
 					newDecoder = this.vorbisDecoder!!
 				} else {
-					@Pc(155) val packetData: ByteArray = this.packet.getData()
+					@Pc(155) val packetData: ByteArray = this.packet.getData()!!
 					@Pc(159) val stringBuffer: StringBuffer = StringBuffer()
 					@Pc(161) var i: Int = 1
 					while (packetData.size > i && Character.isLetterOrDigit(packetData[i].toInt().toChar())) {

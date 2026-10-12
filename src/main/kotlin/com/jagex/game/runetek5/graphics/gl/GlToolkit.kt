@@ -2117,15 +2117,15 @@ class GlToolkit : Toolkit {
 	@OriginalMember(owner = "client!qo", name = "j", descriptor = "(B)I")
 	private fun accumulateCapabilities(): Int {
 		@Pc(5) var errors: Int = 0
-		this.gpuCompanyString = OpenGL.glGetString(OpenGLConstants.GL_VENDOR).lowercase(Locale.getDefault())
-		this.gpuNameString = OpenGL.glGetString(OpenGLConstants.GL_RENDERER).lowercase(Locale.getDefault())
+		this.gpuCompanyString = OpenGL.glGetString(OpenGLConstants.GL_VENDOR)!!.lowercase(Locale.getDefault())
+		this.gpuNameString = OpenGL.glGetString(OpenGLConstants.GL_RENDERER)!!.lowercase(Locale.getDefault())
 		if (this.gpuCompanyString!!.indexOf("microsoft") != -1) {
 			errors = 1
 		}
 		if (this.gpuCompanyString!!.indexOf("brian paul") != -1 || this.gpuCompanyString!!.indexOf("mesa") != -1) {
 			errors = errors or 0x1
 		}
-		@Pc(44) val string: String = OpenGL.glGetString(OpenGLConstants.GL_VERSION)
+		@Pc(44) val string: String = OpenGL.glGetString(OpenGLConstants.GL_VERSION)!!
 		@Pc(52) val strings: Array<String?> = Utils.split(' ', string.replace('.', ' '))
 		if (strings.size >= 2) {
 			try {
