@@ -4,7 +4,9 @@ import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.utils.ColorUtil
 import kotlin.jvm.JvmField
+import fastRaster
 import rememberTextures
+import spanToInt
 
 @OriginalClass("client!mp")
 class Rasterizer {
@@ -138,6 +140,11 @@ class Rasterizer {
 
 	@OriginalMember(owner = "client!mp", name = "a", descriptor = "([I[IIIIFFFFFFFFFFFFFFFF)V")
 	private fun drawTexturedSpanRgb(@OriginalArg(0) dst: IntArray?, @OriginalArg(1) texels: IntArray?, @OriginalArg(2) rowOffset: Int, @OriginalArg(3) startX: Int, @OriginalArg(4) endX: Int, @OriginalArg(5) invZLeft: Float, @OriginalArg(6) invZRight: Float, @OriginalArg(7) uLeft: Float, @OriginalArg(8) uRight: Float, @OriginalArg(9) vLeft: Float, @OriginalArg(10) vRight: Float, @OriginalArg(11) fogLeft: Float, @OriginalArg(12) fogRight: Float, @OriginalArg(13) alphaLeft: Float, @OriginalArg(14) alphaRight: Float, @OriginalArg(15) redLeft: Float, @OriginalArg(16) redRight: Float, @OriginalArg(17) greenLeft: Float, @OriginalArg(18) greenRight: Float, @OriginalArg(19) blueLeft: Float, @OriginalArg(20) blueRight: Float) {
+		if (fastRaster) {
+			// Not part of the original client: the same span through drawTexturedSpanRgbFast (fastRaster)
+			this.drawTexturedSpanRgbFast(dst!!, rowOffset, startX, endX, invZLeft, invZRight, uLeft, uRight, vLeft, vRight, fogLeft, fogRight, alphaLeft, alphaRight, redLeft, redRight, greenLeft, greenRight, blueLeft, blueRight)
+			return
+		}
 		var startX: Int = startX
 		var endX: Int = endX
 		var invZLeft: Float = invZLeft
@@ -233,6 +240,118 @@ class Rasterizer {
 						dst!![pixelIndex] = colour
 						this.depthBuffer!![pixelIndex] = depth
 					}
+				}
+			}
+			pixelIndex++
+			invZLeft += slopeInvZ
+			uLeft += slopeU
+			vLeft += slopeV
+			fogLeft += slopeFog
+			alphaLeft += slopeAlpha
+			redLeft += slopeRed
+			greenLeft += slopeGreen
+			blueLeft += slopeBlue
+		}
+	}
+
+	/*
+	 * Not part of the original client: drawTexturedSpanRgb with every field it reads per pixel held in a
+	 * local and its truncations through spanToInt (fastRaster, PlatformLoop.kt). Same arithmetic.
+	 */
+	private fun drawTexturedSpanRgbFast(dst: IntArray, rowOffset: Int, startX: Int, endX: Int, invZLeft: Float, invZRight: Float, uLeft: Float, uRight: Float, vLeft: Float, vRight: Float, fogLeft: Float, fogRight: Float, alphaLeft: Float, alphaRight: Float, redLeft: Float, redRight: Float, greenLeft: Float, greenRight: Float, blueLeft: Float, blueRight: Float) {
+		var startX: Int = startX
+		var endX: Int = endX
+		var invZLeft: Float = invZLeft
+		var uLeft: Float = uLeft
+		var vLeft: Float = vLeft
+		var fogLeft: Float = fogLeft
+		var alphaLeft: Float = alphaLeft
+		var redLeft: Float = redLeft
+		var greenLeft: Float = greenLeft
+		var blueLeft: Float = blueLeft
+		var lengthX: Int = endX - startX
+		val scaleX: Float = 1.0f / lengthX.toFloat()
+		val slopeInvZ: Float = (invZRight - invZLeft) * scaleX
+		val slopeU: Float = (uRight - uLeft) * scaleX
+		val slopeV: Float = (vRight - vLeft) * scaleX
+		val slopeFog: Float = (fogRight - fogLeft) * scaleX
+		val slopeAlpha: Float = (alphaRight - alphaLeft) * scaleX
+		val slopeRed: Float = (redRight - redLeft) * scaleX
+		val slopeGreen: Float = (greenRight - greenLeft) * scaleX
+		val slopeBlue: Float = (blueRight - blueLeft) * scaleX
+		if (this.clamp) {
+			if (endX > this.width) {
+				endX = this.width
+			}
+			if (startX < 0) {
+				invZLeft -= slopeInvZ * startX.toFloat()
+				uLeft -= slopeU * startX.toFloat()
+				vLeft -= slopeV * startX.toFloat()
+				fogLeft -= slopeFog * startX.toFloat()
+				alphaLeft -= slopeAlpha * startX.toFloat()
+				redLeft -= slopeRed * startX.toFloat()
+				greenLeft -= slopeGreen * startX.toFloat()
+				blueLeft -= slopeBlue * startX.toFloat()
+				startX = 0
+			}
+		}
+		if (startX >= endX) {
+			return
+		}
+		val depths: FloatArray = this.depthBuffer!!
+		val texels: IntArray = this.texels!!
+		val size: Int = this.textureSize
+		val sizeF: Float = size.toFloat()
+		val mask: Int = this.textureMask
+		val repeats: Boolean = this.textureRepeats
+		val blendMode: Int = this.textureBlendMode
+		val fogColour: Int = this.fogColour
+		lengthX = endX - startX
+		var pixelIndex: Int = rowOffset + startX
+		while (lengthX-- > 0) {
+			val depth: Float = 1.0f / invZLeft
+			if (depth < depths[pixelIndex]) {
+				var texU: Int = spanToInt(uLeft * depth * sizeF)
+				var texV: Int = spanToInt(vLeft * depth * sizeF)
+				if (repeats) {
+					texU = texU and mask
+					texV = texV and mask
+				} else {
+					if (texU < 0) {
+						texU = 0
+					} else if (texU > mask) {
+						texU = mask
+					}
+					if (texV < 0) {
+						texV = 0
+					} else if (texV > mask) {
+						texV = mask
+					}
+				}
+				val texel: Int = texels[texV * size + texU]
+				val texelAlpha: Int
+				if (blendMode == 2) {
+					texelAlpha = (texel shr 24) and 0xFF
+				} else if (blendMode == 1) {
+					texelAlpha = if (texel == 0) 0 else 255
+				} else {
+					texelAlpha = spanToInt(alphaLeft)
+				}
+				if (texelAlpha != 0) {
+					var colour: Int = (((spanToInt(redLeft * ((texel shr 16) and 0xFF).toFloat()) and 0xFF00) or 0xFF0000) shl 8) or (spanToInt(greenLeft * ((texel shr 8) and 0xFF).toFloat()) and 0xFF00) or (spanToInt(blueLeft * (texel and 0xFF).toFloat()) shr 8)
+					if (fogLeft != 0.0f) {
+						val fog: Int = spanToInt(fogLeft)
+						val fogInverse: Int = spanToInt(255.0f - fogLeft)
+						val fogTerm: Int = ((((fogColour and 0xFF00FF) * fog) and 0xFF00FF00.toInt()) or (((fogColour and 0xFF00) * fog) and 0xFF0000)) ushr 8
+						colour = (((((colour and 0xFF00FF) * fogInverse) and 0xFF00FF00.toInt()) or (((colour and 0xFF00) * fogInverse) and 0xFF0000)) ushr 8) + fogTerm
+					}
+					if (texelAlpha != 255) {
+						val dstColour: Int = dst[pixelIndex]
+						val inverseAlpha: Int = 255 - texelAlpha
+						colour = ((((dstColour and 0xFF00FF) * inverseAlpha + (colour and 0xFF00FF) * texelAlpha) and 0xFF00FF00.toInt()) + (((dstColour and 0xFF00) * inverseAlpha + (colour and 0xFF00) * texelAlpha) and 0xFF0000)) shr 8
+					}
+					dst[pixelIndex] = colour
+					depths[pixelIndex] = depth
 				}
 			}
 			pixelIndex++

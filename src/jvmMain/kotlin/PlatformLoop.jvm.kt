@@ -37,4 +37,8 @@ actual val maxTicksPerFrame: Int = 10
 
 actual val rememberTextures: Boolean = false
 
+actual val fastRaster: Boolean = false
+
+actual fun spanToInt(value: Float): Int = value.toInt()
+
 actual fun turnElapsedMs(): Double = -1.0

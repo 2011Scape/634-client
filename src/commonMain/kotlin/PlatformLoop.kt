@@ -89,6 +89,22 @@ expect val maxTicksPerFrame: Int
 expect val rememberTextures: Boolean
 
 /*
+ * Whether the software renderer takes its browser shortcuts: the hottest span (Rasterizer.
+ * drawTexturedSpanRgb) through a twin loop that keeps fields in locals and truncates with spanToInt,
+ * and the depth and colour clears (JavaToolkit.ya, aa) through the typed array's native fill. False
+ * on the JVM, which runs the original loops. Kotlin/JS reads a field and checks it for null on every
+ * use, and turns every Float.toInt into a call; the shortcuts do neither, with the same results.
+ */
+expect val fastRaster: Boolean
+
+/*
+ * value.toInt() for a span value known to fit an Int (a texel coordinate, a colour channel). The JVM
+ * truncates as toInt does; a browser uses value | 0, which wraps instead of saturating outside the Int
+ * range, where toInt is a function call per pixel.
+ */
+expect fun spanToInt(value: Float): Int
+
+/*
  * How long the current turn of runLoop has run, in milliseconds, or -1 where it is not measured (the
  * JVM). SmokeTest's benchmark reads it at the end of a frame for the frame's work, apart from waiting.
  */

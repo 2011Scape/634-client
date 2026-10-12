@@ -1,4 +1,5 @@
 import com.jagex.game.runetek5.DepthBuffer
+import fastRaster
 import rememberTextures
 import com.jagex.game.runetek5.EnvironmentSampler
 import com.jagex.game.runetek5.graphics.sprite.SpriteType
@@ -927,6 +928,11 @@ class JavaToolkit : Toolkit {
 		@Pc(25) var local25: Int
 		@Pc(27) var local27: Int
 		if (this.clipX1 == 0 && this.clipX2 == this.surfaceWidth && this.clipY1 == 0 && this.clipY2 == this.surfaceHeight) {
+			if (fastRaster) {
+				// Not part of the original client: one native fill (fastRaster, PlatformLoop.kt)
+				this.depthBuffer!!.fill(2.14748365E9f)
+				return
+			}
 			val depthLength: Int = this.depthBuffer!!.size
 			val unrolledLength: Int = depthLength - (depthLength and 0x7)
 			var depthIndex: Int = 0
@@ -951,6 +957,18 @@ class JavaToolkit : Toolkit {
 		@Pc(116) val startPixel: Int = this.clipX1 + this.clipY1 * this.surfaceWidth
 		@Pc(120) val blockCount: Int = clipWidth shr 3
 		@Pc(124) val remainder: Int = clipWidth and 0x7
+		if (fastRaster) {
+			// Not part of the original client: a native fill per row (fastRaster, PlatformLoop.kt)
+			val depths: FloatArray = this.depthBuffer!!
+			var rowStart: Int = startPixel
+			var row: Int = 0
+			while (row < clipHeight) {
+				depths.fill(2.14748365E9f, rowStart, rowStart + clipWidth)
+				rowStart += this.surfaceWidth
+				row++
+			}
+			return
+		}
 		clipWidth = startPixel - 1
 		@Pc(131) var i: Int = -clipHeight
 		while (i < 0) {
@@ -1649,6 +1667,18 @@ class JavaToolkit : Toolkit {
 				}
 			} else {
 				throw IllegalArgumentException()
+			}
+			return
+		}
+		if (fastRaster) {
+			// Not part of the original client: a native fill per row (fastRaster, PlatformLoop.kt)
+			val raster: IntArray = this.surfaceRaster!!
+			var rowStart: Int = pixelIndex
+			var row: Int = 0
+			while (row < height) {
+				raster.fill(colour, rowStart, rowStart + width)
+				rowStart += this.surfaceWidth
+				row++
 			}
 			return
 		}

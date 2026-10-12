@@ -68,6 +68,11 @@ actual val maxTicksPerFrame: Int = 4
 
 actual val rememberTextures: Boolean = true
 
+actual val fastRaster: Boolean = true
+
+@Suppress("NOTHING_TO_INLINE")
+actual inline fun spanToInt(value: Float): Int = value.unsafeCast<Int>() or 0
+
 /* When the current turn of runLoop started, by performance.now(). */
 private var turnStart: Double = 0.0
 
