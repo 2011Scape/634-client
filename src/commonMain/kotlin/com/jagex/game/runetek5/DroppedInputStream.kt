@@ -19,6 +19,31 @@ class DroppedInputStream : InputStream() {
 	}
 
 	companion object {
+		/*
+		 * Not part of the original client: the S-box, two bytes per char, as the original's string
+		 * literal held it. Some of its chars are lone surrogates, which a JavaScript bundle (UTF-8)
+		 * cannot carry, so the browser saw U+FFFD in their place and every Whirlpool digest was
+		 * wrong; the same chars as a CharArray reach both platforms intact (milestone 4).
+		 */
+		private val S_BOX: CharArray = charArrayOf(
+			'\u1823', '\uc6e8', '\u87b8', '\u014f', '\u36a6', '\ud2f5', '\u796f', '\u9152',
+			'\u60bc', '\u9b8e', '\ua30c', '\u7b35', '\u1de0', '\ud7c2', '\u2e4b', '\ufe57',
+			'\u1577', '\u37e5', '\u9ff0', '\u4ada', '\u58c9', '\u290a', '\ub1a0', '\u6b85',
+			'\ubd5d', '\u10f4', '\ucb3e', '\u0567', '\ue427', '\u418b', '\ua77d', '\u95d8',
+			'\ufbee', '\u7c66', '\udd17', '\u479e', '\uca2d', '\ubf07', '\uad5a', '\u8333',
+			'\u6302', '\uaa71', '\uc819', '\u49d9', '\uf2e3', '\u5b88', '\u9a26', '\u32b0',
+			'\ue90f', '\ud580', '\ubecd', '\u3448', '\uff7a', '\u905f', '\u2068', '\u1aae',
+			'\ub454', '\u9322', '\u64f1', '\u7312', '\u4008', '\uc3ec', '\udba1', '\u8d3d',
+			'\u9700', '\ucf2b', '\u7682', '\ud61b', '\ub5af', '\u6a50', '\u45f3', '\u30ef',
+			'\u3f55', '\ua2ea', '\u65ba', '\u2fc0', '\ude1c', '\ufd4d', '\u9275', '\u068a',
+			'\ub2e6', '\u0e1f', '\u62d4', '\ua896', '\uf9c5', '\u2559', '\u8472', '\u394c',
+			'\u5e78', '\u388c', '\ud1a5', '\ue261', '\ub321', '\u9c1e', '\u43c7', '\ufc04',
+			'\u5199', '\u6d0d', '\ufadf', '\u7e24', '\u3bab', '\uce11', '\u8f4e', '\ub7eb',
+			'\u3c81', '\u94f7', '\ub913', '\u2cd3', '\ue76e', '\uc403', '\u5644', '\u7fa9',
+			'\u2abb', '\uc153', '\udc0b', '\u9d6c', '\u3174', '\uf646', '\uac89', '\u14e1',
+			'\u163a', '\u6909', '\u70b6', '\ud0ed', '\ucc42', '\u98a4', '\u285c', '\uf886',
+		)
+
 		@OriginalMember(owner = "client!ek", name = "f", descriptor = "[J")
 		@JvmField
 		val ROUND_CONSTANTS: LongArray = LongArray(11)
@@ -29,7 +54,7 @@ class DroppedInputStream : InputStream() {
 
 		init {
 			for (@Pc(8) x in 0 until 256) {
-				@Pc(15) val c: Char = "ᠣ웨螸ŏ㚦틵祯酒悼鮎ꌌ笵ᷠퟂ\u2e4b﹗ᕷ㟥\u9ff0䫚壉⤊놠殅뵝ჴ쬾է\ue427䆋Ᵹ闘ﯮ籦\udd17䞞쨭뼇굚茳挂ꩱ젙䧙\uf2e3守騦㊰\ue90f햀뻍㑈ｺ遟\u2068\u1aae둔錢擱猒䀈쏬\udba1贽需켫皂혛떯橐䗳ワ㽕ꋪ斺⿀\ude1c\ufd4d鉵ڊ닦ฟ拔ꢖ暈╙葲㥌幸㢌톥\ue261댡鰞䏇ﰄ写洍\ufadf縤㮫츑轎럫㲁铷뤓ⳓ\ue76e쐃噄義⪻셓\udc0b鵬ㅴ\uf646겉ᓡᘺ椉炶탭챂颤⡜\uf886"[x / 2]
+				@Pc(15) val c: Char = S_BOX[x / 2]
 				@Pc(31) val v1: Long = (if ((x and 0x1) == 0) c.code ushr 8 else c.code and 0xFF).toLong()
 				@Pc(35) var v2: Long = v1 shl 1
 				if (v2 >= 256L) {

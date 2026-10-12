@@ -129,6 +129,7 @@ import awt.width
 import awt.x
 import awt.y
 import lang.ThreadDeath
+import canBlock
 
 @OriginalClass("client!client")
 class client : GameShell() {
@@ -197,7 +198,10 @@ class client : GameShell() {
 				Js5State.js5ConnectTime = Utils.currentTimeMillis()
 			}
 			if (Js5State.init == Js5State.WAITING_FIRST_RESPONSE) {
-				if (MainLogicManager.isLoadingStep(ClientState.mainLogicStep) || Connection.updateConnection!!.available() > 0) {
+				// Not part of the original client: while loading, the original reads the response byte at
+				// once, which a blocking socket waits for; a socket that cannot block (PlatformLoop) cannot
+				// tell "not yet" from the end of the stream, so there it waits until the byte is in (void-client).
+				if (MainLogicManager.isLoadingStep(ClientState.mainLogicStep) && canBlock || Connection.updateConnection!!.available() > 0) {
 					@Pc(233) val response: Int = Connection.updateConnection!!.read()
 					if (response != 0) {
 						this.updateJs5ConnectionStatus(response)
@@ -212,6 +216,10 @@ class client : GameShell() {
 			if (Js5State.init == Js5State.WAITING_LOADING_REQUIREMENTS) {
 				@Pc(279) val loggedOut: Boolean = MainLogicManager.isLoadingStep(ClientState.mainLogicStep) || MainLogicManager.isLoginScreenStep(ClientState.mainLogicStep) || MainLogicManager.inLobby(ClientState.mainLogicStep)
 				@Pc(282) val loadingRequirements: Array<LoadingRequirement?> = CacheableDependencies.getAll()
+				// Not part of the original client: where the socket cannot block, wait for all the sizes to arrive.
+				if (!canBlock && Connection.updateConnection!!.available() < loadingRequirements.size * 4) {
+					return
+				}
 				@Pc(290) val packet2: Packet = Packet(loadingRequirements.size * 4)
 				Connection.updateConnection!!.readFully(packet2.buffer, 0, packet2.buffer!!.size)
 				@Pc(301) var i: Int = 0

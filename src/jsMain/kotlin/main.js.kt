@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
  * that net.Socket connects to), and the client's window goes on the page.
  */
 fun main() {
+    keepConsoleLog()
     GlobalScope.launch {
         CachePersistence.hydrate()
         client.main(arrayOf("3594", "3594", "0", "live", "english", "game0"))
@@ -20,4 +21,21 @@ fun main() {
         }
         CachePersistence.startAutoFlush()
     }
+}
+
+/* The last 500 lines the client printed, in window.__log, for a page whose console was not open. */
+private fun keepConsoleLog() {
+    js("""
+        window.__log = [];
+        ['log', 'warn', 'error'].forEach(function (level) {
+            var original = console[level];
+            console[level] = function () {
+                var line = Array.prototype.map.call(arguments, String).join(' ');
+                window.__log.push(level + ': ' + line);
+                if (window.__log.length > 500) window.__log.shift();
+                original.apply(console, arguments);
+            };
+        });
+        window.addEventListener('error', function (e) { window.__log.push('uncaught: ' + e.message); });
+    """)
 }

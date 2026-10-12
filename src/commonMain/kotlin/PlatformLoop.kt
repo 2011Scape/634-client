@@ -28,3 +28,10 @@ expect fun runLoop(
  * the original.
  */
 expect val executeWorkerTasksInline: Boolean
+
+/*
+ * Whether a thread may block waiting for another (Object.wait). True on the JVM. Where there are no
+ * threads a worker's wait would spin for ever, so a worker loop checks this first and, when false,
+ * ends its turn of runLoop instead; the next turn finds the work the wait was for.
+ */
+expect val canBlock: Boolean

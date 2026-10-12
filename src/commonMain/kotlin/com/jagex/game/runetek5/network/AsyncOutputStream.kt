@@ -14,6 +14,8 @@ import lang.Thread
 import lockNotifyAll
 import lockWait
 import withLock
+import canBlock
+import runLoop
 
 @OriginalClass("client!rha")
 class AsyncOutputStream : Runnable {
@@ -51,46 +53,61 @@ class AsyncOutputStream : Runnable {
 
 	@OriginalMember(owner = "client!rha", name = "run", descriptor = "()V")
 	override fun run() {
-		while (true) {
-			@Pc(35) var length: Int = 0
-			withLock(this) {
-				while (true) {
-					if (this.error != null) {
-						return
-					}
-					if (this.writePointer < this.bufferPointer) {
-						length = this.bufferSize + this.writePointer - this.bufferPointer
-					} else {
-						length = this.writePointer - this.bufferPointer
-					}
-					if (length > 0) {
-						break
-					}
-					try {
-						lockWait(this)
-					} catch (@Pc(52) ex: InterruptedException) {
-					}
+		// Not part of the original client: the loop goes through runLoop (PlatformLoop), the original
+		// blocking loop on the JVM and an event-loop chain where there are no threads; runStep is one
+		// turn of the original while, which ends its turn instead of waiting where it cannot block.
+		runLoop(
+			prelude = { true },
+			step = { this.runStep() },
+			onError = { throw it },
+			onFinally = { },
+		)
+	}
+
+	/* Not part of the original client: one turn of run's loop, false when the loop ends. */
+	private fun runStep(): Boolean {
+		@Pc(35) var length: Int = 0
+		withLock(this) {
+			while (true) {
+				if (this.error != null) {
+					return false
 				}
-			}
-			try {
-				if (this.bufferSize >= this.bufferPointer + length) {
-					this.outputstream!!.write(this.buffer, this.bufferPointer, length)
+				if (this.writePointer < this.bufferPointer) {
+					length = this.bufferSize + this.writePointer - this.bufferPointer
 				} else {
-					@Pc(85) val tailLength: Int = this.bufferSize - this.bufferPointer
-					this.outputstream!!.write(this.buffer, this.bufferPointer, tailLength)
-					this.outputstream!!.write(this.buffer, 0, length - tailLength)
+					length = this.writePointer - this.bufferPointer
 				}
-			} catch (@Pc(105) ex2: IOException) {
-				@Pc(105) val local105x: IOException = ex2
-				withLock(this) {
-					this.error = local105x
-					return
+				if (length > 0) {
+					break
 				}
-			}
-			withLock(this) {
-				this.bufferPointer = (this.bufferPointer + length) % this.bufferSize
+				if (!canBlock) {
+					return true
+				}
+				try {
+					lockWait(this)
+				} catch (@Pc(52) ex: InterruptedException) {
+				}
 			}
 		}
+		try {
+			if (this.bufferSize >= this.bufferPointer + length) {
+				this.outputstream!!.write(this.buffer, this.bufferPointer, length)
+			} else {
+				@Pc(85) val tailLength: Int = this.bufferSize - this.bufferPointer
+				this.outputstream!!.write(this.buffer, this.bufferPointer, tailLength)
+				this.outputstream!!.write(this.buffer, 0, length - tailLength)
+			}
+		} catch (@Pc(105) ex2: IOException) {
+			@Pc(105) val local105x: IOException = ex2
+			withLock(this) {
+				this.error = local105x
+				return false
+			}
+		}
+		withLock(this) {
+			this.bufferPointer = (this.bufferPointer + length) % this.bufferSize
+		}
+		return true
 	}
 
 	@OriginalMember(owner = "client!rha", name = "b", descriptor = "(B)V")

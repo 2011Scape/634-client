@@ -16,6 +16,8 @@ import lang.Thread
 import lockNotify
 import lockWait
 import withLock
+import canBlock
+import runLoop
 
 @OriginalClass("client!pha")
 class PingWorker @OriginalMember(owner = "client!pha", name = "<init>", descriptor = "()V") constructor() : Runnable {
@@ -33,33 +35,48 @@ class PingWorker @OriginalMember(owner = "client!pha", name = "<init>", descript
 
 	@OriginalMember(owner = "client!pha", name = "run", descriptor = "()V")
 	override fun run() {
-		while (true) {
-			@Pc(8) val deque: Deque = this.requestQueue
-			@Pc(38) var pingRequest: PingRequest
-			withLock(this.requestQueue) {
-				@Pc(15) var node: Node?
+		// Not part of the original client: the loop goes through runLoop (PlatformLoop), the original
+		// blocking loop on the JVM and an event-loop chain where there are no threads; runStep is one
+		// turn of the original while, which ends its turn instead of waiting where it cannot block.
+		runLoop(
+			prelude = { true },
+			step = { this.runStep() },
+			onError = { throw it },
+			onFinally = { },
+		)
+	}
+
+	/* Not part of the original client: one turn of run's loop, false when the loop ends. */
+	private fun runStep(): Boolean {
+		@Pc(8) val deque: Deque = this.requestQueue
+		@Pc(38) var pingRequest: PingRequest
+		withLock(this.requestQueue) {
+			@Pc(15) var node: Node?
+			node = this.requestQueue.removeFirst()
+			while (node == null) {
+				if (!canBlock) {
+					return true
+				}
+				try {
+					lockWait(this.requestQueue)
+				} catch (@Pc(22) ex: InterruptedException) {
+				}
 				node = this.requestQueue.removeFirst()
-				while (node == null) {
-					try {
-						lockWait(this.requestQueue)
-					} catch (@Pc(22) ex: InterruptedException) {
-					}
-					node = this.requestQueue.removeFirst()
-				}
-				if (node !is PingRequest) {
-					return
-				}
-				pingRequest = node
 			}
-			@Pc(64) var pingTime: Int
-			try {
-				@Pc(49) val address: ByteArray = net.getByName(pingRequest.address).getAddress()
-				pingTime = jagmisc.ping(address[0], address[1], address[2], address[3], 1000L)
-			} catch (@Pc(66) ex2: Throwable) {
-				pingTime = 1000
+			if (node !is PingRequest) {
+				return false
 			}
-			pingRequest.ping = pingTime
+			pingRequest = node
 		}
+		@Pc(64) var pingTime: Int
+		try {
+			@Pc(49) val address: ByteArray = net.getByName(pingRequest.address).getAddress()
+			pingTime = jagmisc.ping(address[0], address[1], address[2], address[3], 1000L)
+		} catch (@Pc(66) ex2: Throwable) {
+			pingTime = 1000
+		}
+		pingRequest.ping = pingTime
+		return true
 	}
 
 	@OriginalMember(owner = "client!pha", name = "a", descriptor = "(ILjava/lang/String;)Lclient!mj;")

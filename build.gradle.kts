@@ -191,3 +191,17 @@ tasks.register<JavaExec>("checkClasses") {
 tasks.check {
     dependsOn("checkClasses")
 }
+
+/*
+ * The development bundle's folder is servable as it is: the page (index.html) and its icon are
+ * copied in beside runetek5-634.js. Serve it (python3 -m http.server -d build/kotlin-webpack/js/
+ * developmentExecutable 8080) with the relay running (node tools/relay.mjs), as MULTIPLATFORM.md says.
+ */
+val jsCopyDevResources = tasks.register<Copy>("jsCopyDevResources") {
+    from(tasks.named("jsProcessResources"))
+    into(layout.buildDirectory.dir("kotlin-webpack/js/developmentExecutable"))
+}
+
+tasks.named("jsBrowserDevelopmentWebpack") {
+    finalizedBy(jsCopyDevResources)
+}

@@ -20,6 +20,8 @@ import lang.Thread
 import lockNotifyAll
 import lockWait
 import withLock
+import canBlock
+import runLoop
 
 @OriginalClass("client!aca")
 class LocalRequester : Runnable {
@@ -98,31 +100,49 @@ class LocalRequester : Runnable {
 
 	@OriginalMember(owner = "client!aca", name = "run", descriptor = "()V")
 	override fun run() {
-		while (!this.shutdown) {
-			@Pc(6) val queue: Queue = this.queue
-			@Pc(14) var js5ResourceRequest: Js5ResourceRequest?
-			withLock(this.queue) {
-				js5ResourceRequest = this.queue.removeFirst() as Js5ResourceRequest?
-				if (js5ResourceRequest == null) {
-					try {
-						lockWait(this.queue)
-					} catch (@Pc(29) ex: InterruptedException) {
-					}
-					continue
-				}
-				this.requestCount--
-			}
-			try {
-				if (js5ResourceRequest!!.type == Js5ResourceRequestConstants.TYPE_WRITE) {
-					js5ResourceRequest!!.fileSystem!!.put(js5ResourceRequest!!.data!!.size, js5ResourceRequest!!.indexReference.toInt(), js5ResourceRequest!!.data)
-				} else if (js5ResourceRequest!!.type == Js5ResourceRequestConstants.TYPE_VERIFY) {
-					js5ResourceRequest!!.data = js5ResourceRequest!!.fileSystem!!.read(js5ResourceRequest!!.indexReference.toInt())
-				}
-			} catch (@Pc(76) ex2: Exception) {
-				ExplicitRuntimeException.reportError(null, ex2)
-			}
-			js5ResourceRequest!!.waiting = false
+		// Not part of the original client: the loop goes through runLoop (PlatformLoop), the original
+		// blocking loop on the JVM and an event-loop chain where there are no threads; runStep is one
+		// turn of the original while, which ends its turn instead of waiting where it cannot block.
+		runLoop(
+			prelude = { true },
+			step = { this.runStep() },
+			onError = { throw it },
+			onFinally = { },
+		)
+	}
+
+	/* Not part of the original client: one turn of run's loop, false when the loop ends. */
+	private fun runStep(): Boolean {
+		if (this.shutdown) {
+			return false
 		}
+		@Pc(6) val queue: Queue = this.queue
+		@Pc(14) var js5ResourceRequest: Js5ResourceRequest?
+		withLock(this.queue) {
+			js5ResourceRequest = this.queue.removeFirst() as Js5ResourceRequest?
+			if (js5ResourceRequest == null) {
+				if (!canBlock) {
+					return true
+				}
+				try {
+					lockWait(this.queue)
+				} catch (@Pc(29) ex: InterruptedException) {
+				}
+				return true
+			}
+			this.requestCount--
+		}
+		try {
+			if (js5ResourceRequest!!.type == Js5ResourceRequestConstants.TYPE_WRITE) {
+				js5ResourceRequest!!.fileSystem!!.put(js5ResourceRequest!!.data!!.size, js5ResourceRequest!!.indexReference.toInt(), js5ResourceRequest!!.data)
+			} else if (js5ResourceRequest!!.type == Js5ResourceRequestConstants.TYPE_VERIFY) {
+				js5ResourceRequest!!.data = js5ResourceRequest!!.fileSystem!!.read(js5ResourceRequest!!.indexReference.toInt())
+			}
+		} catch (@Pc(76) ex2: Exception) {
+			ExplicitRuntimeException.reportError(null, ex2)
+		}
+		js5ResourceRequest!!.waiting = false
+		return true
 	}
 
 	@OriginalMember(owner = "client!aca", name = "b", descriptor = "(Lclient!nw;IB)Lclient!qh;")

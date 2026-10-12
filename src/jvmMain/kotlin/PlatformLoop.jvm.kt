@@ -21,3 +21,4 @@ actual fun runLoop(
 }
 
 actual val executeWorkerTasksInline: Boolean = false
+actual val canBlock: Boolean = true

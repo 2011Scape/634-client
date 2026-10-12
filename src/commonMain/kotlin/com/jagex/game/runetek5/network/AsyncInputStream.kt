@@ -15,6 +15,8 @@ import lang.Thread
 import lockNotifyAll
 import lockWait
 import withLock
+import canBlock
+import runLoop
 
 @OriginalClass("client!gha")
 class AsyncInputStream : Runnable {
@@ -66,46 +68,67 @@ class AsyncInputStream : Runnable {
 
 	@OriginalMember(owner = "client!gha", name = "run", descriptor = "()V")
 	override fun run() {
-		while (true) {
-			@Pc(33) var length: Int = 0
-			withLock(this) {
-				while (true) {
-					if (this.readError != null) {
-						return
-					}
-					if (this.readPosition == 0) {
-						length = this.capacity - this.bufferPointer - 1
-					} else if (this.readPosition < this.bufferPointer) {
-						length = this.capacity - this.bufferPointer
-					} else {
-						length = this.readPosition - this.bufferPointer - 1
-					}
-					if (length > 0) {
-						break
-					}
-					try {
-						lockWait(this)
-					} catch (@Pc(63) ex: InterruptedException) {
-					}
+		// Not part of the original client: the loop goes through runLoop (PlatformLoop), the original
+		// blocking loop on the JVM and an event-loop chain where there are no threads; runStep is one
+		// turn of the original while, which ends its turn instead of waiting where it cannot block.
+		runLoop(
+			prelude = { true },
+			step = { this.runStep() },
+			onError = { throw it },
+			onFinally = { },
+		)
+	}
+
+	/* Not part of the original client: one turn of run's loop, false when the loop ends. */
+	private fun runStep(): Boolean {
+		@Pc(33) var length: Int = 0
+		withLock(this) {
+			while (true) {
+				if (this.readError != null) {
+					return false
 				}
-			}
-			@Pc(80) var bytesRead: Int = 0
-			try {
-				bytesRead = this.input!!.read(this.buffer, this.bufferPointer, length)
-				if (bytesRead == -1) {
-					throw EOFException()
+				if (this.readPosition == 0) {
+					length = this.capacity - this.bufferPointer - 1
+				} else if (this.readPosition < this.bufferPointer) {
+					length = this.capacity - this.bufferPointer
+				} else if (!canBlock && this.readPosition == this.bufferPointer) {
+					// Not part of the original client: an empty buffer whose positions are not at 0 counts
+					// as full in the original's arithmetic (length -1). A blocking reader never sees that
+					// state, as it is already inside read() when the game catches up with it; a reader
+					// that cannot block re-evaluates every turn and would wait for space for ever (PlatformLoop).
+					length = this.capacity - this.bufferPointer
+				} else {
+					length = this.readPosition - this.bufferPointer - 1
 				}
-			} catch (@Pc(88) ex2: IOException) {
-				@Pc(88) val local88x: IOException = ex2
-				withLock(this) {
-					this.readError = local88x
-					return
+				if (length > 0) {
+					break
 				}
-			}
-			withLock(this) {
-				this.bufferPointer = (bytesRead + this.bufferPointer) % this.capacity
+				if (!canBlock) {
+					return true
+				}
+				try {
+					lockWait(this)
+				} catch (@Pc(63) ex: InterruptedException) {
+				}
 			}
 		}
+		@Pc(80) var bytesRead: Int = 0
+		try {
+			bytesRead = this.input!!.read(this.buffer, this.bufferPointer, length)
+			if (bytesRead == -1) {
+				throw EOFException()
+			}
+		} catch (@Pc(88) ex2: IOException) {
+			@Pc(88) val local88x: IOException = ex2
+			withLock(this) {
+				this.readError = local88x
+				return false
+			}
+		}
+		withLock(this) {
+			this.bufferPointer = (bytesRead + this.bufferPointer) % this.capacity
+		}
+		return true
 	}
 
 	@OriginalMember(owner = "client!gha", name = "a", descriptor = "(III[B)I")

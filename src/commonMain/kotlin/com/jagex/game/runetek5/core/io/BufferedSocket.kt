@@ -20,6 +20,8 @@ import lang.Thread
 import lockNotifyAll
 import lockWait
 import withLock
+import canBlock
+import runLoop
 
 @OriginalClass("client!re")
 class BufferedSocket : Runnable {
@@ -130,69 +132,85 @@ class BufferedSocket : Runnable {
 
 	@OriginalMember(owner = "client!re", name = "run", descriptor = "()V")
 	override fun run() {
-		try {
-			while (true) {
-				// label80 in the Java: `closing` replaces the labelled break out of the synchronized block.
-				@Pc(35) var len: Int = 0
-				@Pc(24) var off: Int = 0
-				var closing: Boolean = false
-				withLock(this) {
-					if (this.bufPos == this.writePos) {
-						if (this.closed) {
-							closing = true
-						} else {
-							try {
-								lockWait(this)
-							} catch (@Pc(20) ex: InterruptedException) {
-							}
-						}
-					}
-					if (!closing) {
-						off = this.writePos
-						if (this.writePos > this.bufPos) {
-							len = this.bufSize - this.writePos
-						} else {
-							len = this.bufPos - this.writePos
-						}
-					}
+		// Not part of the original client: the loop goes through runLoop (PlatformLoop), the original
+		// blocking loop on the JVM and an event-loop chain where there are no threads; runStep is one
+		// turn of the original while, which ends its turn instead of waiting where it cannot block.
+		runLoop(
+			prelude = { true },
+			step = { this.runStep() },
+			onError = fun(@Pc(112) ex5: Throwable) {
+				if (ex5 !is Exception) {
+					throw ex5
 				}
-				if (!closing) {
-					if (len <= 0) {
-						continue
+				ExplicitRuntimeException.reportError(null, ex5)
+			},
+			onFinally = { },
+		)
+	}
+
+	/* Not part of the original client: one turn of run's loop, false when the loop ends. */
+	private fun runStep(): Boolean {
+		// label80 in the Java: `closing` replaces the labelled break out of the synchronized block.
+		@Pc(35) var len: Int = 0
+		@Pc(24) var off: Int = 0
+		var closing: Boolean = false
+		withLock(this) {
+			if (this.bufPos == this.writePos) {
+				if (this.closed) {
+					closing = true
+				} else {
+					if (!canBlock) {
+						return true
 					}
 					try {
-						this.outputStream!!.write(this.writeBuffer, off, len)
-					} catch (@Pc(61) ex2: IOException) {
-						this.error = true
+						lockWait(this)
+					} catch (@Pc(20) ex: InterruptedException) {
 					}
-					this.writePos = (len + this.writePos) % this.bufSize
-					try {
-						if (this.bufPos == this.writePos) {
-							this.outputStream!!.flush()
-						}
-					} catch (@Pc(83) ex3: IOException) {
-						this.error = true
-					}
-					continue
 				}
-				try {
-					if (this.inputStream != null) {
-						this.inputStream!!.close()
-					}
-					if (this.outputStream != null) {
-						this.outputStream!!.close()
-					}
-					if (this.socket != null) {
-						this.socket.close()
-					}
-				} catch (@Pc(107) ex4: IOException) {
-				}
-				this.writeBuffer = null
-				break
 			}
-		} catch (@Pc(112) ex5: Exception) {
-			ExplicitRuntimeException.reportError(null, ex5)
+			if (!closing) {
+				off = this.writePos
+				if (this.writePos > this.bufPos) {
+					len = this.bufSize - this.writePos
+				} else {
+					len = this.bufPos - this.writePos
+				}
+			}
 		}
+		if (!closing) {
+			if (len <= 0) {
+				return true
+			}
+			try {
+				this.outputStream!!.write(this.writeBuffer, off, len)
+			} catch (@Pc(61) ex2: IOException) {
+				this.error = true
+			}
+			this.writePos = (len + this.writePos) % this.bufSize
+			try {
+				if (this.bufPos == this.writePos) {
+					this.outputStream!!.flush()
+				}
+			} catch (@Pc(83) ex3: IOException) {
+				this.error = true
+			}
+			return true
+		}
+		try {
+			if (this.inputStream != null) {
+				this.inputStream!!.close()
+			}
+			if (this.outputStream != null) {
+				this.outputStream!!.close()
+			}
+			if (this.socket != null) {
+				this.socket.close()
+			}
+		} catch (@Pc(107) ex4: IOException) {
+		}
+		this.writeBuffer = null
+		return false
+		return true
 	}
 
 	@OriginalMember(owner = "client!re", name = "a", descriptor = "([BIBI)V")
