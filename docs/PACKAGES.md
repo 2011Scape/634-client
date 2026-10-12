@@ -7,7 +7,7 @@ in two source sets:
 |---|---|
 | `src/commonMain/kotlin` | The game, and everything it needs that is not tied to a platform. Common code names no `java.*` or `javax.*` package; CI compiles it against the common standard library alone (`./gradlew compileCommonMainKotlinMetadata -PcommonCheck=true`). |
 | `src/jvmMain/kotlin` | The JVM side: the native classes, the launcher `RuneTek5`, and the actuals of the shims and seams below. |
-| `src/jsMain/kotlin` | The browser side ([MULTIPLATFORM.md](MULTIPLATFORM.md#running-the-browser-client)): the entry point `main.js.kt`, browser actuals of every shim and seam, the WebSocket `net.Socket`, the IndexedDB-backed file system in `io`, the class registry behind `lang.forName`, and the native classes, which throw `NativeUnavailableException` (an `Exception`, so the client falls back as from a missing library) except `oa`, which draws with the client's software renderer. |
+| `src/jsMain/kotlin` | The browser side ([MULTIPLATFORM.md](MULTIPLATFORM.md#running-the-browser-client)): the entry point `main.js.kt`, browser actuals of every shim and seam, the WebSocket `net.Socket`, the IndexedDB-backed file system in `io`, the class registry behind `lang.forName`, and the native classes, which throw `NativeUnavailableException` (an `Exception`, so the client falls back as from a missing library) except `oa`, which draws with the client's software renderer, `jaggl.OpenGL`, a WebGL 2 emulator (from void-client) under the Java OpenGL toolkit, and the `jaclib.memory` classes it uses. |
 
 Inside `commonMain` the game keeps its layout:
 
@@ -46,6 +46,10 @@ Other `Math` functions are `kotlin.math`'s, which compile to the same `java.lang
   with a browser actual in `jsMain` (often one that throws an `Exception` the caller handles).
 - **A loop that waits for another thread** goes through `runLoop`, and checks `canBlock` before it
   waits (`PlatformLoop.kt`): in a browser there are no threads, and a wait would spin for ever.
+- **Arrays in the browser start out null**: Kotlin/JS compiles `arrayOfNulls(n)` to a bare JS
+  `Array(n)` whose slots are `undefined`, which `==` treats as null but `===` does not;
+  `webpack.config.d/null-arrays-loader.js` fills them with null in the bundle, so identity checks
+  agree with the JVM. Nothing in the code has to change for it.
 - **A class the client creates by name** (`lang.forName(...).getDeclaredConstructor()`) needs an
   entry in `jsMain/kotlin/lang/ClassRegistry.js.kt` to exist in a browser.
 - **New code for a native class** goes in its `jvmMain` file, with the `expect` side updated if

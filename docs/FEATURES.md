@@ -64,6 +64,22 @@ software, switched in the graphics options. The three share little code, and a d
 works on one can fail on another. Try it again after the map reloads (walk far, or teleport) and
 after logging out and back in, which clear and rebuild most of the client's state.
 
+## In the browser
+
+The browser client ([MULTIPLATFORM.md](MULTIPLATFORM.md#running-the-browser-client)) takes the same
+switches from its page address: `http://localhost:8080/?client.msaa=4&client.renderScale=1.5`
+(a switch without a value is true, `?client.smaa`). It has the Java software toolkit (0), its
+browser version of the native software toolkit (2), and the Java OpenGL toolkit (1) on a WebGL 2
+emulator; the native toolkits need libraries a browser cannot load. A feature that draws should be
+tried on toolkit 1 there too.
+
+Turned off in the browser:
+
+- **SMAA** (`client.smaa`): its shaders are desktop GLSL 1.30, which the WebGL emulator does not
+  translate. The page says so on the console, and the 3D view is drawn without it. MSAA
+  (`client.msaa`), the render scale (`client.renderScale`) and alpha-to-coverage (`client.a2c`)
+  work.
+
 ## Where to read next
 
 The area guides say where each part of the client lives and how it fits the main loop, and each

@@ -196,13 +196,15 @@ How it went, for the milestones after it:
    `http://localhost:8080/`. `./gradlew build` makes the minified bundle in
    `build/dist/js/productionExecutable`.
 4. The first visit downloads the cache into IndexedDB; later visits load it from there. The client
-   starts as `./gradlew runClient` does, on the Java software toolkit (0); The tutorial hides the chat
-   box, so commands go through the developer console (the `` ` `` key): `tele 3222 3218` takes the
-   player to Lumbridge, `tk2` switches to the software toolkit's browser version. `window.__log`
+   starts as `./gradlew runClient` does, on the Java software toolkit (0). The tutorial hides the chat
+   box, so commands go through the developer console (the `` ` `` key): `tk1` switches to the Java
+   OpenGL toolkit on WebGL 2, `tk2` to the native software toolkit's browser version, and
+   `tele 3222 3218` takes an admin player to Lumbridge (so does ctrl-clicking the minimap).
+   Switches go in the address, as `-P` does for runClient: `?client.msaa=4`. `window.__log`
    holds the last 500 console lines. Leaving the page closes the client's connections, so the
    server logs the player out at once.
 
-### [ ] 5. WebGL
+### [x] 5. WebGL
 
 Bring the Java OpenGL toolkit (1) to the browser on void-client's WebGL 2 emulator
 (`jsMain/kotlin/jaggl`), with its fixes (sky, HD water, MSAA rims, sprite seams, black world map
@@ -214,6 +216,22 @@ need (multisampled framebuffers, blits), add it or turn the feature off in the b
 ```
 /goal Read docs/MULTIPLATFORM.md (including milestone 4's notes and "Running the browser client"), docs/PACKAGES.md, docs/FEATURES.md, CLAUDE.md and /home/pixel/Documents/Projects/void-client/CLAUDE.md (its "JS rules learned the hard way" are binding), then complete milestone 5 only, on feature/multi-platform-shim: the Java OpenGL toolkit (1) in the browser. Copy void-client's WebGL 2 emulator (its jsMain/kotlin/jaggl files) as the JS side of our jaggl classes, keeping every frozen native name and signature. Recreate void-client's WebGL fixes (sky, HD water, MSAA rims, sprite seams, black world map labels) on this client's own refactored code, not by translating void-client's deob copy: any change to game code goes behind an expect seam, or is a no-op on the JVM, so JVM behaviour is unchanged. Let the page pass client.* switches (from the URL query string, e.g. ?client.msaa=4) into the JS system properties, so the browser can turn on this client's anti-aliasing pipeline: client.msaa, client.smaa, client.renderScale and client.a2c. Each must work through the emulator, adding what the emulator lacks (multisampled renderbuffers, framebuffer blits), or be turned off in the browser with a note in docs/FEATURES.md. Keep the rules: @Original*/@Pc on every declaration, "Not part of the original client" on every hook, exact bit arithmetic, one commit per working step, no attribution trailers. Done when: (1) ./gradlew build passes for both targets and checkClasses passes with the allowlist unchanged; (2) on the JVM, a javap method-by-method comparison against 35768fd shows only changes this milestone justifies; (3) with the relay (node tools/relay.mjs) and the local Void server running, the development bundle in Chrome logs in as browsertest (whose saved spawn is Lumbridge) on toolkit 1, confirmed by "Entered tk1" in the developer console. Screenshots in the conversation show the sky, water, the minimap and the world map drawn correctly, once with MSAA off and once with ?client.msaa=4. The Void audit log shows the login, and window.__log shows no uncaught errors; (4) the desktop smoke test prints SMOKE PASS on toolkits 0, 1, 2 and 5 against ~/634-smoke-ref on the final commit, rerunning a toolkit once on a reference-comparison-only failure, and the release jar passes java -Dclient.test=smoke -jar <jar> --address localhost (show every SMOKE PASS/FAIL line); (5) CI passes on GitHub after a push; (6) MULTIPLATFORM.md has milestone 5's notes and is ticked, and FEATURES.md lists anything turned off in the browser. Stop and report if a frozen native name would have to change, if WebGL 2 is unavailable in Chrome, if toolkit 1 cannot reach the game screen after three distinct attempts, or after 150 turns.
 ```
+
+How it went, for the milestones after it:
+
+- Toolkit 1 needed three things beyond the emulator: `NativeLibraryOwner` in the browser reports
+  jaclib and jaggl as loaded (both are emulated); dynamic vertex data goes in buffer objects, since
+  the emulator has no client-side arrays (`clientArraysAvailable`, as on AMD); and a webpack loader
+  fills arrays with null (PACKAGES.md), without which `GlToolkit.setActiveTexture` failed an
+  identity check on an unwritten slot.
+- void-client's sky, HD water, MSAA rim and sprite seam fixes live in the emulator, so they came
+  with it. Its world map label fix is game code and was written again on `HelveticaFont`, behind
+  `textAntialiased`. Its SD water state fixes were not needed here: the water draws steadily.
+- The anti-aliasing pipeline works through the emulator except SMAA, whose desktop GLSL 1.30
+  shaders it cannot translate; FEATURES.md lists that. The page passes `client.*` switches in its
+  query string.
+- Switching toolkits while the world map is open can leave the map on "Loading..."; closing and
+  opening it again loads it.
 
 ### [ ] 6. The extras, the smoke test in the browser, CI and the docs
 
