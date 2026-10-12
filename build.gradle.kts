@@ -6,7 +6,8 @@ description = "The RuneScape client from December 2010 (build 634), with a launc
 
 /*
  * A Kotlin Multiplatform project (docs/MULTIPLATFORM.md, milestone 3) with one target, the JVM.
- * The native classes keep their JNI names and signatures in jvmMain.
+ * The game is in src/commonMain, on shims of the Java APIs it uses; the native classes keep their
+ * JNI names and signatures in src/jvmMain, with expect declarations in commonMain.
  */
 kotlin {
     jvmToolchain(21)

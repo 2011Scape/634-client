@@ -113,7 +113,7 @@ For each batch, replace `<batch>` in this goal with its letter and file list:
 
 Tick milestone 2 when every batch is done and no `.java` file is left under `src/main`.
 
-### [ ] 3. Multiplatform, still desktop only
+### [x] 3. Multiplatform, still desktop only
 
 Switch to the `kotlin("multiplatform")` plugin with a `jvm()` target, move the game into
 `commonMain`, and bring over void-client's Java API shims and their JVM actuals, so the common code
@@ -121,6 +121,28 @@ names `lang.Thread`, `io.RandomAccessFile`, `awt.Canvas` and so on instead of `j
 those are type aliases of the JDK classes, so the client behaves exactly as in milestone 2. The root
 platform seams (`PlatformLoop` and the others) come over too, with the main loop and the worker loops
 going through `runLoop`. The `./gradlew run`, `runClient` and `release` tasks keep working.
+
+How it went, for the milestones after it:
+
+- `./gradlew compileCommonMainKotlinMetadata -PcommonCheck=true` is the real check that common
+  code is common: with the JVM as the only target, common code still sees the JDK through Kotlin's
+  default `java.lang` imports, so a grep for `java.` is not enough. `-PcommonCheck` adds a `js()`
+  target for this compile only; CI runs it.
+- The native classes stay in `jvmMain` as `actual` classes; their `expect` declarations in
+  `commonMain` were generated from them (every non-private member). Nothing native was renamed.
+- `GameShell` still extends `java.applet.Applet` on the JVM, through an `applet` shim, instead of
+  void-client's change to `Panel`: the launcher drives the client as an applet. Milestone 4 gives
+  the shim a browser actual.
+- Shims were added where void-client's lacked something this client uses, always with the JDK's
+  behaviour on the JVM (`lang.parseInt`, `javaTrim`, `round`, the calendar classes, `Inflater`,
+  `applet.Applet`, ...). A browser actual for each is part of milestone 4.
+- `SmokeTest` calls the root package directly (Kotlin allows the import) instead of by reflection;
+  SignLink's reflection is behind `expect` functions (`SignLinkPlatform`).
+- `TimedRecordAccessor` in void-client is a game class (`Class348_Sub45`), not a platform seam;
+  this client has its own version of it. `executeWorkerTasksInline` is declared but not used yet:
+  SignLink needs it only where it has no worker thread (milestone 4).
+- The main loop (`GameShell.run`), the loading screen (`AssetLoadingScreenRenderer.run`), sound
+  (`PcmPlayerThread.run`) and SignLink's worker (`SignLink.run`) go through `runLoop`.
 
 ```
 /goal Read docs/MULTIPLATFORM.md, CLAUDE.md and /home/pixel/Documents/Projects/void-client/CLAUDE.md, then complete milestone 3 only: make this a Kotlin Multiplatform project with only a jvm() target, move the game into src/commonMain/kotlin, copy void-client's expect shims (awt, io, lang, net, util, sound) and their jvmMain actuals, and the root platform seams (PlatformLoop, Clock, Lock, SoftRef, BigInt, TimedRecordAccessor), adapting their call sites to this client's names through the docs/multiplatform mapping. commonMain must not import any java.* or javax.* package (show the output of a grep that proves it). Done when: ./gradlew assemble succeeds; ./gradlew runClient -Pclient.test=smoke -Pclient.test.toolkit=<id> prints SMOKE PASS for each of 0, 1, 2 and 5 (show every SMOKE line); ./gradlew release builds a jar that starts with java -jar; milestone 3 is ticked; and the work is committed on feature/multi-platform-shim. Stop and report if two attempts to fix a failing smoke test do not pass, or after 40 turns.

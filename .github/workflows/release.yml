@@ -25,6 +25,9 @@ jobs:
       - name: Build and check the release jars
         run: ./gradlew check release -Pversion="${GITHUB_REF_NAME#v}" --console=plain
 
+      - name: Check that commonMain is common
+        run: ./gradlew compileCommonMainKotlinMetadata -PcommonCheck=true --console=plain
+
       - name: Write checksums
         working-directory: build/release
         run: sha256sum *.jar > SHA256SUMS

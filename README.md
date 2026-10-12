@@ -144,9 +144,11 @@ needs Java 21 to 25 installed.
 
 ## For developers
 
-The client is written in Kotlin: its source is in `src/main/kotlin`, and the launcher is `RuneTek5`
-there. It is a straight conversion of the deobfuscated Java, which keeps the original's structure,
-names and annotations, and the names and signatures the native libraries bind to. Code added to the
+The client is written in Kotlin, as a Kotlin Multiplatform project with a JVM target: the game is
+in `src/commonMain/kotlin`, on shims of the Java APIs it uses, and the JVM side (the native classes,
+the launcher `RuneTek5`) in `src/jvmMain/kotlin`. It is a straight conversion of the deobfuscated
+Java, which keeps the original's structure, names and annotations, and the names and signatures the
+native libraries bind to. Code added to the
 2010 client is marked with a comment that starts "Not part of the original client".
 
 - **Adding a feature:** start with [`docs/FEATURES.md`](docs/FEATURES.md), which says where a
@@ -165,7 +167,8 @@ names and annotations, and the names and signatures the native libraries bind to
   this computer, with `-Pclient.*` switches such as `-Pclient.debug=true`.
 - **Checking a change:** `./gradlew check` (what CI runs, with no server needed) loads and verifies
   every class from the release jar, and fails on a method over HotSpot's 8000-byte JIT limit unless
-  `config/huge-methods.txt` lists it. The in-client smoke test (`-Pclient.test=smoke`, see
+  `config/huge-methods.txt` lists it. `./gradlew compileCommonMainKotlinMetadata -PcommonCheck=true`
+  checks that the common code uses no JVM API. The in-client smoke test (`-Pclient.test=smoke`, see
   `SmokeTest`) needs a Void server.
 
 ## Credits
@@ -177,7 +180,7 @@ names and annotations, and the names and signatures the native libraries bind to
 - [StrongHold/runescape-667][667], [LostCityRS/RS910][rs910], [Pazaz/RT4-Client][rt4] and [Pazaz/RT5-Client][rt5], for the names given to the code.
 - [FabricMC Matcher][matcher], for matching the code between builds.
 - [SMAA](https://github.com/iryoku/smaa) by Jorge Jimenez, Jose I. Echevarria, Belen Masia, Fernando Navarro and
-  Diego Gutierrez, for the SMAA shader and lookup textures (MIT licence, in `src/main/resources/smaa/`).
+  Diego Gutierrez, for the SMAA shader and lookup textures (MIT licence, in `src/jvmMain/resources/smaa/`).
 
 ## Disclaimer
 

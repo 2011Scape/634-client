@@ -23,6 +23,11 @@ jobs:
       - name: Compile, package and check
         run: ./gradlew build releaseJar --console=plain
 
+      # commonMain must compile against the common standard library alone; -PcommonCheck adds a
+      # browser target just for this (docs/MULTIPLATFORM.md, milestone 3)
+      - name: Check that commonMain is common
+        run: ./gradlew compileCommonMainKotlinMetadata -PcommonCheck=true --console=plain
+
       # Every class loads and verifies from the release jar, and no new method is over the JIT limit
       # (src/ci/java/CheckClasses), on the newest supported JDK as well
       - name: Check the classes on Java 25

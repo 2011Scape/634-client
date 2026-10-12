@@ -28,9 +28,14 @@ How to add something new to the client, from the features built so far: tile mar
 | Add a console command | a branch in `ClientCommandProcessor`, beside `tilemarkers` and `xpdrops` | `npclabels` |
 
 The root package (`client`, `PacketDecoder`, `ClientCommandProcessor`, the executor and the
-picking) can call a packaged feature class, but a packaged class can never name a root-package
-class. When a feature needs state that lives in the root `client` class (the stats, `statXp` and
-`statLevels`), pass it in from the root-package hook, as the stat packet does for `XpDrops`.
+picking) can call a packaged feature class, and in Kotlin a packaged class can import a
+root-package one too (`SmokeTest` calls `ClientCommandProcessor.executeCommand` directly). Passing
+state in from the root-package hook, as the stat packet does for `XpDrops` with `statXp` and
+`statLevels`, still keeps a feature independent of the root classes.
+
+A feature is common code (`src/commonMain`): use the shims (`awt.Graphics`, `lang.getProperty`),
+not `java.*`, and put anything that only the JVM can do behind an `expect` function in `jvmMain`,
+as `FeaturePlatform` does for `Graphics2D` scaling.
 
 ## Drawing
 
