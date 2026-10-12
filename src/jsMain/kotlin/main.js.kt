@@ -1,6 +1,7 @@
 import com.jagex.game.runetek5.client.GameShell
 import io.CachePersistence
 import kotlinx.browser.document
+import kotlinx.browser.window
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
@@ -12,6 +13,10 @@ import kotlinx.coroutines.launch
  */
 fun main() {
     keepConsoleLog()
+    // Leaving the page logs out: a page kept in the back/forward cache would otherwise hold the
+    // player's connection open. Coming back to such a page starts the client again.
+    window.addEventListener("pagehide", { net.closeAllSockets() })
+    window.addEventListener("pageshow", { event -> if (event.asDynamic().persisted == true) window.location.reload() })
     GlobalScope.launch {
         CachePersistence.hydrate()
         client.main(arrayOf("3594", "3594", "0", "live", "english", "game0"))

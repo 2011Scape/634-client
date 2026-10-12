@@ -35,6 +35,7 @@ actual open class Socket actual constructor(host: String?, port: Int) {
     private var inChunkOffset = 0
 
     init {
+        open += this
         ws.asDynamic().binaryType = "arraybuffer"
         ws.onopen = {
             connectedOnce = true
@@ -58,6 +59,7 @@ actual open class Socket actual constructor(host: String?, port: Int) {
         }
         ws.onclose = {
             closed = true
+            open -= this
             Unit
         }
     }
@@ -131,6 +133,7 @@ actual open class Socket actual constructor(host: String?, port: Int) {
 
     actual open fun close() {
         closed = true
+        open -= this
         ws.close()
     }
 
@@ -161,4 +164,18 @@ internal fun relayUrl(): String {
     val config = window.asDynamic().CONFIG
     val url = if (config != null && config != undefined) config.url else null
     return if (url != null && url != undefined) url as String else "ws://localhost:8081/proxy"
+}
+
+/*
+ * The relay connections still open. A browser may keep a page it has left in its back/forward
+ * cache, frozen, with its WebSockets open; the server then keeps the player logged in until the
+ * browser drops the page (minutes later), and refuses that account's next login. main.js.kt closes
+ * these when the page is hidden.
+ */
+private val open: MutableSet<Socket> = mutableSetOf()
+
+internal fun closeAllSockets() {
+    for (socket in open.toList()) {
+        socket.close()
+    }
 }

@@ -191,8 +191,11 @@ How it went, for the milestones after it:
    `http://localhost:8080/`. `./gradlew build` makes the minified bundle in
    `build/dist/js/productionExecutable`.
 4. The first visit downloads the cache into IndexedDB; later visits load it from there. The client
-   starts as `./gradlew runClient` does, on the Java software toolkit (0); `::tk2` switches to the
-   software toolkit's browser version. `window.__log` holds the last 500 console lines.
+   starts as `./gradlew runClient` does, on the Java software toolkit (0); The tutorial hides the chat
+   box, so commands go through the developer console (the `` ` `` key): `tele 3222 3218` takes the
+   player to Lumbridge, `tk2` switches to the software toolkit's browser version. `window.__log`
+   holds the last 500 console lines. Leaving the page closes the client's connections, so the
+   server logs the player out at once.
 
 ### [ ] 5. WebGL
 
