@@ -49,7 +49,7 @@ Get the latest jar from the [releases page][releases]:
 Double-click the jar, or start it from a terminal with any of the [options](#options):
 
 ```bash
-java -jar runetek5-634-2.0.2.jar --tile-markers --xp-drops --npc-labels
+java -jar runetek5-634-2.1.0.jar --tile-markers --xp-drops --npc-labels
 ```
 
 ## Options
@@ -144,7 +144,9 @@ needs Java 21 to 25 installed.
 
 ## For developers
 
-The client's source is in `src/main/java`, and the launcher is `RuneTek5` there. Code added to the
+The client is written in Kotlin: its source is in `src/main/kotlin`, and the launcher is `RuneTek5`
+there. It is a straight conversion of the deobfuscated Java, which keeps the original's structure,
+names and annotations, and the names and signatures the native libraries bind to. Code added to the
 2010 client is marked with a comment that starts "Not part of the original client".
 
 - **Adding a feature:** start with [`docs/FEATURES.md`](docs/FEATURES.md), which says where a
