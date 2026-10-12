@@ -69,16 +69,34 @@ after logging out and back in, which clear and rebuild most of the client's stat
 ## In the browser
 
 The browser client ([README](../README.md#running-the-browser-client)) starts with the
-launcher's defaults (`LauncherDefaults`: 144 fps, zoom, the console, shift-drop, a scale from the
-screen's height) except the render distance, which is always 1 there (a page has too little memory
-and time per frame for a longer view; `client.renderDistance` is ignored with a console message), and takes the same switches from its page address,
+launcher's defaults (`LauncherDefaults`: zoom, the console, shift-drop, a scale from the screen's
+height) with two exceptions: the frame rate defaults to `client.fps=60`, since frames are drawn on
+the display's animation frames (`requestAnimationFrame`) and at most 4 game ticks are caught up per
+frame; and the render distance is always 1 (a page has too little memory and time per frame for a
+longer view; `client.renderDistance` is ignored with a console message). It takes the same switches from its page address,
 `http://localhost:8080/?client.msaa=4&client.zoom=false` (a switch without a value is true,
 `?client.smaa`), or from a hosted page's `window.CONFIG`. It has the Java software toolkit (0), its
 browser version of the native software toolkit (2), and the Java OpenGL toolkit (1) on a WebGL 2
 emulator; the native toolkits need libraries a browser cannot load. Every extra works there,
 SMAA included (its shaders are translated to GLSL ES 3.00). A feature that draws should be tried on
 toolkits 0 and 1 in the browser too, and the smoke test runs there:
-`http://localhost:8080/?client.test=smoke&client.test.toolkit=1`.
+`http://localhost:8080/?client.test=smoke&client.test.toolkit=1` (in an 800x600 page, the size its
+references in `~/634-smoke-ref/browser` were taken at).
+
+A change meant to make the client faster is measured with the smoke test's benchmark,
+`client.test.bench=N`: after logging in and settling, it times N frames and prints one line instead
+of running the checks, then stops, for example
+
+```
+SMOKE BENCH toolkit=0 size=1888x1038 mode=RESIZABLE frames=300 avg=95.8ms p50=95.4ms p95=99.3ms fps=10.4 work=95.2ms work95=98.6ms ticks/frame=4
+```
+
+`work` is each frame's time apart from waiting for the next one (browser only), and `ticks/frame`
+the game ticks run per frame. `client.test.benchMode=resizable` or `fixed` switches the window mode
+first (resizable also lifts the maximum screen size preference for the run). In the browser, measure
+the production bundle, `node tools/serve.mjs 8080 build/dist/js/productionExecutable`, with
+`?client.test=smoke&client.test.toolkit=0&client.test.bench=300&client.test.benchMode=resizable`; on
+the desktop, `./gradlew runClient -Pclient.test=smoke -Pclient.test.bench=300`.
 
 ## Where to read next
 
