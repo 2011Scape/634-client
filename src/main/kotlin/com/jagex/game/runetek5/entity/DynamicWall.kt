@@ -57,7 +57,7 @@ class DynamicWall : Wall, GameObject {
 		}
 		@Pc(27) val tileX: Int = this.x shr 9
 		@Pc(32) val tileZ: Int = this.z shr 9
-		@Pc(35) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(35) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		matrix.applyTranslation(this.x, this.y, this.z)
 		this.locEntity.animateParticles(tileX, matrix, tileZ, toolkit, tileX, model, false, tileZ)
 	}
@@ -73,7 +73,7 @@ class DynamicWall : Wall, GameObject {
 		if (model == null) {
 			return false
 		} else {
-			@Pc(19) val matrix: Matrix = toolkit!!.scratchMatrix()
+			@Pc(19) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 			matrix.applyTranslation(this.x, this.y, this.z)
 			return if (OrthoMode.orthographicProjection) model.pickedOrtho(mouseX, mouseY, matrix, false, 0, HintArrow.scaledOrthoZoom) else model.picked(mouseX, mouseY, matrix, false, 0)
 		}
@@ -113,7 +113,7 @@ class DynamicWall : Wall, GameObject {
 		if (model == null) {
 			return null
 		}
-		@Pc(23) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(23) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		matrix.applyTranslation(this.x, this.y, this.z)
 		@Pc(37) val pickableEntity: PickableEntity = PickableEntity.obtain(1, this.interactive)
 		@Pc(42) val localX: Int = this.x shr 9

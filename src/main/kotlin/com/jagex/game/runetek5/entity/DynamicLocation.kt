@@ -64,7 +64,7 @@ class DynamicLocation : AbstractInteractiveEntity, GameObject {
 		if (model == null) {
 			return false
 		} else {
-			@Pc(25) val matrix: Matrix = toolkit!!.scratchMatrix()
+			@Pc(25) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 			matrix.applyTranslation(this.x, this.y, this.z)
 			return if (OrthoMode.orthographicProjection) model.pickedOrtho(mouseX, mouseY, matrix, false, 0, HintArrow.scaledOrthoZoom) else model.picked(mouseX, mouseY, matrix, false, 0)
 		}
@@ -96,7 +96,7 @@ class DynamicLocation : AbstractInteractiveEntity, GameObject {
 		if (model == null) {
 			return null
 		}
-		@Pc(21) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(21) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		matrix.applyTranslation(this.x, this.y, this.z)
 		@Pc(35) val pickableEntity: PickableEntity = PickableEntity.obtain(1, this.interactive)
 		this.locEntity.animateParticles(this.endX.toInt(), matrix, this.endZ.toInt(), toolkit, this.startX.toInt(), model, true, this.startZ.toInt())
@@ -156,7 +156,7 @@ class DynamicLocation : AbstractInteractiveEntity, GameObject {
 	override fun particleCycle(@OriginalArg(0) toolkit: Toolkit?) {
 		@Pc(12) val model: Model? = this.locEntity.getModel(true, true, 262144, toolkit)
 		if (model != null) {
-			@Pc(17) val matrix: Matrix = toolkit!!.scratchMatrix()
+			@Pc(17) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 			matrix.applyTranslation(this.x, this.y, this.z)
 			this.locEntity.animateParticles(this.endX.toInt(), matrix, this.endZ.toInt(), toolkit, this.startX.toInt(), model, false, this.startZ.toInt())
 		}

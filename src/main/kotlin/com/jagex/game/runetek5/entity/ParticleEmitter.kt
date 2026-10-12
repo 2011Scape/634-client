@@ -276,7 +276,7 @@ class ParticleEmitter : EntityNode {
 					if (ParticleSystemManager.particleCacheCursorPos == ParticleSystemManager.killIndex) {
 						Particle(this, x, y, z, directionX, directionY, directionZ, speed, lifetime, color, size, materialId, this.type!!.unusedOpcode26, this.type!!.adjustsLightIntensity)
 					} else {
-						@Pc(973) val movingParticle: Particle? = ParticleSystemManager.particleCache[ParticleSystemManager.killIndex]
+						@Pc(973) val movingParticle: Particle? = ParticleSystemManager.particleCache!![ParticleSystemManager.killIndex]
 						ParticleSystemManager.killIndex = (ParticleSystemManager.killIndex + 1) and 0x3FF
 						movingParticle!!.reset(this, x, y, z, directionX, directionY, directionZ, speed, lifetime, color, size, materialId, this.type!!.unusedOpcode26, this.type!!.adjustsLightIntensity)
 					}

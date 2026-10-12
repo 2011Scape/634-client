@@ -992,7 +992,7 @@ object Scene {
 		while (i < Scene.lightSlotCount) {
 			if (!Scene.pointLightApplied!![i]) {
 				@Pc(10) val staticPointLight: StaticPointLight? = Scene.aClass300Array1!![i]
-				@Pc(13) val pointLight: PointLight = staticPointLight!!.pointLight
+				@Pc(13) val pointLight: PointLight = staticPointLight!!.pointLight!!
 				@Pc(16) val level: Int = staticPointLight.level
 				@Pc(22) val offset: Int = pointLight.getRadius() - Scene.halfTileOffset
 				@Pc(30) val dimension: Int = ((offset * 2) shr Scene.tileUnits) + 1
@@ -1010,7 +1010,7 @@ object Scene {
 				}
 				@Pc(78) var j: Int = sceneStartY
 				while (j <= sceneEndY) {
-					@Pc(84) val range: Short = staticPointLight.ranges[rangeIndex]
+					@Pc(84) val range: Short = staticPointLight.ranges!![rangeIndex]
 					@Pc(88) val rangeStartOffset: Int = range.toInt() ushr 8
 					@Pc(94) var displacementIndex: Int = rangeIndex * dimension + rangeStartOffset
 					@Pc(100) var sceneStartX: Int = sceneBaseX + (range.toInt() ushr 8)
@@ -1036,13 +1036,13 @@ object Scene {
 								westWithinScene = k - 1 >= sceneStartX
 								eastWithinScene = k + 1 <= sceneEndX
 								if (!westWithinScene && j + 1 <= sceneEndY) {
-									bitpackedRange = staticPointLight.ranges[rangeIndex + 1]
+									bitpackedRange = staticPointLight.ranges!![rangeIndex + 1]
 									startX = sceneBaseX + (bitpackedRange.toInt() ushr 8)
 									endX = startX + (bitpackedRange.toInt() and 0xFF)
 									westWithinScene = k > startX && k < endX
 								}
 								if (!eastWithinScene && j - 1 >= sceneStartY) {
-									bitpackedRange = staticPointLight.ranges[rangeIndex - 1]
+									bitpackedRange = staticPointLight.ranges!![rangeIndex - 1]
 									startX = sceneBaseX + (bitpackedRange.toInt() ushr 8)
 									endX = startX + (bitpackedRange.toInt() and 0xFF)
 									eastWithinScene = k > startX && k < endX
@@ -1056,13 +1056,13 @@ object Scene {
 								westWithinScene = k - 1 >= sceneStartX
 								eastWithinScene = k + 1 <= sceneEndX
 								if (!westWithinScene && j - 1 >= sceneStartY) {
-									bitpackedRange = staticPointLight.ranges[rangeIndex - 1]
+									bitpackedRange = staticPointLight.ranges!![rangeIndex - 1]
 									startX = sceneBaseX + (bitpackedRange.toInt() ushr 8)
 									endX = startX + (bitpackedRange.toInt() and 0xFF)
 									westWithinScene = k > startX && k < endX
 								}
 								if (!eastWithinScene && j + 1 <= sceneEndY) {
-									bitpackedRange = staticPointLight.ranges[rangeIndex + 1]
+									bitpackedRange = staticPointLight.ranges!![rangeIndex + 1]
 									startX = sceneBaseX + (bitpackedRange.toInt() ushr 8)
 									endX = startX + (bitpackedRange.toInt() and 0xFF)
 									eastWithinScene = k > startX && k < endX

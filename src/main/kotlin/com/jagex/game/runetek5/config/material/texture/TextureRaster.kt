@@ -51,7 +51,7 @@ object TextureRaster {
 			EnvironmentLight.horizontalTable = IntArray(textureOpWidth)
 			idx = 0
 			while (idx < textureOpWidth) {
-				EnvironmentLight.horizontalTable[idx] = (idx shl 12) / textureOpWidth
+				EnvironmentLight.horizontalTable!![idx] = (idx shl 12) / textureOpWidth
 				idx++
 			}
 			TextureRaster.widthMask = textureOpWidth - 1

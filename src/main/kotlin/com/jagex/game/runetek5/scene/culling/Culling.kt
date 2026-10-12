@@ -403,15 +403,15 @@ object Culling {
 			@Pc(66) var local66: Int
 			if (Culling.occlusionState == 2) {
 				var bufferIndex: Int = xA + yA * Culling.occlusionBufferWidth
-				if (bufferIndex >= 0 && MipmapTextureSampler.textures.size > bufferIndex && MipmapTextureSampler.textures[bufferIndex] > (zA shl 8) - 38400) {
+				if (bufferIndex >= 0 && MipmapTextureSampler.textures!!.size > bufferIndex && MipmapTextureSampler.textures!![bufferIndex] > (zA shl 8) - 38400) {
 					return false
 				}
 				bufferIndex = xB + yB * Culling.occlusionBufferWidth
-				if (bufferIndex >= 0 && bufferIndex < MipmapTextureSampler.textures.size && MipmapTextureSampler.textures[bufferIndex] > (zB shl 8) - 38400) {
+				if (bufferIndex >= 0 && bufferIndex < MipmapTextureSampler.textures!!.size && MipmapTextureSampler.textures!![bufferIndex] > (zB shl 8) - 38400) {
 					return false
 				}
 				bufferIndex = xC + yC * Culling.occlusionBufferWidth
-				if (bufferIndex >= 0 && MipmapTextureSampler.textures.size > bufferIndex && (zC shl 8) - 38400 < MipmapTextureSampler.textures[bufferIndex]) {
+				if (bufferIndex >= 0 && MipmapTextureSampler.textures!!.size > bufferIndex && (zC shl 8) - 38400 < MipmapTextureSampler.textures!![bufferIndex]) {
 					return false
 				}
 			}
@@ -1423,7 +1423,7 @@ object Culling {
 		OccludedWallCount.occludedWallCount = 0
 		Culling.occludedGroundCount = 0
 		Sprites.hintHeadId = 0
-		@Pc(27) val viewport: IntArray = toolkit!!.Y()
+		@Pc(27) val viewport: IntArray = toolkit!!.Y()!!
 		Culling.occlusionScaleY = (viewport[3].toFloat() / 3.0f).toInt()
 		Culling.occlusionScaleX = (viewport[2].toFloat() / 3.0f).toInt()
 		toolkit.accumulateViewportDimensions(Culling.cullingViewportSize)
@@ -1453,21 +1453,21 @@ object Culling {
 		}
 		Culling.depthWriteCount = 0
 		if (Culling.activeOccluderCount > 0) {
-			@Pc(169) val length: Int = MipmapTextureSampler.textures.size
+			@Pc(169) val length: Int = MipmapTextureSampler.textures!!.size
 			@Pc(176) val unrolledEnd: Int = (length - length) and 0x7
 			@Pc(178) var index: Int = 0
 			while (unrolledEnd > index) {
-				MipmapTextureSampler.textures[index++] = Int.MAX_VALUE
-				MipmapTextureSampler.textures[index++] = Int.MAX_VALUE
-				MipmapTextureSampler.textures[index++] = Int.MAX_VALUE
-				MipmapTextureSampler.textures[index++] = Int.MAX_VALUE
-				MipmapTextureSampler.textures[index++] = Int.MAX_VALUE
-				MipmapTextureSampler.textures[index++] = Int.MAX_VALUE
-				MipmapTextureSampler.textures[index++] = Int.MAX_VALUE
-				MipmapTextureSampler.textures[index++] = Int.MAX_VALUE
+				MipmapTextureSampler.textures!![index++] = Int.MAX_VALUE
+				MipmapTextureSampler.textures!![index++] = Int.MAX_VALUE
+				MipmapTextureSampler.textures!![index++] = Int.MAX_VALUE
+				MipmapTextureSampler.textures!![index++] = Int.MAX_VALUE
+				MipmapTextureSampler.textures!![index++] = Int.MAX_VALUE
+				MipmapTextureSampler.textures!![index++] = Int.MAX_VALUE
+				MipmapTextureSampler.textures!![index++] = Int.MAX_VALUE
+				MipmapTextureSampler.textures!![index++] = Int.MAX_VALUE
 			}
 			while (index < length) {
-				MipmapTextureSampler.textures[index++] = Int.MAX_VALUE
+				MipmapTextureSampler.textures!![index++] = Int.MAX_VALUE
 			}
 			Culling.occlusionState = 1
 			@Pc(245) var m: Int = 0
@@ -1603,8 +1603,8 @@ object Culling {
 			return
 		}
 		@Pc(355) var k: Int = 0
-		while (k < MipmapTextureSampler.textures.size) {
-			@Pc(361) var intensity: Float = MipmapTextureSampler.textures[k].toFloat()
+		while (k < MipmapTextureSampler.textures!!.size) {
+			@Pc(361) var intensity: Float = MipmapTextureSampler.textures!![k].toFloat()
 			intensity /= 4194304.0f
 			if (intensity > 1.0f) {
 				intensity = 1.0f
@@ -1612,10 +1612,10 @@ object Culling {
 			intensity *= 255.0f
 			intensity = 255.0f - intensity
 			@Pc(382) val grey: Int = intensity.toInt()
-			MipmapTextureSampler.textures[k] = grey or (grey shl 8) or (grey shl 16) or 0xFF000000.toInt()
+			MipmapTextureSampler.textures!![k] = grey or (grey shl 8) or (grey shl 16) or 0xFF000000.toInt()
 			k++
 		}
-		@Pc(410) val sprite: NativeSprite = Scene.toolkit!!.createNativeSprite(Culling.occlusionBufferWidth, MipmapTextureSampler.textures, Culling.occlusionBufferWidth, Culling.occlusionBufferHeight)
+		@Pc(410) val sprite: NativeSprite = Scene.toolkit!!.createNativeSprite(Culling.occlusionBufferWidth, MipmapTextureSampler.textures, Culling.occlusionBufferWidth, Culling.occlusionBufferHeight)!!
 		sprite.render(10, 170, 1, 0, 0)
 	}
 }

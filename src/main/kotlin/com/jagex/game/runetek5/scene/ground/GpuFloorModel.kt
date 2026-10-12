@@ -274,8 +274,8 @@ class GpuFloorModel : Ground {
 			if ((this.featureFlags and 0x7) != 0) {
 				vertexStride += 12
 			}
-			@Pc(152) val nativeHeapBuffer: NativeHeapBuffer = this.nativeToolkit.nativeHeap.a(this.totalTileVertexCount * 4, false)
-			@Pc(162) val nativeHeapBuffer2: NativeHeapBuffer = this.nativeToolkit.nativeHeap.a(this.totalTileVertexCount * vertexStride, false)
+			@Pc(152) val nativeHeapBuffer: NativeHeapBuffer = this.nativeToolkit.nativeHeap!!.a(this.totalTileVertexCount * 4, false)
+			@Pc(162) val nativeHeapBuffer2: NativeHeapBuffer = this.nativeToolkit.nativeHeap!!.a(this.totalTileVertexCount * vertexStride, false)
 			@Pc(167) val stream: Stream = Stream(nativeHeapBuffer2)
 			@Pc(172) val stream2: Stream = Stream(nativeHeapBuffer)
 			@Pc(176) val vertexLayers: Array<GpuFloorLayer?> = arrayOfNulls<GpuFloorLayer>(this.totalTileVertexCount)

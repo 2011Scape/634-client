@@ -46,7 +46,7 @@ object ChatBox {
 					}
 				}
 				if (sprite != null) {
-					StaticMedia.chatIcons[totalChatIcons] = sprite
+					StaticMedia.chatIcons!![totalChatIcons] = sprite
 					stringBuffer.append(" <img=").append(totalChatIcons).append(">")
 					totalChatIcons++
 				}

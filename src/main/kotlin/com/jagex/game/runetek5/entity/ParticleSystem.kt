@@ -114,13 +114,13 @@ class ParticleSystem : EntityNode {
 		this.effectorCache = Deque()
 		this.effectorCount = 0
 		this.unlinkNode()
-		ParticleSystemManager.particleSystemsAwaitingRemoval[ParticleSystemManager.removalQueueTail] = this
+		ParticleSystemManager.particleSystemsAwaitingRemoval!![ParticleSystemManager.removalQueueTail] = this
 		ParticleSystemManager.removalQueueTail = (ParticleSystemManager.removalQueueTail + 1) and ParticleSystemManager.DETAIL_LEVEL_LIMITS[ParticleSystemManager.detailsSetting]
 	}
 
 	@OriginalMember(owner = "client!uj", name = "b", descriptor = "(IZ)V")
 	fun init(@OriginalArg(0) cycle: Int, @OriginalArg(1) hasOntick: Boolean) {
-		ParticleSystemManager.sprite.offer(this)
+		ParticleSystemManager.sprite!!.offer(this)
 		this.clock = cycle.toLong()
 		this.lastTick = cycle.toLong()
 		this.awaitingStartup = true
@@ -268,7 +268,7 @@ class ParticleSystem : EntityNode {
 		while (index < effectors.size && index != 8 && this.effectorCount != 8) {
 			if (!ParticleSystem.EFFECT_SLOT_OCCUPIED[index]) {
 				@Pc(96) var particleEffector2: ParticleEffector? = null
-				if (effectors[index]!!.getParticleType().particleHandlingType == 1 && ParticleSystemManager.activeVertexEffectCount < 32) {
+				if (effectors[index]!!.getParticleType()!!.particleHandlingType == 1 && ParticleSystemManager.activeVertexEffectCount < 32) {
 					particleEffector2 = ParticleEffector(effectors[index], this)
 					ParticleSystemManager.activeEffectiveVertexEffects.put(particleEffector2, effectors[index]!!.effectId.toLong())
 					ParticleSystemManager.activeVertexEffectCount++
@@ -317,7 +317,7 @@ class ParticleSystem : EntityNode {
 			if (ParticleSystemManager.removalQueueTail == ParticleSystemManager.removalQueueHead) {
 				return ParticleSystem(cycle, hasOntick)
 			} else {
-				@Pc(6) val particleSystem: ParticleSystem? = ParticleSystemManager.particleSystemsAwaitingRemoval[ParticleSystemManager.removalQueueHead]
+				@Pc(6) val particleSystem: ParticleSystem? = ParticleSystemManager.particleSystemsAwaitingRemoval!![ParticleSystemManager.removalQueueHead]
 				ParticleSystemManager.removalQueueHead = (ParticleSystemManager.removalQueueHead + 1) and ParticleSystemManager.DETAIL_LEVEL_LIMITS[ParticleSystemManager.detailsSetting]
 				particleSystem!!.init(cycle, hasOntick)
 				return particleSystem

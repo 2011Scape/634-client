@@ -823,7 +823,7 @@ class NPCType {
 			if (this.tintOpacity.toInt() != 0) {
 				modelFunctionMask = modelFunctionMask or 0x80000
 			}
-			val newModel: Model = toolkit.createModel(mesh, modelFunctionMask, this.npcTypeList!!.featureMask, this.ambient + 64, this.contrast + 850)
+			val newModel: Model = toolkit.createModel(mesh, modelFunctionMask, this.npcTypeList!!.featureMask, this.ambient + 64, this.contrast + 850)!!
 			model = newModel
 			if (this.recolorSrc != null) {
 				index = 0
@@ -852,7 +852,7 @@ class NPCType {
 				this.npcTypeList!!.modelCache.put(newModel, (this.id or (toolkit.index shl 16)).toLong())
 			}
 		}
-		@Pc(1087) val model2: Model = model!!.copy(4.toByte(), functionMask, true)
+		@Pc(1087) val model2: Model = model!!.copy(4.toByte(), functionMask, true)!!
 		var hasWornRotation: Boolean = false
 		if (wornRotations != null) {
 			@Pc(1093) var j: Int = 0
@@ -895,7 +895,7 @@ class NPCType {
 				if (wornRotations!![index] != -1) {
 					var angle: Int = wornRotations[index] - rotation
 					angle = angle and 0x3FFF
-					@Pc(1223) val matrix: Matrix = toolkit.createMatrix()
+					@Pc(1223) val matrix: Matrix = toolkit.createMatrix()!!
 					matrix.rotate(angle)
 					model2.transform(matrix, 0x1 shl index, false)
 				}
@@ -1013,7 +1013,7 @@ class NPCType {
 				if (this.tintOpacity.toInt() != 0) {
 					modelFunctionMask = modelFunctionMask or 0x80000
 				}
-				val newModel: Model = toolkit!!.createModel(mesh, modelFunctionMask, this.npcTypeList!!.featureMask, 64, 768)
+				val newModel: Model = toolkit!!.createModel(mesh, modelFunctionMask, this.npcTypeList!!.featureMask, 64, 768)!!
 				model = newModel
 				if (this.recolorSrc != null) {
 					index = 0

@@ -484,7 +484,7 @@ class ItemType {
 			if (mesh.version < 13) {
 				mesh.upscale()
 			}
-			val newModel: Model = toolkit!!.createModel(mesh, modelFunctionMask, this.typeList!!.featureMask, this.ambient + 64, 850 - -this.contrast)
+			val newModel: Model = toolkit!!.createModel(mesh, modelFunctionMask, this.typeList!!.featureMask, this.ambient + 64, 850 - -this.contrast)!!
 			model = newModel
 			if (this.resizeX != 128 || this.resizeY != 128 || this.resizeZ != 128) {
 				newModel.O(this.resizeX, this.resizeY, this.resizeZ)
@@ -609,7 +609,7 @@ class ItemType {
 			functionMask = 2055
 			resized = true
 		}
-		@Pc(197) val model: Model = toolkit2!!.createModel(mesh, functionMask.toInt(), 64, this.ambient + 64, this.contrast + 768)
+		@Pc(197) val model: Model = toolkit2!!.createModel(mesh, functionMask.toInt(), 64, this.ambient + 64, this.contrast + 768)!!
 		if (!model.loadedTextures()) {
 			return null
 		}
@@ -637,12 +637,12 @@ class ItemType {
 			zoom = this.modelZoom shl 2
 		}
 		toolkit2.DA(16, 16, 512, 512)
-		@Pc(308) val matrix: Matrix = toolkit2.createMatrix()
+		@Pc(308) val matrix: Matrix = toolkit2.createMatrix()!!
 		matrix.makeIdentity()
 		toolkit2.setCamera(matrix)
 		toolkit2.xa(1.0f)
 		toolkit2.ZA(16777215, 1.0f, 1.0f, -50.0f, -10.0f, -50.0f)
-		@Pc(327) val matrix2: Matrix = toolkit2.scratchMatrix()
+		@Pc(327) val matrix2: Matrix = toolkit2.scratchMatrix()!!
 		matrix2.makeRotationZ(-this.modelRotationZ shl 3)
 		matrix2.rotateAxisY(this.modelRotationY shl 3)
 		matrix2.translate(this.modelOffsetX shl 2, ((zoom * TextureCombineSource.SINE[this.modelRotationX shl 3]) shr 14) + (this.modelOffsetY shl 2) - model.fa() / 2, ((zoom * TextureCombineSource.COSINE[this.modelRotationX shl 3]) shr 14) - -(this.modelOffsetY shl 2))
@@ -665,7 +665,7 @@ class ItemType {
 		if (shadowColor != 0) {
 			this.shadow(shadowColor, pixels)
 		}
-		toolkit2.createNativeSprite(36, pixels, 36, 32).render(0, 0)
+		toolkit2.createNativeSprite(36, pixels, 36, 32)!!.render(0, 0)
 		if (this.certTemplateId != -1) {
 			sprite!!.render(0, 0)
 		} else if (this.lendTemplateId != -1) {

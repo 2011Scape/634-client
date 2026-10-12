@@ -100,7 +100,7 @@ The batches, smallest risk first:
 | [x] | b. `cache`, `js5`, `network` | 103 |
 | [x] | c. `config` | 173 |
 | [x] | d. `entity`, `scene`, `preference`, `sound` | 120 |
-| [ ] | e. `graphics`, `toolkit` | 176 |
+| [x] | e. `graphics`, `toolkit` | 176 |
 | [ ] | f. `client` (with `client/features`) and the 188 classes directly in `com/jagex/game/runetek5` | about 250 |
 | [ ] | g. The native packages `jaclib`, `jaggl`, `jagdx`, `jagtheora`, `jagex3` | 59 |
 | [ ] | h. The root package, last: the native classes, `client`, the launcher `RuneTek5` | 165 |

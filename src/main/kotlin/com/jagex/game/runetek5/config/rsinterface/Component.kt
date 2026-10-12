@@ -670,7 +670,7 @@ class Component {
 			@Pc(59) var clipLeft: Int = 0
 			@Pc(61) var j: Int = 0
 			while (j < indexedImage.width) {
-				if (indexedImage.pixels[indexedImage.width * i + j].toInt() != 0) {
+				if (indexedImage.pixels!![indexedImage.width * i + j].toInt() != 0) {
 					clipLeft = j
 					break
 				}
@@ -679,7 +679,7 @@ class Component {
 			@Pc(88) var clipRight: Int = sizeX
 			@Pc(90) var k: Int = clipLeft
 			while (k < indexedImage.width) {
-				if (indexedImage.pixels[indexedImage.width * i + k].toInt() == 0) {
+				if (indexedImage.pixels!![indexedImage.width * i + k].toInt() == 0) {
 					clipRight = k
 					break
 				}

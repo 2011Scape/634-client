@@ -63,7 +63,7 @@ class NPCEntity : PathingEntity() {
 		if (this.npcType == null || !this.getAnimatedBodyModel(131072, toolkit)) {
 			return false
 		}
-		@Pc(19) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(19) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		@Pc(24) val yawRotation: Int = super.yaw.getRotation()
 		matrix.rotate(yawRotation)
 		matrix.translate(super.x, super.y, super.z)
@@ -183,7 +183,7 @@ class NPCEntity : PathingEntity() {
 		if (this.npcType == null || !this.getAnimatedBodyModel(2048, toolkit)) {
 			return null
 		}
-		@Pc(21) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(21) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		@Pc(26) val yawRotation: Int = super.yaw.getRotation()
 		matrix.rotate(yawRotation)
 		@Pc(44) val tile: Tile? = Scene.aClass100ArrayArrayArray3!![super.level.toInt()]!![super.x shr Scene.tileUnits]!![super.z shr Scene.tileUnits]
@@ -374,7 +374,7 @@ class NPCEntity : PathingEntity() {
 		if (this.npcType == null || !super.particlesInitialized && !this.getAnimatedBodyModel(0, toolkit)) {
 			return
 		}
-		@Pc(30) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(30) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		matrix.rotate(super.yaw.getRotation())
 		matrix.translate(super.x, super.y - 20, super.z)
 		this.updateParticles(toolkit, matrix, super.particlesInitialized, super.models)

@@ -53,7 +53,7 @@ class DynamicGroundDecor : GroundDecor, GameObject {
 		}
 		@Pc(25) val tileX: Int = this.x shr 9
 		@Pc(30) val tileZ: Int = this.z shr 9
-		@Pc(33) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(33) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		matrix.applyTranslation(this.x, this.y, this.z)
 		this.locEntity.animateParticles(tileX, matrix, tileZ, toolkit, tileX, model, false, tileZ)
 	}
@@ -78,7 +78,7 @@ class DynamicGroundDecor : GroundDecor, GameObject {
 		if (model == null) {
 			return null
 		}
-		@Pc(21) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(21) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		matrix.applyTranslation(this.x, this.y, this.z)
 		@Pc(35) val entity: PickableEntity = PickableEntity.obtain(1, this.interactive)
 		@Pc(40) val x1: Int = this.x shr 9
@@ -135,7 +135,7 @@ class DynamicGroundDecor : GroundDecor, GameObject {
 		if (model == null) {
 			return false
 		} else {
-			@Pc(19) val matrix: Matrix = toolkit!!.scratchMatrix()
+			@Pc(19) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 			matrix.applyTranslation(this.x, this.y, this.z)
 			return if (OrthoMode.orthographicProjection) model.pickedOrtho(mouseX, mouseY, matrix, false, 0, HintArrow.scaledOrthoZoom) else model.picked(mouseX, mouseY, matrix, false, 0)
 		}

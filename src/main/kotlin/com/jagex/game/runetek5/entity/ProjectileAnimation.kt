@@ -151,7 +151,7 @@ class ProjectileAnimation : AbstractInteractiveEntity {
 		if (model == null) {
 			return
 		}
-		@Pc(21) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(21) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		matrix.makeRotationX(this.rotateX)
 		matrix.rotateAxisY(this.rotateY)
 		matrix.translate(this.translateX.toInt(), this.translateY.toInt(), this.translateZ.toInt())
@@ -306,7 +306,7 @@ class ProjectileAnimation : AbstractInteractiveEntity {
 		if (model == null) {
 			return null
 		}
-		@Pc(18) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(18) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		matrix.makeRotationX(this.rotateX)
 		matrix.rotateAxisY(this.rotateY)
 		matrix.translate(this.translateX.toInt(), this.translateY.toInt(), this.translateZ.toInt())

@@ -355,7 +355,7 @@ class PlayerAppearance {
 				if (wornRotations!![rotationSlot] != -1) {
 					var angle: Int = wornRotations[rotationSlot] - rotation
 					angle = angle and 0x3FFF
-					@Pc(1209) val matrix: Matrix = toolkit!!.createMatrix()
+					@Pc(1209) val matrix: Matrix = toolkit!!.createMatrix()!!
 					matrix.rotate(angle)
 					model2!!.transform(matrix, 0x1 shl rotationSlot, false)
 				}

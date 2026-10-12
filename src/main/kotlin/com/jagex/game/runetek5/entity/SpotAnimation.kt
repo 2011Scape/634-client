@@ -92,7 +92,7 @@ class SpotAnimation : AbstractInteractiveEntity {
 		if (this.spotRotation != 0) {
 			model.a(this.spotRotation * 2048)
 		}
-		@Pc(39) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(39) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		matrix.applyTranslation(this.x, this.y, this.z)
 		this.updateParticles(model, toolkit, matrix)
 		@Pc(58) val pickableEntity: PickableEntity = PickableEntity.obtain(1, false)
@@ -198,7 +198,7 @@ class SpotAnimation : AbstractInteractiveEntity {
 	override fun particleCycle(@OriginalArg(0) toolkit: Toolkit?) {
 		@Pc(17) val model: Model? = this.generateGfxModel(toolkit, this.id, 0)
 		if (model != null) {
-			@Pc(22) val matrix: Matrix = toolkit!!.scratchMatrix()
+			@Pc(22) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 			matrix.applyTranslation(this.x, this.y, this.z)
 			this.updateParticles(model, toolkit, matrix)
 		}

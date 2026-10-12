@@ -80,7 +80,7 @@ class GlGroundLayer : Node {
 
 	@OriginalMember(owner = "client!jn", name = "c", descriptor = "(II)V")
 	fun initColours(@OriginalArg(1) vertexCount: Int) {
-		this.colourHeapBuffer = this.glToolkit!!.nativeHeap.a(vertexCount * 4, true)
+		this.colourHeapBuffer = this.glToolkit!!.nativeHeap!!.a(vertexCount * 4, true)
 		this.colourWriter = Stream(this.colourHeapBuffer)
 	}
 
@@ -170,7 +170,7 @@ class GlGroundLayer : Node {
 		@Pc(23) var local23: Int
 		@Pc(44) var local44: Int
 		if (this.materialId != -1) {
-			@Pc(18) val textureMetrics: MaterialType? = this.glToolkit!!.materialProvider.getMetrics(this.materialId)
+			@Pc(18) val textureMetrics: MaterialType? = this.glToolkit!!.materialProvider!!.getMetrics(this.materialId)
 			val alpha: Int = textureMetrics!!.alpha.toInt() and 0xFF
 			@Pc(66) var local66: Int
 			if (alpha != 0 && textureMetrics.effectType.toInt() != 4) {

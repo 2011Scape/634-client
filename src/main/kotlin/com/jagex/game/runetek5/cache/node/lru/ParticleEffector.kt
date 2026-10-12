@@ -51,7 +51,7 @@ class ParticleEffector @OriginalMember(owner = "client!jo", name = "<init>", des
 		this.verticeY = this.model.verticeY
 		this.verticeZ = this.model.verticeZ
 		if (this.model.matrix != null) {
-			this.model.matrix.projectDirection(this.type!!.offsetX, this.type.offsetY, this.type.offsetZ, VarpDomain.projectedDirection)
+			this.model.matrix!!.projectDirection(this.type!!.offsetX, this.type.offsetY, this.type.offsetZ, VarpDomain.projectedDirection)
 		}
 		this.directionX = VarpDomain.projectedDirection[0]
 		this.directionZ = VarpDomain.projectedDirection[2]

@@ -162,7 +162,7 @@ class PlayerEntity : PathingEntity() {
 		if (this.playerModel == null || !super.particlesInitialized && !this.getAnimatedBodyModel(0, toolkit)) {
 			return
 		}
-		@Pc(20) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(20) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		matrix.rotate(super.yaw.getRotation())
 		matrix.translate(super.x, super.y - 5, super.z)
 		this.updateParticles(toolkit, matrix, super.particlesInitialized, super.models)
@@ -216,7 +216,7 @@ class PlayerEntity : PathingEntity() {
 		if (this.playerModel == null || !this.getAnimatedBodyModel(131072, toolkit)) {
 			return false
 		}
-		@Pc(19) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(19) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		@Pc(24) val rotation: Int = super.yaw.getRotation()
 		matrix.rotate(rotation)
 		matrix.translate(super.x, super.y, super.z)
@@ -455,7 +455,7 @@ class PlayerEntity : PathingEntity() {
 		if (this.playerModel == null || !this.getAnimatedBodyModel(2048, toolkit)) {
 			return null
 		}
-		@Pc(19) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(19) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		@Pc(24) val rotation: Int = super.yaw.getRotation()
 		matrix.rotate(rotation)
 		@Pc(42) val tile: Tile? = Scene.aClass100ArrayArrayArray3!![super.level.toInt()]!![super.x shr Scene.tileUnits]!![super.z shr Scene.tileUnits]

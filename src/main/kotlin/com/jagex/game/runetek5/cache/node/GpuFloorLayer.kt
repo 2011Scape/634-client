@@ -205,7 +205,7 @@ class GpuFloorLayer : Node {
 		@Pc(19) var local19: Int
 		@Pc(35) var local35: Int
 		if (this.materialId != -1) {
-			@Pc(14) val textureMetrics: MaterialType? = this.nativeToolkit!!.materialProvider.getMetrics(this.materialId)
+			@Pc(14) val textureMetrics: MaterialType? = this.nativeToolkit!!.materialProvider!!.getMetrics(this.materialId)
 			val alpha: Int = textureMetrics!!.alpha.toInt() and 0xFF
 			@Pc(60) var local60: Int
 			if (alpha != 0 && textureMetrics.effectType.toInt() != 4) {

@@ -211,8 +211,8 @@ object PlayerUpdate {
 		}
 		if ((flags and 0x1000) != 0) {
 			playerEntity!!.hintDetails.text = bitPacket!!.readString()
-			if (playerEntity.hintDetails.text[0] == '~') {
-				playerEntity.hintDetails.text = playerEntity.hintDetails.text.substring(1)
+			if (playerEntity.hintDetails.text!![0] == '~') {
+				playerEntity.hintDetails.text = playerEntity.hintDetails.text!!.substring(1)
 				ChatLineWriter.writeMessage(playerEntity.getDisplayName(), 2, 0, playerEntity.hintDetails.text, playerEntity.getUsernameWithTitle(), playerEntity.username)
 			} else if (PlayerUpdate.localPlayer === playerEntity) {
 				ChatLineWriter.writeMessage(playerEntity.getDisplayName(), 2, 0, playerEntity.hintDetails.text, playerEntity.getUsernameWithTitle(), playerEntity.username)

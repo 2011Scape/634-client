@@ -23,7 +23,7 @@ class TextureOpWeave : TextureOperation {
 			@Pc(24) val y: Int = TextureRaster.verticalTable!![row]
 			@Pc(26) var i: Int = 0
 			while (i < EnvironmentLight.textureOpWidth) {
-				@Pc(32) val x: Int = EnvironmentLight.horizontalTable[i]
+				@Pc(32) val x: Int = EnvironmentLight.horizontalTable!![i]
 				@Pc(76) var distance: Int
 				if (x > this.threadWidth && x < 4096 - this.threadWidth && 2048 - this.threadWidth < y && this.threadWidth + 2048 > y) {
 					distance = 2048 - x

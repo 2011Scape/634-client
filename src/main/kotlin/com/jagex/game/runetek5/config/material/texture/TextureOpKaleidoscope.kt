@@ -57,7 +57,7 @@ class TextureOpKaleidoscope : TextureOperation {
 
 	@OriginalMember(owner = "client!wj", name = "a", descriptor = "(IIB)V")
 	private fun reflect(@OriginalArg(0) x: Int, @OriginalArg(1) y: Int) {
-		@Pc(9) val columnCoord: Int = EnvironmentLight.horizontalTable[x]
+		@Pc(9) val columnCoord: Int = EnvironmentLight.horizontalTable!![x]
 		@Pc(13) val rowCoord: Int = TextureRaster.verticalTable!![y]
 		@Pc(32) val angle: Float = Math.atan2((columnCoord - 2048).toDouble(), (rowCoord - 2048).toDouble()).toFloat()
 		if (angle.toDouble() >= -3.141592653589793 && angle.toDouble() <= -2.356194490192345) {

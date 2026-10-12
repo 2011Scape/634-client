@@ -262,7 +262,7 @@ class GlGround : Ground {
 			if ((this.featureFlags and 0x7) != 0) {
 				vertexStride += 12
 			}
-			@Pc(156) val nativeHeapBuffer: NativeHeapBuffer = this.glToolkit.nativeHeap.a(this.totalTileVertexCount * vertexStride, false)
+			@Pc(156) val nativeHeapBuffer: NativeHeapBuffer = this.glToolkit.nativeHeap!!.a(this.totalTileVertexCount * vertexStride, false)
 			@Pc(161) val stream: Stream = Stream(nativeHeapBuffer)
 			@Pc(165) val glGroundLayers: Array<GlGroundLayer?> = arrayOfNulls<GlGroundLayer>(this.totalTileVertexCount)
 			@Pc(172) var hashCapacity: Int = Utils.floorPowerOfTwo(this.totalTileVertexCount / 4)

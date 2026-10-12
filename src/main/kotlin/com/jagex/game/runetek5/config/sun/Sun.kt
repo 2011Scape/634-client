@@ -184,7 +184,7 @@ class Sun {
 			positionZ = (positionZ * cos - positionX * sin) shr 14
 			positionX = temp
 		}
-		@Pc(147) val model: Model = Sun.sunModel!!.copy(0.toByte(), 51200, true)
+		@Pc(147) val model: Model = Sun.sunModel!!.copy(0.toByte(), 51200, true)!!
 		model.aa(0.toShort(), this.sunMaterialId.toShort())
 		toolkit.xa(1.0f)
 		toolkit.ZA(16777215, 1.0f, 1.0f, positionX.toFloat(), positionY.toFloat(), positionZ.toFloat())
@@ -194,7 +194,7 @@ class Sun {
 		}
 		toolkit.DA(this.sunUseDimension / 2, this.sunUseDimension / 2, scale, scale)
 		toolkit.setCamera(toolkit.createMatrix())
-		@Pc(206) val matrix: Matrix = toolkit.createMatrix()
+		@Pc(206) val matrix: Matrix = toolkit.createMatrix()!!
 		matrix.applyTranslation(0, 0, toolkit.i() - model.HA())
 		model.renderOrtho(matrix, null, 1024, 1)
 		@Pc(228) val antiSunSize: Int = this.sunUseDimension * 13 / 16
@@ -278,7 +278,7 @@ class Sun {
 		}
 		toolkit.xa(1.0f)
 		toolkit.ZA(16777215, 1.0f, 1.0f, positionX.toFloat(), positionY.toFloat(), positionZ.toFloat())
-		@Pc(172) val model: Model = toolkit.createModel(mesh, 2048, 0, 64, 768)
+		@Pc(172) val model: Model = toolkit.createModel(mesh, 2048, 0, 64, 768)!!
 		val modelWidth: Int = model.RA() - model.V()
 		val modelDepth: Int = model.EA() - model.fa()
 		val centerX: Int = model.V() + modelWidth / 2
@@ -286,7 +286,7 @@ class Sun {
 		@Pc(205) val maxSize: Int = if (modelWidth > modelDepth) modelWidth else modelDepth
 		toolkit.DA(centerX, centerY, maxSize, maxSize)
 		toolkit.setCamera(toolkit.createMatrix())
-		@Pc(218) val matrix: Matrix = toolkit.scratchMatrix()
+		@Pc(218) val matrix: Matrix = toolkit.scratchMatrix()!!
 		matrix.applyTranslation(0, 0, toolkit.i() - model.HA())
 		model.renderOrtho(matrix, null, toolkit.i(), 1)
 		this.sunSprite = toolkit.createNativeSprite(0, 0, this.sunUseDimension, this.sunUseDimension, true)

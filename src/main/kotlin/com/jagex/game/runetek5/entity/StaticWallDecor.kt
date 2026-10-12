@@ -81,7 +81,7 @@ class StaticWallDecor : WallDecor, GameObject {
 		if (this.model == null) {
 			return null
 		}
-		@Pc(11) val matrix: Matrix = toolkit!!.scratchMatrix()
+		@Pc(11) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 		matrix.applyTranslation(this.x + this.offsetX, this.y, this.z + this.offsetZ)
 		@Pc(33) val entity: PickableEntity = PickableEntity.obtain(1, this.interactive)
 		if (OrthoMode.orthographicProjection) {
@@ -123,7 +123,7 @@ class StaticWallDecor : WallDecor, GameObject {
 		if (model == null) {
 			return false
 		} else {
-			@Pc(14) val matrix: Matrix = toolkit!!.scratchMatrix()
+			@Pc(14) val matrix: Matrix = toolkit!!.scratchMatrix()!!
 			matrix.applyTranslation(this.x, this.y, this.z)
 			return if (OrthoMode.orthographicProjection) model.pickedOrtho(mouseX, mouseY, matrix, false, 0, HintArrow.scaledOrthoZoom) else model.picked(mouseX, mouseY, matrix, false, 0)
 		}
