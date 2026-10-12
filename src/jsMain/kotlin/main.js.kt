@@ -16,6 +16,7 @@ fun main() {
     keepConsoleLog()
     readClientSwitches()
     readPageConfig()
+    fixRenderDistance()
     // The smoke test starts the client as ./gradlew runClient -Pclient.test=smoke does, with every
     // extra off unless the address turns it on, so that its frames compare with the desktop's.
     if ("smoke" != lang.getProperty("client.test")) {
@@ -140,5 +141,19 @@ private suspend fun fetchPageResources() {
         } catch (e: Throwable) {
         }
     }
+}
+
+/*
+ * The browser always draws at the normal render distance: a page has far less memory and time per
+ * frame than the desktop, and a longer view (the launcher's default is twice as far) drops the
+ * software toolkit well under 10 frames a second. A URL switch or window.CONFIG asking for another
+ * distance is overridden, and the console says so.
+ */
+private fun fixRenderDistance() {
+    val asked: String? = lang.getProperty("client.renderDistance")
+    if (asked != null && asked.toDoubleOrNull() != 1.0) {
+        console.log("client.renderDistance: " + asked + " is not available in the browser; drawing at 1")
+    }
+    lang.setProperty("client.renderDistance", "1")
 }
 

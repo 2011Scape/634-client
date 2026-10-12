@@ -197,7 +197,7 @@ How it went, for the milestones after it:
    cache, so a rebuilt bundle is picked up on the next reload. `./gradlew build` makes the minified
    bundle in `build/dist/js/productionExecutable`, and `./gradlew release` zips it beside the jar.
 4. The first visit downloads the cache into IndexedDB; later visits load it from there. The client
-   starts as the launcher does (`LauncherDefaults`), on the toolkit the game's settings name, which
+   starts as the launcher does (`LauncherDefaults`), but always at render distance 1, on the toolkit the game's settings name, which
    it keeps across reloads. The tutorial hides the chat box, so commands go through the developer
    console (the `` ` `` key): `tk1` switches to the Java OpenGL toolkit on WebGL 2, `tk2` to the
    native software toolkit's browser version, and `tele 3222 3218` takes an admin player to

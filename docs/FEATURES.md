@@ -69,8 +69,9 @@ after logging out and back in, which clear and rebuild most of the client's stat
 ## In the browser
 
 The browser client ([MULTIPLATFORM.md](MULTIPLATFORM.md#running-the-browser-client)) starts with the
-launcher's defaults (`LauncherDefaults`: 144 fps, twice the render distance, zoom, the console,
-shift-drop, a scale from the screen's height), and takes the same switches from its page address,
+launcher's defaults (`LauncherDefaults`: 144 fps, zoom, the console, shift-drop, a scale from the
+screen's height) except the render distance, which is always 1 there (a page has too little memory
+and time per frame for a longer view; `client.renderDistance` is ignored with a console message), and takes the same switches from its page address,
 `http://localhost:8080/?client.msaa=4&client.zoom=false` (a switch without a value is true,
 `?client.smaa`), or from a hosted page's `window.CONFIG`. It has the Java software toolkit (0), its
 browser version of the native software toolkit (2), and the Java OpenGL toolkit (1) on a WebGL 2
@@ -78,9 +79,6 @@ emulator; the native toolkits need libraries a browser cannot load. Every extra 
 SMAA included (its shaders are translated to GLSL ES 3.00). A feature that draws should be tried on
 toolkits 0 and 1 in the browser too, and the smoke test runs there:
 `http://localhost:8080/?client.test=smoke&client.test.toolkit=1`.
-
-Twice the render distance is heavy for the software toolkit in a browser: on toolkit 0, pass
-`?client.renderDistance=1`.
 
 ## Where to read next
 
