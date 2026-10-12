@@ -1,47 +1,40 @@
 plugins {
-    application
-    kotlin("jvm") version "2.2.20"
+    kotlin("multiplatform") version "2.2.20"
 }
 
 description = "The RuneScape client from December 2010 (build 634), with a launcher for any Void server."
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
 /*
- * The client is Kotlin, in src/main/kotlin (docs/MULTIPLATFORM.md, milestone 2): a straight
- * conversion of the Java, with the native classes keeping their JNI names and signatures.
+ * A Kotlin Multiplatform project (docs/MULTIPLATFORM.md, milestone 3) with one target, the JVM.
+ * The native classes keep their JNI names and signatures in jvmMain.
  */
 kotlin {
     jvmToolchain(21)
+    jvm()
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+    sourceSets {
+        jvmMain.dependencies {
+            implementation(files("lib/stub.jar"))
+            implementation(libs.openrs2.deob.annotations)
+        }
+    }
 }
 
-tasks.withType<JavaCompile>().configureEach {
-    options.encoding = "UTF-8"
-}
+val jvmJar = tasks.named<Jar>("jvmJar")
+val jvmRuntimeClasspath = configurations.named("jvmRuntimeClasspath")
+val clientClasspath = files(jvmJar, jvmRuntimeClasspath)
+val clientLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
 
-dependencies {
-    implementation(files("lib/stub.jar"))
-    implementation(libs.openrs2.deob.annotations)
-}
-
-/*
- * The start scripts (installDist) and the release jar start the launcher, RuneTek5, which takes the
- * server's address, port and keys as options.
- */
-application {
-    mainClass = "RuneTek5"
-    applicationDefaultJvmArgs = listOf(
-        "-Xmx256m",
-        "-Dsun.java2d.noddraw=true",
-        "--add-opens",
-        "java.base/java.lang=ALL-UNNAMED",
-        "--enable-native-access=ALL-UNNAMED",
-    )
-}
+/* The JVM options of the launcher, the client and the start scripts. */
+val clientJvmArgs = listOf(
+    "-Xmx256m",
+    "-Dsun.java2d.noddraw=true",
+    "--add-opens",
+    "java.base/java.lang=ALL-UNNAMED",
+    "--enable-native-access=ALL-UNNAMED",
+)
 
 /*
  * The directory the client unpacks its native libraries into goes on LD_LIBRARY_PATH:
@@ -62,8 +55,38 @@ fun JavaExec.withNativeDir() {
 }
 
 /* ./gradlew run starts the launcher: ./gradlew run --args="--address play.example.org --zoom". */
-tasks.run.configure {
+tasks.register<JavaExec>("run") {
+    group = "application"
+    description = "Runs the launcher, RuneTek5, with --args."
+    classpath = clientClasspath
+    mainClass = "RuneTek5"
+    javaLauncher = clientLauncher
+    jvmArgs = clientJvmArgs
     withNativeDir()
+}
+
+/*
+ * ./gradlew installDist: the client with start scripts in build/install/runetek5-634
+ * (bin/runetek5-634, or bin\runetek5-634.bat on Windows), which start the launcher.
+ */
+val startScripts = tasks.register<CreateStartScripts>("startScripts") {
+    applicationName = "runetek5-634"
+    mainClass = "RuneTek5"
+    defaultJvmOpts = clientJvmArgs
+    classpath = clientClasspath
+    outputDir = layout.buildDirectory.dir("scripts").get().asFile
+}
+
+tasks.register<Sync>("installDist") {
+    group = "distribution"
+    description = "Installs the client with start scripts into build/install/runetek5-634."
+    into(layout.buildDirectory.dir("install/runetek5-634"))
+    into("lib") {
+        from(clientClasspath)
+    }
+    into("bin") {
+        from(startScripts)
+    }
 }
 
 /*
@@ -75,9 +98,10 @@ tasks.run.configure {
 tasks.register<JavaExec>("runClient") {
     group = "application"
     description = "Runs the client itself against a local Void server, with -Pclient.* switches."
-    classpath = sourceSets.main.get().runtimeClasspath
+    classpath = clientClasspath
     mainClass = "client"
-    jvmArgs = application.applicationDefaultJvmArgs.toList()
+    javaLauncher = clientLauncher
+    jvmArgs = clientJvmArgs
     args = listOf("3594", "3594", "0", "live", "english", "game0")
     listOf("client.debug", "client.zoom", "client.renderDistance", "client.console", "client.shiftDrop", "client.msaa", "client.smaa", "client.renderScale", "client.a2c", "client.server", "client.packets", "client.fps", "client.scale", "client.address", "client.port",
         "client.test", "client.test.user", "client.test.password", "client.test.frames", "client.test.timeout",
@@ -105,9 +129,8 @@ val releaseJar = tasks.register<Jar>("releaseJar") {
         )
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from(sourceSets.main.get().output)
-    dependsOn(configurations.runtimeClasspath)
-    from({ configurations.runtimeClasspath.get().map { zipTree(it) } }) {
+    from(jvmJar.map { zipTree(it.archiveFile) })
+    from(jvmRuntimeClasspath.map { classpath -> classpath.map { zipTree(it) } }) {
         exclude("META-INF/MANIFEST.MF", "META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
     }
 }
@@ -124,16 +147,22 @@ tasks.register("release") {
  * HotSpot's 8000-byte JIT limit unless config/huge-methods.txt lists it (see src/ci/java/CheckClasses).
  * -PcheckClasses.java=25 runs it on another JDK than the toolchain's.
  */
-val ci = sourceSets.create("ci")
+val compileCi = tasks.register<JavaCompile>("compileCi") {
+    source = fileTree("src/ci/java")
+    classpath = files()
+    destinationDirectory = layout.buildDirectory.dir("classes/java/ci")
+    javaCompiler = javaToolchains.compilerFor { languageVersion = JavaLanguageVersion.of(21) }
+    options.encoding = "UTF-8"
+}
 
 tasks.register<JavaExec>("checkClasses") {
     group = "verification"
     description = "Loads and verifies every client class from the release jar, and checks method sizes."
-    val clientJar = tasks.jar.flatMap { it.archiveFile }
+    val clientJar = jvmJar.flatMap { it.archiveFile }
     val allowlist = layout.projectDirectory.file("config/huge-methods.txt")
     inputs.file(clientJar)
     inputs.file(allowlist)
-    classpath = ci.output + files(releaseJar.flatMap { it.archiveFile })
+    classpath = files(compileCi) + files(releaseJar.flatMap { it.archiveFile })
     mainClass = "CheckClasses"
     jvmArgs("-Djava.awt.headless=true")
     argumentProviders.add(CommandLineArgumentProvider { listOf(clientJar.get().asFile.path, allowlist.asFile.path) })
