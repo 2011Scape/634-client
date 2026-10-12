@@ -68,7 +68,7 @@ after logging out and back in, which clear and rebuild most of the client's stat
 
 ## In the browser
 
-The browser client ([MULTIPLATFORM.md](MULTIPLATFORM.md#running-the-browser-client)) starts with the
+The browser client ([README](../README.md#running-the-browser-client)) starts with the
 launcher's defaults (`LauncherDefaults`: 144 fps, zoom, the console, shift-drop, a scale from the
 screen's height) except the render distance, which is always 1 there (a page has too little memory
 and time per frame for a longer view; `client.renderDistance` is ignored with a console message), and takes the same switches from its page address,

@@ -5,7 +5,7 @@ plugins {
 description = "The RuneScape client from December 2010 (build 634), with a launcher for any Void server."
 
 /*
- * A Kotlin Multiplatform project (docs/MULTIPLATFORM.md, milestone 3) with one target, the JVM.
+ * A Kotlin Multiplatform project with one target, the JVM.
  * The game is in src/commonMain, on shims of the Java APIs it uses; the native classes keep their
  * JNI names and signatures in src/jvmMain, with expect declarations in commonMain.
  */
@@ -13,7 +13,7 @@ kotlin {
     jvmToolchain(21)
     jvm()
     /*
-     * The browser target (docs/MULTIPLATFORM.md, milestone 4): ./gradlew jsBrowserDevelopmentWebpack
+     * The browser target: ./gradlew jsBrowserDevelopmentWebpack
      * builds a servable bundle in build/kotlin-webpack/js/developmentExecutable. It also keeps
      * commonMain honest: compileCommonMainKotlinMetadata compiles it against the common standard
      * library, not the JDK.
@@ -154,7 +154,7 @@ val releaseJar = tasks.register<Jar>("releaseJar") {
 
 /*
  * The browser client for a release: the production bundle with its page and the SMAA files, zipped
- * beside the jar. Served behind a WebSocket relay to a game server (docs/MULTIPLATFORM.md).
+ * beside the jar. Served behind a WebSocket relay to a game server (README: "Running the browser client").
  */
 val releaseBrowser = tasks.register<Zip>("releaseBrowser") {
     group = "distribution"
@@ -206,11 +206,6 @@ tasks.check {
 }
 
 /*
- * The development bundle's folder is servable as it is: the page (index.html) and its icon are
- * copied in beside runetek5-634.js. Serve it (python3 -m http.server -d build/kotlin-webpack/js/
- * developmentExecutable 8080) with the relay running (node tools/relay.mjs), as MULTIPLATFORM.md says.
- */
-/*
  * The SMAA shader and lookup textures (src/jvmMain/resources/smaa) go beside the browser bundle too:
  * with client.smaa the page fetches them before the client starts (main.js.kt).
  */
@@ -220,6 +215,11 @@ tasks.named<ProcessResources>("jsProcessResources") {
     }
 }
 
+/*
+ * The development bundle's folder is servable as it is: the page (index.html) and its icon are
+ * copied in beside runetek5-634.js. Serve it with node tools/serve.mjs, with the relay running
+ * (node tools/relay.mjs), as the README's "Running the browser client" says.
+ */
 val jsCopyDevResources = tasks.register<Copy>("jsCopyDevResources") {
     from(tasks.named("jsProcessResources"))
     into(layout.buildDirectory.dir("kotlin-webpack/js/developmentExecutable"))

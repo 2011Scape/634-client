@@ -28,7 +28,7 @@ actual open class Socket actual constructor(host: String?, port: Int) {
     private var error: IOException? = null
 
     // The relay's address: the page's CONFIG.url, else a relay on this computer
-    // (docs/MULTIPLATFORM.md: websockify, or relay.mjs, from ws://localhost:8081 to the server).
+    // (README: websockify, or tools/relay.mjs, from ws://localhost:8081 to the server).
     private val ws: WebSocket = WebSocket(relayUrl())
     private val outQueue = mutableListOf<ByteArray>()
     private val inChunks = ArrayDeque<Int8Array>()

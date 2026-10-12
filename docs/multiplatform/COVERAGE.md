@@ -1,6 +1,6 @@
 # Name mapping: void-client 228561a ↔ runetek5-634 f2649c4
 
-Milestone 1 of [MULTIPLATFORM.md](../MULTIPLATFORM.md). Side A (`void`) is void-client at `228561a`
+The name mapping between void-client and this client. Side A (`void`) is void-client at `228561a`
 (`client/src`, Java, root package, `ClassNNN`/`methodNNN`/`anIntNNN` names). Side B (`runetek5`) is
 this repository at `f2649c4`.
 

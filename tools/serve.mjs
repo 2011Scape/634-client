@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Serves the browser client for development and its smoke test (docs/MULTIPLATFORM.md), in the
+// Serves the browser client for development and its smoke test (README: "Running the browser client"), in the
 // place of `python3 -m http.server`. No dependencies.
 //
 //   node tools/serve.mjs [port=8080] [bundleDir=build/kotlin-webpack/js/developmentExecutable]

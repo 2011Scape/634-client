@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// A WebSocket-to-TCP relay for the browser client (docs/MULTIPLATFORM.md, milestone 4), in the
+// A WebSocket-to-TCP relay for the browser client (README: "Running the browser client"), in the
 // place of websockify: each WebSocket connection to ws://localhost:<listen>/ (any path) gets its own
 // TCP connection to the game server, and bytes go both ways unchanged. No dependencies.
 //

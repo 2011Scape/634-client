@@ -166,14 +166,39 @@ native libraries bind to. Code added to the
 - **Trying a change:** `./gradlew runClient` starts the client itself against a Void server on
   this computer, with `-Pclient.*` switches such as `-Pclient.debug=true`.
 - **The browser client:** the same game runs in a browser through a WebSocket relay
-  (`node tools/relay.mjs`), served by `node tools/serve.mjs`;
-  [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md#running-the-browser-client) says how to build, serve
-  and open it. A release includes the browser bundle as a zip beside the jar.
+  (`node tools/relay.mjs`), served by `node tools/serve.mjs`; [below](#running-the-browser-client)
+  says how to build, serve and open it. A release includes the browser bundle as a zip beside the jar.
 - **Checking a change:** `./gradlew check` (what CI runs, with no server needed) loads and verifies
   every class from the release jar, and fails on a method over HotSpot's 8000-byte JIT limit unless
   `config/huge-methods.txt` lists it; `./gradlew build` also builds the browser target, which fails
   if the common code uses a JVM API. The in-client smoke test (`-Pclient.test=smoke`, see `SmokeTest`)
   needs a Void server; in the browser it runs from the page address (`?client.test=smoke`).
+
+### Running the browser client
+
+1. A Void server on this computer, as for the desktop smoke test.
+2. The relay, from WebSockets to the server's TCP port: `node tools/relay.mjs` (no dependencies;
+   arguments `[listenPort=8081] [serverHost=localhost] [serverPort=43594]`), or
+   `websockify 8081 localhost:43594`. The client connects to `ws://localhost:8081/proxy`, or to
+   `window.CONFIG.url` when the page sets it.
+3. `./gradlew jsBrowserDevelopmentWebpack`, then serve it: `node tools/serve.mjs` (no
+   dependencies; arguments `[port=8080] [bundleDir] [referenceDir=~/634-smoke-ref/browser]
+   [shotDir=build/smoke-browser]`), and open `http://localhost:8080/`. It never lets the browser
+   cache, so a rebuilt bundle is picked up on the next reload. `./gradlew build` makes the minified
+   bundle in `build/dist/js/productionExecutable`, and `./gradlew release` zips it beside the jar.
+4. The first visit downloads the cache into IndexedDB; later visits load it from there. The client
+   starts as the launcher does (`LauncherDefaults`), but always at render distance 1, on the toolkit the game's settings
+   name, which it keeps across reloads. The tutorial hides the chat box, so commands go through the developer
+   console (the `` ` `` key): `tk1` switches to the Java OpenGL toolkit on WebGL 2, `tk2` to the
+   native software toolkit's browser version, and `tele 3222 3218` takes an admin player to
+   Lumbridge (so does ctrl-clicking the minimap). Switches go in the address (`?client.msaa=4`) or a
+   hosted page's `window.CONFIG`. `window.__log` holds the last 500 console lines. Leaving the page
+   closes the client's connections, so the server logs the player out at once.
+5. The smoke test: `http://localhost:8080/?client.test=smoke&client.test.toolkit=1` logs in as
+   `smoketest`, runs the desktop test's checks without the launcher's defaults, compares its frames
+   with `~/634-smoke-ref/browser` (served at `/smoke-ref/`), uploads them to `build/smoke-browser`,
+   and puts SMOKE PASS or FAIL on the console, in `window.__log`, in `#smoke-result` and in the page
+   title. It and the desktop smoke test both log in as `smoketest`: run one at a time.
 
 ## Credits
 
