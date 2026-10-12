@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+    # A dry run when the workflow itself changes on a branch: builds and checks, publishes nothing.
+    # (Path filters do not apply to tag pushes.)
+    branches:
+      - "**"
+    paths:
+      - ".github/workflows/release.yml"
 
 permissions:
   contents: write
@@ -11,6 +17,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'dry-run' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -23,16 +31,18 @@ jobs:
 
       # check runs checkClasses on the release jar before it is published
       - name: Build and check the release jars
-        run: ./gradlew check release -Pversion="${GITHUB_REF_NAME#v}" --console=plain
+        run: ./gradlew check release -Pversion="${VERSION#v}" --console=plain
 
       - name: Check that commonMain is common
         run: ./gradlew compileCommonMainKotlinMetadata -PcommonCheck=true --console=plain
 
       - name: Write checksums
+        if: startsWith(github.ref, 'refs/tags/v')
         working-directory: build/release
         run: sha256sum *.jar > SHA256SUMS
 
       - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
