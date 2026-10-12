@@ -96,7 +96,7 @@ The batches, smallest risk first:
 
 | Done | Batch | Files |
 |---|---|---|
-| [ ] | a. `core`, `utils`, `encoding`, `buffer`, `statics`, `vardomain`, `trigger`, `tools`, `camera`, `rendering`, `interaction`, `sign`, `load` | about 80 |
+| [x] | a. `core`, `utils`, `encoding`, `buffer`, `statics`, `vardomain`, `trigger`, `tools`, `camera`, `rendering`, `interaction`, `sign`, `load` | about 80 |
 | [ ] | b. `cache`, `js5`, `network` | 103 |
 | [ ] | c. `config` | 173 |
 | [ ] | d. `entity`, `scene`, `preference`, `sound` | 120 |
