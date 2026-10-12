@@ -13,6 +13,7 @@ import com.jagex.game.runetek5.cache.node.CacheableNodeQueue
 import com.jagex.game.runetek5.utils.Utils
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
+import lang.javaIntern
 
 @OriginalClass("client!jk")
 class ClientScript : CacheableNode() {
@@ -99,7 +100,7 @@ class ClientScript : CacheableNode() {
 			while (codeEnd > packet.currentPosition) {
 				val opcode: Int = packet.readUShort()
 				if (opcode == 3) {
-					clientScript.stringOpValues!![instructionIndex] = packet.readString()!!.intern()
+					clientScript.stringOpValues!![instructionIndex] = packet.readString()!!.javaIntern()
 				} else if (opcode >= 100 || opcode == 21 || opcode == 38 || opcode == 39) {
 					clientScript.intOpValues!![instructionIndex] = packet.readUByte()
 				} else {

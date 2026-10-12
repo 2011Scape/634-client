@@ -1,7 +1,7 @@
 package com.jagex.game.runetek5.cache.compression
 
 import com.jagex.game.runetek5.buffer.Packet
-import java.util.zip.Inflater
+import util.zip.Inflater
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember

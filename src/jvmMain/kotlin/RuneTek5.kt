@@ -153,10 +153,10 @@ object RuneTek5 {
 
         // ClientFeatures reads the switches when the client first uses it, which is after this point.
         if (loginModulus != null) {
-            LoginManager.rsaModulus = loginModulus
+            LoginManager.rsaModulus = BigInt(loginModulus.toString(16), 16)
         }
         if (js5Modulus != null) {
-            RequestManager.js5Modulus = js5Modulus
+            RequestManager.js5Modulus = BigInt(js5Modulus.toString(16), 16)
         }
 
         client.main(arrayOf<String?>(world, world, "0", "live", lang, "game0"))

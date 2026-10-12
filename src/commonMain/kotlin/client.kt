@@ -50,7 +50,7 @@ import io.IOException
 import lang.reflect.Field
 import lang.reflect.Method
 import net.Socket
-import java.util.GregorianCalendar
+import util.GregorianCalendar
 import util.Vector
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalClass
@@ -119,7 +119,7 @@ import com.jagex.game.runetek5.utils.Utils
 import lang.Class
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 import awt.getInsets
 import lang.getDeclaredMethod
 import lang.jClass
@@ -128,6 +128,7 @@ import awt.height
 import awt.width
 import awt.x
 import awt.y
+import lang.ThreadDeath
 
 @OriginalClass("client!client")
 class client : GameShell() {

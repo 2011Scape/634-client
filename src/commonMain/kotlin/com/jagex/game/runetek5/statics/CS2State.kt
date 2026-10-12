@@ -7,8 +7,8 @@ import com.jagex.game.runetek5.config.rsinterface.Component
 import com.jagex.game.runetek5.config.rsinterface.Interface
 import com.jagex.game.runetek5.core.util.Arrays
 import com.jagex.game.runetek5.utils.Utils
-import java.util.Calendar
-import java.util.Date
+import util.Calendar
+import util.Date
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
@@ -39,7 +39,7 @@ object CS2State {
 
 	@OriginalMember(owner = "client!kca", name = "l", descriptor = "Ljava/util/Calendar;")
 	@JvmField
-	val LOCAL_CALENDAR: Calendar = Calendar.getInstance()
+	val LOCAL_CALENDAR: Calendar = util.calendarInstance()
 
 	@OriginalMember(owner = "client!kca", name = "t", descriptor = "[Lclient!qea;")
 	@JvmField

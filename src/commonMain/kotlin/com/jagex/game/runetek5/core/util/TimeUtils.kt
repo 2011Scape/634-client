@@ -3,9 +3,8 @@ package com.jagex.game.runetek5.core.util
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
-import java.util.Calendar
-import java.util.Date
-import java.util.TimeZone
+import util.Calendar
+import util.Date
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 import lang.InterruptedException
@@ -55,7 +54,7 @@ object TimeUtils {
 
 	@OriginalMember(owner = "client!em", name = "l", descriptor = "Ljava/util/Calendar;")
 	@JvmField
-	val ACTIVE_TIMEZONE_CALENDER: Calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
+	val ACTIVE_TIMEZONE_CALENDER: Calendar = util.calendarInstance(util.timeZone("GMT"))
 
 	@OriginalMember(owner = "client!lt", name = "c", descriptor = "[Ljava/lang/String;")
 	@JvmField

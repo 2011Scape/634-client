@@ -15,7 +15,7 @@ import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.tools.LocalizedText
 import io.IOException
-import java.util.Date
+import util.Date
 import com.jagex.game.runetek5.OrthoMode
 import com.jagex.game.runetek5.InterfaceRectangles
 import com.jagex.game.runetek5.core.util.TimeUtils

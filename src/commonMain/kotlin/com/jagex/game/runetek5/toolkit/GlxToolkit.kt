@@ -62,7 +62,7 @@ import com.jagex.game.runetek5.NativeLibraryOwner
 import com.jagex.game.runetek5.TextureCombineFunction
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 import util.Locale
 import util.lowercase
 

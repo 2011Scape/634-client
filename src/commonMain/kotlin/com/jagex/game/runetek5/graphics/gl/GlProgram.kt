@@ -6,7 +6,6 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 import com.jagex.game.runetek5.graphics.shader.OpenGLShaderManager
 import jaggl.OpenGL
-import java.nio.charset.Charset
 import org.openrs2.deob.annotation.Pc
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
@@ -58,7 +57,7 @@ class GlProgram {
 					@Pc(88) val infoLog: ByteArray = ByteArray(OpenGLShaderManager.BUFFER[1])
 					OpenGL.glGetInfoLogARB(program, OpenGLShaderManager.BUFFER[1], OpenGLShaderManager.BUFFER, 0, infoLog, 0)
 					// Java's new String(byte[]) decodes with the default charset.
-					println(String(infoLog, Charset.defaultCharset()))
+					println(lang.decodeDefaultCharset(infoLog))
 				}
 				if (OpenGLShaderManager.BUFFER[0] == 0) {
 					for (@Pc(109) k in 0 until shaders.size) {

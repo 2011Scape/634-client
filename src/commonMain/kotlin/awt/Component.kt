@@ -10,7 +10,7 @@ import awt.event.MouseWheelListener
 import awt.image.ImageObserver
 
 expect abstract class Component : ImageObserver {
-    fun setSize(width: Int, height: Int)
+    open fun setSize(width: Int, height: Int)
     fun getWidth(): Int
     fun getHeight(): Int
     fun getParent(): Container
@@ -27,7 +27,7 @@ expect abstract class Component : ImageObserver {
     fun requestFocus()
     fun setBackground(c: Color)
     fun getBackground(): Color
-    fun getGraphics(): Graphics
+    open fun getGraphics(): Graphics?
     fun setCursor(cursor: Cursor?)
     fun getToolkit(): Toolkit
     fun prepareImage(image: Image?, observer: ImageObserver?): Boolean

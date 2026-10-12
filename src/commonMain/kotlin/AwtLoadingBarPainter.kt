@@ -18,7 +18,7 @@ object AwtLoadingBarPainter {
 		var color2: Color? = color2
 		var color3: Color? = color3
 		try {
-			@Pc(6) val graphics: Graphics = GameShell.gameCanvas!!.getGraphics()
+			@Pc(6) val graphics: Graphics = GameShell.gameCanvas!!.getGraphics()!!
 			if (AwtLoadingBarPainter.loadingFont == null) {
 				AwtLoadingBarPainter.loadingFont = Font("Helvetica", 1, 13)
 			}

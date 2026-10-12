@@ -9,7 +9,7 @@ import org.openrs2.deob.annotation.OriginalMember
 import com.jagex.game.runetek5.toolkit.GlxToolkit
 import com.jagex.game.runetek5.graphics.gl.GlToolkit
 import kotlin.jvm.JvmStatic
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 
 object ToolkitFactory {
 

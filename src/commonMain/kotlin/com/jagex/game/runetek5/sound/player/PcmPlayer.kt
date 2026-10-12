@@ -12,7 +12,7 @@ import com.jagex.game.runetek5.core.util.TimeUtils
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.utils.Utils
 import kotlin.jvm.JvmField
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 
 @OriginalClass("client!cba")
 open class PcmPlayer {

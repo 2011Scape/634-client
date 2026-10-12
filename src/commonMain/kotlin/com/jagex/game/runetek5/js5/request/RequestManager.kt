@@ -1,7 +1,7 @@
 package com.jagex.game.runetek5.js5.request
 
 import com.jagex.game.runetek5.buffer.Packet
-import java.math.BigInteger
+import BigInt
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
@@ -27,10 +27,10 @@ class RequestManager {
 	private val localRequester: LocalRequester?
 
 	@OriginalMember(owner = "client!eb", name = "g", descriptor = "Ljava/math/BigInteger;")
-	private val updateServerModulus: BigInteger?
+	private val updateServerModulus: BigInt?
 
 	@OriginalMember(owner = "client!eb", name = "b", descriptor = "Ljava/math/BigInteger;")
-	private val updateServerExponent: BigInteger?
+	private val updateServerExponent: BigInt?
 
 	@OriginalMember(owner = "client!eb", name = "a", descriptor = "Lclient!tha;")
 	private val remoteRequester: Js5WorkerThread?
@@ -39,7 +39,7 @@ class RequestManager {
 	private var masterIndexRequest: Js5NetQueueRequest? = null
 
 	@OriginalMember(owner = "client!eb", name = "<init>", descriptor = "(Lclient!tha;Lclient!aca;Ljava/math/BigInteger;Ljava/math/BigInteger;)V")
-	constructor(@OriginalArg(0) js5WorkerThread: Js5WorkerThread?, @OriginalArg(1) cachedResourceWorker: LocalRequester?, @OriginalArg(2) bigInteger: BigInteger?, @OriginalArg(3) bigInteger2: BigInteger?) {
+	constructor(@OriginalArg(0) js5WorkerThread: Js5WorkerThread?, @OriginalArg(1) cachedResourceWorker: LocalRequester?, @OriginalArg(2) bigInteger: BigInt?, @OriginalArg(3) bigInteger2: BigInt?) {
 		this.localRequester = cachedResourceWorker
 		this.updateServerModulus = bigInteger2
 		this.updateServerExponent = bigInteger
@@ -99,8 +99,8 @@ class RequestManager {
 		if (this.updateServerExponent == null || this.updateServerModulus == null) {
 			rsaDecrypted = rsaEncrypted
 		} else {
-			@Pc(95) val bigInteger: BigInteger = BigInteger(rsaEncrypted)
-			@Pc(102) val bigInteger2: BigInteger = bigInteger.modPow(this.updateServerExponent, this.updateServerModulus)
+			@Pc(95) val bigInteger: BigInt = BigInt(rsaEncrypted)
+			@Pc(102) val bigInteger2: BigInt = bigInteger.modPow(this.updateServerExponent!!, this.updateServerModulus!!)
 			rsaDecrypted = bigInteger2.toByteArray()
 		}
 		if (rsaDecrypted.size != 65) {
@@ -146,10 +146,10 @@ class RequestManager {
 
 		@OriginalMember(owner = "client!et", name = "H", descriptor = "Ljava/math/BigInteger;")
 		@JvmField
-		var js5Modulus: BigInteger? = BigInteger("d6808be939bbfd2ec4e96b1581ce3e1144b526e7643a72e3c64fbb902724fbfcf14ab601da6d6f8dbb57d1c369d080d9fc392abeb7886e0076d07f2aea5810e540d2817fd1967e35b39cc95cf7c9170b5fb55f5bf95524b60e938f0d64614bc365b87d66963a8cc8664e32875366099ef297180d01c7c3842162865e11d92299", 16)
+		var js5Modulus: BigInt? = BigInt("d6808be939bbfd2ec4e96b1581ce3e1144b526e7643a72e3c64fbb902724fbfcf14ab601da6d6f8dbb57d1c369d080d9fc392abeb7886e0076d07f2aea5810e540d2817fd1967e35b39cc95cf7c9170b5fb55f5bf95524b60e938f0d64614bc365b87d66963a8cc8664e32875366099ef297180d01c7c3842162865e11d92299", 16)
 
 		@OriginalMember(owner = "client!jca", name = "c", descriptor = "Ljava/math/BigInteger;")
 		@JvmField
-		var js5RsaExponent: BigInteger? = BigInteger("10001", 16)
+		var js5RsaExponent: BigInt? = BigInt("10001", 16)
 	}
 }

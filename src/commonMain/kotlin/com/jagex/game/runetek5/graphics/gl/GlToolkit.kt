@@ -81,7 +81,7 @@ import com.jagex.game.runetek5.NativeLibraryOwner
 import kotlin.jvm.JvmField
 import lang.Class
 import kotlin.jvm.JvmStatic
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 import lang.getMethod
 import util.lowercase
 import awt.height

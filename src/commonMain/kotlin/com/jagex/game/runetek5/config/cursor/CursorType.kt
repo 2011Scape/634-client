@@ -9,7 +9,7 @@ import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.graphics.sprite.SpriteType
 import kotlin.jvm.JvmField
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 
 @OriginalClass("client!sda")
 class CursorType {

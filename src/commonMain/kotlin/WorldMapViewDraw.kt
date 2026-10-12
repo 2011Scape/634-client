@@ -65,7 +65,7 @@ object WorldMapViewDraw {
 		@Pc(250) var textY: Int = height + top - 8
 		FontManager.aClass68_4!!.renderRightAligned("Fps:" + Camera.fps, textY, 16776960, textX, -1)
 		@Pc(267) val memTextY: Int = textY - 15
-		@Pc(269) val runtime: Runtime = Runtime.getRuntime()
+		@Pc(269) val runtime: lang.PlatformRuntime = lang.PlatformRuntime
 		@Pc(279) val usedMemoryKb: Int = ((runtime.totalMemory() - runtime.freeMemory()) / 1024L).toInt()
 		@Pc(281) var textColor: Int = 16776960
 		if (usedMemoryKb > 65536) {

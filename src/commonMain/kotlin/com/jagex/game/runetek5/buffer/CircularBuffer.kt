@@ -5,7 +5,7 @@ import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.Pc
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 
 object CircularBuffer {
 	@OriginalMember(owner = "client!ap", name = "e", descriptor = "[[B")

@@ -53,6 +53,7 @@ import lang.getMethod
 import lang.jClass
 import util.lowercase
 import lang.getDeclaredConstructor
+import lang.ThreadDeath
 
 @OriginalClass("client!wea")
 class SignLink : Runnable {
@@ -160,11 +161,11 @@ class SignLink : Runnable {
 		}
 		if (!this.microsoftJava) {
 			try {
-				SignLinkEnvironment.setFocusTraversalKeysEnabledMethod = lang.forName("java.awt.Component").getDeclaredMethod("setFocusTraversalKeysEnabled", lang.BOOLEAN_TYPE)
+				SignLinkEnvironment.setFocusTraversalKeysEnabledMethod = focusTraversalKeysEnabledMethod()
 			} catch (@Pc(122) ex7: Exception) {
 			}
 			try {
-				SignLinkEnvironment.setFocusCycleRootMethod = lang.forName("java.awt.Container").getDeclaredMethod("setFocusCycleRoot", lang.BOOLEAN_TYPE)
+				SignLinkEnvironment.setFocusCycleRootMethod = focusCycleRootMethod()
 			} catch (@Pc(135) ex8: Exception) {
 			}
 		}
@@ -181,7 +182,7 @@ class SignLink : Runnable {
 			}
 			if (this.microsoftJava) {
 				try {
-					this.microsoftPcmDevice = lang.forName("com.jagex.game.runetek5.DirectSoundPcmDevice").getDeclaredConstructor().newInstance()
+					this.microsoftPcmDevice = newInstanceOf("com.jagex.game.runetek5.DirectSoundPcmDevice")
 				} catch (@Pc(218) ex9: Throwable) {
 				}
 			}
@@ -189,7 +190,7 @@ class SignLink : Runnable {
 				if (this.microsoftJava) {
 					this.microsoftFullscreenAdapter = MicrosoftFullscreenAdapter()
 				} else {
-					this.windowMode = lang.forName("com.jagex.game.runetek5.client.window.WindowMode").getDeclaredConstructor().newInstance()
+					this.windowMode = newInstanceOf("com.jagex.game.runetek5.client.window.WindowMode")
 				}
 			} catch (@Pc(235) ex10: Throwable) {
 			}
@@ -197,7 +198,7 @@ class SignLink : Runnable {
 				if (this.microsoftJava) {
 					this.mouseCallback = MicrosoftJavaMouseCallback()
 				} else {
-					this.cursorManager = lang.forName("com.jagex.game.runetek5.client.input.mouse.CursorManager").getDeclaredConstructor().newInstance()
+					this.cursorManager = newInstanceOf("com.jagex.game.runetek5.client.input.mouse.CursorManager")
 				}
 			} catch (@Pc(251) ex11: Throwable) {
 			}
@@ -335,7 +336,7 @@ class SignLink : Runnable {
 							if (this.microsoftJava) {
 								signedResource.result = this.microsoftFullscreenAdapter!!.listModes()
 							} else {
-								signedResource.result = lang.forName("com.jagex.game.runetek5.client.window.WindowMode").getMethod("listmodes").invoke(this.windowMode)
+								signedResource.result = windowModeListModes(this.windowMode)
 							}
 						} else if (kind === SignedResourceType.FULLSCREEN_ENTER) {
 							// Not part of the original client: the full screen window is titled Void, not Jagex.
@@ -347,7 +348,7 @@ class SignLink : Runnable {
 							if (this.microsoftJava) {
 								this.microsoftFullscreenAdapter!!.enter(signedResource.intData1 and 0xFFFF, signedResource.intData2 shr 16, signedResource.intData1 ushr 16, signedResource.intData2 and 0xFFFF, frame)
 							} else {
-								lang.forName("com.jagex.game.runetek5.client.window.WindowMode").getMethod("enter", Frame::class.jClass, lang.INT_TYPE, lang.INT_TYPE, lang.INT_TYPE, lang.INT_TYPE).invoke(this.windowMode, frame, (signedResource.intData1 ushr 16), java.lang.Integer(signedResource.intData1 and 0xFFFF), (signedResource.intData2 shr 16), java.lang.Integer(signedResource.intData2 and 0xFFFF))
+								windowModeEnter(this.windowMode, frame, signedResource.intData1 ushr 16, signedResource.intData1 and 0xFFFF, signedResource.intData2 shr 16, signedResource.intData2 and 0xFFFF)
 							}
 						} else if (kind !== SignedResourceType.FULLSCREEN_EXIT) {
 							@Pc(254) var fileOnDisk: JFS32?
@@ -363,7 +364,7 @@ class SignLink : Runnable {
 								if (this.microsoftJava) {
 									this.mouseCallback!!.movemouse(intData1, type)
 								} else {
-									lang.forName("com.jagex.game.runetek5.client.input.mouse.CursorManager").getDeclaredMethod("movemouse", lang.INT_TYPE, lang.INT_TYPE).invoke(this.cursorManager, (intData1), java.lang.Integer(type))
+									cursorManagerMoveMouse(this.cursorManager, intData1, type)
 								}
 							} else if (this.signed && kind === SignedResourceType.UPDATE_MOUSE_COMPONENT) {
 								@Pc(338) val visible: Boolean = signedResource.intData1 != 0
@@ -371,11 +372,11 @@ class SignLink : Runnable {
 								if (this.microsoftJava) {
 									this.mouseCallback!!.setCursorVisible(visible, component)
 								} else {
-									lang.forName("com.jagex.game.runetek5.client.input.mouse.CursorManager").getDeclaredMethod("showcursor", Component::class.jClass, lang.BOOLEAN_TYPE).invoke(this.cursorManager, component, (visible))
+									cursorManagerShowCursor(this.cursorManager, component, visible)
 								}
 							} else if (!this.microsoftJava && kind === SignedResourceType.UPDATE_MOUSE_CURSOR) {
 								objects = signedResource.objectData as Array<Any?>?
-								lang.forName("com.jagex.game.runetek5.client.input.mouse.CursorManager").getDeclaredMethod("setcustomcursor", Component::class.jClass, IntArray::class.jClass, lang.INT_TYPE, lang.INT_TYPE, Point::class.jClass).invoke(this.cursorManager, objects!![0] as Component?, objects[1] as IntArray?, (signedResource.intData1), java.lang.Integer(signedResource.intData2), objects[2] as Point?)
+								cursorManagerSetCustomCursor(this.cursorManager, objects!![0] as Component?, objects[1] as IntArray?, signedResource.intData1, signedResource.intData2, objects[2] as Point?)
 							} else if (kind === SignedResourceType.OPEN_PAGE) {
 								try {
 									if (!SystemInfo.operatingSystemLowercase!!.startsWith("win")) {
@@ -393,7 +394,7 @@ class SignLink : Runnable {
 										}
 										i++
 									}
-									Runtime.getRuntime().exec("cmd /c start \"j\" \"" + string + "\"")
+									openUrlWithCmd(string)
 									signedResource.result = null
 								} catch (@Pc(566) ex3: Exception) {
 									signedResource.result = ex3
@@ -405,7 +406,7 @@ class SignLink : Runnable {
 						} else if (this.microsoftJava) {
 							this.microsoftFullscreenAdapter!!.exit(signedResource.objectData as Frame?)
 						} else {
-							lang.forName("com.jagex.game.runetek5.client.window.WindowMode").getMethod("exit").invoke(this.windowMode)
+							windowModeExit(this.windowMode)
 						}
 					} else {
 						throw Exception("")

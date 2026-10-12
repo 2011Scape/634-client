@@ -9,7 +9,7 @@ import com.jagex.game.runetek5.preference.impl.MapSizePreference
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 import lang.StringBuffer
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 import kotlin.math.pow
 
 object Utils {
@@ -388,7 +388,7 @@ object Utils {
 				chars[count++] = charCode.toChar()
 			}
 		}
-		return String(chars, 0, count)
+		return chars.concatToString(0, count)
 	}
 
 	@OriginalMember(owner = "client!mfa", name = "a", descriptor = "([BIII[[B[[B[I[I)I")
@@ -878,7 +878,7 @@ object Utils {
 			}
 			chars[charIndex++] = codePoint.toChar()
 		}
-		return String(chars, 0, charIndex)
+		return chars.concatToString(0, charIndex)
 	}
 
 	@OriginalMember(owner = "client!vp", name = "a", descriptor = "(CI)C")
@@ -1158,7 +1158,7 @@ object Utils {
 			}
 			i--
 		}
-		return String(chars)
+		return chars.concatToString()
 	}
 
 	@OriginalMember(owner = "client!fv", name = "a", descriptor = "(CI)Z")

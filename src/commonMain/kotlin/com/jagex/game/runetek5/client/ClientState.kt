@@ -140,7 +140,7 @@ import io.File
 import io.IOException
 import lang.reflect.Field
 import lang.reflect.Method
-import java.math.BigInteger
+import BigInt
 import util.Enumeration
 import util.Hashtable
 import util.Random

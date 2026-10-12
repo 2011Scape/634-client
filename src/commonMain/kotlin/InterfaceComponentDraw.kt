@@ -228,7 +228,7 @@ object InterfaceComponentDraw {
 									}
 									FontManager.aClass68_4!!.renderRightAligned("Fps:" + Camera.fps, textY, fpsColour, rightX, -1)
 									textY += 15
-									@Pc(619) val runtime: Runtime = Runtime.getRuntime()
+									@Pc(619) val runtime: lang.PlatformRuntime = lang.PlatformRuntime
 									var usedMemoryKb: Int = ((runtime.totalMemory() - runtime.freeMemory()) / 1024L).toInt()
 									var memoryColour: Int = -256
 									if (usedMemoryKb > 98304) {

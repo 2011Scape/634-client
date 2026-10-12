@@ -11,7 +11,7 @@ actual abstract class SimplePeer actual constructor() {
 	private var peer: Long = 0L
 
 	@OriginalMember(owner = "client!jagtheora/misc/SimplePeer", name = "clear", descriptor = "()V")
-	protected actual abstract fun clear()
+	protected abstract fun clear()
 
 	@OriginalMember(owner = "client!jagtheora/misc/SimplePeer", name = "a", descriptor = "()V")
 	actual fun a() {

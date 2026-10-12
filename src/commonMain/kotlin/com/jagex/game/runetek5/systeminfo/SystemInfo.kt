@@ -17,7 +17,7 @@ import org.openrs2.deob.annotation.Pc
 import kotlin.concurrent.Volatile
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 import lang.Class
 import lang.getDeclaredMethod
 import lang.getMethod

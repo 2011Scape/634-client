@@ -81,7 +81,7 @@ class GlxProgram @OriginalMember(owner = "client!lha", name = "<init>", descript
 				if (GlxProgram.glStatusParams[1] > 1) {
 					@Pc(94) val infoLog: ByteArray = ByteArray(GlxProgram.glStatusParams[1])
 					OpenGL.glGetInfoLogARB(programHandle, GlxProgram.glStatusParams[1], GlxProgram.glStatusParams, 0, infoLog, 0)
-					println(String(infoLog, java.nio.charset.Charset.defaultCharset()))
+					println(lang.decodeDefaultCharset(infoLog))
 				}
 				if (GlxProgram.glStatusParams[0] == 0) {
 					@Pc(115) var k: Int = 0

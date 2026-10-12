@@ -67,3 +67,14 @@ expect fun Throwable.printStackTraceTo(writer: io.PrintWriter?)
 
 /* The bytes of the class path resource at `path` (from the root, as "/dir/name"), or null. */
 expect fun readResource(path: String): ByteArray?
+
+/* java.lang.String.intern. */
+expect fun String.javaIntern(): String
+
+/* new String(bytes, Charset.defaultCharset()). */
+expect fun decodeDefaultCharset(bytes: ByteArray?): String
+
+/* Runtime.class and Runtime.getRuntime(), for code that reaches Runtime's methods by reflection. */
+expect val RUNTIME_CLASS: Class<*>
+
+expect fun runtimeInstance(): Any

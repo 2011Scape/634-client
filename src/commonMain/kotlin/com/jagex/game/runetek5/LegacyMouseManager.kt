@@ -12,7 +12,7 @@ import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.client.input.mouse.SimpleMouseLog
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.utils.Utils
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 import awt.event.MouseEvent
 
 @OriginalClass("client!bd")
@@ -63,13 +63,13 @@ class LegacyMouseManager @OriginalMember(owner = "client!bd", name = "<init>", d
 
 	@OriginalMember(owner = "client!bd", name = "mouseDragged", descriptor = "(Ljava/awt/event/MouseEvent;)V")
 	@Synchronized
-	override fun mouseDragged(@OriginalArg(0) mouseEvent: MouseEvent?) {
+	override fun mouseDragged(@OriginalArg(0) mouseEvent: MouseEvent) {
 		this.setPosition(mouseEvent!!.getY(), mouseEvent.getX())
 	}
 
 	@OriginalMember(owner = "client!bd", name = "mouseEntered", descriptor = "(Ljava/awt/event/MouseEvent;)V")
 	@Synchronized
-	override fun mouseEntered(@OriginalArg(0) mouseEvent: MouseEvent?) {
+	override fun mouseEntered(@OriginalArg(0) mouseEvent: MouseEvent) {
 		this.setPosition(mouseEvent!!.getY(), mouseEvent.getX())
 	}
 
@@ -97,7 +97,7 @@ class LegacyMouseManager @OriginalMember(owner = "client!bd", name = "<init>", d
 
 	@OriginalMember(owner = "client!bd", name = "mouseExited", descriptor = "(Ljava/awt/event/MouseEvent;)V")
 	@Synchronized
-	override fun mouseExited(@OriginalArg(0) mouseEvent: MouseEvent?) {
+	override fun mouseExited(@OriginalArg(0) mouseEvent: MouseEvent) {
 		this.setPosition(mouseEvent!!.getY(), mouseEvent.getX())
 	}
 
@@ -120,7 +120,7 @@ class LegacyMouseManager @OriginalMember(owner = "client!bd", name = "<init>", d
 
 	@OriginalMember(owner = "client!bd", name = "mouseMoved", descriptor = "(Ljava/awt/event/MouseEvent;)V")
 	@Synchronized
-	override fun mouseMoved(@OriginalArg(0) mouseEvent: MouseEvent?) {
+	override fun mouseMoved(@OriginalArg(0) mouseEvent: MouseEvent) {
 		this.setPosition(mouseEvent!!.getY(), mouseEvent.getX())
 	}
 
@@ -156,7 +156,7 @@ class LegacyMouseManager @OriginalMember(owner = "client!bd", name = "<init>", d
 
 	@OriginalMember(owner = "client!bd", name = "mouseClicked", descriptor = "(Ljava/awt/event/MouseEvent;)V")
 	@Synchronized
-	override fun mouseClicked(@OriginalArg(0) mouseEvent: MouseEvent?) {
+	override fun mouseClicked(@OriginalArg(0) mouseEvent: MouseEvent) {
 		if (mouseEvent!!.isPopupTrigger()) {
 			mouseEvent.consume()
 		}
@@ -179,7 +179,7 @@ class LegacyMouseManager @OriginalMember(owner = "client!bd", name = "<init>", d
 
 	@OriginalMember(owner = "client!bd", name = "mouseReleased", descriptor = "(Ljava/awt/event/MouseEvent;)V")
 	@Synchronized
-	override fun mouseReleased(@OriginalArg(0) mouseEvent: MouseEvent?) {
+	override fun mouseReleased(@OriginalArg(0) mouseEvent: MouseEvent) {
 		@Pc(8) var mask: Int = this.getClickMask(mouseEvent)
 		if ((mask and this.clickMask) == 0) {
 			mask = this.clickMask
@@ -224,7 +224,7 @@ class LegacyMouseManager @OriginalMember(owner = "client!bd", name = "<init>", d
 
 	@OriginalMember(owner = "client!bd", name = "mousePressed", descriptor = "(Ljava/awt/event/MouseEvent;)V")
 	@Synchronized
-	override fun mousePressed(@OriginalArg(0) mouseEvent: MouseEvent?) {
+	override fun mousePressed(@OriginalArg(0) mouseEvent: MouseEvent) {
 		@Pc(10) val mask: Int = this.getClickMask(mouseEvent)
 		if (mask == 1) {
 			this.log(0, mouseEvent!!.getY(), mouseEvent.getX(), mouseEvent.getClickCount())

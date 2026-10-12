@@ -10,7 +10,7 @@ import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.sound.player.PcmPlayerManager
 import com.jagex.game.runetek5.cache.node.CacheableNodeQueue
 import kotlin.jvm.JvmField
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 
 @OriginalClass("client!iha")
 class VorbisPcmStream : PcmStream {

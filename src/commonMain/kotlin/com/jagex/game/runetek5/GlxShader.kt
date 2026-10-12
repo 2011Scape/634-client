@@ -51,7 +51,7 @@ class GlxShader @OriginalMember(owner = "client!ifa", name = "<init>", descripto
 				if (GlxShaderCompileStatus.SHADER_PARAMS[1] > 1) {
 					@Pc(64) val infoLog: ByteArray = ByteArray(GlxShaderCompileStatus.SHADER_PARAMS[1])
 					OpenGL.glGetInfoLogARB(shaderId, GlxShaderCompileStatus.SHADER_PARAMS[1], GlxShaderCompileStatus.SHADER_PARAMS, 0, infoLog, 0)
-					println(String(infoLog, java.nio.charset.Charset.defaultCharset()))
+					println(lang.decodeDefaultCharset(infoLog))
 				}
 				if (GlxShaderCompileStatus.SHADER_PARAMS[0] == 0) {
 					OpenGL.glDeleteObjectARB(shaderId)

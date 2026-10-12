@@ -65,7 +65,7 @@ import com.jagex.game.runetek5.graphics.texture.sampler.SampleMode
 import com.jagex.game.runetek5.toolkit.companion.BlendFuncMode
 import com.jagex.game.runetek5.TextureTransformMode
 import kotlin.jvm.JvmField
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 import lang.Thread
 import kotlin.jvm.JvmStatic
 import awt.height

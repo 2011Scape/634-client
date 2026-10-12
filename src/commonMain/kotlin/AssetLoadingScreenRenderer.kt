@@ -13,7 +13,7 @@ import com.jagex.game.runetek5.core.util.TimeUtils
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.utils.Utils
 import kotlin.concurrent.Volatile
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 import lang.Runnable
 import withLock
 import awt.getInsets

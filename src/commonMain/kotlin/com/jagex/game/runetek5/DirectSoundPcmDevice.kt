@@ -4,12 +4,6 @@
  */
 package com.jagex.game.runetek5
 
-import com.ms.com.ComFailException
-import com.ms.directX.DSBufferDesc
-import com.ms.directX.DSCursors
-import com.ms.directX.DirectSound
-import com.ms.directX.DirectSoundBuffer
-import com.ms.directX.WaveFormatEx
 import awt.Component
 
 expect class DirectSoundPcmDevice : PcmDevice {

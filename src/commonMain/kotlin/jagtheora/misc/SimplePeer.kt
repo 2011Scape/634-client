@@ -6,7 +6,6 @@ package jagtheora.misc
 
 expect abstract class SimplePeer {
 	constructor()
-	protected abstract fun clear()
 	fun a()
 	fun finalize()
 	fun b(): Boolean

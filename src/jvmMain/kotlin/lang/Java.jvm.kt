@@ -65,3 +65,12 @@ private object ResourceAnchor
 
 actual fun readResource(path: String): ByteArray? =
     ResourceAnchor::class.java.getResourceAsStream(path)?.use { it.readBytes() }
+
+@Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
+actual fun String.javaIntern(): String = (this as java.lang.String).intern()
+
+actual fun decodeDefaultCharset(bytes: ByteArray?): String = String(bytes!!, java.nio.charset.Charset.defaultCharset())
+
+actual val RUNTIME_CLASS: Class<*> = java.lang.Runtime::class.java
+
+actual fun runtimeInstance(): Any = java.lang.Runtime.getRuntime()

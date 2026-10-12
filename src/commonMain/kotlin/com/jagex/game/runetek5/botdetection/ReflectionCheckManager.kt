@@ -13,7 +13,7 @@ import io.ObjectInputStream
 import io.OptionalDataException
 import io.StreamCorruptedException
 import lang.reflect.Field
-import java.lang.reflect.InvocationTargetException
+import lang.reflect.InvocationTargetException
 import lang.reflect.Method
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalMember

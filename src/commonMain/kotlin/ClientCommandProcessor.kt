@@ -65,6 +65,7 @@ import com.jagex.game.runetek5.sign.SignLink
 import kotlin.jvm.JvmStatic
 import lang.SecurityException
 import lang.javaTrim
+import lang.OutOfMemoryError
 
 object ClientCommandProcessor {
 
@@ -194,7 +195,7 @@ object ClientCommandProcessor {
 				}
 				@Pc(300) val local300: Int
 				@Pc(281) val local281: Int
-				@Pc(290) var runtime: Runtime
+				@Pc(290) var runtime: lang.PlatformRuntime
 				if (string.equals("gc", ignoreCase = true)) {
 					TypeLists.removeSoftReferences()
 					var gcPass: Int = 0
@@ -202,7 +203,7 @@ object ClientCommandProcessor {
 						lang.gc()
 						gcPass++
 					}
-					runtime = Runtime.getRuntime()
+					runtime = lang.PlatformRuntime
 					val usedMemoryKb: Int = ((runtime.totalMemory() - runtime.freeMemory()) / 1024L).toInt()
 					Console.printToConsole("mem=" + usedMemoryKb + "k")
 					return
@@ -214,7 +215,7 @@ object ClientCommandProcessor {
 						lang.gc()
 						gcPass++
 					}
-					runtime = Runtime.getRuntime()
+					runtime = lang.PlatformRuntime
 					var usedMemoryKb: Int = ((runtime.totalMemory() - runtime.freeMemory()) / 1024L).toInt()
 					Console.printToConsole("Memory before cleanup=" + usedMemoryKb + "k")
 					Scene.uploadAllGameObjects()

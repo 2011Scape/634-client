@@ -48,7 +48,7 @@ class GlShader @OriginalMember(owner = "client!tba", name = "<init>", descriptor
 				if (GlShader.queryResults[1] > 1) {
 					@Pc(55) val infoLog: ByteArray = ByteArray(GlShader.queryResults[1])
 					OpenGL.glGetInfoLogARB(shaderHandle, GlShader.queryResults[1], GlShader.queryResults, 0, infoLog, 0)
-					println(String(infoLog, java.nio.charset.Charset.defaultCharset()))
+					println(lang.decodeDefaultCharset(infoLog))
 				}
 				if (GlShader.queryResults[0] == 0) {
 					OpenGL.glDeleteObjectARB(shaderHandle)

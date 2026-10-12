@@ -105,7 +105,7 @@ object LoadingStageWork {
 		}
 		@Pc(70) var local70: Int
 		if (LoadingStage.LOADING_STAGE === LoadingStage.aClass167_3) {
-			@Pc(60) val runtime: Runtime = Runtime.getRuntime()
+			@Pc(60) val runtime: lang.PlatformRuntime = lang.PlatformRuntime
 			val usedMemoryKb: Int = ((runtime.totalMemory() - runtime.freeMemory()) / 1024L).toInt()
 			@Pc(75) val now: Long = Utils.currentTimeMillis()
 			if (LoadingStage.gcWaitStartTime == 0L) {

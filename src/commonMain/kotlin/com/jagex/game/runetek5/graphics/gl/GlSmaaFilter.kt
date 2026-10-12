@@ -3,7 +3,6 @@ package com.jagex.game.runetek5.graphics.gl
 import com.jagex.game.runetek5.GlShader
 import com.jagex.game.runetek5.core.constants.OpenGLConstants
 import jaggl.OpenGL
-import java.io.ByteArrayOutputStream
 import io.IOException
 import io.InputStream
 import kotlin.jvm.JvmField

@@ -47,7 +47,7 @@ import com.jagex.game.runetek5.cache.FileOnDisk
 import com.jagex.game.runetek5.NativeLibraryOwner
 import com.jagex.game.runetek5.core.util.TimeUtils
 import com.jagex.game.runetek5.utils.Utils
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 import lang.Runnable
 import kotlin.concurrent.Volatile
 import kotlin.jvm.JvmField
@@ -61,6 +61,7 @@ import lang.jClass
 import util.lowercase
 import awt.height
 import awt.width
+import lang.ThreadDeath
 
 @OriginalClass("client!km")
 abstract class GameShell : Applet(), Runnable, FocusListener, WindowListener {
@@ -628,10 +629,10 @@ abstract class GameShell : Applet(), Runnable, FocusListener, WindowListener {
 		@JvmStatic
 		fun detectAvailableProcessors() {
 			try {
-				@Pc(16) val method: Method? = Runtime::class.jClass.getMethod("availableProcessors")
+				@Pc(16) val method: Method? = lang.RUNTIME_CLASS.getMethod("availableProcessors")
 				if (method != null) {
 					try {
-						@Pc(28) val runtime: Runtime = Runtime.getRuntime()
+						@Pc(28) val runtime: Any = lang.runtimeInstance()
 						@Pc(34) val integer: Int? = method.invoke(runtime, *arrayOfNulls<Any>(0)) as Int?
 						GameShell.availableProcessors = integer!!
 					} catch (@Pc(39) ex: Throwable) {
@@ -683,10 +684,10 @@ abstract class GameShell : Applet(), Runnable, FocusListener, WindowListener {
 				return
 			}
 			try {
-				@Pc(15) val method: Method? = Runtime::class.jClass.getMethod("maxMemory")
+				@Pc(15) val method: Method? = lang.RUNTIME_CLASS.getMethod("maxMemory")
 				if (method != null) {
 					try {
-						@Pc(19) val runtime: Runtime = Runtime.getRuntime()
+						@Pc(19) val runtime: Any = lang.runtimeInstance()
 						@Pc(25) val long2: Long? = method.invoke(runtime, *arrayOfNulls<Any>(0)) as Long?
 						GameShell.maxMemory = (long2!! / 1048576L).toInt() + 1
 					} catch (@Pc(35) ex: Throwable) {

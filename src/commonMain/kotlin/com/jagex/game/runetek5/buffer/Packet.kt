@@ -1,7 +1,7 @@
 package com.jagex.game.runetek5.buffer
 
 import com.jagex.game.runetek5.cache.node.Node
-import java.math.BigInteger
+import BigInt
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
@@ -494,13 +494,13 @@ open class Packet : Node {
 	}
 
 	@OriginalMember(owner = "client!cea", name = "a", descriptor = "(Ljava/math/BigInteger;BLjava/math/BigInteger;)V")
-	fun applyRSA(@OriginalArg(0) modulus: BigInteger?, @OriginalArg(2) exponent: BigInteger?) {
+	fun applyRSA(@OriginalArg(0) modulus: BigInt?, @OriginalArg(2) exponent: BigInt?) {
 		@Pc(6) val currentPosition: Int = this.currentPosition
 		this.currentPosition = 0
 		@Pc(12) val data: ByteArray = ByteArray(currentPosition)
 		this.readBytes(0, currentPosition, data)
-		@Pc(28) val bigInteger3: BigInteger = BigInteger(data)
-		@Pc(33) val bigInteger4: BigInteger = bigInteger3.modPow(exponent, modulus)
+		@Pc(28) val bigInteger3: BigInt = BigInt(data)
+		@Pc(33) val bigInteger4: BigInt = bigInteger3.modPow(exponent!!, modulus!!)
 		@Pc(36) val encrypted: ByteArray = bigInteger4.toByteArray()
 		this.currentPosition = 0
 		this.writeShort(encrypted.size)

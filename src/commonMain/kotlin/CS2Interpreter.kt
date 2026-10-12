@@ -67,7 +67,7 @@ import com.jagex.game.runetek5.statics.StatBaseLevels
 import com.jagex.game.runetek5.statics.BrowserJavaScript
 import awt.datatransfer.DataFlavor
 import awt.datatransfer.Transferable
-import java.util.Date
+import util.Date
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
@@ -4607,7 +4607,7 @@ object CS2Interpreter {
 											return
 										}
 										if (root == 0) {
-											ScriptRunner.intStack[CS2State.intStackPtr++] = Integer.MAX_VALUE
+											ScriptRunner.intStack[CS2State.intStackPtr++] = Int.MAX_VALUE
 											return
 										}
 										ScriptRunner.intStack[CS2State.intStackPtr++] = (base.toDouble()).pow(1.0 / root.toDouble()).toInt()

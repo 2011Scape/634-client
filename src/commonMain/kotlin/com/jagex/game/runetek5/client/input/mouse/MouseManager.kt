@@ -13,7 +13,7 @@ import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.client.event.mouse.MouseLog
 import com.jagex.game.runetek5.utils.Utils
 import kotlin.jvm.JvmField
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 import awt.Component
 import awt.event.MouseEvent
 

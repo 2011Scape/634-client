@@ -17,7 +17,7 @@ import com.jagex.game.runetek5.sound.AreaSoundSampleMixer
 import com.jagex.game.runetek5.sound.player.PcmPlayerManager
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
-import kotlin.jvm.Synchronized
+import lang.Synchronized
 import kotlin.math.pow
 
 @OriginalClass("client!ma")

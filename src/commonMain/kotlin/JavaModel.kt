@@ -2991,10 +2991,10 @@ class JavaModel : Model {
 		@Pc(278) val projectionCenterY: Int = this.toolkit!!.lb
 		@Pc(282) val projectionScaleX: Int = this.toolkit!!.projectionScaleX
 		@Pc(286) val projectionScaleY: Int = this.toolkit!!.projectionScaleY
-		@Pc(288) var minScreenX: Int = Integer.MAX_VALUE
-		@Pc(290) var maxScreenX: Int = Integer.MIN_VALUE
-		@Pc(292) var minScreenY: Int = Integer.MAX_VALUE
-		@Pc(294) var maxScreenY: Int = Integer.MIN_VALUE
+		@Pc(288) var minScreenX: Int = Int.MAX_VALUE
+		@Pc(290) var maxScreenX: Int = Int.MIN_VALUE
+		@Pc(292) var minScreenY: Int = Int.MAX_VALUE
+		@Pc(294) var maxScreenY: Int = Int.MIN_VALUE
 		this.useThreadBuffers(lang.currentThread())
 		if (!this.boundsValid) {
 			this.calculateBounds()
