@@ -13,14 +13,18 @@ kotlin {
     jvmToolchain(21)
     jvm()
     /*
-     * -PcommonCheck adds a browser target, only so that compileCommonMainKotlinMetadata compiles
-     * commonMain against the common standard library (CI runs it). With the JVM as the only target,
-     * common code would still see the JDK, through Kotlin's default java.lang imports.
+     * The browser target (docs/MULTIPLATFORM.md, milestone 4): ./gradlew jsBrowserDevelopmentWebpack
+     * builds a servable bundle in build/kotlin-webpack/js/developmentExecutable. It also keeps
+     * commonMain honest: compileCommonMainKotlinMetadata compiles it against the common standard
+     * library, not the JDK.
      */
-    if (providers.gradleProperty("commonCheck").isPresent) {
-        js {
-            browser()
+    js {
+        browser {
+            commonWebpackConfig {
+                outputFileName = "runetek5-634.js"
+            }
         }
+        binaries.executable()
     }
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
@@ -28,6 +32,9 @@ kotlin {
     sourceSets {
         jvmMain.dependencies {
             implementation(files("lib/stub.jar"))
+        }
+        jsMain.dependencies {
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
         }
     }
 }

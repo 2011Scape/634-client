@@ -55,6 +55,7 @@ import util.lowercase
 import lang.getDeclaredConstructor
 import lang.ThreadDeath
 import runLoop
+import executeWorkerTasksInline
 
 @OriginalClass("client!wea")
 class SignLink : Runnable {
@@ -225,7 +226,10 @@ class SignLink : Runnable {
 		this.thread = Thread(this)
 		this.thread.setPriority(10)
 		this.thread.setDaemon(true)
-		this.thread.start()
+		// Not part of the original client: where requests run inline there is no worker to start (PlatformLoop).
+		if (!executeWorkerTasksInline) {
+			this.thread.start()
+		}
 	}
 
 	@OriginalMember(owner = "client!wea", name = "a", descriptor = "(IIIIB)Lclient!of;")
@@ -283,6 +287,16 @@ class SignLink : Runnable {
 				}
 			}
 		}
+		this.processRequest(signedResource)
+		return true
+	}
+
+	/*
+	 * Not part of the original client: the handling of one request, the original body of the
+	 * worker loop after it takes the request from the queue. enqueue calls it directly where there
+	 * is no worker thread (executeWorkerTasksInline).
+	 */
+	private fun processRequest(signedResource: SignedResource) {
 		try {
 			@Pc(41) val kind: SignedResourceType? = signedResource.kind
 			if (kind === SignedResourceType.SOCKET) {
@@ -434,7 +448,6 @@ class SignLink : Runnable {
 		withLock(signedResource) {
 			lockNotify(signedResource)
 		}
-		return true
 	}
 
 	@OriginalMember(owner = "client!wea", name = "a", descriptor = "(B)V")
@@ -543,6 +556,11 @@ class SignLink : Runnable {
 		signedResource.intData2 = intData2
 		signedResource.kind = kind
 		signedResource.intData1 = intData1
+		if (executeWorkerTasksInline) {
+			// Not part of the original client: no worker thread, so the request runs here (PlatformLoop).
+			this.processRequest(signedResource)
+			return signedResource
+		}
 		withLock(this) {
 			if (this.last == null) {
 				this.current = signedResource
