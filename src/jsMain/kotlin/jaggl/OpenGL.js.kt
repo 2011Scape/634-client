@@ -89,6 +89,16 @@ actual class OpenGL {
         val wantAntialias = arg6 > 0
         val contextOptions = js("({powerPreference: 'high-performance'})")
         contextOptions.antialias = wantAntialias
+        // Not part of void-client's emulator: keep the drawing buffer between frames, as a desktop
+        // window does. While a new zone loads the client draws only its "Loading - please wait" box
+        // over the last frame; with the default (false) the browser clears the buffer after showing
+        // each frame, and the whole view went black behind the box.
+        contextOptions.preserveDrawingBuffer = true
+        // Not part of void-client's emulator: keep the drawing buffer between frames, as a desktop
+        // window does. While a new zone loads the client draws only its "Loading - please wait" box
+        // over the last frame; with the default (false) the browser clears the buffer after showing
+        // each frame, and the whole view went black behind the box.
+        contextOptions.preserveDrawingBuffer = true
         var context = canvasEl.getContext("webgl2", contextOptions) as? WebGL2RenderingContext
         // Context attributes are fixed once a canvas has a context; a re-init with a different
         // sample count (settings change) needs a fresh canvas to take effect.
