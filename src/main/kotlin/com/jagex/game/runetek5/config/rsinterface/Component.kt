@@ -1338,7 +1338,7 @@ class Component {
 		@OriginalMember(owner = "client!fk", name = "a", descriptor = "(ILclient!at;Z)Ljava/lang/String;")
 		@JvmStatic
 		fun getOpName(@OriginalArg(0) opIndex: Int, @OriginalArg(1) component: Component?): String? {
-			if (!InterfaceManager.getComponentSettings(component).isOpEnabled(opIndex) && component!!.params == null) {
+			if (!InterfaceManager.getComponentSettings(component)!!.isOpEnabled(opIndex) && component!!.params == null) {
 				return null
 			} else if (component!!.options == null || component.options!!.size <= opIndex || component.options!![opIndex] == null || component.options!![opIndex]!!.trim { it <= ' ' }.length == 0) {
 				return if (InterfaceManager.qaOpTest) "Hidden-" + opIndex else null
@@ -1403,7 +1403,7 @@ class Component {
 		@OriginalMember(owner = "client!mea", name = "a", descriptor = "(BILclient!at;)I")
 		@JvmStatic
 		fun getOpCursor(@OriginalArg(1) op: Int, @OriginalArg(2) component: Component?): Int {
-			if (!InterfaceManager.getComponentSettings(component).isOpEnabled(op) && component!!.params == null) {
+			if (!InterfaceManager.getComponentSettings(component)!!.isOpEnabled(op) && component!!.params == null) {
 				return -1
 			} else if (component!!.opCursors == null || op >= component.opCursors!!.size) {
 				return -1
@@ -1456,7 +1456,7 @@ class Component {
 			} else {
 				component.y = parentHeight - (parentHeight * component.basePositionY shr 14) - component.height
 			}
-			if (!InterfaceManager.qaOpTest || InterfaceManager.getComponentSettings(component).settingsHash == 0 && component.type !== ComponentType.CONTAINER) {
+			if (!InterfaceManager.qaOpTest || InterfaceManager.getComponentSettings(component)!!.settingsHash == 0 && component.type !== ComponentType.CONTAINER) {
 				return
 			}
 			if (component.y < 0) {
@@ -1509,7 +1509,7 @@ class Component {
 		@OriginalMember(owner = "client!mfa", name = "a", descriptor = "(ILclient!at;)Ljava/lang/String;")
 		@JvmStatic
 		fun getUseOptionString(@OriginalArg(1) component: Component?): String? {
-			if (InterfaceManager.getComponentSettings(component).getUseOptionFlags() == 0) {
+			if (InterfaceManager.getComponentSettings(component)!!.getUseOptionFlags() == 0) {
 				return null
 			} else if (component!!.targetVerb == null || component.targetVerb!!.trim { it <= ' ' }.length == 0) {
 				return if (InterfaceManager.qaOpTest) "Hidden-use" else null

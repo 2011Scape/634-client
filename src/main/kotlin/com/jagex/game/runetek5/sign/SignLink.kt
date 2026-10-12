@@ -358,7 +358,7 @@ class SignLink : Runnable {
 								Class.forName("com.jagex.game.runetek5.client.input.mouse.CursorManager").getDeclaredMethod("setcustomcursor", java.awt.Component::class.java, IntArray::class.java, java.lang.Integer.TYPE, java.lang.Integer.TYPE, Point::class.java).invoke(this.cursorManager, objects!![0] as java.awt.Component?, objects[1] as IntArray?, Integer.valueOf(signedResource.intData1), java.lang.Integer(signedResource.intData2), objects[2] as Point?)
 							} else if (kind === SignedResourceType.OPEN_PAGE) {
 								try {
-									if (!SystemInfo.operatingSystemLowercase.startsWith("win")) {
+									if (!SystemInfo.operatingSystemLowercase!!.startsWith("win")) {
 										throw Exception()
 									}
 									string = signedResource.objectData as String?

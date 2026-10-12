@@ -51,7 +51,7 @@ object SoundEffectPlayer {
 			SoundEffectPlayer.jinglePlayer!!.cycle()
 		}
 		if (GameSoundsPcmPlayer.aClass33_31 != null) {
-			GameSoundsPcmPlayer.aClass33_31.cycle()
+			GameSoundsPcmPlayer.aClass33_31!!.cycle()
 		}
 	}
 
@@ -76,7 +76,7 @@ object SoundEffectPlayer {
 			SoundEffectPlayer.jinglePlayer!!.shutdown()
 		}
 		if (GameSoundsPcmPlayer.aClass33_31 != null) {
-			GameSoundsPcmPlayer.aClass33_31.shutdown()
+			GameSoundsPcmPlayer.aClass33_31!!.shutdown()
 		}
 	}
 	@OriginalMember(owner = "client!jh", name = "a", descriptor = "(ZILclient!ma;)V")

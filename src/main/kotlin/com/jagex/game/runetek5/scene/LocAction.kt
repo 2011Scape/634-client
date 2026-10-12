@@ -107,11 +107,11 @@ object LocAction {
 		if (Scene.aClass100ArrayArrayArray3 == null) {
 			return
 		}
-		MapRegion.aClass322_Sub1_1.removeGameObject(MapRegion.aClass104Array3[level], layer, level, ClientState.activeToolkit, x, y)
+		MapRegion.aClass322_Sub1_1!!.removeGameObject(MapRegion.aClass104Array3[level], layer, level, ClientState.activeToolkit, x, y)
 		if (locId >= 0) {
 			@Pc(77) val previousGroundDecor: Int = GamePreferences.uid!!.groundDecor!!.getValue()
 			GamePreferences.uid!!.setValue(GamePreferences.uid!!.groundDecor, 1)
-			MapRegion.aClass322_Sub1_1.addObject(x, level, locId, ClientState.activeToolkit, plane, shape, y, sequenceId, rotation, MapRegion.aClass104Array3[level])
+			MapRegion.aClass322_Sub1_1!!.addObject(x, level, locId, ClientState.activeToolkit, plane, shape, y, sequenceId, rotation, MapRegion.aClass104Array3[level])
 			GamePreferences.uid!!.setValue(GamePreferences.uid!!.groundDecor, previousGroundDecor)
 		}
 	}

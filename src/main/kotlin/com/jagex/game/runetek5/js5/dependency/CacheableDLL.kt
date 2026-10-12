@@ -51,7 +51,7 @@ class CacheableDLL : Loader {
 		@OriginalMember(owner = "client!jp", name = "a", descriptor = "(Ljava/lang/String;I)I")
 		@JvmStatic
 		fun installNativeLibrary(@OriginalArg(0) string: String?): Int {
-			if (!NativeLibraryOwner.signLink.signed) {
+			if (!NativeLibraryOwner.signLink!!.signed) {
 				return -1
 			} else if (NativeLibraryOwner.nativeLibraryFiles.containsKey(string)) {
 				return 100
@@ -90,7 +90,7 @@ class CacheableDLL : Loader {
 					}
 					try {
 						if (!identical) {
-							NativeLibraryOwner.signLink.writeFile(data, file)
+							NativeLibraryOwner.signLink!!.writeFile(data, file)
 						}
 					} catch (@Pc(140) ex2: Throwable) {
 						return -1

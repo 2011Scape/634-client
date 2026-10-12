@@ -130,7 +130,7 @@ class QuickchatMessageType : CacheableNode() {
 			@Pc(22) var i: Int = 0
 			while (i < this.valueTypes!!.size) {
 				stringBuffer.append(this.message!![i])
-				stringBuffer.append(this.quickchatMessageTypelist!!.getValueDisplay(packet!!.bitpackLong(QuickChatValueType.forId(this.valueTypes!![i]).serverTransmitSize), this.configs!![i], this.getValueType(i)))
+				stringBuffer.append(this.quickchatMessageTypelist!!.getValueDisplay(packet!!.bitpackLong(QuickChatValueType.forId(this.valueTypes!![i])!!.serverTransmitSize), this.configs!![i], this.getValueType(i)))
 				i++
 			}
 		}

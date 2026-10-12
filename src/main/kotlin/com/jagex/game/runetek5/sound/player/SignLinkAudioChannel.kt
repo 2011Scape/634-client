@@ -23,28 +23,28 @@ class SignLinkAudioChannel : PcmPlayer {
 
 	@OriginalMember(owner = "client!qn", name = "b", descriptor = "()V")
 	override fun open() {
-		SignLinkPcmDevice.pcmDevice.discardBuffer(this.deviceIndex)
+		SignLinkPcmDevice.pcmDevice!!.discardBuffer(this.deviceIndex)
 	}
 
 	@OriginalMember(owner = "client!qn", name = "a", descriptor = "()I")
 	override fun dataLeft(): Int {
-		return SignLinkPcmDevice.pcmDevice.position(this.deviceIndex)
+		return SignLinkPcmDevice.pcmDevice!!.position(this.deviceIndex)
 	}
 
 	@OriginalMember(owner = "client!qn", name = "c", descriptor = "()V")
 	override fun close() {
-		SignLinkPcmDevice.pcmDevice.close(this.deviceIndex)
+		SignLinkPcmDevice.pcmDevice!!.close(this.deviceIndex)
 	}
 
 	@OriginalMember(owner = "client!qn", name = "a", descriptor = "(Ljava/awt/Component;)V")
 	@Throws(Exception::class)
 	override fun init(@OriginalArg(0) component: java.awt.Component?) {
-		SignLinkPcmDevice.pcmDevice.init(PcmPlayerManager.sampleRate, PcmPlayerManager.stereo, component)
+		SignLinkPcmDevice.pcmDevice!!.init(PcmPlayerManager.sampleRate, PcmPlayerManager.stereo, component)
 	}
 
 	@OriginalMember(owner = "client!qn", name = "d", descriptor = "()V")
 	override fun writeToBuffer() {
-		SignLinkPcmDevice.pcmDevice.write(this.deviceIndex, super.bitpackedSoundData)
+		SignLinkPcmDevice.pcmDevice!!.write(this.deviceIndex, super.bitpackedSoundData)
 	}
 
 	@OriginalMember(owner = "client!qn", name = "a", descriptor = "(I)V")
@@ -53,6 +53,6 @@ class SignLinkAudioChannel : PcmPlayer {
 		if (bufferCapacity > 32768) {
 			throw IllegalArgumentException()
 		}
-		SignLinkPcmDevice.pcmDevice.open(bufferCapacity, this.deviceIndex)
+		SignLinkPcmDevice.pcmDevice!!.open(bufferCapacity, this.deviceIndex)
 	}
 }

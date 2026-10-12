@@ -106,7 +106,7 @@ class DynamicLocation : AbstractInteractiveEntity, GameObject {
 			model.render(matrix, pickableEntity.boundingBoxPolygons!![0], 0)
 		}
 		if (this.locEntity.particleSystem != null) {
-			@Pc(81) val particles: ParticleList? = this.locEntity.particleSystem.getList()
+			@Pc(81) val particles: ParticleList? = this.locEntity.particleSystem!!.getList()
 			if (OrthoMode.orthographicProjection) {
 				toolkit.renderOrtho(particles, HintArrow.scaledOrthoZoom)
 			} else {

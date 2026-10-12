@@ -26,7 +26,7 @@ class WorldDescriptor : WorldDescriptorFlags() {
 
 	@OriginalMember(owner = "client!mf", name = "b", descriptor = "(Z)Lclient!vh;")
 	fun getCountry(): Country? {
-		return Country.aClass359Array1[super.country]
+		return Country.aClass359Array1!![super.country]
 	}
 
 	companion object {

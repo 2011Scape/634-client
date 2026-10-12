@@ -176,7 +176,7 @@ class GamePreferences : Node {
 	@OriginalMember(owner = "client!dh", name = "<init>", descriptor = "(Lclient!sj;I)V")
 	constructor(@OriginalArg(0) modeGame: Game?, @OriginalArg(1) value: Int) {
 		this.game = modeGame
-		this.processorSpecs = EnvironmentContext(GameShell.signLink.signed, GameShell.maxMemory, GameShell.availableProcessors, SystemInfo.OS_ARCH.lowercase(java.util.Locale.getDefault()).indexOf("arm") != -1)
+		this.processorSpecs = EnvironmentContext(GameShell.signLink!!.signed, GameShell.maxMemory, GameShell.availableProcessors, SystemInfo.OS_ARCH!!.lowercase(java.util.Locale.getDefault()).indexOf("arm") != -1)
 		this.toolkit = ToolkitOption(value, this)
 		this.setDefaults(true)
 	}
@@ -184,7 +184,7 @@ class GamePreferences : Node {
 	@OriginalMember(owner = "client!dh", name = "<init>", descriptor = "(Lclient!cea;Lclient!sj;I)V")
 	constructor(@OriginalArg(0) packet: Packet?, @OriginalArg(1) modeGame: Game?, @OriginalArg(2) value: Int) {
 		this.game = modeGame
-		this.processorSpecs = EnvironmentContext(GameShell.signLink.signed, GameShell.maxMemory, GameShell.availableProcessors, SystemInfo.OS_ARCH.indexOf("arm") != -1)
+		this.processorSpecs = EnvironmentContext(GameShell.signLink!!.signed, GameShell.maxMemory, GameShell.availableProcessors, SystemInfo.OS_ARCH!!.indexOf("arm") != -1)
 		this.toolkit = ToolkitOption(value, this)
 		this.decode(packet)
 	}
@@ -554,7 +554,7 @@ class GamePreferences : Node {
 		fun savePreferences() {
 			@Pc(7) var fileOnDisk: JFS32? = null
 			try {
-				@Pc(13) val signedResource: SignedResource = GameShell.signLink.openCacheFile("")
+				@Pc(13) val signedResource: SignedResource = GameShell.signLink!!.openCacheFile("")
 				while (signedResource.status == SignedResourceStatus.IDLE) {
 					TimeUtils.sleep(1L)
 				}
@@ -579,7 +579,7 @@ class GamePreferences : Node {
 			@Pc(7) var fileOnDisk: JFS32? = null
 			@Pc(13) var clientOptions: GamePreferences = GamePreferences(Game.CURRENT_GAME, 0)
 			try {
-				@Pc(19) val signedResource: SignedResource = GameShell.signLink.openCacheFile("")
+				@Pc(19) val signedResource: SignedResource = GameShell.signLink!!.openCacheFile("")
 				while (signedResource.status == SignedResourceStatus.IDLE) {
 					TimeUtils.sleep(1L)
 				}
@@ -628,13 +628,13 @@ class GamePreferences : Node {
 		@JvmStatic
 		fun setBloom(@OriginalArg(0) enabled: Boolean): Boolean {
 			@Suppress("NAME_SHADOWING") var enabled: Boolean = enabled
-			@Pc(6) val currentlyEnabled: Boolean = ClientState.activeToolkit.bloom()
+			@Pc(6) val currentlyEnabled: Boolean = ClientState.activeToolkit!!.bloom()
 			if (currentlyEnabled == enabled) {
 				return true
 			}
 			if (!enabled) {
-				ClientState.activeToolkit.stopBloom()
-			} else if (!ClientState.activeToolkit.hasBloom()) {
+				ClientState.activeToolkit!!.stopBloom()
+			} else if (!ClientState.activeToolkit!!.hasBloom()) {
 				enabled = false
 			}
 			if (currentlyEnabled == enabled) {

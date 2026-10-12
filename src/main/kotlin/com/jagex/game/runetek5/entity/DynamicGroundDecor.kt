@@ -90,7 +90,7 @@ class DynamicGroundDecor : GroundDecor, GameObject {
 			model.render(matrix, entity.boundingBoxPolygons!![0], 0)
 		}
 		if (this.locEntity.particleSystem != null) {
-			@Pc(87) val particleList: ParticleList? = this.locEntity.particleSystem.getList()
+			@Pc(87) val particleList: ParticleList? = this.locEntity.particleSystem!!.getList()
 			if (OrthoMode.orthographicProjection) {
 				toolkit.renderOrtho(particleList, HintArrow.scaledOrthoZoom)
 			} else {

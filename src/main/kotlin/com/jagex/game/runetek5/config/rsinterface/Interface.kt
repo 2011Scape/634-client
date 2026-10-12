@@ -35,11 +35,11 @@ object Interface {
 	@OriginalMember(owner = "client!hda", name = "a", descriptor = "(IB)V")
 	@JvmStatic
 	fun unloadInterface(@OriginalArg(0) interfaceId: Int) {
-		if (interfaceId != -1 && InterfaceManager.loadedInterfaces[interfaceId]) {
+		if (interfaceId != -1 && InterfaceManager.loadedInterfaces!![interfaceId]) {
 			Resource.aClass157_255!!.discardUnpacked(interfaceId)
 			Interface.interfaces!![interfaceId] = null
 			Interface.aClass24ArrayArray1!![interfaceId] = null
-			InterfaceManager.loadedInterfaces[interfaceId] = false
+			InterfaceManager.loadedInterfaces!![interfaceId] = false
 		}
 	}
 

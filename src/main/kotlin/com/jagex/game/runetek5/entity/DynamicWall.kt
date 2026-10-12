@@ -125,7 +125,7 @@ class DynamicWall : Wall, GameObject {
 			model.render(matrix, pickableEntity.boundingBoxPolygons!![0], 0)
 		}
 		if (this.locEntity.particleSystem != null) {
-			@Pc(89) val particles: ParticleList? = this.locEntity.particleSystem.getList()
+			@Pc(89) val particles: ParticleList? = this.locEntity.particleSystem!!.getList()
 			if (OrthoMode.orthographicProjection) {
 				toolkit.renderOrtho(particles, HintArrow.scaledOrthoZoom)
 			} else {

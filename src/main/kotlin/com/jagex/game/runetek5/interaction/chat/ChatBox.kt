@@ -41,7 +41,7 @@ object ChatBox {
 				if (sprite == null) {
 					@Pc(43) val indexedImage: SpriteType? = SpriteDataProvider.listSingle(Resource.SPRITES, questType.graphicId, 0)
 					if (indexedImage != null) {
-						sprite = ClientState.activeToolkit.generateSprite(indexedImage, true)
+						sprite = ClientState.activeToolkit!!.generateSprite(indexedImage, true)
 						ChatBox.CHAT_ICONS.put(sprite, questType.graphicId.toLong())
 					}
 				}

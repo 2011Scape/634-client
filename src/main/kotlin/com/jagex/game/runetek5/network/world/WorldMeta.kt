@@ -19,9 +19,9 @@ object WorldMeta {
 		Country.aClass359Array1 = arrayOfNulls<Country>(countryCount)
 		@Pc(14) var i: Int = 0
 		while (i < countryCount) {
-			Country.aClass359Array1[i] = Country()
-			Country.aClass359Array1[i].flag = packet.readUSmart()
-			Country.aClass359Array1[i].name = packet.readJagString()
+			Country.aClass359Array1!![i] = Country()
+			Country.aClass359Array1!![i]!!.flag = packet.readUSmart()
+			Country.aClass359Array1!![i]!!.name = packet.readJagString()
 			i++
 		}
 		WorldDescriptor.WORLD_LIST_START = packet.readUSmart()

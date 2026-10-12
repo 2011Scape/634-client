@@ -147,7 +147,7 @@ object Scene {
 		}
 		EntityNode.resetPickableEntityPools()
 		PickList.aClass182_1 = PickList.aClass182_2
-		PickList.aClass182_1.clear()
+		PickList.aClass182_1!!.clear()
 		Scene.waterIntensities = null
 		Scene.waterColors = null
 		Scene.waterScales = null
@@ -621,8 +621,8 @@ object Scene {
 	@JvmStatic
 	fun stopRenderWorkers() {
 		@Pc(1) var i: Int = 0
-		while (i < RenderWorker.aClass366Array1.size) {
-			RenderWorker.aClass366Array1[i].stop()
+		while (i < RenderWorker.aClass366Array1!!.size) {
+			RenderWorker.aClass366Array1!![i]!!.stop()
 			i++
 		}
 		RenderWorker.aClass366Array1 = null
@@ -1391,7 +1391,7 @@ object Scene {
 			while (j < MapRegion.sceneSizeX) {
 				@Pc(31) var k: Int = 0
 				while (k < MapRegion.sceneSizeY) {
-					MapRegion.roofStamps[i][j][k] = value
+					MapRegion.roofStamps!![i]!![j]!![k] = value
 					k++
 				}
 				j++

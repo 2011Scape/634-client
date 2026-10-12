@@ -75,7 +75,7 @@ class NewsItemFetcher : Runnable {
 		if (this.aClass240_6 == null) {
 			try {
 				@Pc(22) val port: Int = if (ServerEnvironment.LIVE === ModeWhere.WTRC) Ports.HTTP else WorldConnection.aClass255_3!!.worldId + Ports.HTTP_OFFSET
-				this.aClass240_6 = GameShell.signLink.openStream(URL("http://" + WorldConnection.aClass255_3!!.host + ":" + port + "/news.ws?game=" + Game.CURRENT_GAME.id))
+				this.aClass240_6 = GameShell.signLink!!.openStream(URL("http://" + WorldConnection.aClass255_3!!.host + ":" + port + "/news.ws?game=" + Game.CURRENT_GAME!!.id))
 			} catch (@Pc(49) ex: MalformedURLException) {
 				return true
 			}

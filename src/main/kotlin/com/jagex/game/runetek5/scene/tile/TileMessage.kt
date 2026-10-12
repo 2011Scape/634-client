@@ -55,7 +55,7 @@ class TileMessage : EntityNode() {
 					tileMessage.unlinkNode()
 				} else {
 					OverlayManager.projectToScreen(width shr 1, tileMessage.tileHeight * 2, height shr 1, tileMessage.plane, (tileMessage.absoluteY shl 9) + 256, (tileMessage.absoluteX shl 9) + 256)
-					MiniMenu.minimenuHeader.renderCentered(x + OverlayManager.projectedScreenPosition[0], tileMessage.minimenuColor or 0xFF000000.toInt(), tileMessage.minimenuText, 0, y + OverlayManager.projectedScreenPosition[1])
+					MiniMenu.minimenuHeader!!.renderCentered(x + OverlayManager.projectedScreenPosition[0], tileMessage.minimenuColor or 0xFF000000.toInt(), tileMessage.minimenuText, 0, y + OverlayManager.projectedScreenPosition[1])
 				}
 				tileMessage = TileMessage.aClass325_8.getNext() as TileMessage?
 			}

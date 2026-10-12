@@ -11,7 +11,7 @@ object InterfaceRenderer {
 	@JvmStatic
 	fun isComponentHidden(@OriginalArg(0) component: Component?): Boolean {
 		if (InterfaceManager.qaOpTest) {
-			if (InterfaceManager.getComponentSettings(component).settingsHash != 0) {
+			if (InterfaceManager.getComponentSettings(component)!!.settingsHash != 0) {
 				return false
 			}
 			if (component!!.type === ComponentType.CONTAINER) {

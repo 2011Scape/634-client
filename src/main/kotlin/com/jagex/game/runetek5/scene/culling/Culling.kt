@@ -196,8 +196,8 @@ object Culling {
 		@Pc(22) var local22: Int
 		if (SceneDrawer.visibleBelowDrawheight != null && plane <= locOccluder!!.plane) {
 			var index: Int = 0
-			while (index < SceneDrawer.visibleBelowDrawheight.size) {
-				if (SceneDrawer.visibleBelowDrawheight[index] != -1000000 && (locOccluder.drawHeights[0] <= SceneDrawer.visibleBelowDrawheight[index] || locOccluder.drawHeights[1] <= SceneDrawer.visibleBelowDrawheight[index] || locOccluder.drawHeights[2] <= SceneDrawer.visibleBelowDrawheight[index] || SceneDrawer.visibleBelowDrawheight[index] >= locOccluder.drawHeights[3]) && (locOccluder.tileCullingsX[0] <= SceneDrawer.roofMaxX[index] || locOccluder.tileCullingsX[1] <= SceneDrawer.roofMaxX[index] || locOccluder.tileCullingsX[2] <= SceneDrawer.roofMaxX[index] || SceneDrawer.roofMaxX[index] >= locOccluder.tileCullingsX[3]) && (locOccluder.tileCullingsX[0] >= SceneDrawer.roofMinX[index] || SceneDrawer.roofMinX[index] <= locOccluder.tileCullingsX[1] || locOccluder.tileCullingsX[2] >= SceneDrawer.roofMinX[index] || SceneDrawer.roofMinX[index] <= locOccluder.tileCullingsX[3]) && (SceneDrawer.roofMaxZ[index] >= locOccluder.tileCullingsZ[0] || locOccluder.tileCullingsZ[1] <= SceneDrawer.roofMaxZ[index] || locOccluder.tileCullingsZ[2] <= SceneDrawer.roofMaxZ[index] || SceneDrawer.roofMaxZ[index] >= locOccluder.tileCullingsZ[3]) && (locOccluder.tileCullingsZ[0] >= SceneDrawer.roofMinZ[index] || locOccluder.tileCullingsZ[1] >= SceneDrawer.roofMinZ[index] || locOccluder.tileCullingsZ[2] >= SceneDrawer.roofMinZ[index] || locOccluder.tileCullingsZ[3] >= SceneDrawer.roofMinZ[index])) {
+			while (index < SceneDrawer.visibleBelowDrawheight!!.size) {
+				if (SceneDrawer.visibleBelowDrawheight!![index] != -1000000 && (locOccluder.drawHeights[0] <= SceneDrawer.visibleBelowDrawheight!![index] || locOccluder.drawHeights[1] <= SceneDrawer.visibleBelowDrawheight!![index] || locOccluder.drawHeights[2] <= SceneDrawer.visibleBelowDrawheight!![index] || SceneDrawer.visibleBelowDrawheight!![index] >= locOccluder.drawHeights[3]) && (locOccluder.tileCullingsX[0] <= SceneDrawer.roofMaxX!![index] || locOccluder.tileCullingsX[1] <= SceneDrawer.roofMaxX!![index] || locOccluder.tileCullingsX[2] <= SceneDrawer.roofMaxX!![index] || SceneDrawer.roofMaxX!![index] >= locOccluder.tileCullingsX[3]) && (locOccluder.tileCullingsX[0] >= SceneDrawer.roofMinX!![index] || SceneDrawer.roofMinX!![index] <= locOccluder.tileCullingsX[1] || locOccluder.tileCullingsX[2] >= SceneDrawer.roofMinX!![index] || SceneDrawer.roofMinX!![index] <= locOccluder.tileCullingsX[3]) && (SceneDrawer.roofMaxZ!![index] >= locOccluder.tileCullingsZ[0] || locOccluder.tileCullingsZ[1] <= SceneDrawer.roofMaxZ!![index] || locOccluder.tileCullingsZ[2] <= SceneDrawer.roofMaxZ!![index] || SceneDrawer.roofMaxZ!![index] >= locOccluder.tileCullingsZ[3]) && (locOccluder.tileCullingsZ[0] >= SceneDrawer.roofMinZ!![index] || locOccluder.tileCullingsZ[1] >= SceneDrawer.roofMinZ!![index] || locOccluder.tileCullingsZ[2] >= SceneDrawer.roofMinZ!![index] || locOccluder.tileCullingsZ[3] >= SceneDrawer.roofMinZ!![index])) {
 					return
 				}
 				index++
@@ -1569,8 +1569,8 @@ object Culling {
 		}
 		Scene.toolkit!!.K(SceneDrawer.clipBounds)
 		@Pc(12) var i: Int = 0
-		while (i < ScriptRunner.threadSplitX.size) {
-			Scene.toolkit!!.verticalLine(ScriptRunner.threadSplitX[i] + SceneDrawer.threadSplitOffsets[i], -256, SceneDrawer.clipBounds[3] - SceneDrawer.clipBounds[1], SceneDrawer.clipBounds[1])
+		while (i < ScriptRunner.threadSplitX!!.size) {
+			Scene.toolkit!!.verticalLine(ScriptRunner.threadSplitX!![i] + SceneDrawer.threadSplitOffsets!![i], -256, SceneDrawer.clipBounds[3] - SceneDrawer.clipBounds[1], SceneDrawer.clipBounds[1])
 			i++
 		}
 		@Pc(41) var j: Int = 0
@@ -1593,12 +1593,12 @@ object Culling {
 			}
 			j++
 		}
-		W2DebugMode.font.drawString("Dynamic: " + Scene.interactiveObjectCount + "/" + 5000, -256, 75, 10, -16777216)
-		W2DebugMode.font.drawString("Total Opaque Onscreen: " + Scene.onscreenOpaqueCount + "/" + 10000, -256, 90, 10, -16777216)
-		W2DebugMode.font.drawString("Total Trans Onscreen: " + Scene.transparentEntityCount + "/" + 5000, -256, 105, 10, -16777216)
-		W2DebugMode.font.drawString("Occluders: " + (Culling.groundCullingClusterCount + Culling.tileCullingClusterCount) + " Active: " + Culling.activeOccluderCount, -256, 120, 10, -16777216)
-		W2DebugMode.font.drawString("Occluded: Ground:" + Culling.occludedGroundCount + " Walls: " + OccludedWallCount.occludedWallCount + " CPs: " + Sprites.hintHeadId + " Pixels: " + Culling.depthWriteCount, -256, 135, 10, -16777216)
-		W2DebugMode.font.drawString("Occlude Calc Took: " + Culling.occludeCalcNanos / 1000L + "us", -256, 150, 10, -16777216)
+		W2DebugMode.font!!.drawString("Dynamic: " + Scene.interactiveObjectCount + "/" + 5000, -256, 75, 10, -16777216)
+		W2DebugMode.font!!.drawString("Total Opaque Onscreen: " + Scene.onscreenOpaqueCount + "/" + 10000, -256, 90, 10, -16777216)
+		W2DebugMode.font!!.drawString("Total Trans Onscreen: " + Scene.transparentEntityCount + "/" + 5000, -256, 105, 10, -16777216)
+		W2DebugMode.font!!.drawString("Occluders: " + (Culling.groundCullingClusterCount + Culling.tileCullingClusterCount) + " Active: " + Culling.activeOccluderCount, -256, 120, 10, -16777216)
+		W2DebugMode.font!!.drawString("Occluded: Ground:" + Culling.occludedGroundCount + " Walls: " + OccludedWallCount.occludedWallCount + " CPs: " + Sprites.hintHeadId + " Pixels: " + Culling.depthWriteCount, -256, 135, 10, -16777216)
+		W2DebugMode.font!!.drawString("Occlude Calc Took: " + Culling.occludeCalcNanos / 1000L + "us", -256, 150, 10, -16777216)
 		if (W2DebugMode.sceneDebugMode != 2 || MipmapTextureSampler.textures == null) {
 			return
 		}

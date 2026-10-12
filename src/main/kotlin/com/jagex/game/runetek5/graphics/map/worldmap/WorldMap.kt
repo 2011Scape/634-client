@@ -199,7 +199,7 @@ object WorldMap {
 		while (i < locIds.size) {
 			@Pc(107) val shape: Int = locShapes!![i].toInt() and 0x3F
 			if (shape == 0 || shape == 2 || shape == 3 || shape == 9) {
-				@Pc(127) val locType: LocType = MapList.LOCTYPE_LIST.list(locIds[i].toInt() and 0xFFFF)
+				@Pc(127) val locType: LocType = MapList.LOCTYPE_LIST!!.list(locIds[i].toInt() and 0xFFFF)
 				if (locType.mapIconId == -1) {
 					@Pc(133) var wallColour: Int = -3355444
 					if (locType.hasActions == LocInteractivity.INTERACTIVE) {
@@ -354,7 +354,7 @@ object WorldMap {
 				if (positiveX < WorldMapRenderer.mapSizeX) {
 					val underlayId: Int = tileUnderlayIds!![positiveX + j * WorldMapRenderer.mapSizeX].toInt() and 0xFF
 					if (underlayId > 0) {
-						floorUnderlayType = MapList.FLUTYPE_LIST.list(underlayId - 1)
+						floorUnderlayType = MapList.FLUTYPE_LIST!!.list(underlayId - 1)
 						underlayHue[j] += floorUnderlayType!!.hue
 						underlaySaturation[j] += floorUnderlayType.saturation
 						underlayLightness[j] += floorUnderlayType.lightness
@@ -365,7 +365,7 @@ object WorldMap {
 				if (negativeX >= 0) {
 					val underlayId: Int = tileUnderlayIds!![negativeX + j * WorldMapRenderer.mapSizeX].toInt() and 0xFF
 					if (underlayId > 0) {
-						floorUnderlayType = MapList.FLUTYPE_LIST.list(underlayId - 1)
+						floorUnderlayType = MapList.FLUTYPE_LIST!!.list(underlayId - 1)
 						underlayHue[j] -= floorUnderlayType!!.hue
 						underlaySaturation[j] -= floorUnderlayType.saturation
 						underlayLightness[j] -= floorUnderlayType.lightness
@@ -456,11 +456,11 @@ object WorldMap {
 				if (locId != 0) {
 					@Pc(35) var locIndex: Int
 					if (locId == 65535) {
-						@Pc(31) val locList: MultiLocEntry? = MapList.multiLocs.get(((x shl 16) or z).toLong()) as MultiLocEntry?
+						@Pc(31) val locList: MultiLocEntry? = MapList.multiLocs!!.get(((x shl 16) or z).toLong()) as MultiLocEntry?
 						if (locList != null) {
 							locIndex = 0
 							while (locIndex < locList.locIds!!.size) {
-								@Pc(46) var locType: LocType? = MapList.LOCTYPE_LIST.list(locList.locIds[locIndex].toInt() and 0xFFFF)
+								@Pc(46) var locType: LocType? = MapList.LOCTYPE_LIST!!.list(locList.locIds[locIndex].toInt() and 0xFFFF)
 								mapelement = locType!!.mapCategoryid
 								if (locType.alternativeIds != null) {
 									locType = locType.getMultiLoc(MapList.PLAYER_VAR_PROVIDER)
@@ -478,7 +478,7 @@ object WorldMap {
 							}
 						}
 					} else {
-						@Pc(94) var locType2: LocType? = MapList.LOCTYPE_LIST.list(locId - 1)
+						@Pc(94) var locType2: LocType? = MapList.LOCTYPE_LIST!!.list(locId - 1)
 						locIndex = locType2!!.mapCategoryid
 						if (locType2.alternativeIds != null) {
 							locType2 = locType2.getMultiLoc(MapList.PLAYER_VAR_PROVIDER)
@@ -501,17 +501,17 @@ object WorldMap {
 		z = 0
 		while (z < 3) {
 			locId = 0
-			while (locId < MapList.tiles[0].size) {
+			while (locId < MapList.tiles!![0]!!.size) {
 				@Pc(144) var chunkZ: Int = 0
-				while (chunkZ < MapList.tiles[0][0].size) {
-					@Pc(153) val chunkTiles: EntityNodeList? = MapList.tiles[z][locId][chunkZ]
+				while (chunkZ < MapList.tiles!![0]!![0]!!.size) {
+					@Pc(153) val chunkTiles: EntityNodeList? = MapList.tiles!![z]!![locId]!![chunkZ]
 					if (chunkTiles != null) {
 						@Pc(160) var tile: WorldMapTile? = chunkTiles.getFirst() as WorldMapTile?
 						while (tile != null) {
 							if (tile.locIds != null) {
 								mapelement = 0
 								while (mapelement < tile.locIds.size) {
-									@Pc(177) var locType3: LocType? = MapList.LOCTYPE_LIST.list(tile.locIds[mapelement].toInt() and 0xFFFF)
+									@Pc(177) var locType3: LocType? = MapList.LOCTYPE_LIST!!.list(tile.locIds[mapelement].toInt() and 0xFFFF)
 									@Pc(180) var elementId: Int = locType3!!.mapCategoryid
 									if (locType3.alternativeIds != null) {
 										locType3 = locType3.getMultiLoc(MapList.PLAYER_VAR_PROVIDER)
@@ -551,7 +551,7 @@ object WorldMap {
 		val chunksX: Int = WorldMapRenderer.mapSizeX shr 6
 		val chunksZ: Int = WorldMapRenderer.mapSizeY shr 6
 		MapList.tiles = Array<Array<Array<EntityNodeList?>?>?>(3) { Array<Array<EntityNodeList?>?>(chunksX) { arrayOfNulls<EntityNodeList>(chunksZ) } }
-		overlayFloorColors = IntArray(MapList.FLOTYPE_LIST.totalFileCount + 1)
+		overlayFloorColors = IntArray(MapList.FLOTYPE_LIST!!.totalFileCount + 1)
 	}
 
 	@OriginalMember(owner = "client!kp", name = "l", descriptor = "[B")
@@ -598,7 +598,7 @@ object WorldMap {
 	@JvmStatic
 	fun initOverlayColours(@OriginalArg(0) textureSource: MaterialProvider?, @OriginalArg(1) hueOffset: Int, @OriginalArg(2) lightnessOffset: Int) {
 		@Pc(1) var i: Int = 0
-		while (i < MapList.FLOTYPE_LIST.totalFileCount) {
+		while (i < MapList.FLOTYPE_LIST!!.totalFileCount) {
 			WorldMap.overlayFloorColors!![i + 1] = overlayColour(textureSource, i, hueOffset, lightnessOffset)
 			i++
 		}
@@ -607,7 +607,7 @@ object WorldMap {
 	@OriginalMember(owner = "client!kp", name = "a", descriptor = "(Lclient!d;III)I")
 	@JvmStatic
 	fun overlayColour(@OriginalArg(0) textureSource: MaterialProvider?, @OriginalArg(1) id: Int, @OriginalArg(2) hueOffset: Int, @OriginalArg(3) lightnessOffset: Int): Int {
-		@Pc(4) val spotAnimType: FloType? = MapList.FLOTYPE_LIST.list(id)
+		@Pc(4) val spotAnimType: FloType? = MapList.FLOTYPE_LIST!!.list(id)
 		if (spotAnimType == null) {
 			return 0
 		}
@@ -670,8 +670,8 @@ object WorldMap {
 		MapList.MAP_SPRITE_TYPE_LIST = msiTypeList
 		MapList.PLAYER_VAR_PROVIDER = varDomain
 		MapList.WORLDMAP_DEFS.clear()
-		@Pc(21) val groupId: Int = MapList.MAP_AREA_RESOURCE.getGroupId("details")
-		@Pc(26) val fileIds: IntArray? = MapList.MAP_AREA_RESOURCE.getFileIds(groupId)
+		@Pc(21) val groupId: Int = MapList.MAP_AREA_RESOURCE!!.getGroupId("details")
+		@Pc(26) val fileIds: IntArray? = MapList.MAP_AREA_RESOURCE!!.getFileIds(groupId)
 		if (fileIds != null) {
 			@Pc(30) var i: Int = 0
 			while (i < fileIds.size) {

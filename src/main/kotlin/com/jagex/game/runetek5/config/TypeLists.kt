@@ -272,7 +272,7 @@ object TypeLists {
 		ParticleProducerType.clearCache()
 		FriendChat.clearParticleCache()
 		CS2State.aClass169_33.reset()
-		ClientState.activeToolkit.cacheReset()
+		ClientState.activeToolkit!!.cacheReset()
 		ClientScript.clearCache()
 		Renderers.freeGpuItemRenderer()
 		Resource.FRAME_SET!!.discardUnpacked()

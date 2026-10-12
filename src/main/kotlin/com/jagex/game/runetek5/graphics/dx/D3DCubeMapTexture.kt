@@ -27,11 +27,11 @@ class D3DCubeMapTexture : D3DTexture, CubeTextureSampler {
 	constructor(@OriginalArg(0) d3DToolkit: D3DToolkit?, @OriginalArg(1) size: Int, @OriginalArg(2) mipmapped: Boolean, @OriginalArg(3) pixels: Array<IntArray?>?) : super(d3DToolkit, GLFormat.HDR, GLFormat.RGBA, mipmapped && d3DToolkit!!.mipmappedCubeMapSupported, size * 6 * size) {
 		this.size = size
 		if (this.mipmapped) {
-			this.texture = this.toolkit.iDirect3DDevice!!.a(this.size, 0, 1024, 21, 1)
+			this.texture = this.toolkit!!.iDirect3DDevice!!.a(this.size, 0, 1024, 21, 1)
 		} else {
-			this.texture = this.toolkit.iDirect3DDevice!!.a(this.size, 1, 0, 21, 1)
+			this.texture = this.toolkit!!.iDirect3DDevice!!.a(this.size, 1, 0, 21, 1)
 		}
-		@Pc(52) val pixelBuffer: PixelBuffer? = this.toolkit.pixelBuffer
+		@Pc(52) val pixelBuffer: PixelBuffer? = this.toolkit!!.pixelBuffer
 		@Pc(54) var i: Int = 0
 		while (i < 6) {
 			@Pc(73) val result: Int = this.texture!!.LockRect(i, 0, 0, 0, this.size, this.size, 0, pixelBuffer)
@@ -54,7 +54,7 @@ class D3DCubeMapTexture : D3DTexture, CubeTextureSampler {
 
 	@OriginalMember(owner = "client!gm", name = "a", descriptor = "(B)V")
 	override fun bindTexture() {
-		this.toolkit.bindTexture(this)
+		this.toolkit!!.bindTexture(this)
 	}
 
 	@OriginalMember(owner = "client!gm", name = "c", descriptor = "(I)Lclient!jagdx/IDirect3DBaseTexture;")

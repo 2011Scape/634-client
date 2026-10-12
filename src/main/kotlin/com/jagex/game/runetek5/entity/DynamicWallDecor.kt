@@ -109,7 +109,7 @@ class DynamicWallDecor : WallDecor, GameObject {
 			model.render(matrix, pickableEntity.boundingBoxPolygons!![0], 0)
 		}
 		if (this.locEntity.particleSystem != null) {
-			@Pc(93) val particleList: ParticleList? = this.locEntity.particleSystem.getList()
+			@Pc(93) val particleList: ParticleList? = this.locEntity.particleSystem!!.getList()
 			if (OrthoMode.orthographicProjection) {
 				toolkit.renderOrtho(particleList, HintArrow.scaledOrthoZoom)
 			} else {

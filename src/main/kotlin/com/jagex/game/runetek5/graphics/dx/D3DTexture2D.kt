@@ -41,7 +41,7 @@ class D3DTexture2D : D3DTexture, GpuTexture {
 	@OriginalMember(owner = "client!kt", name = "<init>", descriptor = "(Lclient!bfa;IIZ[III)V")
 	constructor(@OriginalArg(0) d3DToolkit: D3DToolkit?, @OriginalArg(1) width: Int, @OriginalArg(2) height: Int, @OriginalArg(3) mipmapped: Boolean, @OriginalArg(4) pixels: IntArray?, @OriginalArg(5) offset: Int, @OriginalArg(6) rowLength: Int) : super(d3DToolkit, GLFormat.HDR, GLFormat.RGBA, mipmapped && d3DToolkit!!.mipmapSupported, height * width) {
 		var rowLength: Int = rowLength
-		if (this.toolkit.nonPowerOfTwoSupported) {
+		if (this.toolkit!!.nonPowerOfTwoSupported) {
 			this.height = height
 			this.width = width
 		} else {
@@ -49,11 +49,11 @@ class D3DTexture2D : D3DTexture, GpuTexture {
 			this.height = Utils.nextPowerOfTwo(height)
 		}
 		if (mipmapped) {
-			this.texture = this.toolkit.iDirect3DDevice!!.a(this.width, this.height, 0, 1024, 21, 1)
+			this.texture = this.toolkit!!.iDirect3DDevice!!.a(this.width, this.height, 0, 1024, 21, 1)
 		} else {
-			this.texture = this.toolkit.iDirect3DDevice!!.a(this.width, this.height, 1, 0, 21, 1)
+			this.texture = this.toolkit!!.iDirect3DDevice!!.a(this.width, this.height, 1, 0, 21, 1)
 		}
-		@Pc(71) val pixelBuffer: PixelBuffer? = this.toolkit.pixelBuffer
+		@Pc(71) val pixelBuffer: PixelBuffer? = this.toolkit!!.pixelBuffer
 		@Pc(82) val result: Int = this.texture!!.LockRect(0, 0, 0, width, height, 0, pixelBuffer)
 		if (ue.a(result, false)) {
 			if (rowLength == 0) {
@@ -75,19 +75,19 @@ class D3DTexture2D : D3DTexture, GpuTexture {
 
 	@OriginalMember(owner = "client!kt", name = "<init>", descriptor = "(Lclient!bfa;Lclient!wq;Lclient!baa;II)V")
 	constructor(@OriginalArg(0) d3DToolkit: D3DToolkit?, @OriginalArg(1) format: PixelFormat?, @OriginalArg(2) type: DataType?, @OriginalArg(3) width: Int, @OriginalArg(4) height: Int) : super(d3DToolkit, format, type, false, height * width) {
-		if (this.toolkit.nonPowerOfTwoSupported) {
+		if (this.toolkit!!.nonPowerOfTwoSupported) {
 			this.width = width
 			this.height = height
 		} else {
 			this.width = Utils.nextPowerOfTwo(width)
 			this.height = Utils.nextPowerOfTwo(height)
 		}
-		this.texture = this.toolkit.iDirect3DDevice!!.a(width, height, 1, 0, D3DEnumTranslator.toD3DFormat(this.type, this.format), 1)
+		this.texture = this.toolkit!!.iDirect3DDevice!!.a(width, height, 1, 0, D3DEnumTranslator.toD3DFormat(this.type, this.format), 1)
 	}
 
 	@OriginalMember(owner = "client!kt", name = "<init>", descriptor = "(Lclient!bfa;Lclient!wq;IIZ[BII)V")
 	constructor(@OriginalArg(0) d3DToolkit: D3DToolkit?, @OriginalArg(1) format: PixelFormat?, @OriginalArg(2) width: Int, @OriginalArg(3) height: Int, @OriginalArg(4) mipmapped: Boolean, @OriginalArg(5) data: ByteArray?, @OriginalArg(6) offset: Int, @OriginalArg(7) rowLength: Int) : super(d3DToolkit, format, GLFormat.RGBA, mipmapped && d3DToolkit!!.mipmapSupported, width * height) {
-		if (this.toolkit.nonPowerOfTwoSupported) {
+		if (this.toolkit!!.nonPowerOfTwoSupported) {
 			this.width = width
 			this.height = height
 		} else {
@@ -95,15 +95,15 @@ class D3DTexture2D : D3DTexture, GpuTexture {
 			this.height = Utils.nextPowerOfTwo(height)
 		}
 		if (mipmapped) {
-			this.texture = this.toolkit.iDirect3DDevice!!.a(this.width, this.height, 0, 1024, D3DEnumTranslator.toD3DFormat(GLFormat.RGBA, this.format), 1)
+			this.texture = this.toolkit!!.iDirect3DDevice!!.a(this.width, this.height, 0, 1024, D3DEnumTranslator.toD3DFormat(GLFormat.RGBA, this.format), 1)
 		} else {
-			this.texture = this.toolkit.iDirect3DDevice!!.a(this.width, this.height, 1, 0, D3DEnumTranslator.toD3DFormat(GLFormat.RGBA, this.format), 1)
+			this.texture = this.toolkit!!.iDirect3DDevice!!.a(this.width, this.height, 1, 0, D3DEnumTranslator.toD3DFormat(GLFormat.RGBA, this.format), 1)
 		}
-		@Pc(79) val pixelBuffer: PixelBuffer? = this.toolkit.pixelBuffer
+		@Pc(79) val pixelBuffer: PixelBuffer? = this.toolkit!!.pixelBuffer
 		@Pc(90) val result: Int = this.texture!!.LockRect(0, 0, 0, width, height, 0, pixelBuffer)
 		if (ue.a(result, false)) {
-			@Pc(105) val rowBytes: Int = width * this.format.componentCount
-			@Pc(111) val srcRowBytes: Int = width * this.format.componentCount
+			@Pc(105) val rowBytes: Int = width * this.format!!.componentCount
+			@Pc(111) val srcRowBytes: Int = width * this.format!!.componentCount
 			@Pc(114) val rowPitch: Int = pixelBuffer!!.getRowPitch()
 			if (rowPitch == rowBytes && srcRowBytes == rowBytes) {
 				pixelBuffer.a(data as ByteArray?, offset, 0, rowBytes * height)
@@ -143,7 +143,7 @@ class D3DTexture2D : D3DTexture, GpuTexture {
 		if (GLFormat.HDR !== this.format || this.type !== GLFormat.RGBA) {
 			throw RuntimeException()
 		}
-		@Pc(22) val pixelBuffer: PixelBuffer? = this.toolkit.pixelBuffer
+		@Pc(22) val pixelBuffer: PixelBuffer? = this.toolkit!!.pixelBuffer
 		@Pc(33) val result: Int = this.texture!!.LockRect(0, 0, 0, width, height, 16, pixelBuffer)
 		if (!ue.a(result, false)) {
 			return
@@ -171,7 +171,7 @@ class D3DTexture2D : D3DTexture, GpuTexture {
 		if (this.format !== GLFormat.HDR || this.type !== GLFormat.RGBA) {
 			throw RuntimeException()
 		}
-		@Pc(16) val pixelBuffer: PixelBuffer? = this.toolkit.pixelBuffer
+		@Pc(16) val pixelBuffer: PixelBuffer? = this.toolkit!!.pixelBuffer
 		@Pc(27) val result: Int = this.texture!!.LockRect(0, x, y, width, height, 0, pixelBuffer)
 		if (!ue.a(result, false)) {
 			return
@@ -196,7 +196,7 @@ class D3DTexture2D : D3DTexture, GpuTexture {
 
 	@OriginalMember(owner = "client!kt", name = "a", descriptor = "(B)V")
 	override fun bindTexture() {
-		this.toolkit.bindTexture2D(this)
+		this.toolkit!!.bindTexture2D(this)
 	}
 
 	@OriginalMember(owner = "client!kt", name = "a", descriptor = "(IIBIIII[BLclient!wq;)V")
@@ -204,13 +204,13 @@ class D3DTexture2D : D3DTexture, GpuTexture {
 		if (this.format !== format || this.type !== GLFormat.RGBA) {
 			throw RuntimeException()
 		}
-		@Pc(20) val pixelBuffer: PixelBuffer? = this.toolkit.pixelBuffer
+		@Pc(20) val pixelBuffer: PixelBuffer? = this.toolkit!!.pixelBuffer
 		@Pc(31) val result: Int = this.texture!!.LockRect(0, 0, 0, width, height, 0, pixelBuffer)
 		if (!ue.a(result, false)) {
 			return
 		}
-		@Pc(42) val srcRowBytes: Int = rowLength * this.format.componentCount
-		@Pc(48) val rowBytes: Int = width * this.format.componentCount
+		@Pc(42) val srcRowBytes: Int = rowLength * this.format!!.componentCount
+		@Pc(48) val rowBytes: Int = width * this.format!!.componentCount
 		@Pc(51) val rowPitch: Int = pixelBuffer!!.getRowPitch()
 		if (rowBytes == rowPitch && srcRowBytes == rowBytes) {
 			pixelBuffer.a(data as ByteArray?, 0, 0, rowBytes * height)

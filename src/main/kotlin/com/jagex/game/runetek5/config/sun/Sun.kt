@@ -76,8 +76,8 @@ class Sun {
 	private fun performAction(@OriginalArg(0) toolkit: Toolkit?, @OriginalArg(1) sun: Sun?): Boolean {
 		if (this.sunSprite == null) {
 			if (this.colour == 0) {
-				if (TextureTypeListInit.textureSource.textureAvailable(this.sunMaterialId)) {
-					@Pc(23) val pixels: IntArray? = TextureTypeListInit.textureSource.getPixelsArgb(this.sunUseDimension, 0.7f, this.sunMaterialId, this.sunUseDimension)
+				if (TextureTypeListInit.textureSource!!.textureAvailable(this.sunMaterialId)) {
+					@Pc(23) val pixels: IntArray? = TextureTypeListInit.textureSource!!.getPixelsArgb(this.sunUseDimension, 0.7f, this.sunMaterialId, this.sunUseDimension)
 					this.sunSprite = toolkit!!.createNativeSprite(this.sunUseDimension, pixels, this.sunUseDimension, this.sunUseDimension)
 				}
 			} else if (this.colour == 2) {

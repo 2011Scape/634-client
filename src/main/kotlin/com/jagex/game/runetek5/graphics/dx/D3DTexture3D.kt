@@ -36,11 +36,11 @@ class D3DTexture3D : D3DTexture, Texture3DSampler {
 		this.depth = depth
 		this.width = width
 		this.height = height
-		this.texture = this.toolkit.iDirect3DDevice!!.a(depth, height, width, 1, 0, D3DEnumTranslator.toD3DFormat(this.type, format), 1)
-		@Pc(40) val pixelBuffer: PixelBuffer? = this.toolkit.pixelBuffer
+		this.texture = this.toolkit!!.iDirect3DDevice!!.a(depth, height, width, 1, 0, D3DEnumTranslator.toD3DFormat(this.type, format), 1)
+		@Pc(40) val pixelBuffer: PixelBuffer? = this.toolkit!!.pixelBuffer
 		@Pc(53) val result: Int = this.texture!!.LockBox(0, 0, 0, 0, depth, height, width, 0, pixelBuffer)
 		if (ue.a(result, false)) {
-			@Pc(64) val rowBytes: Int = this.format.componentCount * this.depth
+			@Pc(64) val rowBytes: Int = this.format!!.componentCount * this.depth
 			@Pc(69) val sliceBytes: Int = rowBytes * this.height
 			@Pc(72) val slicePitch: Int = pixelBuffer!!.getSlicePitch()
 			if (slicePitch == sliceBytes) {
@@ -72,7 +72,7 @@ class D3DTexture3D : D3DTexture, Texture3DSampler {
 
 	@OriginalMember(owner = "client!nc", name = "a", descriptor = "(B)V")
 	override fun bindTexture() {
-		this.toolkit.bindTexture3D(this)
+		this.toolkit!!.bindTexture3D(this)
 	}
 
 	@OriginalMember(owner = "client!nc", name = "c", descriptor = "(I)Lclient!jagdx/IDirect3DBaseTexture;")
