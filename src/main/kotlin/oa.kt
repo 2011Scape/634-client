@@ -59,11 +59,12 @@ class oa : Toolkit, SoftwareObject {
 	@OriginalMember(owner = "client!oa", name = "T", descriptor = "[Lclient!a;")
 	private var anAArray1: Array<a?>? = null
 
-	// nativeid is final with the constant initialiser 0L, so javac inlined 0L at every read of it;
-	// the natives still set the field. Reads are written as 0L to keep that behaviour.
+	// The deobfuscated Java declared this `final long nativeid = 0L`, so javac replaced every read with 0
+	// and the client never saw the id the natives store here. The original client (and void-client) keep
+	// it a plain field and read it; so does this one.
 	@OriginalMember(owner = "client!oa", name = "nativeid", descriptor = "J")
 	@JvmField
-	val nativeid: Long = 0L
+	var nativeid: Long = 0L
 
 	@OriginalMember(owner = "client!oa", name = "A", descriptor = "Z")
 	private var aBoolean541: Boolean = false
@@ -375,8 +376,7 @@ class oa : Toolkit, SoftwareObject {
 	@Synchronized
 	override fun finalize() {
 		this.free()
-		// nativeid is final with the constant initialiser 0L: javac inlined 0L for this read.
-		if (0L != 0L) {
+		if (this.nativeid != 0L) {
 			SoftwareMemoryManager.free(this)
 		}
 	}
@@ -737,8 +737,7 @@ class oa : Toolkit, SoftwareObject {
 	@OriginalMember(owner = "client!oa", name = "a", descriptor = "(Lclient!is;)V")
 	override fun swapSurface(@OriginalArg(0) offscreenSurface: OffscreenSurface?) {
 		@Pc(2) val local2: wa? = offscreenSurface as wa?
-		// xa.nativeid is final with the constant initialiser 0L: javac inlined 0L for this read (after a null check).
-		this.n(local2!!.aJ1!!.nativeid, run { local2.aXa1!!; 0L })
+		this.n(local2!!.aJ1!!.nativeid, local2.aXa1!!.nativeid)
 	}
 
 	@OriginalMember(owner = "client!oa", name = "da", descriptor = "(III[I)V")

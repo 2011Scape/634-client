@@ -42,8 +42,11 @@ class WindowMode @OriginalMember(owner = "client!gp", name = "<init>", descripto
 		}
 	}
 
+	// enter, listmodes and exit are public, as in the original client: SignLink reaches them by reflection
+	// with getMethod, which finds public methods only. The deobfuscated Java had made them private, which
+	// left fullscreen unable to list, enter or leave display modes.
 	@OriginalMember(owner = "client!gp", name = "enter", descriptor = "(Ljava/awt/Frame;IIII)V")
-	private fun enter(@OriginalArg(0) frame: Frame?, @OriginalArg(1) width: Int, @OriginalArg(2) height: Int, @OriginalArg(3) bitDepth: Int, @OriginalArg(4) targetRefreshRate: Int) {
+	fun enter(@OriginalArg(0) frame: Frame?, @OriginalArg(1) width: Int, @OriginalArg(2) height: Int, @OriginalArg(3) bitDepth: Int, @OriginalArg(4) targetRefreshRate: Int) {
 		var targetRefreshRate: Int = targetRefreshRate
 		this.displayMode = this.fullscreenDevice!!.getDisplayMode()
 		if (this.displayMode == null) {
@@ -75,7 +78,7 @@ class WindowMode @OriginalMember(owner = "client!gp", name = "<init>", descripto
 	}
 
 	@OriginalMember(owner = "client!gp", name = "listmodes", descriptor = "()[I")
-	private fun listmodes(): IntArray? {
+	fun listmodes(): IntArray? {
 		@Pc(3) val displayModes: Array<DisplayMode> = this.fullscreenDevice!!.getDisplayModes()
 		@Pc(9) val modes: IntArray = IntArray(displayModes.size shl 2)
 		@Pc(11) var i: Int = 0
@@ -90,7 +93,7 @@ class WindowMode @OriginalMember(owner = "client!gp", name = "<init>", descripto
 	}
 
 	@OriginalMember(owner = "client!gp", name = "exit", descriptor = "()V")
-	private fun exit() {
+	fun exit() {
 		if (this.displayMode != null) {
 			this.fullscreenDevice!!.setDisplayMode(this.displayMode)
 			if (!this.fullscreenDevice!!.getDisplayMode().equals(this.displayMode)) {

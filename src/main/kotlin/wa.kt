@@ -19,18 +19,14 @@ class wa : OffscreenSurface {
 
 	@OriginalMember(owner = "client!wa", name = "<init>", descriptor = "(Lclient!oa;Lclient!j;Lclient!xa;)V")
 	constructor(@OriginalArg(0) arg0: oa?, @OriginalArg(1) arg1: j?, @OriginalArg(2) arg2: xa?) {
-		// oa.nativeid is a final field initialised to the constant 0L, so javac inlined 0L for this read
-		// (after a null check of arg0); natives set the field later, but this copy stays 0L.
-		arg0!!
-		this.nativeid = 0L
+		this.nativeid = arg0!!.nativeid
 		this.aJ1 = arg1
 		this.aXa1 = arg2
 	}
 
-	// xa.nativeid reads are inlined as 0L by javac (final field with constant initialiser); kept as 0L here.
 	@OriginalMember(owner = "client!wa", name = "a", descriptor = "(IIIIIIZZ)V")
 	override fun copyToSurface(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int, @OriginalArg(5) arg5: Int) {
-		this.Z(this.nativeid, this.aJ1!!.nativeid, run { this.aXa1!!; 0L }, arg0, arg1, arg2, arg3, arg4, arg5, true, true)
+		this.Z(this.nativeid, this.aJ1!!.nativeid, this.aXa1!!.nativeid, arg0, arg1, arg2, arg3, arg4, arg5, true, true)
 	}
 
 	@OriginalMember(owner = "client!wa", name = "X", descriptor = "(JJJIIIIIIZZ)V")
@@ -41,7 +37,7 @@ class wa : OffscreenSurface {
 
 	@OriginalMember(owner = "client!wa", name = "b", descriptor = "(IIIIIIZZ)V")
 	override fun copyFromSurface(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(6) arg4: Boolean) {
-		this.X(this.nativeid, this.aJ1!!.nativeid, run { this.aXa1!!; 0L }, arg0, arg1, arg2, arg3, 0, 0, arg4, true)
+		this.X(this.nativeid, this.aJ1!!.nativeid, this.aXa1!!.nativeid, arg0, arg1, arg2, arg3, 0, 0, arg4, true)
 	}
 }
 

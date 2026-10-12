@@ -8,11 +8,12 @@ import org.openrs2.deob.annotation.OriginalMember
 @OriginalClass("client!xa")
 class xa : DepthBuffer, SoftwareObject {
 
-	// nativeid is final with the constant initialiser 0L, so javac inlined 0L at every read of it;
-	// the natives still set the field. The reads below are written as 0L to keep that behaviour.
+	// The deobfuscated Java declared this `final long nativeid = 0L`, so javac replaced every read with 0
+	// and the client never saw the id the natives store here. The original client (and void-client) keep
+	// it a plain field and read it; so does this one.
 	@OriginalMember(owner = "client!xa", name = "nativeid", descriptor = "J")
 	@JvmField
-	val nativeid: Long = 0L
+	var nativeid: Long = 0L
 
 	@OriginalMember(owner = "client!xa", name = "<init>", descriptor = "(II)V")
 	constructor(@OriginalArg(0) arg0: Int, @OriginalArg(1) arg1: Int) {
@@ -27,12 +28,12 @@ class xa : DepthBuffer, SoftwareObject {
 
 	@OriginalMember(owner = "client!xa", name = "w", descriptor = "(Z)V")
 	override fun w(@OriginalArg(0) arg0: Boolean) {
-		this.va(0L, arg0)
+		this.va(this.nativeid, arg0)
 	}
 
 	@OriginalMember(owner = "client!xa", name = "finalize", descriptor = "()V")
 	fun finalize() {
-		if (0L != 0L) {
+		if (this.nativeid != 0L) {
 			SoftwareMemoryManager.free(this)
 		}
 	}
