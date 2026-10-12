@@ -43,6 +43,13 @@ actual abstract class Component : ImageObserver {
 
     var onPaint: ((Graphics) -> Unit)? = null
 
+    /*
+     * Whether this component is a page-filling window (a top-level Frame): it keeps its own place
+     * and size, the browser window's, and ignores the client's setLocation and setSize, which are
+     * meant for a desktop window.
+     */
+    internal open val fillsPage: Boolean get() = false
+
     private val keyListeners = mutableListOf<KeyListener>()
     private val focusListeners = mutableListOf<FocusListener>()
     private val mouseListeners = mutableListOf<MouseListener>()
@@ -53,6 +60,7 @@ actual abstract class Component : ImageObserver {
     // Sizes and positions are logical pixels: the element is UiScale.factor times larger on
     // screen, and every getter divides back down, so the client never sees physical pixels.
     actual open fun setSize(width: Int, height: Int) {
+        if (fillsPage) return
         val scale = UiScale.factor
         val w = width * scale
         val h = height * scale
@@ -232,6 +240,7 @@ actual abstract class Component : ImageObserver {
     }
 
     actual fun setLocation(x: Int, y: Int) {
+        if (fillsPage) return
         element.style.position = "absolute"
         element.style.left = "${x * UiScale.factor}px"
         element.style.top = "${y * UiScale.factor}px"

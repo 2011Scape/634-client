@@ -11,8 +11,20 @@ actual class Frame actual constructor(title: String) : Container() {
 
     actual constructor() : this("")
 
+    /*
+     * In a page the client's window is the browser window: the frame fills it, at its top left, and
+     * follows it when it is resized (getWidth/getHeight read the element's size). The client then lays
+     * out inside it as in a maximised desktop window, centring the fixed-size game view or stretching
+     * the resizable one, instead of opening a 1024x768 window 40 pixels in.
+     */
+    internal override val fillsPage: Boolean get() = true
+
     init {
-        element.style.position = "absolute"
+        element.style.position = "fixed"
+        element.style.left = "0"
+        element.style.top = "0"
+        element.style.width = "100vw"
+        element.style.height = "100vh"
         document.body?.appendChild(element)
         setTitle(title)
     }
