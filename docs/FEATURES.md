@@ -10,7 +10,9 @@ How to add something new to the client, from the features built so far: tile mar
 - **Off by default.** A `public static boolean enabled = Boolean.getBoolean("client.<name>")`, a
   console command that flips it, and the property added to the list the run task passes on
   (`build.gradle.kts`, the `runClient` task).
-- **The 2010 idiom.** Explicit types, tabs, plain arrays and loops; no `var`, streams or records.
+- **The 2010 idiom, in Kotlin.** Tabs, and an explicit type on every declaration (`val count: Int = 0`,
+  not inferred); plain arrays and `for`/`while` loops, above all in code that runs every frame; no
+  collection pipelines (`map`, `filter`, sequences), no data classes, no extension-heavy DSLs.
 - **On a branch.** Build it on `feature/<name>` and merge it once it works on all three toolkits.
 - **Hands off the native bindings.** Never rename or move a native class, method or field the
   native libraries look up ([PACKAGES.md](PACKAGES.md#native-code-is-frozen) lists them), and leave
@@ -66,19 +68,19 @@ after logging out and back in, which clear and rebuild most of the client's stat
 
 ## In the browser
 
-The browser client ([MULTIPLATFORM.md](MULTIPLATFORM.md#running-the-browser-client)) takes the same
-switches from its page address: `http://localhost:8080/?client.msaa=4&client.renderScale=1.5`
-(a switch without a value is true, `?client.smaa`). It has the Java software toolkit (0), its
+The browser client ([MULTIPLATFORM.md](MULTIPLATFORM.md#running-the-browser-client)) starts with the
+launcher's defaults (`LauncherDefaults`: 144 fps, twice the render distance, zoom, the console,
+shift-drop, a scale from the screen's height), and takes the same switches from its page address,
+`http://localhost:8080/?client.msaa=4&client.zoom=false` (a switch without a value is true,
+`?client.smaa`), or from a hosted page's `window.CONFIG`. It has the Java software toolkit (0), its
 browser version of the native software toolkit (2), and the Java OpenGL toolkit (1) on a WebGL 2
-emulator; the native toolkits need libraries a browser cannot load. A feature that draws should be
-tried on toolkit 1 there too.
+emulator; the native toolkits need libraries a browser cannot load. Every extra works there,
+SMAA included (its shaders are translated to GLSL ES 3.00). A feature that draws should be tried on
+toolkits 0 and 1 in the browser too, and the smoke test runs there:
+`http://localhost:8080/?client.test=smoke&client.test.toolkit=1`.
 
-Turned off in the browser:
-
-- **SMAA** (`client.smaa`): its shaders are desktop GLSL 1.30, which the WebGL emulator does not
-  translate. The page says so on the console, and the 3D view is drawn without it. MSAA
-  (`client.msaa`), the render scale (`client.renderScale`) and alpha-to-coverage (`client.a2c`)
-  work.
+Twice the render distance is heavy for the software toolkit in a browser: on toolkit 0, pass
+`?client.renderDistance=1`.
 
 ## Where to read next
 

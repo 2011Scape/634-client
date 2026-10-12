@@ -19,7 +19,7 @@ Where its state lives: `Resource` holds the archive providers, the disk files (`
 | The disk store | `cache/Decompressor` (one per archive) over `cache/FileOnDisk` / `cache/JFS32` | 520-byte sectors in `main_file_cache.dat2` (`Resource.cacheFileData`) and 6-byte entries in each `.idx` (`Resource.cacheFileIndices`); `Resource.referenceTableDecompressor` is idx255 |
 | Disk requests | `js5/request/local/LocalRequester` | `createNormalRequest` (read), `createStoreRequest` (write), `createPriorityRequest` (urgent read), on its own thread |
 | Server requests | `js5/Js5WorkerThread` (`Resource.remoteFileRequesterJs5`) | `request` queues urgent and prefetch requests and reads the responses |
-| The JS5 session | `js5/request/RequestManager` (`RequestManager.requestManager`) | `initialize` fetches and checks the master index (RSA and Whirlpool). `getWorker` makes each archive's worker. `pulse` runs every worker once per client cycle (`client.java`) |
+| The JS5 session | `js5/request/RequestManager` (`RequestManager.requestManager`) | `initialize` fetches and checks the master index (RSA and Whirlpool). `getWorker` makes each archive's worker. `pulse` runs every worker once per client cycle (`client.kt`) |
 | Checks | `js5/Whirlpool`, `cache/compression/GzipDecompressor`, `Js5Compression` | Digests and container decompression |
 
 ## How a file is loaded

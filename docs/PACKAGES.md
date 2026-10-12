@@ -5,7 +5,7 @@ in two source sets:
 
 | Source set | What |
 |---|---|
-| `src/commonMain/kotlin` | The game, and everything it needs that is not tied to a platform. Common code names no `java.*` or `javax.*` package; CI compiles it against the common standard library alone (`./gradlew compileCommonMainKotlinMetadata -PcommonCheck=true`). |
+| `src/commonMain/kotlin` | The game, and everything it needs that is not tied to a platform. Common code names no `java.*` or `javax.*` package; the browser target compiles it with the common standard library alone, so `./gradlew build` fails on a JVM API there. |
 | `src/jvmMain/kotlin` | The JVM side: the native classes, the launcher `RuneTek5`, and the actuals of the shims and seams below. |
 | `src/jsMain/kotlin` | The browser side ([MULTIPLATFORM.md](MULTIPLATFORM.md#running-the-browser-client)): the entry point `main.js.kt`, browser actuals of every shim and seam, the WebSocket `net.Socket`, the IndexedDB-backed file system in `io`, the class registry behind `lang.forName`, and the native classes, which throw `NativeUnavailableException` (an `Exception`, so the client falls back as from a missing library) except `oa`, which draws with the client's software renderer, `jaggl.OpenGL`, a WebGL 2 emulator (from void-client) under the Java OpenGL toolkit, and the `jaclib.memory` classes it uses. |
 

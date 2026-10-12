@@ -166,13 +166,14 @@ native libraries bind to. Code added to the
 - **Trying a change:** `./gradlew runClient` starts the client itself against a Void server on
   this computer, with `-Pclient.*` switches such as `-Pclient.debug=true`.
 - **The browser client:** the same game runs in a browser through a WebSocket relay
-  (`node tools/relay.mjs`); [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md#running-the-browser-client)
-  says how to build, serve and open it.
+  (`node tools/relay.mjs`), served by `node tools/serve.mjs`;
+  [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md#running-the-browser-client) says how to build, serve
+  and open it. A release includes the browser bundle as a zip beside the jar.
 - **Checking a change:** `./gradlew check` (what CI runs, with no server needed) loads and verifies
   every class from the release jar, and fails on a method over HotSpot's 8000-byte JIT limit unless
-  `config/huge-methods.txt` lists it. `./gradlew compileCommonMainKotlinMetadata -PcommonCheck=true`
-  checks that the common code uses no JVM API. The in-client smoke test (`-Pclient.test=smoke`, see
-  `SmokeTest`) needs a Void server.
+  `config/huge-methods.txt` lists it; `./gradlew build` also builds the browser target, which fails
+  if the common code uses a JVM API. The in-client smoke test (`-Pclient.test=smoke`, see `SmokeTest`)
+  needs a Void server; in the browser it runs from the page address (`?client.test=smoke`).
 
 ## Credits
 

@@ -191,18 +191,24 @@ How it went, for the milestones after it:
    arguments `[listenPort=8081] [serverHost=localhost] [serverPort=43594]`), or
    `websockify 8081 localhost:43594`. The client connects to `ws://localhost:8081/proxy`, or to
    `window.CONFIG.url` when the page sets it.
-3. `./gradlew jsBrowserDevelopmentWebpack`, then serve the folder:
-   `python3 -m http.server -d build/kotlin-webpack/js/developmentExecutable 8080`, and open
-   `http://localhost:8080/`. `./gradlew build` makes the minified bundle in
-   `build/dist/js/productionExecutable`.
+3. `./gradlew jsBrowserDevelopmentWebpack`, then serve it: `node tools/serve.mjs` (no
+   dependencies; arguments `[port=8080] [bundleDir] [referenceDir=~/634-smoke-ref/browser]
+   [shotDir=build/smoke-browser]`), and open `http://localhost:8080/`. It never lets the browser
+   cache, so a rebuilt bundle is picked up on the next reload. `./gradlew build` makes the minified
+   bundle in `build/dist/js/productionExecutable`, and `./gradlew release` zips it beside the jar.
 4. The first visit downloads the cache into IndexedDB; later visits load it from there. The client
-   starts as `./gradlew runClient` does, on the Java software toolkit (0). The tutorial hides the chat
-   box, so commands go through the developer console (the `` ` `` key): `tk1` switches to the Java
-   OpenGL toolkit on WebGL 2, `tk2` to the native software toolkit's browser version, and
-   `tele 3222 3218` takes an admin player to Lumbridge (so does ctrl-clicking the minimap).
-   Switches go in the address, as `-P` does for runClient: `?client.msaa=4`. `window.__log`
-   holds the last 500 console lines. Leaving the page closes the client's connections, so the
-   server logs the player out at once.
+   starts as the launcher does (`LauncherDefaults`), on the toolkit the game's settings name, which
+   it keeps across reloads. The tutorial hides the chat box, so commands go through the developer
+   console (the `` ` `` key): `tk1` switches to the Java OpenGL toolkit on WebGL 2, `tk2` to the
+   native software toolkit's browser version, and `tele 3222 3218` takes an admin player to
+   Lumbridge (so does ctrl-clicking the minimap). Switches go in the address (`?client.msaa=4`) or a
+   hosted page's `window.CONFIG`. `window.__log` holds the last 500 console lines. Leaving the page
+   closes the client's connections, so the server logs the player out at once.
+5. The smoke test: `http://localhost:8080/?client.test=smoke&client.test.toolkit=1` logs in as
+   `smoketest`, runs the desktop test's checks without the launcher's defaults, compares its frames
+   with `~/634-smoke-ref/browser` (served at `/smoke-ref/`), uploads them to `build/smoke-browser`,
+   and puts SMOKE PASS or FAIL on the console, in `window.__log`, in `#smoke-result` and in the page
+   title. It and the desktop smoke test both log in as `smoketest`: run one at a time.
 
 ### [x] 5. WebGL
 
