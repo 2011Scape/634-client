@@ -105,7 +105,7 @@ class SignLink : Runnable {
 			SystemInfo.javaVersion = System.getProperty("java.version")
 		} catch (@Pc(44) ex: Exception) {
 		}
-		if (PlayerUpdate.javaVendor.lowercase(Locale.getDefault()).indexOf("microsoft") != -1) {
+		if (PlayerUpdate.javaVendor!!.lowercase(Locale.getDefault()).indexOf("microsoft") != -1) {
 			this.microsoftJava = true
 		}
 		try {

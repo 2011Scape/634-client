@@ -260,8 +260,8 @@ object TypeLists {
 		ItemContainer.resetItemContainerModelCache()
 		if (ModeWhere.WTRC !== ServerEnvironment.LIVE) {
 			@Pc(81) var i: Int = 0
-			while (i < PlayerAppearance.TEST_ENVIRONMENT_APPEARANCE_OVERRIDE_DATA.size) {
-				PlayerAppearance.TEST_ENVIRONMENT_APPEARANCE_OVERRIDE_DATA[i] = null
+			while (i < PlayerAppearance.TEST_ENVIRONMENT_APPEARANCE_OVERRIDE_DATA!!.size) {
+				PlayerAppearance.TEST_ENVIRONMENT_APPEARANCE_OVERRIDE_DATA!![i] = null
 				i++
 			}
 			Cursor.interaction = 0

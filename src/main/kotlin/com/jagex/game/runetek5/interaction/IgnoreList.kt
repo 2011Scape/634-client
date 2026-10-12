@@ -61,7 +61,7 @@ object IgnoreList {
 			}
 			j++
 		}
-		if (Utils.formatDisplayName(PlayerUpdate.localPlayer.displayName)!!.equals(string2)) {
+		if (Utils.formatDisplayName(PlayerUpdate.localPlayer!!.displayName)!!.equals(string2)) {
 			ChatBox.writeGameMessage(LocalizedText.aClass351_44.get(ClientState.language))
 			return
 		}

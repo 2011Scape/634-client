@@ -512,9 +512,9 @@ class ItemType {
 				index = 0
 				while (index < 5) {
 					@Pc(320) var j: Int = 0
-					while (j < PlayerAppearance.recolorPaletteDst.size) {
-						if (playerModel.recolorDstIndices[index] < PlayerAppearance.recolorPaletteDst[j][index].size) {
-							newModel.ia(PlayerAppearance.recolorPaletteSrc[j][index], PlayerAppearance.recolorPaletteDst[j][index][playerModel.recolorDstIndices[index]])
+					while (j < PlayerAppearance.recolorPaletteDst!!.size) {
+						if (playerModel.recolorDstIndices!![index] < PlayerAppearance.recolorPaletteDst!![j]!![index]!!.size) {
+							newModel.ia(PlayerAppearance.recolorPaletteSrc!![j]!![index], PlayerAppearance.recolorPaletteDst!![j]!![index]!![playerModel.recolorDstIndices!![index]])
 						}
 						j++
 					}
@@ -594,9 +594,9 @@ class ItemType {
 			index = 0
 			while (index < 5) {
 				@Pc(119) var i: Int = 0
-				while (i < PlayerAppearance.recolorPaletteDst.size) {
-					if (PlayerAppearance.recolorPaletteDst[i][index].size > playerModel.recolorDstIndices[index]) {
-						mesh.recolor(PlayerAppearance.recolorPaletteSrc[i][index], PlayerAppearance.recolorPaletteDst[i][index][playerModel.recolorDstIndices[index]])
+				while (i < PlayerAppearance.recolorPaletteDst!!.size) {
+					if (PlayerAppearance.recolorPaletteDst!![i]!![index]!!.size > playerModel.recolorDstIndices!![index]) {
+						mesh.recolor(PlayerAppearance.recolorPaletteSrc!![i]!![index], PlayerAppearance.recolorPaletteDst!![i]!![index]!![playerModel.recolorDstIndices!![index]])
 					}
 					i++
 				}

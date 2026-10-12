@@ -141,7 +141,7 @@ object FriendList {
 			}
 			j++
 		}
-		if (Utils.formatDisplayName(PlayerUpdate.localPlayer.displayName)!!.equals(string2)) {
+		if (Utils.formatDisplayName(PlayerUpdate.localPlayer!!.displayName)!!.equals(string2)) {
 			ChatBox.writeGameMessage(LocalizedText.aClass351_43.get(ClientState.language))
 		} else {
 			@Pc(214) val packet: TcpPacket = TcpPacket.createPacket(ClientProt.FRIENDLIST_ADD, TcpPacket.isaac)

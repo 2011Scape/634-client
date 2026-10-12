@@ -120,7 +120,7 @@ class GpuFloorLight : Node {
 				while (tileX <= this.maxTileX) {
 					if (tileX >= 0 && gpuFloorModel.width > tileX) {
 						val mask: Int = tileMask!![maskIndex]
-						@Pc(290) val colours: IntArray? = gpuFloorModel.tileColours[tileX][tileZ]
+						@Pc(290) val colours: IntArray? = gpuFloorModel.tileColours!![tileX][tileZ]
 						if (colours != null && mask != 0) {
 							if (mask == 1) {
 								var colourIndex: Int = 0
@@ -164,11 +164,11 @@ class GpuFloorLight : Node {
 						while (j <= this.maxTileX) {
 							if (j >= 0 && gpuFloorModel.width > j) {
 								@Pc(466) val mask: Int = tileMask!![maskIndex]
-								@Pc(473) val colours: IntArray? = gpuFloorModel.tileColours[j][tileZ2]
+								@Pc(473) val colours: IntArray? = gpuFloorModel.tileColours!![j][tileZ2]
 								if (colours != null && mask != 0) {
 									if (mask == 1) {
-										@Pc(631) val offsetsX: IntArray? = gpuFloorModel.tileOffsetsX[j][tileZ2]
-										@Pc(638) val offsetsZ: IntArray? = gpuFloorModel.tileOffsetsZ[j][tileZ2]
+										@Pc(631) val offsetsX: IntArray? = gpuFloorModel.tileOffsetsX!![j][tileZ2]
+										@Pc(638) val offsetsZ: IntArray? = gpuFloorModel.tileOffsetsZ!![j][tileZ2]
 										@Pc(640) var index: Int = 0
 										label119@ while (true) {
 											while (true) {

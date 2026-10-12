@@ -1499,7 +1499,7 @@ class Component {
 		@OriginalMember(owner = "client!ga", name = "a", descriptor = "(Lclient!ha;ILclient!at;)V")
 		@JvmStatic
 		fun queueItemSpriteIfMissing(@OriginalArg(0) toolkit: Toolkit?, @OriginalArg(2) component: Component?) {
-			@Pc(38) val spriteMissing: Boolean = TypeLists.OBJ!!.getCachedSprite(component!!.borderThickness, component.containerItemId, component.itemStackSize, component.spriteShadow or 0xFF000000.toInt(), component.renderStack, toolkit, if (component.wearCol) PlayerUpdate.localPlayer.playerModel else null) == null
+			@Pc(38) val spriteMissing: Boolean = TypeLists.OBJ!!.getCachedSprite(component!!.borderThickness, component.containerItemId, component.itemStackSize, component.spriteShadow or 0xFF000000.toInt(), component.renderStack, toolkit, if (component.wearCol) PlayerUpdate.localPlayer!!.playerModel else null) == null
 			if (spriteMissing) {
 				Component.ITEMS.addLast(JavaObjSprite(component.containerItemId, component.itemStackSize, component.borderThickness, component.spriteShadow or 0xFF000000.toInt(), component.renderStack, component.wearCol))
 				Component.redrawComponent(component)

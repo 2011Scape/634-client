@@ -184,9 +184,9 @@ class ItemContainer : Node() {
 				var partIndex: Int = 0
 				while (partIndex < 5) {
 					var paletteIndex: Int = 0
-					while (paletteIndex < PlayerAppearance.recolorPaletteDst.size) {
-						if (PlayerAppearance.recolorPaletteDst[paletteIndex][partIndex].size > playerModel.recolorDstIndices[partIndex]) {
-							model!!.ia(PlayerAppearance.recolorPaletteSrc[paletteIndex][partIndex], PlayerAppearance.recolorPaletteDst[paletteIndex][partIndex][playerModel.recolorDstIndices[partIndex]])
+					while (paletteIndex < PlayerAppearance.recolorPaletteDst!!.size) {
+						if (PlayerAppearance.recolorPaletteDst!![paletteIndex]!![partIndex]!!.size > playerModel.recolorDstIndices!![partIndex]) {
+							model!!.ia(PlayerAppearance.recolorPaletteSrc!![paletteIndex]!![partIndex], PlayerAppearance.recolorPaletteDst!![paletteIndex]!![partIndex]!![playerModel.recolorDstIndices!![partIndex]])
 						}
 						paletteIndex++
 					}
