@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.client.features
 
+import turnElapsedMs
 import com.jagex.game.runetek5.ObjStackEntity
 import com.jagex.game.runetek5.MapRegion
 import com.jagex.game.runetek5.cache.node.ObjStackEntry
@@ -242,7 +243,8 @@ object SmokeTest {
 	/**
 	 * client.test.bench=N: after the settle frames, time N frames and print one SMOKE BENCH line
 	 * (frame-time average, median and 95th percentile, fps, game ticks per frame), then stop, instead
-	 * of running the checks. client.test.benchMode=resizable or fixed switches the window mode first.
+	 * of running the checks. client.test.benchMode=resizable or fixed switches the window mode first;
+	 * resizable also lifts the maximum screen size preference, so the view fills the window.
 	 */
 	private val BENCH: Int = lang.getInteger("client.test.bench", 0)
 
@@ -259,6 +261,8 @@ object SmokeTest {
 	private var benchLast: Long = 0L
 
 	private var benchTicks: Int = 0
+
+	private var benchWork: DoubleArray? = null
 
 	/** The checks done so far, one bit each in the order frame() runs them. */
 	private var checksDone: Int = 0
@@ -517,6 +521,10 @@ object SmokeTest {
 	private fun bench() {
 		if (benchModeFrame < 0) {
 			benchModeFrame = frames
+			if (BENCH_MODE == "resizable") {
+				// the whole window: a detail preset (as on a fresh profile) can cap the resizable view at 800x600 or 1024x768
+				GamePreferences.uid!!.setValue(GamePreferences.uid!!.maxScreenSize, 0)
+			}
 			if (BENCH_MODE == "resizable" && WindowMode.getWindowMode() !== WindowModeType.RESIZABLE) {
 				sendCommand("wm2")
 			} else if (BENCH_MODE == "fixed" && WindowMode.getWindowMode() !== WindowModeType.FIXED) {
@@ -528,14 +536,17 @@ object SmokeTest {
 			return
 		}
 		val now: Long = lang.nanoTime()
+		val work: Double = turnElapsedMs()
 		if (benchCount < 0) {
 			benchTimes = DoubleArray(BENCH)
+			benchWork = DoubleArray(BENCH)
 			benchCount = 0
 			benchTicks = 0
 			benchLast = now
 			return
 		}
 		val times: DoubleArray = benchTimes!!
+		benchWork!![benchCount] = work
 		times[benchCount++] = (now - benchLast).toDouble() / 1000000.0
 		benchLast = now
 		if (benchCount < BENCH) {
@@ -547,12 +558,23 @@ object SmokeTest {
 		}
 		times.sort()
 		val average: Double = total / BENCH.toDouble()
+		// the work of each frame apart from waiting, where the platform measures it (turnElapsedMs)
+		val workTimes: DoubleArray = benchWork!!
+		var workLine: String = ""
+		if (workTimes[0] >= 0.0) {
+			var workTotal: Double = 0.0
+			for (i in 0 until BENCH) {
+				workTotal += workTimes[i]
+			}
+			workTimes.sort()
+			workLine = " work=" + format(workTotal / BENCH.toDouble()) + "ms work95=" + format(workTimes[kotlin.math.min(BENCH - 1, BENCH * 95 / 100)]) + "ms"
+		}
 		val dimensions: IntArray = IntArray(2)
 		ClientState.activeToolkit!!.accumulateViewportDimensions(dimensions)
 		val size: String = dimensions[0].toString() + "x" + dimensions[1]
 		println("SMOKE BENCH toolkit=" + GamePreferences.uid!!.toolkit!!.getValue() + " size=" + size + " mode=" + WindowMode.getWindowMode() + " frames=" + BENCH
 			+ " avg=" + format(average) + "ms p50=" + format(times[BENCH / 2]) + "ms p95=" + format(times[kotlin.math.min(BENCH - 1, BENCH * 95 / 100)]) + "ms"
-			+ " fps=" + format(1000.0 / average) + " ticks/frame=" + format(benchTicks.toDouble() / BENCH.toDouble()))
+			+ " fps=" + format(1000.0 / average) + workLine + " ticks/frame=" + format(benchTicks.toDouble() / BENCH.toDouble()))
 		lang.flushOut()
 		lang.halt(0)
 	}

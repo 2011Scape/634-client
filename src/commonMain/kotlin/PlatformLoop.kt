@@ -87,3 +87,9 @@ expect val maxTicksPerFrame: Int
  * at every JavaToolkit.tick, where animated textures change.
  */
 expect val rememberTextures: Boolean
+
+/*
+ * How long the current turn of runLoop has run, in milliseconds, or -1 where it is not measured (the
+ * JVM). SmokeTest's benchmark reads it at the end of a frame for the frame's work, apart from waiting.
+ */
+expect fun turnElapsedMs(): Double

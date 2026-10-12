@@ -31,6 +31,7 @@ actual fun runLoop(
 
     fun tick() {
         if (halted) return
+        turnStart = window.performance.now()
         pendingSleepMillis = 0L
         val more = try {
             step()
@@ -66,3 +67,8 @@ actual val smaaGlslVersion: String = ""
 actual val maxTicksPerFrame: Int = 4
 
 actual val rememberTextures: Boolean = true
+
+/* When the current turn of runLoop started, by performance.now(). */
+private var turnStart: Double = 0.0
+
+actual fun turnElapsedMs(): Double = window.performance.now() - turnStart

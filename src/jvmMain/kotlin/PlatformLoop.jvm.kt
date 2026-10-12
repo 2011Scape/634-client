@@ -36,3 +36,5 @@ actual val smaaGlslVersion: String = "#version 130\n"
 actual val maxTicksPerFrame: Int = 10
 
 actual val rememberTextures: Boolean = false
+
+actual fun turnElapsedMs(): Double = -1.0
