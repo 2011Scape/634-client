@@ -152,10 +152,23 @@ val releaseJar = tasks.register<Jar>("releaseJar") {
     }
 }
 
+/*
+ * The browser client for a release: the production bundle with its page and the SMAA files, zipped
+ * beside the jar. Served behind a WebSocket relay to a game server (docs/MULTIPLATFORM.md).
+ */
+val releaseBrowser = tasks.register<Zip>("releaseBrowser") {
+    group = "distribution"
+    description = "Zips the browser bundle beside the release jar."
+    archiveBaseName = "runetek5-634-browser"
+    archiveVersion = project.version.toString().takeUnless { it == "unspecified" } ?: "dev-build"
+    destinationDirectory = layout.buildDirectory.dir("release")
+    from(tasks.named("jsBrowserDistribution"))
+}
+
 tasks.register("release") {
     group = "distribution"
-    description = "Builds the release jar."
-    dependsOn(releaseJar)
+    description = "Builds the release jar and the browser zip."
+    dependsOn(releaseJar, releaseBrowser)
 }
 
 /*

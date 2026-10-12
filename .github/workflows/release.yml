@@ -33,15 +33,18 @@ jobs:
       - name: Build and check the release jars
         run: ./gradlew check compileCommonMainKotlinMetadata release -Pversion="${VERSION#v}" --console=plain
 
+      # on a dry run too, so the run shows what a release would publish
       - name: Write checksums
-        if: startsWith(github.ref, 'refs/tags/v')
         working-directory: build/release
-        run: sha256sum *.jar > SHA256SUMS
+        run: |
+          sha256sum *.jar *.zip > SHA256SUMS
+          ls -l
+          cat SHA256SUMS
 
       - name: Publish the release
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" build/release/*.jar build/release/SHA256SUMS \
+          gh release create "$GITHUB_REF_NAME" build/release/*.jar build/release/*.zip build/release/SHA256SUMS \
             --title "$GITHUB_REF_NAME" --generate-notes
