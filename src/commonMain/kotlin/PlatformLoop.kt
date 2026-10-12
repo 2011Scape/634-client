@@ -51,3 +51,10 @@ expect val js5ReadsPerTick: Int
  * OpenGL toolkit keeps its changing (dynamic) vertex data in buffer objects too, as it does on AMD.
  */
 expect val clientArraysAvailable: Boolean
+
+/*
+ * Whether text drawn into an offscreen image comes out antialiased. False on the JVM, where AWT draws
+ * it aliased. A browser canvas always antialiases (fillText), which leaves grey edge pixels that an
+ * exact-black colour key misses (HelveticaFont).
+ */
+expect val textAntialiased: Boolean

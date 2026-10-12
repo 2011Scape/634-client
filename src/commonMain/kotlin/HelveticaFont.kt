@@ -1,3 +1,4 @@
+import textAntialiased
 import com.jagex.game.runetek5.config.rsinterface.Component
 import com.jagex.game.runetek5.graphics.sprite.NativeSprite
 import com.jagex.game.runetek5.graphics.Toolkit
@@ -113,6 +114,23 @@ class HelveticaFont {
 		} catch (@Pc(117) ex2: Exception) {
 		}
 		image.flush()
+		// Not part of the original client: where text is antialiased (PlatformLoop.kt), a glyph's edge
+		// pixels are grey, and the colour key below would keep them opaque; the world map's shadow pass
+		// then paints them solid black, a halo behind each label. The glyph is white on black, so its
+		// brightness is its coverage: make that the alpha (void-client's fix, written again here).
+		if (textAntialiased) {
+			for (pixelIndex in 0 until pixels.size) {
+				val pixel: Int = pixels[pixelIndex]
+				var coverage: Int = pixel shr 16 and 0xFF
+				if ((pixel shr 8 and 0xFF) > coverage) {
+					coverage = pixel shr 8 and 0xFF
+				}
+				if ((pixel and 0xFF) > coverage) {
+					coverage = pixel and 0xFF
+				}
+				pixels[pixelIndex] = if (coverage < 8) 0 else coverage shl 24 or 0xFFFFFF
+			}
+		}
 		@Pc(123) var topY: Int = 0
 		@Pc(128) var local128: Int
 		label66@ for (@Pc(125) i in 0 until height) {
