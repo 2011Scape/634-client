@@ -117,3 +117,31 @@ tasks.register("release") {
     description = "Builds the release jar."
     dependsOn(releaseJar)
 }
+
+/*
+ * ./gradlew checkClasses (part of check, run by CI): checks that need no game server. Every class of
+ * the client must load and pass the JVM's verifier from the release jar, and no method may be over
+ * HotSpot's 8000-byte JIT limit unless config/huge-methods.txt lists it (see src/ci/java/CheckClasses).
+ * -PcheckClasses.java=25 runs it on another JDK than the toolchain's.
+ */
+val ci = sourceSets.create("ci")
+
+tasks.register<JavaExec>("checkClasses") {
+    group = "verification"
+    description = "Loads and verifies every client class from the release jar, and checks method sizes."
+    val clientJar = tasks.jar.flatMap { it.archiveFile }
+    val allowlist = layout.projectDirectory.file("config/huge-methods.txt")
+    inputs.file(clientJar)
+    inputs.file(allowlist)
+    classpath = ci.output + files(releaseJar.flatMap { it.archiveFile })
+    mainClass = "CheckClasses"
+    jvmArgs("-Djava.awt.headless=true")
+    argumentProviders.add(CommandLineArgumentProvider { listOf(clientJar.get().asFile.path, allowlist.asFile.path) })
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(providers.gradleProperty("checkClasses.java").getOrElse("21").toInt())
+    }
+}
+
+tasks.check {
+    dependsOn("checkClasses")
+}

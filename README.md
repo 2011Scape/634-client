@@ -161,6 +161,10 @@ The client's source is in `src/main/java`, and the launcher is `RuneTek5` there.
   - [`docs/CLIENT.md`](docs/CLIENT.md): the main loop, map building, scene and sound.
 - **Trying a change:** `./gradlew runClient` starts the client itself against a Void server on
   this computer, with `-Pclient.*` switches such as `-Pclient.debug=true`.
+- **Checking a change:** `./gradlew check` (what CI runs, with no server needed) loads and verifies
+  every class from the release jar, and fails on a method over HotSpot's 8000-byte JIT limit unless
+  `config/huge-methods.txt` lists it. The in-client smoke test (`-Pclient.test=smoke`, see
+  `SmokeTest`) needs a Void server.
 
 ## Credits
 

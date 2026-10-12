@@ -1,0 +1,10 @@
+# Methods allowed over HotSpot's 8000-byte JIT limit (checkClasses): the ones the original 2010
+# client already had over it, so they run interpreted in the Java version too. Any other method
+# over the limit fails the build; split it instead (see Rasterizer.renderTexturedTriangleRgb).
+CS2Interpreter.executeOpBelow5000(IZ)V
+CS2Interpreter.executeOpFrom5000(IZ)V
+JavaGround.renderBlendedTile(IIZLJavaThreadResource;LRasterizer;[I[I[I[II)V
+PacketDecoder.decode()Z
+Rasterizer.renderBlendedTexturedTriangle(FFFFFFFFFFFFFFFIIIIIIIIFIFIF)V
+TransparentSpriteSM.blitParallelogram(I)V
+com.jagex.game.runetek5.entity.pathingentity.player.PlayerAppearance.<clinit>()V

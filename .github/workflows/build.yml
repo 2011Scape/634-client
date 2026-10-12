@@ -10,12 +10,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 21 builds (the toolchain) and is the default; 25 is the newest JDK the client runs on, for checkClasses
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: |
+            25
+            21
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Compile and package all modules
-        run: ./gradlew assemble --console=plain
+      - name: Compile, package and check
+        run: ./gradlew build releaseJar --console=plain
+
+      # Every class loads and verifies from the release jar, and no new method is over the JIT limit
+      # (src/ci/java/CheckClasses), on the newest supported JDK as well
+      - name: Check the classes on Java 25
+        run: ./gradlew checkClasses -PcheckClasses.java=25 -Porg.gradle.java.installations.fromEnv=JAVA_HOME_25_X64 --console=plain
+
+      - name: Upload the release jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: runetek5-634-${{ github.sha }}
+          path: build/release/*.jar
+          if-no-files-found: error

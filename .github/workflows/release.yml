@@ -21,8 +21,9 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Build the release jars
-        run: ./gradlew release -Pversion="${GITHUB_REF_NAME#v}" --console=plain
+      # check runs checkClasses on the release jar before it is published
+      - name: Build and check the release jars
+        run: ./gradlew check release -Pversion="${GITHUB_REF_NAME#v}" --console=plain
 
       - name: Write checksums
         working-directory: build/release
