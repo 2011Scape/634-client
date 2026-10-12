@@ -179,35 +179,35 @@ object MessageBox {
 	fun loadAssets(): Boolean {
 		@Pc(7) var allLoaded: Boolean = true
 		if (MessageBox.aClass296_2 == null) {
-			if (Resource.SPRITES.isFileReady(MessageBox.cornerSpriteId)) {
+			if (Resource.SPRITES!!.isFileReady(MessageBox.cornerSpriteId)) {
 				MessageBox.aClass296_2 = SpriteDataProvider.listSingle(Resource.SPRITES, MessageBox.cornerSpriteId)
 			} else {
 				allLoaded = false
 			}
 		}
 		if (MessageBox.aClass296_3 == null) {
-			if (Resource.SPRITES.isFileReady(MessageBox.edgeSpriteId)) {
+			if (Resource.SPRITES!!.isFileReady(MessageBox.edgeSpriteId)) {
 				MessageBox.aClass296_3 = SpriteDataProvider.listSingle(Resource.SPRITES, MessageBox.edgeSpriteId)
 			} else {
 				allLoaded = false
 			}
 		}
 		if (MessageBoxBackgroundSprite.aClass296_1 == null) {
-			if (Resource.SPRITES.isFileReady(MessageBox.backgroundSpriteId)) {
+			if (Resource.SPRITES!!.isFileReady(MessageBox.backgroundSpriteId)) {
 				MessageBoxBackgroundSprite.aClass296_1 = SpriteDataProvider.listSingle(Resource.SPRITES, MessageBox.backgroundSpriteId)
 			} else {
 				allLoaded = false
 			}
 		}
 		if (MessageBox.aClass239_17 == null) {
-			if (Resource.FONT_METRICS.isFileReady(MessageBox.fontId)) {
+			if (Resource.FONT_METRICS!!.isFileReady(MessageBox.fontId)) {
 				MessageBox.aClass239_17 = FontMetrics.list(MessageBox.fontId, Resource.FONT_METRICS)
 			} else {
 				allLoaded = false
 			}
 		}
 		if (MessageBox.aClass296Array1 == null) {
-			if (Resource.SPRITES.isFileReady(MessageBox.fontId)) {
+			if (Resource.SPRITES!!.isFileReady(MessageBox.fontId)) {
 				MessageBox.aClass296Array1 = SpriteType.listGroup(Resource.SPRITES, MessageBox.fontId)
 			} else {
 				allLoaded = false

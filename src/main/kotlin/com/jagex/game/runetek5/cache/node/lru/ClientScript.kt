@@ -116,21 +116,21 @@ class ClientScript : CacheableNode() {
 			if (clientScript != null) {
 				return clientScript
 			}
-			@Pc(31) var data: ByteArray? = Resource.CS2.getFile(Resource.CS2.getGroupId(key))
+			@Pc(31) var data: ByteArray? = Resource.CS2!!.getFile(Resource.CS2!!.getGroupId(key))
 			if (data == null) {
 				key = triggerType.id or ((categoryId + 65536) shl 10)
 				clientScript = ClientScript.aClass379_1.get(key.toLong() shl 16) as ClientScript?
 				if (clientScript != null) {
 					return clientScript
 				}
-				data = Resource.CS2.getFile(Resource.CS2.getGroupId(key))
+				data = Resource.CS2!!.getFile(Resource.CS2!!.getGroupId(key))
 				if (data == null) {
 					key = triggerType.id or 0x3FFFC00
 					clientScript = ClientScript.aClass379_1.get(key.toLong() shl 16) as ClientScript?
 					if (clientScript != null) {
 						return clientScript
 					}
-					data = Resource.CS2.getFile(Resource.CS2.getGroupId(key))
+					data = Resource.CS2!!.getFile(Resource.CS2!!.getGroupId(key))
 					if (data == null) {
 						return null
 					} else if (data.size <= 1) {
@@ -178,7 +178,7 @@ class ClientScript : CacheableNode() {
 			if (clientScript != null) {
 				return clientScript
 			}
-			@Pc(20) val data: ByteArray? = Resource.CS2.getFile(scriptId, 0)
+			@Pc(20) val data: ByteArray? = Resource.CS2!!.getFile(scriptId, 0)
 			if (data == null || data.size <= 1) {
 				return null
 			}

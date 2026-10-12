@@ -98,7 +98,7 @@ The batches, smallest risk first:
 |---|---|---|
 | [x] | a. `core`, `utils`, `encoding`, `buffer`, `statics`, `vardomain`, `trigger`, `tools`, `camera`, `rendering`, `interaction`, `sign`, `load` | about 80 |
 | [x] | b. `cache`, `js5`, `network` | 103 |
-| [ ] | c. `config` | 173 |
+| [x] | c. `config` | 173 |
 | [ ] | d. `entity`, `scene`, `preference`, `sound` | 120 |
 | [ ] | e. `graphics`, `toolkit` | 176 |
 | [ ] | f. `client` (with `client/features`) and the 188 classes directly in `com/jagex/game/runetek5` | about 250 |

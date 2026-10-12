@@ -35,7 +35,7 @@ object ChatBox {
 		@Pc(11) var totalChatIcons: Int = StaticMedia.totalChatIcons
 		@Pc(13) var i: Int = 0
 		while (i < questIds!!.size) {
-			@Pc(22) val questType: QuestType? = TypeLists.QUEST.list(questIds[i])
+			@Pc(22) val questType: QuestType? = TypeLists.QUEST!!.list(questIds[i])
 			if (questType!!.graphicId != -1) {
 				@Pc(35) var sprite: NativeSprite? = ChatBox.CHAT_ICONS.get(questType.graphicId.toLong()) as NativeSprite?
 				if (sprite == null) {

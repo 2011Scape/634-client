@@ -32,14 +32,14 @@ class ObjStack : Node() {
 				objStack.groundItems.addLast(objStackEntry)
 				return
 			}
-			@Pc(47) var objType: ItemType? = TypeLists.OBJ.list(objStackEntry!!.id)
+			@Pc(47) var objType: ItemType? = TypeLists.OBJ!!.list(objStackEntry!!.id)
 			@Pc(50) var value: Int = objType!!.value
 			if (objType.stackable == 1) {
 				value *= objStackEntry.count + 1
 			}
 			@Pc(71) var objStackEntry2: ObjStackEntry? = objStack.groundItems.first() as ObjStackEntry?
 			while (objStackEntry2 != null) {
-				objType = TypeLists.OBJ.list(objStackEntry2.id)
+				objType = TypeLists.OBJ!!.list(objStackEntry2.id)
 				@Pc(82) var otherValue: Int = objType!!.value
 				if (objType.stackable == 1) {
 					otherValue *= objStackEntry2.count + 1

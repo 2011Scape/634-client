@@ -171,14 +171,14 @@ class VorbisSound : Node {
 			rightWindowEnd = blockSize
 			rightWindowSize = blockSize shr 1
 		}
-		@Pc(123) val vorbisMapping: MusicSamepleMapping? = MusicSample.mappings[VorbisSound.modes!![mode]]
+		@Pc(123) val vorbisMapping: MusicSamepleMapping? = MusicSample.mappings!![VorbisSound.modes!![mode]]
 		@Pc(126) val mux: Int = vorbisMapping!!.mux
 		@Pc(131) val floorIndex: Int = vorbisMapping.submapFloors[mux]
-		@Pc(140) val floorUnused: Boolean = !MusicSample.floors[floorIndex].decode()
+		@Pc(140) val floorUnused: Boolean = !MusicSample.floors!![floorIndex]!!.decode()
 		@Pc(154) var local154: FloatArray?
 		@Pc(144) var i: Int = 0
 		while (i < vorbisMapping.submaps) {
-			@Pc(152) val vorbisResidue: MusicSampleResidue? = MusicSample.residues[vorbisMapping.submapResidues[i]]
+			@Pc(152) val vorbisResidue: MusicSampleResidue? = MusicSample.residues!![vorbisMapping.submapResidues[i]]
 			val residueWindow: FloatArray? = VorbisSound.window
 			vorbisResidue!!.decode(residueWindow, blockSize shr 1, floorUnused)
 			i++
@@ -188,7 +188,7 @@ class VorbisSound : Node {
 		if (!floorUnused) {
 			val mappingMux: Int = vorbisMapping.mux
 			val floorId: Int = vorbisMapping.submapFloors[mappingMux]
-			MusicSample.floors[floorId].computeFloor(VorbisSound.window, blockSize shr 1)
+			MusicSample.floors!![floorId]!!.computeFloor(VorbisSound.window, blockSize shr 1)
 		}
 		@Pc(212) var local212: Int
 		if (floorUnused) {
@@ -545,7 +545,7 @@ class VorbisSound : Node {
 			MusicSample.codebooks = arrayOfNulls<MusicSampleCodebook>(blockSize)
 			halfSize = 0
 			while (halfSize < blockSize) {
-				MusicSample.codebooks[halfSize] = MusicSampleCodebook()
+				MusicSample.codebooks!![halfSize] = MusicSampleCodebook()
 				halfSize++
 			}
 			quarterSize = MusicSample.getBits(6) + 1
@@ -558,21 +558,21 @@ class VorbisSound : Node {
 			MusicSample.floors = arrayOfNulls<MusicSampleFloor>(floorCount)
 			indexA = 0
 			while (indexA < floorCount) {
-				MusicSample.floors[indexA] = MusicSampleFloor()
+				MusicSample.floors!![indexA] = MusicSampleFloor()
 				indexA++
 			}
 			@Pc(290) val residueCount: Int = MusicSample.getBits(6) + 1
 			MusicSample.residues = arrayOfNulls<MusicSampleResidue>(residueCount)
 			indexB = 0
 			while (indexB < residueCount) {
-				MusicSample.residues[indexB] = MusicSampleResidue()
+				MusicSample.residues!![indexB] = MusicSampleResidue()
 				indexB++
 			}
 			@Pc(311) val mappingCount: Int = MusicSample.getBits(6) + 1
 			MusicSample.mappings = arrayOfNulls<MusicSamepleMapping>(mappingCount)
 			indexC = 0
 			while (indexC < mappingCount) {
-				MusicSample.mappings[indexC] = MusicSamepleMapping()
+				MusicSample.mappings!![indexC] = MusicSamepleMapping()
 				indexC++
 			}
 			@Pc(332) val modeCount: Int = MusicSample.getBits(6) + 1

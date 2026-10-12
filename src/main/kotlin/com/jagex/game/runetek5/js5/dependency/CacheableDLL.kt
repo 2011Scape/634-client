@@ -61,10 +61,10 @@ class CacheableDLL : Loader {
 					return -1
 				}
 				@Pc(33) val string3: String = NativeLibraryOwner.nativeLibraryPathPrefix + string2
-				if (!Resource.aClass157_219.fileExists("", string3)) {
+				if (!Resource.aClass157_219!!.fileExists("", string3)) {
 					return -1
-				} else if (Resource.aClass157_219.isGroupReady(string3)) {
-					@Pc(67) val data: ByteArray? = Resource.aClass157_219.getFile(string3, "")
+				} else if (Resource.aClass157_219!!.isGroupReady(string3)) {
+					@Pc(67) val data: ByteArray? = Resource.aClass157_219!!.getFile(string3, "")
 					@Pc(75) val file: File?
 					try {
 						file = CacheFileLocator.loadFromCacheDir(string2)
@@ -98,7 +98,7 @@ class CacheableDLL : Loader {
 					NativeLibraryOwner.registerNativeLibraryFile(file, string)
 					return 100
 				} else {
-					return Resource.aClass157_219.getGroupCompletePercentage(string3)
+					return Resource.aClass157_219!!.getGroupCompletePercentage(string3)
 				}
 			}
 		}
