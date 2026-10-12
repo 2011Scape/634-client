@@ -264,6 +264,9 @@ object SmokeTest {
 
 	private var benchWork: DoubleArray? = null
 
+	/* The maximum screen size preference before benchMode=resizable lifted it, or -1. */
+	private var benchMaxScreenSize: Int = -1
+
 	/** The checks done so far, one bit each in the order frame() runs them. */
 	private var checksDone: Int = 0
 
@@ -522,7 +525,9 @@ object SmokeTest {
 		if (benchModeFrame < 0) {
 			benchModeFrame = frames
 			if (BENCH_MODE == "resizable") {
-				// the whole window: a detail preset (as on a fresh profile) can cap the resizable view at 800x600 or 1024x768
+				// the whole window: a detail preset (as on a fresh profile) can cap the resizable view at 800x600
+				// or 1024x768; put back before stopping, since the smoke references are taken with the cap
+				benchMaxScreenSize = GamePreferences.uid!!.maxScreenSize!!.getValue()
 				GamePreferences.uid!!.setValue(GamePreferences.uid!!.maxScreenSize, 0)
 			}
 			if (BENCH_MODE == "resizable" && WindowMode.getWindowMode() !== WindowModeType.RESIZABLE) {
@@ -575,6 +580,10 @@ object SmokeTest {
 		println("SMOKE BENCH toolkit=" + GamePreferences.uid!!.toolkit!!.getValue() + " size=" + size + " mode=" + WindowMode.getWindowMode() + " frames=" + BENCH
 			+ " avg=" + format(average) + "ms p50=" + format(times[BENCH / 2]) + "ms p95=" + format(times[kotlin.math.min(BENCH - 1, BENCH * 95 / 100)]) + "ms"
 			+ " fps=" + format(1000.0 / average) + workLine + " ticks/frame=" + format(benchTicks.toDouble() / BENCH.toDouble()))
+		if (benchMaxScreenSize >= 0) {
+			GamePreferences.uid!!.setValue(GamePreferences.uid!!.maxScreenSize, benchMaxScreenSize)
+			GamePreferences.savePreferences()
+		}
 		lang.flushOut()
 		lang.halt(0)
 	}
