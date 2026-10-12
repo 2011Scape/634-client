@@ -1,5 +1,6 @@
 plugins {
     application
+    kotlin("jvm") version "2.2.20"
 }
 
 description = "The RuneScape client from December 2010 (build 634), with a launcher for any Void server."
@@ -8,6 +9,15 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+}
+
+/*
+ * The client is moving from Java to Kotlin a package batch at a time (docs/MULTIPLATFORM.md,
+ * milestone 2). Kotlin sources are in src/main/kotlin and compile together with the Java in
+ * src/main/java: each side sees the other.
+ */
+kotlin {
+    jvmToolchain(21)
 }
 
 tasks.withType<JavaCompile>().configureEach {
