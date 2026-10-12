@@ -17,6 +17,11 @@ fun main() {
     readClientSwitches()
     readPageConfig()
     fixRenderDistance()
+    // The browser draws at the display's refresh (scheduleTurn), so frames are paced at 60 a second
+    // unless the page asks for another rate; the smoke test too.
+    if (lang.getProperty("client.fps") == null) {
+        lang.setProperty("client.fps", "60")
+    }
     // The smoke test starts the client as ./gradlew runClient -Pclient.test=smoke does, with every
     // extra off unless the address turns it on, so that its frames compare with the desktop's.
     if ("smoke" != lang.getProperty("client.test")) {

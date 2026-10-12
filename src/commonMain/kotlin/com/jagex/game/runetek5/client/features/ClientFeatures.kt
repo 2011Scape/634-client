@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.client.features
 
+import maxTicksPerFrame
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.client.menu.MiniMenuEntry
 import com.jagex.game.runetek5.entity.NPCEntityNode
@@ -173,7 +174,7 @@ object ClientFeatures {
 	}
 
 	/**
-	 * How many game ticks of `interval` nanoseconds are due now, at most ten, as the client's own
+	 * How many game ticks of `interval` nanoseconds are due now, at most maxTicksPerFrame, as the client's own
 	 * timer counts them; used when client.fps paces the frames instead of the ticks.
 	 */
 	@JvmStatic
@@ -184,7 +185,8 @@ object ClientFeatures {
 			nextTick = now
 		}
 		var count: Int = 0
-		while (count < 10 && now >= nextTick) {
+		// at most maxTicksPerFrame (PlatformLoop.kt): 10 on the JVM
+		while (count < maxTicksPerFrame && now >= nextTick) {
 			count++
 			nextTick += interval
 		}

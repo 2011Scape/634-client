@@ -71,3 +71,10 @@ expect val classFieldsAvailable: Boolean
  * that names its own version as it is, and WebGL has no GLSL 1.30).
  */
 expect val smaaGlslVersion: String
+
+/*
+ * At most how many game ticks one frame catches up when client.fps paces the frames
+ * (ClientFeatures.ticksDue). 10 on the JVM. In a browser a slow frame that then runs ten ticks makes
+ * the next frame slower still; there it is 4, and further ticks are dropped.
+ */
+expect val maxTicksPerFrame: Int

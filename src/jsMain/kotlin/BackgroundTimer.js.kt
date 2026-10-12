@@ -18,6 +18,9 @@ private val worker: dynamic = try {
     null
 }
 
+/* A wait this long or shorter is taken to the next animation frame (see scheduleTurn). */
+private const val FRAME_WAIT_MS: Int = 17
+
 private val pending: MutableMap<Int, () -> Unit> = mutableMapOf()
 private var nextId: Int = 1
 
@@ -31,9 +34,19 @@ private val listening: Boolean = run {
     true
 }
 
-/* Runs block after delay milliseconds, timed by the worker while the page is hidden. */
+/*
+ * Runs block after delay milliseconds. While the page is shown, a wait of one frame or less runs on
+ * the next animation frame instead, in step with the display's refresh and free of the ~4 ms minimum
+ * browsers put on nested timers (the frame loop draws once a turn, so this paces it at the refresh
+ * rate). While the page is hidden the wait is timed by the worker.
+ */
 internal fun scheduleTurn(delay: Int, block: () -> Unit) {
-    if (worker == null || !document.asDynamic().hidden.unsafeCast<Boolean>() || !listening) {
+    val hidden: Boolean = document.asDynamic().hidden.unsafeCast<Boolean>()
+    if (!hidden && delay <= FRAME_WAIT_MS) {
+        window.requestAnimationFrame { block() }
+        return
+    }
+    if (worker == null || !hidden || !listening) {
         window.setTimeout(block, delay)
         return
     }
