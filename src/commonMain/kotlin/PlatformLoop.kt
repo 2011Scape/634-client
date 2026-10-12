@@ -78,3 +78,12 @@ expect val smaaGlslVersion: String
  * the next frame slower still; there it is 4, and further ticks are dropped.
  */
 expect val maxTicksPerFrame: Int
+
+/*
+ * Whether the software renderer remembers textures within a frame. False on the JVM, which looks a
+ * texture up for every textured triangle as the original does. In a browser that lookup (a lock and a
+ * hash table keyed by Long, which Kotlin/JS emulates) cost more than drawing the triangle; there the
+ * Rasterizer keeps the texture its slot last used, and JavaToolkit a front cache by id, both cleared
+ * at every JavaToolkit.tick, where animated textures change.
+ */
+expect val rememberTextures: Boolean

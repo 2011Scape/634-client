@@ -1,4 +1,5 @@
 import com.jagex.game.runetek5.DepthBuffer
+import rememberTextures
 import com.jagex.game.runetek5.EnvironmentSampler
 import com.jagex.game.runetek5.graphics.sprite.SpriteType
 import com.jagex.game.runetek5.JavaDepthBuffer
@@ -171,6 +172,14 @@ class JavaToolkit : Toolkit {
 
 	@OriginalMember(owner = "client!ao", name = "fb", descriptor = "Lclient!jr;")
 	private val textureCache: LRUCache
+
+	// Not part of the original client: with rememberTextures (PlatformLoop.kt), the textures looked up
+	// since the last tick, by id (getTexels and getArgbTexture), valid while their stamp is frontStamp.
+	private var frontStamp: Int = 1
+	private var rgbFront: Array<SafeModeTexture2D?> = arrayOfNulls<SafeModeTexture2D>(0)
+	private var rgbFrontStamps: IntArray = IntArray(0)
+	private var argbFront: Array<SafeModeTexture2D?> = arrayOfNulls<SafeModeTexture2D>(0)
+	private var argbFrontStamps: IntArray = IntArray(0)
 
 	@OriginalMember(owner = "client!ao", name = "gb", descriptor = "Lclient!jr;")
 	private val spriteCache: LRUCache
@@ -1685,6 +1694,10 @@ class JavaToolkit : Toolkit {
 
 	@OriginalMember(owner = "client!ao", name = "j", descriptor = "(I)[I")
 	fun getTexels(@OriginalArg(0) id: Int): IntArray? {
+		// Not part of the original client: a texture already looked up since the last tick (rememberTextures)
+		if (rememberTextures && id >= 0 && id < this.rgbFrontStamps.size && this.rgbFrontStamps[id] == this.frontStamp) {
+			return this.rgbFront[id]!!.getArgbColor()
+		}
 		@Pc(2) val cache: LRUCache = this.textureCache
 		@Pc(12) var texture: SafeModeTexture2D?
 		withLock(this.textureCache) {
@@ -1700,6 +1713,16 @@ class JavaToolkit : Toolkit {
 			}
 		}
 		texture!!.isAnimated = true
+		if (rememberTextures && id >= 0 && id < 65536) {
+			// Not part of the original client: remember it until the next tick
+			if (id >= this.rgbFrontStamps.size) {
+				val size: Int = kotlin.math.max(id + 1, this.rgbFrontStamps.size * 2)
+				this.rgbFront = this.rgbFront.copyOf(size)
+				this.rgbFrontStamps = this.rgbFrontStamps.copyOf(size)
+			}
+			this.rgbFront[id] = texture
+			this.rgbFrontStamps[id] = this.frontStamp
+		}
 		return texture!!.getArgbColor()
 	}
 
@@ -1724,6 +1747,10 @@ class JavaToolkit : Toolkit {
 
 	@OriginalMember(owner = "client!ao", name = "k", descriptor = "(I)[I")
 	fun getArgbTexture(@OriginalArg(0) id: Int): IntArray? {
+		// Not part of the original client: a texture already looked up since the last tick (rememberTextures)
+		if (rememberTextures && id >= 0 && id < this.argbFrontStamps.size && this.argbFrontStamps[id] == this.frontStamp) {
+			return this.argbFront[id]!!.getArgbColor()
+		}
 		@Pc(2) val cache: LRUCache = this.textureCache
 		@Pc(14) var texture: SafeModeTexture2D?
 		withLock(this.textureCache) {
@@ -1739,6 +1766,16 @@ class JavaToolkit : Toolkit {
 			}
 		}
 		texture!!.isAnimated = true
+		if (rememberTextures && id >= 0 && id < 65536) {
+			// Not part of the original client: remember it until the next tick
+			if (id >= this.argbFrontStamps.size) {
+				val size: Int = kotlin.math.max(id + 1, this.argbFrontStamps.size * 2)
+				this.argbFront = this.argbFront.copyOf(size)
+				this.argbFrontStamps = this.argbFrontStamps.copyOf(size)
+			}
+			this.argbFront[id] = texture
+			this.argbFrontStamps[id] = this.frontStamp
+		}
 		return texture!!.getArgbColor()
 	}
 
@@ -2897,6 +2934,15 @@ class JavaToolkit : Toolkit {
 
 	@OriginalMember(owner = "client!ao", name = "b", descriptor = "(I)V")
 	override fun tick(@OriginalArg(0) time: Int) {
+		if (rememberTextures) {
+			// Not part of the original client: animated textures change below; forget what was remembered
+			this.frontStamp++
+			var i: Int = 0
+			while (i < this.threadCount) {
+				this.resources!![i]!!.rasterizer!!.forgetTextures()
+				i++
+			}
+		}
 		@Pc(4) val elapsed: Int = time - this.lastTickTime
 		@Pc(9) var `object`: Any? = this.textureCache.first()
 		while (`object` != null) {

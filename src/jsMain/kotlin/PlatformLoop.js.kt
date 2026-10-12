@@ -64,3 +64,5 @@ actual val classFieldsAvailable: Boolean = false
 actual val smaaGlslVersion: String = ""
 
 actual val maxTicksPerFrame: Int = 4
+
+actual val rememberTextures: Boolean = true

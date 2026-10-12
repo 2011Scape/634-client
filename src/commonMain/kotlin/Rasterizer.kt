@@ -4,6 +4,7 @@ import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.utils.ColorUtil
 import kotlin.jvm.JvmField
+import rememberTextures
 
 @OriginalClass("client!mp")
 class Rasterizer {
@@ -52,6 +53,22 @@ class Rasterizer {
 
 	@OriginalMember(owner = "client!mp", name = "w", descriptor = "I")
 	private val textureId3: Int = -1
+
+	// Not part of the original client: with rememberTextures (PlatformLoop.kt), the texture each slot
+	// holds, so that a triangle with the same texture as the last skips the lookup; -1 for none.
+	// rememberedArgb is slot 1's texture when the ARGB path loaded it.
+	private var remembered: Int = -1
+	private var remembered2: Int = -1
+	private var remembered3: Int = -1
+	private var rememberedArgb: Int = -1
+
+	/* Not part of the original client: forgets the remembered textures (JavaToolkit.tick). */
+	fun forgetTextures() {
+		this.remembered = -1
+		this.remembered2 = -1
+		this.remembered3 = -1
+		this.rememberedArgb = -1
+	}
 
 	@OriginalMember(owner = "client!mp", name = "t", descriptor = "F")
 	private var textureScale2: Float = 0.0f
@@ -916,35 +933,52 @@ class Rasterizer {
 		var fogA: Int = fogA
 		var fogB: Int = fogB
 		var fogC: Int = fogC
-		if (texture != this.textureId) {
+		// Not part of the original client: or not the texture the slot already holds (rememberTextures)
+		if (texture != this.textureId && !(rememberTextures && texture == this.remembered)) {
 			this.texels = this.toolkit!!.getTexels(texture)
 			if (this.texels == null) {
+				this.remembered = -1
+				this.rememberedArgb = -1
 				this.renderTriangleRgb(yA, yB, yC, xA, xB, xC, zA, zB, zC, ColorUtil.alphaBlend(colourA, fogColour or (fogA shl 24)), ColorUtil.alphaBlend(colourB, fogColour or (fogB shl 24)), ColorUtil.alphaBlend(colourC, fogColour or (fogC shl 24)))
 				return
 			}
 			this.textureSize = if (this.toolkit!!.smallTexture(texture)) 64 else this.toolkit!!.textureSize
 			this.textureMask = this.textureSize - 1
 			this.textureBlendMode = this.toolkit!!.textureAlphaBlendMode(texture)
+			if (rememberTextures) {
+				this.remembered = texture
+				this.rememberedArgb = -1
+			}
 		}
 		this.textureScale = textureScale
-		if (texture2 != this.textureId2) {
+		// Not part of the original client: or not the texture the slot already holds (rememberTextures)
+		if (texture2 != this.textureId2 && !(rememberTextures && texture2 == this.remembered2)) {
 			this.texels2 = this.toolkit!!.getTexels(texture2)
 			if (this.texels2 == null) {
+				this.remembered2 = -1
 				this.renderTriangleRgb(yA, yB, yC, xA, xB, xC, zA, zB, zC, ColorUtil.alphaBlend(colourA, fogColour or (fogA shl 24)), ColorUtil.alphaBlend(colourB, fogColour or (fogB shl 24)), ColorUtil.alphaBlend(colourC, fogColour or (fogC shl 24)))
 				return
 			}
 			this.textureSize2 = if (this.toolkit!!.smallTexture(texture2)) 64 else this.toolkit!!.textureSize
 			this.textureMask2 = this.textureSize2 - 1
+			if (rememberTextures) {
+				this.remembered2 = texture2
+			}
 		}
 		this.textureScale2 = textureScale2
-		if (texture3 != this.textureId3) {
+		// Not part of the original client: or not the texture the slot already holds (rememberTextures)
+		if (texture3 != this.textureId3 && !(rememberTextures && texture3 == this.remembered3)) {
 			this.texels3 = this.toolkit!!.getTexels(texture3)
 			if (this.texels3 == null) {
+				this.remembered3 = -1
 				this.renderTriangleRgb(yA, yB, yC, xA, xB, xC, zA, zB, zC, ColorUtil.alphaBlend(colourA, fogColour or (fogA shl 24)), ColorUtil.alphaBlend(colourB, fogColour or (fogB shl 24)), ColorUtil.alphaBlend(colourC, fogColour or (fogC shl 24)))
 				return
 			}
 			this.textureSize3 = if (this.toolkit!!.smallTexture(texture3)) 64 else this.toolkit!!.textureSize
 			this.textureMask3 = this.textureSize3 - 1
+			if (rememberTextures) {
+				this.remembered3 = texture3
+			}
 		}
 		this.textureScale3 = textureScale3
 		this.fogColour = fogColour
@@ -3147,9 +3181,12 @@ class Rasterizer {
 		var fogA: Int = fogA
 		var fogB: Int = fogB
 		var fogC: Int = fogC
-		if (texture != this.textureId) {
+		// Not part of the original client: or not the texture the slot already holds (rememberTextures)
+		if (texture != this.textureId && !(rememberTextures && texture == this.rememberedArgb)) {
 			this.texels = this.toolkit!!.getArgbTexture(texture)
 			if (this.texels == null) {
+				this.remembered = -1
+				this.rememberedArgb = -1
 				this.renderTriangleRgb(yA, yB, yC, xA, xB, xC, zA, zB, zC, ColorUtil.alphaBlend(colourA, fogColour or (fogA shl 24)), ColorUtil.alphaBlend(colourB, fogColour or (fogB shl 24)), ColorUtil.alphaBlend(colourC, fogColour or (fogC shl 24)))
 				return
 			}
@@ -3157,6 +3194,10 @@ class Rasterizer {
 			this.textureMask = this.textureSize - 1
 			this.textureBlendMode = this.toolkit!!.textureAlphaBlendMode(texture)
 			this.textureRepeats = this.toolkit!!.textureRepeats(texture)
+			if (rememberTextures) {
+				this.rememberedArgb = texture
+				this.remembered = -1
+			}
 		}
 		this.fogColour = fogColour
 		@Pc(106) var alphaA: Float = ((colourA shr 24) and 0xFF).toFloat()
