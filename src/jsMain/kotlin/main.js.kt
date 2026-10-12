@@ -110,10 +110,10 @@ fun haltPage(status: Int) {
     val lines: Array<String> = window.asDynamic().__log.unsafeCast<Array<String>>()
     var result: String = "halt(" + status + ")"
     for (line in lines) {
-        val at: Int = line.indexOf("SMOKE PASS")
-        val atFail: Int = line.indexOf("SMOKE FAIL")
-        if (at >= 0) result = line.substring(at)
-        if (atFail >= 0) result = line.substring(atFail)
+        for (kind in arrayOf("SMOKE PASS", "SMOKE FAIL", "SMOKE BENCH")) {
+            val at: Int = line.indexOf(kind)
+            if (at >= 0) result = line.substring(at)
+        }
     }
     var element: org.w3c.dom.Element? = document.getElementById("smoke-result")
     if (element == null) {
@@ -123,7 +123,7 @@ fun haltPage(status: Int) {
     }
     element.textContent = result
     element.setAttribute("data-status", status.toString())
-    document.title = if (status == 0) "SMOKE PASS" else "SMOKE FAIL"
+    document.title = if (status != 0) "SMOKE FAIL" else if (result.startsWith("SMOKE BENCH")) "SMOKE BENCH" else "SMOKE PASS"
 }
 
 /*

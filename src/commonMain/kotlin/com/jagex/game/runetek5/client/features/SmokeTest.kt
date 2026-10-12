@@ -239,6 +239,27 @@ object SmokeTest {
 
 	private val TOOLKIT: Int = lang.getInteger("client.test.toolkit", -1)
 
+	/**
+	 * client.test.bench=N: after the settle frames, time N frames and print one SMOKE BENCH line
+	 * (frame-time average, median and 95th percentile, fps, game ticks per frame), then stop, instead
+	 * of running the checks. client.test.benchMode=resizable or fixed switches the window mode first.
+	 */
+	private val BENCH: Int = lang.getInteger("client.test.bench", 0)
+
+	private val BENCH_MODE: String = lang.getProperty("client.test.benchMode", "")
+
+	private const val BENCH_SETTLE: Int = 60
+
+	private var benchModeFrame: Int = -1
+
+	private var benchTimes: DoubleArray? = null
+
+	private var benchCount: Int = -1
+
+	private var benchLast: Long = 0L
+
+	private var benchTicks: Int = 0
+
 	/** The checks done so far, one bit each in the order frame() runs them. */
 	private var checksDone: Int = 0
 
@@ -279,6 +300,9 @@ object SmokeTest {
 	fun tick() {
 		if (!ENABLED) {
 			return
+		}
+		if (benchCount >= 0) {
+			benchTicks++
 		}
 		val step: Int = ClientState.mainLogicStep!!.id()
 		if (step != lastStep) {
@@ -333,6 +357,10 @@ object SmokeTest {
 			}
 		}
 		if (++gameFrames < FRAMES) {
+			return
+		}
+		if (BENCH > 0) {
+			bench()
 			return
 		}
 		if (firstImage == null) {
@@ -478,6 +506,53 @@ object SmokeTest {
 			return
 		}
 		println(passLine)
+		lang.flushOut()
+		lang.halt(0)
+	}
+
+	/**
+	 * The benchmark (client.test.bench): switch the window mode if asked and let it settle, then time
+	 * BENCH frames from one frame() to the next, print the SMOKE BENCH line and stop.
+	 */
+	private fun bench() {
+		if (benchModeFrame < 0) {
+			benchModeFrame = frames
+			if (BENCH_MODE == "resizable" && WindowMode.getWindowMode() !== WindowModeType.RESIZABLE) {
+				sendCommand("wm2")
+			} else if (BENCH_MODE == "fixed" && WindowMode.getWindowMode() !== WindowModeType.FIXED) {
+				sendCommand("wm1")
+			}
+			return
+		}
+		if (frames - benchModeFrame < BENCH_SETTLE) {
+			return
+		}
+		val now: Long = lang.nanoTime()
+		if (benchCount < 0) {
+			benchTimes = DoubleArray(BENCH)
+			benchCount = 0
+			benchTicks = 0
+			benchLast = now
+			return
+		}
+		val times: DoubleArray = benchTimes!!
+		times[benchCount++] = (now - benchLast).toDouble() / 1000000.0
+		benchLast = now
+		if (benchCount < BENCH) {
+			return
+		}
+		var total: Double = 0.0
+		for (i in 0 until BENCH) {
+			total += times[i]
+		}
+		times.sort()
+		val average: Double = total / BENCH.toDouble()
+		val dimensions: IntArray = IntArray(2)
+		ClientState.activeToolkit!!.accumulateViewportDimensions(dimensions)
+		val size: String = dimensions[0].toString() + "x" + dimensions[1]
+		println("SMOKE BENCH toolkit=" + GamePreferences.uid!!.toolkit!!.getValue() + " size=" + size + " mode=" + WindowMode.getWindowMode() + " frames=" + BENCH
+			+ " avg=" + format(average) + "ms p50=" + format(times[BENCH / 2]) + "ms p95=" + format(times[kotlin.math.min(BENCH - 1, BENCH * 95 / 100)]) + "ms"
+			+ " fps=" + format(1000.0 / average) + " ticks/frame=" + format(benchTicks.toDouble() / BENCH.toDouble()))
 		lang.flushOut()
 		lang.halt(0)
 	}
