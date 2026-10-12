@@ -239,7 +239,7 @@ How it went, for the milestones after it:
 - Switching toolkits while the world map is open can leave the map on "Loading..."; closing and
   opening it again loads it.
 
-### [ ] 6. The extras, the smoke test in the browser, CI and the docs
+### [x] 6. The extras, the smoke test in the browser, CI and the docs
 
 The extras on both targets; the launcher's options read in the browser from the page's
 configuration or the URL; `SmokeTest` running in the browser (log in, wait for the frames, check the
@@ -251,6 +251,25 @@ and loops in the hot paths).
 ```
 /goal Read docs/MULTIPLATFORM.md and CLAUDE.md, then complete milestone 6 only: make every extra (tile markers, xp drops, npc labels, ground item labels, shift-drop, zoom, render distance, fps interpolation, scaling, msaa, smaa, render scale) work in the browser as on desktop, with the launcher's options given in the browser by the page's configuration or URL parameters; run SmokeTest in the browser with its result printed to the console; build both targets in .github/workflows/build.yml and publish the browser bundle in release.yml; and update README.md, docs/*.md and CLAUDE.md for the Kotlin Multiplatform project. Done when: the browser smoke test prints SMOKE PASS on toolkits 0 and 1 and the desktop smoke test prints SMOKE PASS on 0, 1, 2 and 5 (show every SMOKE line); ./gradlew build builds both targets; milestone 6 is ticked and the top-level goal's checks are met; and the work is committed on feature/multi-platform-shim. Stop and report after 60 turns.
 ```
+
+How it went:
+
+- `LauncherDefaults` (common) holds the launcher's defaults; `RuneTek5` and the page both apply it,
+  after the page's URL switches and `window.CONFIG`. Twice the render distance is slow on the
+  software toolkit in a browser (well under 10 fps); the smoke test runs without the defaults, as
+  `runClient` does.
+- Settings had never been saved in the browser: `GamePreferences.getEncodedSize` counts fields by
+  reflection, got 0, and every save overflowed a 1-byte buffer and threw in silence.
+  `classFieldsAvailable` gives it a fixed bound there, and the chosen toolkit now survives a reload.
+- SMAA runs in the browser: without a version line (`smaaGlslVersion`) the emulator translates its
+  shaders to GLSL ES 3.00.
+- The browser smoke test needed a few things around it: `halt` stops every loop and reports to the
+  page, `tools/serve.mjs` receives its frames and serves the browser references (captured from
+  passing runs, in `~/634-smoke-ref/browser`), the emulator's `glReadPixelsi` reads RGBA and packs
+  BGRA itself, and `SmokeTest` asks each check only until it is done (its pass line had repeated
+  every finished check on every frame since milestone 2, 77 KB by the end).
+- Shift-drop reads the held Shift key, so a test has to send a key-down; a click with the shift
+  flag alone does not drop. The zoom needs the pointer over the game view first.
 
 ### [ ] 7. Optional: LWJGL on desktop
 
