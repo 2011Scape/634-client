@@ -176,8 +176,11 @@ How it went, for the milestones after it:
   (the JS5 read budget per tick, Whirlpool, region loading); the ones above were what this client
   needed to run. A fresh browser fills its cache slowly (the original reads at most 100 JS5 blocks a
   tick); void-client's raised budget is a candidate for later.
-- `oa` in the browser hands its calls to a `JavaToolkit`, where void-client's is a copy of its
-  software renderer; the other root native classes are only ever made by the JVM's `oa`.
+- `oa` in the browser is built on this client's own refactored code, by decision: it hands its
+  calls to a `JavaToolkit` (the software renderer of toolkit 0), rather than porting void-client's
+  `oa`, a 2,535-line copy of that renderer translated from the obfuscated deob. It runs in the
+  browser (`tk2` in the developer console). The other root native classes are only ever made by
+  the JVM's `oa`.
 
 ### Running the browser client
 
