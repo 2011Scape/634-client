@@ -2,6 +2,7 @@
 // Not part of the original client: 634HD (toolkit 6). The fixed-function pipeline as GLSL, ported
 // from the browser's jaggl emulator (src/jsMain/kotlin/jaggl/FixedFunctionShader.js.kt).
 #include "hd_lib.glsl"
+#include "hd_material.glsl"
 precision mediump float;
 precision highp sampler3D;
 
@@ -31,6 +32,10 @@ in vec3 vArbViewPos;
 uniform int uHdWater;
 // 1 while the ground is drawn (HD_TERRAIN)
 uniform int uHdGround;
+// the slot of the texture's 634HD maps (HD_MATERIALS), -1 without
+uniform int uHdMapSlot;
+// unit 0's coordinate, after parallax (main sets it before the texture stages)
+vec2 gUv0;
 // soft particles (HD_SOFT_PARTICLES): on, the scene's depth so far, the projection's depth terms
 uniform int uHdSoft;
 uniform sampler2D uHdSceneDepth;
@@ -186,8 +191,8 @@ vec4 sampleUnit(int unit) {
     if (unit == 0) {
         if (uIs3D[0] != 0) return sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0);
         // 634HD: the ground's texture blended (HD_TERRAIN); the base texture in linear colour too (tonemap)
-        if (uHdGround != 0 && hdOn(HD_TERRAIN)) return hdColour(hdTerrainTexture(uTexture0, vTexCoord0.xy, FF_VIEW_POS));
-        return hdColour(texture(uTexture0, vTexCoord0.xy));
+        if (uHdGround != 0 && hdOn(HD_TERRAIN)) return hdColour(hdTerrainTexture(uTexture0, gUv0, FF_VIEW_POS));
+        return hdColour(texture(uTexture0, gUv0));
     }
     if (unit == 1) {
         if (uCubeMap[1]) return texture(uTextureCube1, vTexCoord1);
@@ -217,6 +222,9 @@ void main() {
     gPrimary = hdAddPointLights(gPrimary, vBase, vViewPos, vEyeNormal);
 #endif
     vec4 color = gPrimary;
+    gUv0 = vTexCoord0.xy;
+    bool mapped = uUseTexture[0] && uIs3D[0] == 0 && hdHasMaps(uHdMapSlot);
+    if (mapped) gUv0 = hdParallaxUv(uHdMapSlot, gUv0, FF_VIEW_POS);
     for (int i = 0; i < 3; i++) {
         if (uUseTexture[i]) color = combineStage(i, sampleUnit(i), color);
     }
@@ -234,6 +242,7 @@ void main() {
         float fragmentEye = uHdDepthParams.y / (fragmentZ + uHdDepthParams.x);
         color.a *= clamp((sceneEye - fragmentEye) / 96.0, 0.0, 1.0);
     }
+    if (mapped) color = hdApplyMaterial(uHdMapSlot, color, gUv0, FF_VIEW_POS);
     color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
     color.rgb *= hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);
     float depth = gl_FragCoord.z / gl_FragCoord.w;

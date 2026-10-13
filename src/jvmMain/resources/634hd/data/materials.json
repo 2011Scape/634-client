@@ -1,3 +1,205 @@
 {
-  "materials": []
+  "materials": [
+    {
+      "texture": 63,
+      "name": "wooden planks",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.4
+    },
+    {
+      "texture": 66,
+      "name": "loose rock",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.35,
+      "parallax": 0.04
+    },
+    {
+      "texture": 70,
+      "name": "packed dirt",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.25,
+      "parallax": 0.03
+    },
+    {
+      "texture": 72,
+      "name": "rough rock",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.45,
+      "parallax": 0.04
+    },
+    {
+      "texture": 82,
+      "name": "gravel",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.35,
+      "parallax": 0.04
+    },
+    {
+      "texture": 83,
+      "name": "rock face",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.45,
+      "parallax": 0.04
+    },
+    {
+      "texture": 91,
+      "name": "gravel path",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.35,
+      "parallax": 0.04
+    },
+    {
+      "texture": 96,
+      "name": "pebbles",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.35,
+      "parallax": 0.04
+    },
+    {
+      "texture": 105,
+      "name": "boulder rock",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.45,
+      "parallax": 0.04
+    },
+    {
+      "texture": 110,
+      "name": "lava",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.6,
+      "emissive": "emissive.png",
+      "emissiveStrength": 2.5
+    },
+    {
+      "texture": 132,
+      "name": "bark",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.4
+    },
+    {
+      "texture": 154,
+      "name": "sand",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.2,
+      "parallax": 0.02
+    },
+    {
+      "texture": 160,
+      "name": "wood boards",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.4
+    },
+    {
+      "texture": 181,
+      "name": "rocky ground",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.25,
+      "parallax": 0.03
+    },
+    {
+      "texture": 202,
+      "name": "brick pattern",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.4,
+      "parallax": 0.05
+    },
+    {
+      "texture": 228,
+      "name": "wood grain",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.4
+    },
+    {
+      "texture": 265,
+      "name": "stony ground",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.25,
+      "parallax": 0.03
+    },
+    {
+      "texture": 276,
+      "name": "meadow grass",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.15
+    },
+    {
+      "texture": 322,
+      "name": "stone wall",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.4,
+      "parallax": 0.05
+    },
+    {
+      "texture": 505,
+      "name": "flagstones",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.4,
+      "parallax": 0.05
+    },
+    {
+      "texture": 510,
+      "name": "cracked earth",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.25,
+      "parallax": 0.03
+    },
+    {
+      "texture": 519,
+      "name": "grass",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.15
+    },
+    {
+      "texture": 638,
+      "name": "water",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 1.2
+    }
+  ]
 }

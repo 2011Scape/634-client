@@ -114,6 +114,8 @@ class FfFragmentUniformLocations(gl: WebGL2RenderingContext, program: WebGLProgr
     val hdGround: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdGround")
     // 634HD: soft particles - on, and the projection's depth terms (HD_SOFT_PARTICLES)
     val hdSoft: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdSoft")
+    // 634HD: the slot of the texture's material maps (HD_MATERIALS)
+    val hdMapSlot: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdMapSlot")
     val hdDepthParams: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdDepthParams")
 
     // Last values uploaded into *this* program's uniforms (each linked program has its own
@@ -158,6 +160,7 @@ fun uploadFfFragmentUniforms(gl: WebGL2RenderingContext, state: GlState, L: FfFr
     setInt(gl, L, L.hdWater, SI_HD_WATER, state.hdWater)
     setInt(gl, L, L.hdGround, SI_HD_GROUND, state.hdGround)
     setInt(gl, L, L.hdSoft, SI_HD_SOFT, state.hdSoft)
+    setInt(gl, L, L.hdMapSlot, SI_HD_MAP_SLOT, state.hdMapSlot)
     if (state.hdSoft != 0) setFloat4(gl, L, L.hdDepthParams, SF_HD_DEPTH, state.hdDepthParams)
     for (unit in 0 until 3) {
         val cube = state.textureTarget[unit] == GL_TEXTURE_CUBE_MAP
@@ -245,7 +248,8 @@ private const val SI_HD_SCENE = SI_ALPHA_TEST + 3
 private const val SI_HD_WATER = SI_ALPHA_TEST + 4
 private const val SI_HD_GROUND = SI_ALPHA_TEST + 5
 private const val SI_HD_SOFT = SI_ALPHA_TEST + 6
-internal const val FF_SHADOW_INTS = SI_ALPHA_TEST + 7
+private const val SI_HD_MAP_SLOT = SI_ALPHA_TEST + 7
+internal const val FF_SHADOW_INTS = SI_ALPHA_TEST + 8
 
 private const val SF_TEX_ENV_COLOR = 0
 private const val SF_ENV_SCALE = 4

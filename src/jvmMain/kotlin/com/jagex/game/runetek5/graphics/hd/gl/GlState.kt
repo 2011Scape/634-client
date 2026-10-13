@@ -79,6 +79,9 @@ class GlState(val gl: WebGL2RenderingContext) {
     // 634HD: 1 while particles are drawn soft (HD_SOFT_PARTICLES), with the projection's depth
     // terms (P[2][2], P[3][2]) and 1/width, 1/height of the depth copy
     var hdSoft: Int = 0
+
+    // 634HD: the slot of the drawn texture's material maps (HdMaterialMaps), -1 for none
+    var hdMapSlot: Int = -1
     val hdDepthParams: FloatArray = FloatArray(4)
 
     /** The vertex array the emulator draws with (HdGl.createState); other renderers bind it back. */
