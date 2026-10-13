@@ -171,10 +171,16 @@ actual class Stream @OriginalMember(owner = "client!jaclib/memory/Stream", name 
 	actual companion object {
 
 		@OriginalMember(owner = "client!jaclib/memory/Stream", name = "floatToRawIntBits", descriptor = "(F)I")
-		@JvmStatic actual external fun floatToRawIntBits(@OriginalArg(0) arg0: Float): Int
+		// Not part of the original client: libjaclib's natives here are the JDK's equivalents.
+		@JvmStatic actual fun floatToRawIntBits(@OriginalArg(0) arg0: Float): Int {
+			return java.lang.Float.floatToRawIntBits(arg0)
+		}
 
 		@OriginalMember(owner = "client!jaclib/memory/Stream", name = "getLSB", descriptor = "(I)B")
-		@JvmStatic private external fun getLSB(@OriginalArg(0) arg0: Int): Byte
+		@JvmStatic private fun getLSB(@OriginalArg(0) arg0: Int): Byte {
+			// The int's first byte in memory: its least significant byte on a little-endian machine.
+			return if (java.nio.ByteOrder.nativeOrder() == java.nio.ByteOrder.BIG_ENDIAN) (arg0 ushr 24).toByte() else arg0.toByte()
+		}
 
 		@OriginalMember(owner = "client!jaclib/memory/Stream", name = "c", descriptor = "()Z")
 		@JvmStatic

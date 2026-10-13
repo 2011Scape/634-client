@@ -4,6 +4,10 @@ import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 
+/*
+ * Not part of the original client: libjaclib's copies to and from the buffer's address are JVM code
+ * (NativeMemory).
+ */
 @OriginalClass("client!jaclib/memory/NativeBuffer")
 actual open class NativeBuffer actual constructor() : Buffer, Source {
 
@@ -38,8 +42,12 @@ actual open class NativeBuffer actual constructor() : Buffer, Source {
 	}
 
 	@OriginalMember(owner = "client!jaclib/memory/NativeBuffer", name = "get", descriptor = "(J[BIII)V")
-	private external fun get(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: ByteArray?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int)
+	private fun get(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: ByteArray?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int) {
+		NativeMemory.get(arg0 + arg3, arg1!!, arg2, arg4)
+	}
 
 	@OriginalMember(owner = "client!jaclib/memory/NativeBuffer", name = "put", descriptor = "(J[BIII)V")
-	private external fun put(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: ByteArray?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int)
+	private fun put(@OriginalArg(0) arg0: Long, @OriginalArg(1) arg1: ByteArray?, @OriginalArg(2) arg2: Int, @OriginalArg(3) arg3: Int, @OriginalArg(4) arg4: Int) {
+		NativeMemory.put(arg1!!, arg2, arg0 + arg3, arg4)
+	}
 }
