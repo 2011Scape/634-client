@@ -97,7 +97,7 @@ object ClientCommandProcessor {
 		if (ClientState.mainLogicStep !== MainLogicStep.STEP_GAME_SCREEN) {
 			return
 		}
-		@Pc(0) val packet: TcpPacket? = TcpPacket.createPacket(ClientProt.CLIENT_CHEAT, TcpPacket.isaac)
+		val packet: TcpPacket? = TcpPacket.createPacket(ClientProt.CLIENT_CHEAT, TcpPacket.isaac)
 		packet!!.buffer!!.writeByte(string.length + 3)
 		packet.buffer!!.writeByte(if (clientCommand) 1 else 0)
 		packet.buffer!!.writeByte(if (tabComplete) 1 else 0)

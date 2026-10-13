@@ -191,6 +191,11 @@ class Js5WorkerThread {
 							val groupId: Int = this.read.readUShort()
 							@Pc(452) val settings: Int = this.read.readUByte()
 							@Pc(457) val payloadSize: Int = this.read.readInt()
+							// Not part of the original client: a size no cache index can hold (3 bytes) is a broken
+							// or hostile response; reconnect rather than allocate it.
+							if (payloadSize < 0 || payloadSize > 0xFFFFFF) {
+								throw IOException()
+							}
 							@Pc(461) val compression: Int = settings and 0x7F
 							@Pc(472) val prefetch: Boolean = (settings and 0x80) != 0
 							@Pc(479) val indexReference: Long = ((archiveId shl 16) + groupId).toLong()

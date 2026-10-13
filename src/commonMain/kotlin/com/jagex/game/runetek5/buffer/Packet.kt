@@ -364,7 +364,16 @@ open class Packet : Node {
 			throw IllegalStateException("Bad version number in gjstr2")
 		}
 		@Pc(24) val currentPosition: Int = this.currentPosition
-		while (this.buffer!![this.currentPosition++].toInt() != 0) {
+		// Not part of the original client: the scan stops at the end of the buffer. A JVM throws there by
+		// itself; a browser's typed array reads undefined past its end, and the scan would run for ever.
+		val buffer: ByteArray = this.buffer!!
+		while (true) {
+			if (this.currentPosition >= buffer.size) {
+				throw IndexOutOfBoundsException("unterminated string")
+			}
+			if (buffer[this.currentPosition++].toInt() == 0) {
+				break
+			}
 		}
 		@Pc(46) val length: Int = this.currentPosition - currentPosition - 1
 		return if (length == 0) "" else Utils.readString(this.buffer!!, length, currentPosition)
@@ -404,7 +413,16 @@ open class Packet : Node {
 	@OriginalMember(owner = "client!cea", name = "m", descriptor = "(B)Ljava/lang/String;")
 	fun readString(): String? {
 		@Pc(14) val currentPosition: Int = this.currentPosition
-		while (this.buffer!![this.currentPosition++].toInt() != 0) {
+		// Not part of the original client: the scan stops at the end of the buffer. A JVM throws there by
+		// itself; a browser's typed array reads undefined past its end, and the scan would run for ever.
+		val buffer: ByteArray = this.buffer!!
+		while (true) {
+			if (this.currentPosition >= buffer.size) {
+				throw IndexOutOfBoundsException("unterminated string")
+			}
+			if (buffer[this.currentPosition++].toInt() == 0) {
+				break
+			}
 		}
 		@Pc(36) val length: Int = this.currentPosition - currentPosition - 1
 		return if (length == 0) "" else Utils.readString(this.buffer!!, length, currentPosition)
@@ -486,6 +504,10 @@ open class Packet : Node {
 
 	@OriginalMember(owner = "client!cea", name = "a", descriptor = "(III[B)V")
 	fun readBytes(@OriginalArg(1) offset: Int, @OriginalArg(2) length: Int, @OriginalArg(3) bytes: ByteArray?) {
+		// Not part of the original client: the same bounds a JVM checks, checked where a browser would not.
+		if (length > 0 && (this.currentPosition + length > this.buffer!!.size || offset + length > bytes!!.size)) {
+			throw IndexOutOfBoundsException("read past the end")
+		}
 		@Pc(7) var i: Int = offset
 		while (i < length + offset) {
 			bytes!![i] = this.buffer!![this.currentPosition++]

@@ -470,6 +470,17 @@ object Static701 {
 				LoginManager.delay = 0
 				LoginManager.loginStep = LoginStep.CONNECT
 			}
+		} catch (ex6: RuntimeException) {
+			// Not part of the original client: a malformed login or lobby reply (bad string version, map
+			// data, opcode) fails the login, as a lost connection does, instead of reaching the error screen.
+			ex6.printStackTrace()
+			if (Connection.connection != null) {
+				Connection.connection!!.close()
+				Connection.connection = null
+			}
+			LoginManager.loginStep = LoginStep.IDLE
+			LoginManager.setLoginResponse(-4)
+			LoginStepRollback.revertLoginStep()
 		}
 	}
 }

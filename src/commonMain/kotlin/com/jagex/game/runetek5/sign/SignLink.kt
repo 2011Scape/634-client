@@ -525,9 +525,18 @@ class SignLink : Runnable {
 	@OriginalMember(owner = "client!wea", name = "a", descriptor = "([BBLjava/io/File;)Z")
 	fun writeFile(@OriginalArg(0) data: ByteArray?, @OriginalArg(2) file: File?): Boolean {
 		try {
-			@Pc(4) val fileOutputStream: FileOutputStream = FileOutputStream(file)
+			// Not part of the original client: written beside the file and renamed over it, so a native
+			// library another client has loaded is replaced rather than rewritten under it.
+			val temporary: File = File(file!!.getPath() + ".tmp")
+			@Pc(4) val fileOutputStream: FileOutputStream = FileOutputStream(temporary)
 			fileOutputStream.write(data, 0, data!!.size)
 			fileOutputStream.close()
+			if (!temporary.renameTo(file)) {
+				file.delete()
+				if (!temporary.renameTo(file)) {
+					throw IOException()
+				}
+			}
 			return true
 		} catch (@Pc(20) ex: IOException) {
 			throw RuntimeException()
