@@ -108,6 +108,8 @@ class FfFragmentUniformLocations(gl: WebGL2RenderingContext, program: WebGLProgr
     val logicalScale: WebGLUniformLocation? = gl.getUniformLocation(program, "uLogicalScale")
     // 634HD: whether the draw belongs to the 3D view (hd_lib.glsl)
     val hdScene: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdScene")
+    // 634HD: whether the material is water (HD_WATER)
+    val hdWater: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdWater")
 
     // Last values uploaded into *this* program's uniforms (each linked program has its own
     // storage), so uploadFfFragmentUniforms only sends the uniforms that actually differ.
@@ -148,6 +150,7 @@ fun uploadFfFragmentUniforms(gl: WebGL2RenderingContext, state: GlState, L: FfFr
     }
     setFloat(gl, L, L.logicalScale, SF_LOGICAL_SCALE, state.logicalSampleScale)
     setInt(gl, L, L.hdScene, SI_HD_SCENE, state.hdScene)
+    setInt(gl, L, L.hdWater, SI_HD_WATER, state.hdWater)
     for (unit in 0 until 3) {
         val cube = state.textureTarget[unit] == GL_TEXTURE_CUBE_MAP
         val is3d = state.textureTarget[unit] == GL_TEXTURE_3D
@@ -231,7 +234,8 @@ private const val SI_ALPHA_TEST = 3 * SI_UNIT_STRIDE
 private const val SI_ALPHA_FUNC = SI_ALPHA_TEST + 1
 private const val SI_FOG_ENABLED = SI_ALPHA_TEST + 2
 private const val SI_HD_SCENE = SI_ALPHA_TEST + 3
-internal const val FF_SHADOW_INTS = SI_ALPHA_TEST + 4
+private const val SI_HD_WATER = SI_ALPHA_TEST + 4
+internal const val FF_SHADOW_INTS = SI_ALPHA_TEST + 5
 
 private const val SF_TEX_ENV_COLOR = 0
 private const val SF_ENV_SCALE = 4

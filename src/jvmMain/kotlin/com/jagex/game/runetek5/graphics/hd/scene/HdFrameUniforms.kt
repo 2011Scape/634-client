@@ -48,7 +48,8 @@ class HdFrameUniforms {
         private const val LIGHT_COLOUR: Int = LIGHT_POSITION + MAX_LIGHTS * 16
         private const val AO_MATRIX: Int = LIGHT_COLOUR + MAX_LIGHTS * 16
         private const val AO_PARAMS: Int = AO_MATRIX + 64
-        const val SIZE: Int = AO_PARAMS + 16
+        private const val WATER: Int = AO_PARAMS + 16
+        const val SIZE: Int = WATER + 16
     }
 
     private var buffer: Int = 0
@@ -114,6 +115,9 @@ class HdFrameUniforms {
     }
 
     fun setLightCount(count: Int) = putInt4(LIGHT_INFO, count, 0, 0, 0)
+
+    /** Water's tint (HD_WATER): colour, w how strongly it replaces the game's water colour. */
+    fun setWater(r: Float, g: Float, b: Float, strength: Float) = putVec4(WATER, r, g, b, strength)
 
     /** The occlusion height map (HD_AO): world to (u, v, depth), and range, strength, uv per unit. */
     fun setAmbientOcclusion(matrix: FloatArray, params: FloatArray) {
