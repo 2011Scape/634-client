@@ -40,6 +40,11 @@ with a `smoketest` / `smoketest1` account:
 # frame-time benchmark instead of the checks (FEATURES.md); in the browser measure the production
 # bundle: node tools/serve.mjs 8080 build/dist/js/productionExecutable
 ./gradlew runClient -Pclient.test=smoke -Pclient.test.bench=300 [-Pclient.test.benchMode=resizable|fixed]
+# screenshot harness: teleports to fixed positions (needs an admin account), holds the camera, diffs
+# each frame pixel by pixel against scene-<name>-toolkit<id>.png, then a map reload and a relog;
+# captures and diff images go to build/smoke/scenes/
+./gradlew runClient -Pclient.test=smoke -Pclient.test.scenes=default [-Pclient.test.toolkit=1] \
+  [-Pclient.test.reference=$HOME/634-smoke-ref] [-Pclient.test.sceneReferenceToolkit=1]
 ```
 
 It logs in, renders N frames, runs the extras' checks, checks the frame is not blank (and close to a
