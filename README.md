@@ -34,8 +34,11 @@ quality-of-life extras.
 - **Nothing else to play on 2011Scape.** To run your own server, see the [Void repository][void],
   and start the client with `--address localhost`.
 
-On Linux the launcher puts the client's native libraries on the library path itself, so OpenGL
-works however you start it.
+OpenGL runs on [LWJGL](https://www.lwjgl.org), which the jar carries for Linux, Windows and macOS on
+x64 and arm64 (and 32-bit Windows), so the Java OpenGL mode needs none of the game's own native libraries. The native
+OpenGL mode still uses one (`hw3d`), which exists for x86 and x86_64 only. On Linux the launcher
+puts that library on the library path itself. Windows, macOS and arm64 have not been tested with
+LWJGL yet.
 
 ## Download
 
