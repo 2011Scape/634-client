@@ -4,6 +4,8 @@
 // (ff.vert) would have lit and placed it for its object this frame. The per-object matrices and
 // lights are copied from the emulator's own state as the client draws each object (HdSceneRenderer).
 
+#include "hd_lib.glsl"
+
 layout(location = 0) in vec3 aPosition;
 layout(location = 1) in vec4 aColor;
 layout(location = 2) in vec2 aTexCoord;
@@ -79,8 +81,9 @@ void main() {
             float diff = max(dot(rawEyeNormal, lightDir), 0.0);
             lit += (vec4(0.0, 0.0, 0.0, 1.0) + vec4(diffuse.rgb, 1.0) * diff) * atten;
         }
-        vColor = vec4(clamp(aColor.rgb * lit.rgb, 0.0, 1.0), aColor.a);
+        vec4 base = hdColour(aColor);
+        vColor = hdOn(HD_LINEAR) ? vec4(base.rgb * lit.rgb, base.a) : vec4(clamp(aColor.rgb * lit.rgb, 0.0, 1.0), aColor.a);
     } else {
-        vColor = aColor;
+        vColor = hdColour(aColor);
     }
 }

@@ -1,6 +1,7 @@
 #version 330 core
 // Not part of the original client: 634HD (toolkit 6). The fixed-function pipeline as GLSL, ported
 // from the browser's jaggl emulator (src/jsMain/kotlin/jaggl/FixedFunctionShader.js.kt).
+#include "hd_lib.glsl"
 precision mediump float;
 precision highp sampler3D;
 
@@ -133,7 +134,8 @@ vec4 sampleUnit(int unit) {
     // the animated slice coordinate r arrives through the per-unit texture matrix.
     if (unit == 0) {
         if (uIs3D[0] != 0) return sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0);
-        return texture(uTexture0, vTexCoord0.xy);
+        // 634HD: the base texture in linear colour too (HdSettings.tonemap)
+        return hdColour(texture(uTexture0, vTexCoord0.xy));
     }
     if (unit == 1) {
         if (uCubeMap[1]) return texture(uTextureCube1, vTexCoord1);
@@ -156,7 +158,7 @@ void main() {
     if (uFogEnabled) {
         float depth = gl_FragCoord.z / gl_FragCoord.w;
         float fogFactor = clamp((uFogEnd - depth) / (uFogEnd - uFogStart), 0.0, 1.0);
-        color = vec4(mix(uFogColor.rgb, color.rgb, fogFactor), color.a);
+        color = vec4(mix(hdColour(uFogColor).rgb, color.rgb, fogFactor), color.a);
     }
     fragColor = color;
 }

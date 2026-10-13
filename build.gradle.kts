@@ -148,6 +148,8 @@ tasks.register<JavaExec>("runClient") {
         "client.test.shot", "client.test.reference", "client.test.tolerance", "client.test.detailTolerance", "client.test.command", "client.test.commandFrames", "client.test.chat", "client.test.chatFrames", "client.test.windowModes", "client.test.subInterfaces", "client.test.menuWalk", "client.test.menuWalkHome", "client.test.media", "client.test.markers", "client.tileMarkers", "client.xpDrops", "client.npcLabels", "client.groundItemLabels", "client.test.groundItems", "client.test.npcLabels", "client.test.xpDrops", "client.test.toolkit", "client.test.bench", "client.test.benchMode",
         "client.test.scenes", "client.test.sceneFrames", "client.test.sceneReferenceToolkit", "client.test.scenePixelTolerance", "client.test.sceneMaxDifferent", "client.toolkit", "client.test.hdFail", "client.test.findText", "client.test.benchWindow", "client.test.scenePosition", "client.test.hdDebug", "client.test.hdNoTextures")
         .forEach { name -> providers.gradleProperty(name).orNull?.let { systemProperty(name, it) } }
+    // 634HD's feature switches, client.hd.<name> (HdSettings), all forwarded
+    providers.gradlePropertiesPrefixedBy("client.hd.").get().forEach { (name, value) -> systemProperty(name, value) }
     withNativeDir()
 }
 

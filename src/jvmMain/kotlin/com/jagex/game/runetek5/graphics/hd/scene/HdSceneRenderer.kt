@@ -190,6 +190,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
 
     private val drawOffsets: PointerBuffer = MemoryUtil.memAllocPointer(CHUNKS)
 
+    private var uHdScene: Int = -1
     private var uGlobalAmbient: Int = -1
     private var uDirLight0: Int = -1
     private var uDirLight1: Int = -1
@@ -832,6 +833,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         val state: GlState = HdGl.state
         val program: WebGLProgram = this.program!!
         GL33C.glUseProgram(program.id)
+        GL33C.glUniform1i(uHdScene, 1)
         CoreGl.uniform4fv(uGlobalAmbient, state.globalAmbient)
         setDirLight(uDirLight0, uDirDiffuse0, state, 0)
         setDirLight(uDirLight1, uDirDiffuse1, state, 1)
@@ -1109,6 +1111,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         GL33C.glUniform1i(GL33C.glGetUniformLocation(id, "uSmallNearest"), HdMaterials.UNIT_SMALL_NEAREST)
         GL33C.glUniform1i(GL33C.glGetUniformLocation(id, "uLargeLinear"), HdMaterials.UNIT_LARGE_LINEAR)
         GL33C.glUniform1i(GL33C.glGetUniformLocation(id, "uLargeNearest"), HdMaterials.UNIT_LARGE_NEAREST)
+        uHdScene = GL33C.glGetUniformLocation(id, "uHdScene")
         uGlobalAmbient = GL33C.glGetUniformLocation(id, "uGlobalAmbient")
         uDirLight0 = GL33C.glGetUniformLocation(id, "uDirLight[0]")
         uDirLight1 = GL33C.glGetUniformLocation(id, "uDirLight[1]")

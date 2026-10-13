@@ -11,16 +11,42 @@ object HdShaders {
 
     private val cache = HashMap<String, String>()
 
-    /** The text of /634hd/shaders/[name]; [defines] are inserted after the #version line. */
+    /**
+     * The text of /634hd/shaders/[name], with its #include "file" lines replaced by those files (once
+     * each); [defines] are inserted after the #version line.
+     */
     fun source(name: String, defines: String = ""): String {
-        val text = cache.getOrPut(name) {
-            val stream = HdShaders::class.java.getResourceAsStream(ROOT + name)
-                ?: throw IllegalStateException("634HD: missing shader resource " + ROOT + name)
-            stream.use { String(it.readBytes(), Charsets.UTF_8) }
-        }
+        val text = cache.getOrPut(name) { expand(name, HashSet()) }
         if (defines.isEmpty()) return text
         val end = text.indexOf('\n')
         return text.substring(0, end + 1) + defines + text.substring(end + 1)
+    }
+
+    private fun read(name: String): String {
+        val stream = HdShaders::class.java.getResourceAsStream(ROOT + name)
+            ?: throw IllegalStateException("634HD: missing shader resource " + ROOT + name)
+        return stream.use { String(it.readBytes(), Charsets.UTF_8) }
+    }
+
+    private fun expand(name: String, included: HashSet<String>): String {
+        val out = StringBuilder()
+        for (line in read(name).split('\n')) {
+            val trimmed = line.trim()
+            if (trimmed.startsWith("#include")) {
+                val file = trimmed.substringAfter('"').substringBefore('"')
+                if (included.add(file)) {
+                    out.append(expand(file, included).replace("#version 330 core\n", "")).append('\n')
+                }
+                continue
+            }
+            out.append(line).append('\n')
+        }
+        return out.toString()
+    }
+
+    /** Drops the cached sources, so the next program reads the files again (hot reload). */
+    fun reload() {
+        cache.clear()
     }
 
     fun compile(type: Int, source: String, name: String): WebGLShader {
@@ -46,7 +72,16 @@ object HdShaders {
             CoreGl.deleteProgram(program)
             throw IllegalStateException("634HD: " + name + " does not link:\n" + log)
         }
+        bindFrameBlock(program)
         return program
+    }
+
+    /** Points the program's HdFrame block, if it has one (hd_lib.glsl), at the frame's uniform buffer. */
+    fun bindFrameBlock(program: WebGLProgram) {
+        val index = org.lwjgl.opengl.GL33C.glGetUniformBlockIndex(program.id, "HdFrame")
+        if (index != org.lwjgl.opengl.GL33C.GL_INVALID_INDEX) {
+            org.lwjgl.opengl.GL33C.glUniformBlockBinding(program.id, index, 0)
+        }
     }
 
     /** Compiles and links /634hd/shaders/[base].vert and [base].frag. */
