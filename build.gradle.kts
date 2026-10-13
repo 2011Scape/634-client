@@ -4,6 +4,15 @@ plugins {
 
 description = "The RuneScape client from December 2010 (build 634), with a launcher for any Void server."
 
+val lwjglVersion = "3.4.3"
+val lwjglAwtVersion = "0.2.5"
+val lwjglNatives = listOf(
+    "natives-linux", "natives-linux-arm64",
+    // windows-x86: the README's 32-bit Java for DirectX had OpenGL from the cache's x86 libjaggl
+    "natives-windows", "natives-windows-x86", "natives-windows-arm64",
+    "natives-macos", "natives-macos-arm64",
+)
+
 /*
  * A Kotlin Multiplatform project with one target, the JVM.
  * The game is in src/commonMain, on shims of the Java APIs it uses; the native classes keep their
@@ -32,6 +41,20 @@ kotlin {
     sourceSets {
         jvmMain.dependencies {
             implementation(files("lib/stub.jar"))
+            /*
+             * jaggl and jaclib run on LWJGL instead of the JNI libraries in the game cache:
+             * lwjgl-opengl for the GL calls, lwjgl3-awt for a context on the client's AWT Canvas,
+             * MemoryUtil for jaclib's native memory. The natives of every desktop platform go in.
+             */
+            implementation(project.dependencies.platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
+            implementation("org.lwjgl:lwjgl")
+            implementation("org.lwjgl:lwjgl-opengl")
+            implementation("org.lwjgl:lwjgl-jawt")
+            implementation("org.lwjglx:lwjgl3-awt:$lwjglAwtVersion")
+            for (natives in lwjglNatives) {
+                runtimeOnly("org.lwjgl:lwjgl::$natives")
+                runtimeOnly("org.lwjgl:lwjgl-opengl::$natives")
+            }
         }
         jsMain.dependencies {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
@@ -143,12 +166,16 @@ val releaseJar = tasks.register<Jar>("releaseJar") {
             "Add-Opens" to "java.base/java.lang",
             "Enable-Native-Access" to "ALL-UNNAMED",
             "Implementation-Version" to archiveVersion.get(),
+            // LWJGL keeps its Java 9+ classes under META-INF/versions
+            "Multi-Release" to "true",
         )
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from(jvmJar.map { zipTree(it.archiveFile) })
     from(jvmRuntimeClasspath.map { classpath -> classpath.map { zipTree(it) } }) {
         exclude("META-INF/MANIFEST.MF", "META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
+        // one jar's module descriptor would misdescribe the merged jar
+        exclude("module-info.class", "META-INF/versions/*/module-info.class")
     }
 }
 
