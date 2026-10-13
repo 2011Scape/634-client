@@ -112,8 +112,7 @@ Done when: 634HD matches the existing OpenGL toolkit in the screenshot test set,
 
 ## Phase 4: Rendering features
 
-**Status (Oct 13, 2026): done on Linux x64 (RTX 5070) except GPU particles and smooth interface
-scaling; see docs/RENDERING.md "634HD features". All on, Varrock at 1920x1006 with 4x MSAA: 305 fps,
+**Status (Oct 13, 2026): done on Linux x64 (RTX 5070); see docs/RENDERING.md "634HD features". All on, Varrock at 1920x1006 with 4x MSAA: 305 fps,
 447 draw calls, 26 ms worst region frame. Iris Xe, RTX 3060, Windows and macOS not measured.**
 
 Build these in order, one pull request each. Every feature gets a toggle or quality level in settings and must not change behaviour when disabled.
@@ -138,8 +137,8 @@ Skip motion blur and depth of field.
 
 ## Phase 5: Material system and texture maps
 
-**Status (Oct 13, 2026): done with 23 derived map sets (22 MB, uncompressed RGBA8; BC5/BC7 not
-done). Tangents come from screen-space derivatives, not per-face data. Materials off restores the
+**Status (Oct 13, 2026): done with 23 derived map sets (5 MB; BC5/BC7, compressed by the driver at
+load rather than at build time). Tangents come from screen-space derivatives, not per-face data. Materials off restores the
 Phase 4 look (harness unchanged).**
 
 Outcome: textured surfaces support normal, roughness, ambient occlusion, emissive and optional height maps, loaded from files outside the cache. Depends on per-pixel lighting (Phase 4, item 6).
