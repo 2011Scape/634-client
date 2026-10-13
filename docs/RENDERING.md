@@ -166,7 +166,9 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
 - **Checks:**
   - the scene harness against toolkit 1's references (`-Pclient.test.toolkit=6
     -Pclient.test.scenes=default -Pclient.test.sceneReferenceToolkit=1`): every scene, the reload, the
-    relog and a loc change within the noise of toolkit 1 against itself;
+    relog and a loc change within the noise of toolkit 1 against itself (40 per 1000; the cow
+    field, whose cows wander between runs, has its own limit of 65: toolkit 1 against itself there
+    differs by 33 to 57);
   - the regular smoke test against toolkit 1's references;
   - the bench at a position (`-Pclient.test.scenePosition=...`), which prints draw calls by category,
     the region-build hitch and chunk rebuilds (`client/features/RenderStats`).

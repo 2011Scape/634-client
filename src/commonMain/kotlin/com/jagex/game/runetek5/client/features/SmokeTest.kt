@@ -299,7 +299,7 @@ object SmokeTest {
 
 	/**
 	 * client.test.scenes: the screenshot harness, run instead of the checks. "default" takes
-	 * DEFAULT_SCENES; otherwise a list of name:x,y,level,yaw,pitch,zoom separated by ';'. For each
+	 * DEFAULT_SCENES; otherwise a list of name:x,y,level,yaw,pitch,zoom[,limit] separated by ';'. For each
 	 * scene the player is teleported there (::tele, which needs an admin account), the map is built,
 	 * the camera is held at the given yaw (0-16383), pitch (1024-3072) and zoom offset, and after
 	 * client.test.sceneFrames frames (default 150) the frame is saved to build/smoke/scenes/ and
@@ -307,8 +307,9 @@ object SmokeTest {
 	 * client.test.sceneReferenceToolkit compares against another toolkit's references (634HD against
 	 * toolkit 1). A pixel differs when a channel is off by more than client.test.scenePixelTolerance
 	 * (default 24); a scene fails when more than client.test.sceneMaxDifferent pixels per thousand
-	 * (default 40) differ, and a diff image (differing pixels red over a dimmed frame) is saved. Two
-	 * runs of toolkit 1 differ by 3 to 29: moving NPCs and the player's idle animation.
+	 * (default 40) differ - or the scene's own limit, its seventh value - and a diff image (differing
+	 * pixels red over a dimmed frame) is saved. Two runs of toolkit 1 differ by 3 to 29: moving NPCs
+	 * and the player's idle animation; at the cow field, where the cows wander, by 33 to 57 (limit 65).
 	 * After the list, the first scene is captured again after a map reload (teleport away and back)
 	 * and after a relog. The player is sent home (SCENE_HOME) at the end.
 	 */
@@ -322,6 +323,9 @@ object SmokeTest {
 
 	private val SCENE_MAX_DIFFERENT: Int = lang.getInteger("client.test.sceneMaxDifferent", 40)
 
+	/** The limit for the scene being compared: its seventh value, else client.test.sceneMaxDifferent. */
+	private var sceneLimit: Int = 40
+
 	private const val SCENE_WAIT: Int = 600
 
 	/** Where smoketest starts, and must be left: the other references are taken there. */
@@ -334,7 +338,8 @@ object SmokeTest {
 		"draynor_swamp:3108,3290,0,8192,1400,0;" +
 		"karamja_volcano:2852,3168,0,12288,1600,0;" +
 		"varrock_sewers:3237,9866,0,0,1400,0;" +
-		"cows:3256,3276,0,4096,1400,0;" +
+		// the cows wander between runs: toolkit 1 against its own reference differs by 33 to 57
+		"cows:3256,3276,0,4096,1400,0,65;" +
 		"wizards_tower:3109,3162,0,0,1400,0"
 
 	/**
@@ -820,6 +825,8 @@ object SmokeTest {
 		val yaw: Int = if (values.size > 3) values[3].javaTrim().toInt() else 0
 		val pitch: Int = if (values.size > 4) values[4].javaTrim().toInt() else 1400
 		val zoom: Int = if (values.size > 5) values[5].javaTrim().toInt() else 0
+		// a scene's own limit, for one whose NPCs wander between runs (toolkit 1 against itself is that noisy)
+		sceneLimit = if (values.size > 6) values[6].javaTrim().toInt() else SCENE_MAX_DIFFERENT
 		if (sceneStep == 0) {
 			if (reload && sceneArrived(player, x, y, level)) {
 				// already there: go away first, so coming back builds the map again
@@ -1319,7 +1326,7 @@ object SmokeTest {
 				fail("cannot save the diff image: " + ex)
 			}
 		}
-		val ok: Boolean = perMille <= SCENE_MAX_DIFFERENT
+		val ok: Boolean = perMille <= sceneLimit
 		if (!ok) {
 			sceneFailures++
 		}
