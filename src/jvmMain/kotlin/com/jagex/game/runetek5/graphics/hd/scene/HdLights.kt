@@ -27,6 +27,8 @@ class HdLights {
         /** How far from the player a light is considered, in scene units (512 a tile). */
         private const val RANGE: Int = 40 * 512
         private const val MAX_CANDIDATES: Int = 4096
+        const val MAX_EMITTERS: Int = 256
+        private const val EMITTER_RANGE: Int = 24 * 512
     }
 
     // the loc lights, found when the scene changes: position, the definition, a phase for flicker
@@ -55,6 +57,13 @@ class HdLights {
     private val DEBUG: Boolean = System.getProperty("client.test.hdDebug") != null
     private var debugFrame: Int = 0
 
+    /** GPU particle emitters this frame: world x, y, z, kind (1 fire, 2 lava), strength. */
+    @JvmField
+    val emitters: FloatArray = FloatArray(MAX_EMITTERS * 5)
+
+    var emitterCount: Int = 0
+        private set
+
     /** The light nearest the player this frame, for the debug panel's editor. */
     var nearest: HdContent.LightDef? = null
         private set
@@ -66,7 +75,8 @@ class HdLights {
     /** Finds the lights for this frame and writes the nearest into [uniforms]; [view] is world to eye. */
     fun prepare(content: HdContent, uniforms: HdFrameUniforms, view: FloatArray, seconds: Float) {
         used = 0
-        if (!HdSettings.lights) {
+        emitterCount = 0
+        if (!HdSettings.lights && !HdSettings.particles) {
             uniforms.setLightCount(0)
             nearest = null
             return
@@ -123,6 +133,25 @@ class HdLights {
                 }
                 node = node.next
             }
+        }
+        // the GPU particles' emitters (HdGpuParticles): fires and lava among the loc lights here
+        if (HdSettings.particles) {
+            for (i in 0 until count) {
+                val light: HdContent.LightDef = def[i]!!
+                if (light.flicker == 0 || emitterCount >= MAX_EMITTERS || distance[i] > EMITTER_RANGE.toFloat() * EMITTER_RANGE) continue
+                val at: Int = emitterCount * 5
+                emitters[at] = x[i]
+                emitters[at + 1] = y[i]
+                emitters[at + 2] = z[i]
+                emitters[at + 3] = if (light.flicker == 2) 2.0f else 1.0f
+                emitters[at + 4] = minOf(1.0f, light.intensity * light.radius / 4.0f)
+                emitterCount++
+            }
+        }
+        if (!HdSettings.lights) {
+            uniforms.setLightCount(0)
+            nearest = null
+            return
         }
         // the nearest first: a partial selection of up to MAX_LIGHTS
         val limit: Int = minOf(count, HdFrameUniforms.MAX_LIGHTS)

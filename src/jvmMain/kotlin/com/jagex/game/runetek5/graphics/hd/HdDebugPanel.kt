@@ -193,7 +193,7 @@ class HdDebugPanel(private val content: HdContent) {
             "tonemap" to arrayOf("off", "aces", "agx"), "anisotropy" to arrayOf("0", "2", "4", "8", "16"),
             "shadows" to arrayOf("off", "1024", "2048", "4096"), "water" to arrayOf("0", "1"), "interfaceScale" to arrayOf("off", "2", "3", "4"),
         )
-        val switches = arrayOf("tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting", "shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom", "colourGrading", "materials")
+        val switches = arrayOf("tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting", "shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom", "colourGrading", "materials", "particles")
         for (name in switches) {
             val options = choices[name]
             if (options != null) {
@@ -265,6 +265,7 @@ class HdDebugPanel(private val content: HdContent) {
         "bloom" -> onOff(HdSettings.bloom)
         "colourGrading" -> onOff(HdSettings.colourGrading)
         "materials" -> onOff(HdSettings.materials)
+        "particles" -> onOff(HdSettings.particles)
         else -> ""
     }
 
