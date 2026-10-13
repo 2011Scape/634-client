@@ -217,6 +217,11 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
 - **Debug panel** (`HdDebugPanel`, `client.debug` only; F10 or `::hdpanel`): stats with GPU time,
   every switch, overlays, live editing of the current environment and nearest light with Save to
   the JSON file, texture and mini-menu inspection, content warnings.
+- **Drivers checked:** NVIDIA (RTX 5070, 3.3 core) and Mesa's GLSL compiler on llvmpipe with a
+  forward-compatible 4.1 core context, as a Mac asks for (`__GLX_VENDOR_LIBRARY_NAME=mesa
+  LIBGL_ALWAYS_SOFTWARE=1`, `-Pclient.test.hdGlVersion=4.1`): every shader compiles, every feature
+  runs, and with them off the harness matches toolkit 1. Intel (Iris) on Linux uses the same Mesa
+  compiler. Windows and macOS themselves, and Iris Xe and RTX 3060 speeds, are not measured.
 - **Not done:** compression at build time (the driver compresses at load), foam on water, and
   blending across tile texture edges. Occlusion is baked into a height map per region, not into
   vertices. The game's own particle systems stay CPU-simulated; the GPU
