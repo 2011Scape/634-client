@@ -701,6 +701,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
 
     /** After the opaque entities: rebuilds changed chunks, then draws every visible retained object. */
     fun flushOpaque() {
+        HdGl.flushImmediate()
         if (frameCount == 0) {
             rebuildDirtyChunks()
             return
