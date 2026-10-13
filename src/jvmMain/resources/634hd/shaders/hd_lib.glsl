@@ -291,3 +291,16 @@ vec4 hdWater(vec4 color, vec3 viewPos) {
     }
     return vec4(result, color.a);
 }
+
+// Smooth value noise in 0..1.
+float hdNoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5453);
+    float b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.5453);
+    float c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.5453);
+    float d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.5453);
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+
