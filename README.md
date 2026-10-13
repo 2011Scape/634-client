@@ -188,11 +188,14 @@ native libraries bind to. Code added to the
 2. The relay, from WebSockets to the server's TCP port: `node tools/relay.mjs` (no dependencies;
    arguments `[listenPort=8081] [serverHost=localhost] [serverPort=43594]`), or
    `websockify 8081 localhost:43594`. The client connects to `ws://localhost:8081/proxy`, or to
-   `window.CONFIG.url` when the page sets it.
+   `window.CONFIG.url` when the page sets it. The relay listens on 127.0.0.1 only (`HOST=0.0.0.0`
+   for other machines) and takes WebSockets only from pages served by this computer;
+   `ORIGINS=https://example.org` allows a hosted page's origin as well.
 3. `./gradlew jsBrowserDevelopmentWebpack`, then serve it: `node tools/serve.mjs` (no
    dependencies; arguments `[port=8080] [bundleDir] [referenceDir=~/634-smoke-ref/browser]
    [shotDir=build/smoke-browser]`), and open `http://localhost:8080/`. It never lets the browser
-   cache, so a rebuilt bundle is picked up on the next reload. `./gradlew build` makes the minified
+   cache, so a rebuilt bundle is picked up on the next reload. It listens on 127.0.0.1 only
+   (`HOST=0.0.0.0` to serve other machines). `./gradlew build` makes the minified
    bundle in `build/dist/js/productionExecutable`, and `./gradlew release` zips it beside the jar.
 4. The first visit downloads the cache into IndexedDB; later visits load it from there. The client
    starts as the launcher does (`LauncherDefaults`), but always at render distance 1, on the toolkit the game's settings
@@ -200,7 +203,8 @@ native libraries bind to. Code added to the
    console (the `` ` `` key): `tk1` switches to the Java OpenGL toolkit on WebGL 2, `tk2` to the
    native software toolkit's browser version, and `tele 3222 3218` takes an admin player to
    Lumbridge (so does ctrl-clicking the minimap). Switches go in the address (`?client.msaa=4`) or a
-   hosted page's `window.CONFIG`. `window.__log` holds the last 500 console lines. Leaving the page
+   hosted page's `window.CONFIG`. A hosted page (one that sets `window.CONFIG`) ignores the
+   development switches in its address, `client.test*` and `client.devCommands`. `window.__log` holds the last 500 console lines. Leaving the page
    closes the client's connections, so the server logs the player out at once.
 5. The smoke test: `http://localhost:8080/?client.test=smoke&client.test.toolkit=1` logs in as
    `smoketest`, runs the desktop test's checks without the launcher's defaults, compares its frames

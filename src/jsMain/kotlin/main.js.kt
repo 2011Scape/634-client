@@ -72,19 +72,38 @@ private fun keepConsoleLog() {
  * The client.* switches (docs/FEATURES.md) from the page's query string, as runClient takes them from
  * -P: ?client.msaa=4&client.smaa=true. A switch without a value is true (?client.smaa). They must be
  * set before client.main, because ClientFeatures reads them once.
+ *
+ * A hosted page (one with window.CONFIG) takes no development switch from its address: a link could
+ * otherwise start the smoke test, which logs in to an account the link names, chats and runs a console
+ * command, or turn on the developer console commands. The development pages have no window.CONFIG.
  */
 private fun readClientSwitches() {
     val query: String = window.location.search.removePrefix("?")
     if (query.isEmpty()) return
+    val config: dynamic = window.asDynamic().CONFIG
+    val hosted: Boolean = config != null && config != undefined
     for (pair in query.split('&')) {
         val equals: Int = pair.indexOf('=')
-        val key: String = js("decodeURIComponent")(if (equals < 0) pair else pair.substring(0, equals)) as String
-        val value: String = if (equals < 0) "true" else js("decodeURIComponent")(pair.substring(equals + 1)) as String
-        if (key.startsWith("client.")) {
-            lang.setProperty(key, value)
+        val key: String
+        val value: String
+        try {
+            key = js("decodeURIComponent")(if (equals < 0) pair else pair.substring(0, equals)) as String
+            value = if (equals < 0) "true" else js("decodeURIComponent")(pair.substring(equals + 1)) as String
+        } catch (ex: Throwable) {
+            continue // a malformed escape: skip the pair rather than stop the page
         }
+        if (!key.startsWith("client.")) continue
+        if (hosted && isDevelopmentSwitch(key)) {
+            console.warn("ignoring $key from the address: this page is hosted (window.CONFIG)")
+            continue
+        }
+        lang.setProperty(key, value)
     }
 }
+
+/* The switches only a development page takes from its address. */
+private fun isDevelopmentSwitch(key: String): Boolean =
+    key == "client.test" || key.startsWith("client.test.") || key == "client.devCommands"
 
 /*
  * The client.* options a hosted page gives in its configuration, before the bundle loads:

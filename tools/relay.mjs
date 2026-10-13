@@ -4,6 +4,11 @@
 // TCP connection to the game server, and bytes go both ways unchanged. No dependencies.
 //
 //   node tools/relay.mjs [listenPort=8081] [serverHost=localhost] [serverPort=43594]
+//
+// It listens on 127.0.0.1 only (HOST=0.0.0.0 for other machines) and takes WebSockets only from pages
+// served by this machine (an Origin of localhost, 127.0.0.1 or [::1], any port), so another web site
+// open in the browser cannot reach the game server through it. ORIGINS=https://a.example,https://b.example
+// allows more. A frame over 64 KB closes the connection: the client never sends one.
 
 import { createServer } from 'node:http'
 import { connect } from 'node:net'
@@ -12,6 +17,9 @@ import { createHash } from 'node:crypto'
 const listenPort = Number(process.argv[2] ?? 8081)
 const serverHost = process.argv[3] ?? 'localhost'
 const serverPort = Number(process.argv[4] ?? 43594)
+const host = process.env.HOST ?? '127.0.0.1'
+const allowedOrigins = (process.env.ORIGINS ?? '').split(',').map((o) => o.trim()).filter((o) => o)
+const MAX_FRAME = 64 * 1024
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 const log = (line) => console.log(new Date().toISOString().slice(11, 19) + ' ' + line)
 
@@ -24,6 +32,11 @@ server.on('upgrade', (req, socket) => {
   const key = req.headers['sec-websocket-key']
   if (!key || (req.headers.upgrade ?? '').toLowerCase() !== 'websocket') {
     socket.destroy()
+    return
+  }
+  if (!originAllowed(req.headers.origin)) {
+    log(`refused a WebSocket from origin ${req.headers.origin}`)
+    socket.end('HTTP/1.1 403 Forbidden\r\n\r\n')
     return
   }
   const accept = createHash('sha1').update(key + GUID).digest('base64')
@@ -55,6 +68,10 @@ server.on('upgrade', (req, socket) => {
     buffer = Buffer.concat([buffer, chunk])
     for (;;) {
       const parsed = parse(buffer)
+      if (parsed === TOO_LARGE || buffer.length > MAX_FRAME + 14) {
+        log(`relay ${id}: a frame over ${MAX_FRAME} bytes, closing`)
+        upstream.destroy(); socket.destroy(); return
+      }
       if (!parsed) break
       buffer = buffer.subarray(parsed.length)
       if (parsed.opcode === 0x8) { upstream.end(); socket.end(frame(0x8, Buffer.alloc(0))); return }
@@ -68,7 +85,22 @@ server.on('upgrade', (req, socket) => {
   socket.on('error', () => upstream.destroy())
 })
 
-// One complete client frame at the start of buf, or null. Client frames are always masked.
+// Whether a browser page at this origin may use the relay. No Origin header: not a browser.
+function originAllowed (origin) {
+  if (!origin) return true
+  if (allowedOrigins.includes(origin)) return true
+  try {
+    const hostname = new URL(origin).hostname
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
+  } catch {
+    return false
+  }
+}
+
+const TOO_LARGE = Symbol('too large')
+
+// One complete client frame at the start of buf, null when it is not all there yet, or TOO_LARGE.
+// Client frames are always masked.
 function parse (buf) {
   if (buf.length < 2) return null
   const opcode = buf[0] & 0x0f
@@ -76,6 +108,7 @@ function parse (buf) {
   let off = 2
   if (len === 126) { if (buf.length < 4) return null; len = buf.readUInt16BE(2); off = 4 }
   else if (len === 127) { if (buf.length < 10) return null; len = Number(buf.readBigUInt64BE(2)); off = 10 }
+  if (len > MAX_FRAME) return TOO_LARGE
   const masked = (buf[1] & 0x80) !== 0
   const maskOff = off
   if (masked) off += 4
@@ -95,4 +128,4 @@ function frame (opcode, payload) {
   return Buffer.concat([head, payload])
 }
 
-server.listen(listenPort, () => console.log(`relay listening on ws://localhost:${listenPort}, to ${serverHost}:${serverPort}`))
+server.listen(listenPort, host, () => console.log(`relay listening on ws://${host}:${listenPort}, to ${serverHost}:${serverPort}`))

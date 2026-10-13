@@ -53,7 +53,7 @@ object GroundItemLabels {
 	@JvmStatic
 	fun line(entry: ObjStackEntry?): String? {
 		val type: ItemType? = TypeLists.OBJ!!.list(entry!!.id)
-		return if (entry.count > 1) type!!.name + " (" + entry.count + ")" else type!!.name
+		return if (entry.count > 1) NpcLabels.plainText(type!!.name) + " (" + entry.count + ")" else NpcLabels.plainText(type!!.name)
 	}
 
 	/** Labels the piles on the local player's level in the game view the scene was just drawn into. */
