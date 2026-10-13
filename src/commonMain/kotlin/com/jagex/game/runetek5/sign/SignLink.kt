@@ -413,7 +413,9 @@ class SignLink : Runnable {
 								if (!string!!.startsWith("http://") && !string.startsWith("https://")) {
 									throw Exception()
 								}
-								@Pc(525) val string2: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?&=,.%+-_#:/*"
+								// Not part of the original client: no '%', which cmd expands (%USERNAME%) even
+								// inside the quotes openUrlWithCmd puts the address in.
+								@Pc(525) val string2: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?&=,.+-_#:/*"
 								@Pc(527) var i: Int = 0
 								while (string.length > i) {
 									if (string2.indexOf(string[i]) == -1) {

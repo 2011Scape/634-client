@@ -8,6 +8,7 @@ import com.jagex.game.runetek5.entity.NPCEntity
 import com.jagex.game.runetek5.entity.NPCEntityNode
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
 import com.jagex.game.runetek5.rendering.Renderers
+import com.jagex.game.runetek5.utils.Utils
 import com.jagex.game.runetek5.vardomain.PlayerVarDomain
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
@@ -49,7 +50,19 @@ object NpcLabels {
 	/** The label an npc type shows: its name, and its combat level when it has one. */
 	@JvmStatic
 	fun label(type: NPCType?): String? {
-		return if (type!!.combatLevel > 0) type.name + " (level-" + type.combatLevel + ")" else type.name
+		return if (type!!.combatLevel > 0) plainText(type.name) + " (level-" + type.combatLevel + ")" else plainText(type.name)
+	}
+
+	/**
+	 * A name from the cache as plain text: its < and > drawn as themselves rather than read as the
+	 * font's tags (<col>, <img=>, <br>). The same string back when it has neither, as almost every name.
+	 */
+	@JvmStatic
+	fun plainText(name: String?): String? {
+		if (name == null || name.indexOf('<') == -1 && name.indexOf('>') == -1) {
+			return name
+		}
+		return Utils.escapeTags(name)
 	}
 
 	/** Labels the npcs in the game view the scene was just drawn into. */
