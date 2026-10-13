@@ -60,3 +60,4 @@ actual val homeCacheOnly: Boolean = true
 
 actual fun createHdToolkit(multiSamples: Int, canvas: awt.Canvas?, textureSource: com.jagex.game.runetek5.config.material.MaterialProvider?): com.jagex.game.runetek5.graphics.Toolkit =
     com.jagex.game.runetek5.graphics.hd.HdToolkit.create(multiSamples, canvas, textureSource)
+actual val hdAvailable: Boolean = true

@@ -44,6 +44,7 @@ import lang.javaSplit
 import lang.javaTrim
 import ClientCommandProcessor
 import ClientLogout
+import com.jagex.game.runetek5.graphics.ToolkitType
 import com.jagex.game.runetek5.Minimap
 import com.jagex.game.runetek5.scene.culling.Culling
 import com.jagex.game.runetek5.client.input.camera.Camera
@@ -312,6 +313,13 @@ object SmokeTest {
 		"cows:3256,3276,0,4096,1400,0;" +
 		"wizards_tower:3109,3162,0,0,1400,0"
 
+	/**
+	 * client.test.findText=word: once in game, prints every interface component whose text holds the
+	 * word (ignoring case), as SMOKE TEXT interface:component "text", then stops. Finds the components
+	 * a client-side hook has to reach.
+	 */
+	private val FIND_TEXT: String = lang.getProperty("client.test.findText", "")
+
 	private var sceneList: Array<String?>? = null
 
 	private var sceneIndex: Int = 0
@@ -437,6 +445,14 @@ object SmokeTest {
 		}
 		if (SCENES.length > 0) {
 			scenes(player)
+			return
+		}
+		if (FIND_TEXT.startsWith("open:")) {
+			openAndCapture()
+			return
+		}
+		if (FIND_TEXT.length > 0) {
+			findText()
 			return
 		}
 		if (firstImage == null) {
@@ -788,6 +804,213 @@ object SmokeTest {
 		println("SMOKE scene " + result)
 		sceneIndex++
 		sceneStep = 0
+	}
+
+	private var openFrame: Int = -1
+
+	/**
+	 * client.test.findText=open:N: opens interface N as a modal in the main-screen slot, and after 60 frames saves the frame to build/smoke/open-N.png and stops.
+	 */
+	private fun openAndCapture() {
+		val id: Int = FIND_TEXT.substring(5).toInt()
+		if (openFrame < 0) {
+			// the main-screen slot, where the server opens such interfaces: 548:18 fixed, 746:8 resizable
+			val slot: Int = if (ClientState.BASE_WINDOW_ID == 548) 18 else 8
+			val parent: Int = (ClientState.BASE_WINDOW_ID shl 16) or slot
+			openSubInterface(id, parent, SubInterfaceType.MODAL)
+			openFrame = gameFrames
+			return
+		}
+		if (gameFrames - openFrame < 60) {
+			return
+		}
+		if (openStep == 0) {
+			checkImage("-open", "build/smoke/open-" + id + ".png")
+			if (id != 742) {
+				println("SMOKE PASS opened " + id)
+				lang.flushOut()
+				lang.halt(0)
+			}
+			// the 634HD toggle in the title bar: on, then off again
+			openToolkit = GamePreferences.uid!!.toolkit!!.getValue()
+			if (!HdOptionsButton.pressed(HdOptionsButton.x + 8, HdOptionsButton.y + 8)) {
+				fail("the 634HD toggle did not take the press at " + HdOptionsButton.x + "," + HdOptionsButton.y)
+			}
+			openStep = 1
+			openFrame = gameFrames
+			return
+		}
+		if (openStep == 1) {
+			if (GamePreferences.uid!!.toolkit!!.getValue() != ToolkitType.HD) {
+				fail("the 634HD toggle left the client on toolkit " + GamePreferences.uid!!.toolkit!!.getValue())
+			}
+			checkImage("-open-hd", "build/smoke/open-" + id + "-hd.png")
+			if (!HdOptionsButton.pressed(HdOptionsButton.x + 8, HdOptionsButton.y + 8)) {
+				fail("the 634HD toggle did not take the second press")
+			}
+			openStep = 2
+			openFrame = gameFrames
+			return
+		}
+		if (GamePreferences.uid!!.toolkit!!.getValue() != openToolkit) {
+			fail("turning 634HD off left the client on toolkit " + GamePreferences.uid!!.toolkit!!.getValue() + ", not " + openToolkit)
+		}
+		println("SMOKE PASS 634HD toggle in the Graphics Options: " + openToolkit + " to 6 and back")
+		lang.flushOut()
+		lang.halt(0)
+	}
+
+	private var openStep: Int = 0
+
+	private var openToolkit: Int = -1
+
+	private fun findText() {
+		if (FIND_TEXT.startsWith("struct:")) {
+			// prints every struct string param holding the word (keys 0..4095)
+			val word: String = FIND_TEXT.substring(7).lowercase()
+			for (id in 0 until 8000) {
+				val type: com.jagex.game.runetek5.cache.node.lru.StructType = TypeLists.STRUCT!!.list(id) ?: continue
+				for (key in 0 until 4096) {
+					val value: String?
+					try {
+						value = type.getStringParam("\u0000", key)
+					} catch (ex: ClassCastException) {
+						continue
+					}
+					if (value != null && value != "\u0000" && value.lowercase().contains(word)) {
+						println("SMOKE STRUCT " + id + " param " + key + " = \"" + value + "\"")
+					}
+				}
+			}
+			println("SMOKE PASS searched structs")
+			lang.flushOut()
+			lang.halt(0)
+		}
+		if (FIND_TEXT.startsWith("enum:")) {
+			// prints every enum with a string value holding the word, with all its entries
+			val word: String = FIND_TEXT.substring(5).lowercase()
+			for (id in 0 until 20000) {
+				val type: com.jagex.game.runetek5.config.enumtype.EnumType = TypeLists.ENUM!!.list(id) ?: continue
+				val table: com.jagex.game.runetek5.core.datastruct.key.IterableHashTable = type.parameters ?: continue
+				var match: Boolean = false
+				var node: com.jagex.game.runetek5.cache.node.Node? = table.first()
+				while (node != null) {
+					if (node is com.jagex.game.runetek5.cache.node.StringNode && node.value != null && node.value!!.lowercase().contains(word)) {
+						match = true
+					}
+					node = table.next()
+				}
+				if (!match) {
+					continue
+				}
+				node = table.first()
+				while (node != null) {
+					println("SMOKE ENUM " + id + " key " + node.key + " = " + (if (node is com.jagex.game.runetek5.cache.node.StringNode) "\"" + node.value + "\"" else type.getInt(node.key.toInt()).toString()))
+					node = table.next()
+				}
+			}
+			println("SMOKE PASS searched enums")
+			lang.flushOut()
+			lang.halt(0)
+		}
+		if (FIND_TEXT.startsWith("cs2op:")) {
+			// prints every script that uses one of the given opcodes (comma separated)
+			val wanted: Array<String> = FIND_TEXT.substring(6).javaSplit(",")
+			val groups: Int = com.jagex.game.runetek5.config.Resource.CS2!!.getCapacity()
+			for (id in 0 until groups) {
+				val script: com.jagex.game.runetek5.cache.node.lru.ClientScript = com.jagex.game.runetek5.cache.node.lru.ClientScript.getClientScript(id) ?: continue
+				val ops: IntArray = script.operations ?: continue
+				for (i in 0 until ops.size) {
+					for (w in 0 until wanted.size) {
+						if (ops[i] == wanted[w].toInt()) {
+							println("SMOKE CS2OP script " + id + " uses " + ops[i] + " at " + i)
+						}
+					}
+				}
+			}
+			println("SMOKE PASS searched " + groups + " scripts")
+			lang.flushOut()
+			lang.halt(0)
+		}
+		if (FIND_TEXT.startsWith("cs2:")) {
+			// prints a script's instructions (opcode, int operand, string operand) and every script it calls
+			val pending: IntArray = IntArray(256)
+			val done: BooleanArray = BooleanArray(65536)
+			var count: Int = 1
+			pending[0] = FIND_TEXT.substring(4).toInt()
+			while (count > 0) {
+				val id: Int = pending[--count]
+				if (done[id]) {
+					continue
+				}
+				done[id] = true
+				val script: com.jagex.game.runetek5.cache.node.lru.ClientScript = com.jagex.game.runetek5.cache.node.lru.ClientScript.getClientScript(id) ?: continue
+				val ops: IntArray = script.operations!!
+				println("SMOKE CS2 script " + id)
+				for (i in 0 until ops.size) {
+					println("SMOKE CS2 " + id + "." + i + " op " + ops[i] + " int " + script.intOpValues!![i] + (if (script.stringOpValues != null && script.stringOpValues!![i] != null) " str \"" + script.stringOpValues!![i] + "\"" else ""))
+					if (ops[i] == 40 && count < pending.size) {
+						pending[count++] = script.intOpValues!![i]
+					}
+				}
+			}
+			println("SMOKE PASS dumped scripts")
+			lang.flushOut()
+			lang.halt(0)
+		}
+		if (FIND_TEXT.startsWith("if:")) {
+			dumpInterface(FIND_TEXT.substring(3).toInt())
+			return
+		}
+		val word: String = FIND_TEXT.lowercase()
+		var found: Int = 0
+		var missing: Int = 0
+		val count: Int = Interface.interfaces!!.size
+		for (id in 0 until count) {
+			if (!InterfaceManager.loadInterface(id)) {
+				missing++
+				continue
+			}
+			val components: Array<Component?> = Interface.interfaces!![id] ?: continue
+			for (i in 0 until components.size) {
+				val component: Component = components[i] ?: continue
+				val text: String? = component.text
+				if (text != null && text.lowercase().contains(word)) {
+					println("SMOKE TEXT " + id + ":" + i + " \"" + text + "\" parent " + (component.parentId shr 16) + ":" + (component.parentId and 0xFFFF))
+					found++
+				}
+			}
+		}
+		println("SMOKE PASS findText \"" + FIND_TEXT + "\": " + found + " components, " + missing + " interfaces not loaded")
+		lang.flushOut()
+		lang.halt(0)
+	}
+
+	/** client.test.findText=if:N: prints every component of interface N with what a hook needs. */
+	private fun dumpInterface(id: Int) {
+		if (!InterfaceManager.loadInterface(id)) {
+			fail("interface " + id + " is not loaded")
+		}
+		val components: Array<Component?> = Interface.interfaces!![id]!!
+		for (i in 0 until components.size) {
+			val c: Component = components[i] ?: continue
+			println("SMOKE IF " + id + ":" + i + " type " + c.type + " parent " + (c.parentId and 0xFFFF) + " text \"" + c.text + "\" sprite " + c.spriteId + " name " + c.name
+				+ " onClick " + script(c.onClick) + " onLoad " + script(c.onLoadScript) + " onVarp " + script(c.onVarpTransmit) + " onMouseOver " + script(c.onMouseOver))
+		}
+		println("SMOKE PASS dumped interface " + id + ", " + components.size + " components")
+		lang.flushOut()
+		lang.halt(0)
+	}
+
+	private fun script(args: Array<Any?>?): String {
+		if (args == null) {
+			return "-"
+		}
+		var out: String = "["
+		for (i in 0 until args.size) {
+			out += (if (i > 0) "," else "") + args[i]
+		}
+		return out + "]"
 	}
 
 	private fun sceneArrived(player: PlayerEntity, x: Int, y: Int, level: Int): Boolean {

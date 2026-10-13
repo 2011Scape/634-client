@@ -95,3 +95,4 @@ actual val homeCacheOnly: Boolean = false
 
 actual fun createHdToolkit(multiSamples: Int, canvas: awt.Canvas?, textureSource: com.jagex.game.runetek5.config.material.MaterialProvider?): com.jagex.game.runetek5.graphics.Toolkit =
     throw RuntimeException("634HD runs only in the desktop client")
+actual val hdAvailable: Boolean = false

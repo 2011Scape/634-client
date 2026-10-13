@@ -54,6 +54,7 @@ object HdGl {
     /** Whether [extension] is available, for HdContext.a(String). */
     fun hasExtension(extension: String?): Boolean {
         if (extension == null) return false
+        if (HdContext.FORCED_FAILURE == "extension") return false
         if (extension in CORE_EXTENSIONS) return true
         if (extension in UNSUPPORTED_EXTENSIONS) return false
         val count = GL33C.glGetInteger(GL33C.GL_NUM_EXTENSIONS)

@@ -52,6 +52,7 @@ class HdContext {
      */
     fun init(canvas: Canvas?, red: Int, green: Int, blue: Int, depth: Int, stencil: Int, samples: Int): Long {
         if (context != null) throw IllegalStateException("already initialised")
+        if (FORCED_FAILURE == "context") throw RuntimeException("no OpenGL 3.3 core context (forced by client.test.hdFail)")
         val created: GlContext
         try {
             created = GlContext.create(canvas!!, red, green, blue, depth, stencil, samples, true)
@@ -114,6 +115,11 @@ class HdContext {
         context = null
         state = null
         gl?.release()
+    }
+
+    companion object {
+        /** client.test.hdFail: "context" fails context creation, "extension" hides the extensions, to test the fallback. */
+        val FORCED_FAILURE: String? = System.getProperty("client.test.hdFail")
     }
 
     fun prepareSurface(canvas: Canvas?): Long = context?.prepareSurface(canvas!!) ?: -1L
