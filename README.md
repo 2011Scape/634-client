@@ -99,6 +99,7 @@ are off unless the client is started with `--dev-commands`.
 | `--msaa <n>` | OpenGL: anti-alias the 3D view with n samples (0, 2, 4 or 8) in a framebuffer of its own, so the interface stays sharp. Cut-out textures such as leaves get alpha-to-coverage (`--no-a2c` turns that off). | `::msaa n` |
 | `--smaa` | OpenGL: smooth the 3D view's edges with SMAA 1x, with or without MSAA. | `::smaa` |
 | `--render-scale <x>` | OpenGL: draw the 3D view 1.5 or 2 times larger and shrink it (supersampling). | `::renderscale x` |
+| `--toolkit <name>` | Start on a graphics mode: `hd` (634HD, needs OpenGL 3.3), `opengl`, `java` (Safe Mode). Graphics Options has a 634HD toggle too. | `::tk6` |
 
 ### Developer
 
@@ -111,16 +112,21 @@ are off unless the client is started with `--dev-commands`.
 
 ## Platforms
 
-The game has four graphics modes, chosen in its graphics options.
+The game has four graphics modes, chosen in its graphics options, and 634HD, chosen with its toggle
+in Graphics Options, `--toolkit hd` or `::tk6`.
 
-| Platform | Java | OpenGL | Native OpenGL | DirectX |
-|---|:-:|:-:|:-:|:-:|
-| Linux (x64) | ✓ | ✓ | ✓ | |
-| Linux (arm64) | ✓ | ✓ | | |
-| Windows (64-bit Java) | ✓ | ✓ | ✓ | |
-| Windows (32-bit Java) | ✓ | ✓ | ✓ | ✓ |
-| macOS (Intel) | ✓ | ✓ | ✓ | |
-| macOS (Apple Silicon) | ✓ | ✓ | | |
+| Platform | Java | OpenGL | Native OpenGL | DirectX | 634HD |
+|---|:-:|:-:|:-:|:-:|:-:|
+| Linux (x64) | ✓ | ✓ | ✓ | | ✓ |
+| Linux (arm64) | ✓ | ✓ | | | ✓ |
+| Windows (64-bit Java) | ✓ | ✓ | ✓ | | ✓ |
+| Windows (32-bit Java) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| macOS (Intel) | ✓ | ✓ | ✓ | | ✓ |
+| macOS (Apple Silicon) | ✓ | ✓ | | | ✓ |
+
+634HD needs a driver with OpenGL 3.3 (macOS gives 4.1) and no Jagex library; it is tested on Linux
+x64 only so far. If it cannot start, the game switches to OpenGL (then Safe Mode) and says why in
+the chat box.
 
 DirectX needs a 32-bit Java ([Liberica][liberica] publishes one for Java 21). Native OpenGL and
 DirectX use the game's own 2010 libraries, which exist only for x86 and x86_64.

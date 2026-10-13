@@ -84,6 +84,14 @@ Other facts the agent should verify in the codebase before starting:
 
 ## Phase 3: 634HD toolkit foundation
 
+**Status (Oct 13, 2026): done on Linux x64 (RTX 5070), see docs/RENDERING.md "634HD".**
+- **Parity:** every harness scene, the map reload, the relog and a loc change are within 3–35 pixels
+  per thousand of toolkit 1. Toolkit 1 against itself is 3–29.
+- **Busy areas** at 1920×1006: Varrock 375 draw calls at 409 fps, the GE 345 at 453 fps (toolkit 1:
+  2060 and 303 fps in Varrock).
+- **Region build:** at most 18–29 ms in one frame (the build is spread over frames).
+- **Not measured:** Iris Xe and RTX 3060 numbers, Windows and macOS (no such machines here).
+
 Outcome: a new toolkit, labelled "634HD" in settings, renders the game identically to the existing OpenGL toolkit but with a modern architecture that later features build on.
 
 Baseline: OpenGL 3.3 core profile on all platforms. Features that need GL 4.3 (compute shaders, SSBOs) are optional, detected at runtime, and must have a 3.3 path or be disabled. macOS tops out at 4.1 core.
