@@ -25,6 +25,7 @@ import java.util.regex.Pattern
  *                             this machine)
  * --port <port>               the port for both connection attempts (default 43594, Void's)
  * --keys <game.properties>    read security.game.modulus and security.file.modulus from a Void config
+ * --require-keys              refuse to reach a remote server with the stock Void keys (a warning otherwise)
  * --login-modulus <hex>       the login RSA modulus
  * --js5-modulus <hex>         the file server RSA modulus
  * --server <void|jagex>       the server's protocol: Void's (default) or the 2010 client's
@@ -83,6 +84,7 @@ object RuneTek5 {
         var lang = "english"
         var loginModulus: BigInteger? = null
         var js5Modulus: BigInteger? = null
+        var requireKeys = false
 
         var i = 0
         while (i < args.size) {
@@ -125,6 +127,7 @@ object RuneTek5 {
                     loginModulus = keys[0]
                     js5Modulus = keys[1]
                 }
+                "--require-keys" -> requireKeys = true
                 "--help", "-h" -> {
                     usage()
                     return
@@ -148,6 +151,12 @@ object RuneTek5 {
         // The launcher's defaults (shared with the browser page), each kept only when no option set it.
         LauncherDefaults.apply(screenHeight())
 
+        val defaultLogin = BigInteger(LoginManager.rsaModulus!!.toByteArray())
+        val defaultJs5 = BigInteger(RequestManager.js5Modulus!!.toByteArray())
+        if (!checkKeys(loginModulus ?: defaultLogin, js5Modulus ?: defaultJs5, defaultLogin, defaultJs5, requireKeys)) {
+            System.exit(1)
+        }
+
         // ClientFeatures reads the switches when the client first uses it, which is after this point.
         if (loginModulus != null) {
             LoginManager.rsaModulus = BigInt(loginModulus.toString(16), 16)
@@ -157,6 +166,32 @@ object RuneTek5 {
         }
 
         client.main(arrayOf<String?>(world, world, "0", "live", lang, "game0"))
+    }
+
+    /**
+     * Warns when a remote server is reached with the built-in keys, which are a stock Void server's:
+     * their private halves are published in Void's repository, so anyone who sees the traffic can read
+     * the password in the login block and forge the file server's data. Returns false, after saying
+     * why, when --require-keys makes that fatal.
+     */
+    private fun checkKeys(login: BigInteger, js5: BigInteger, defaultLogin: BigInteger, defaultJs5: BigInteger, requireKeys: Boolean): Boolean {
+        if (login != defaultLogin && js5 != defaultJs5) {
+            return true
+        }
+        val address = System.getProperty("client.address")
+        if (address == "localhost" || address == "::1" || address.startsWith("127.")) {
+            return true
+        }
+        val which = if (login == defaultLogin && js5 == defaultJs5) "login and file server keys" else if (login == defaultLogin) "login key" else "file server key"
+        System.err.println("""
+            WARNING: connecting to $address with the stock Void $which. Their private halves are public,
+            so anyone on the network path can read your password and alter the game's files. Use a server
+            that generated its own keys and pass them with --keys <game.properties>.""".trimIndent())
+        if (requireKeys) {
+            System.err.println("--require-keys: not connecting.")
+            return false
+        }
+        return true
     }
 
     /**
@@ -266,7 +301,7 @@ object RuneTek5 {
     private fun usage() {
         System.err.println("""
             usage: RuneTek5 [--address host] [--port port] [--keys game.properties]
-                            [--login-modulus hex] [--js5-modulus hex] [--server void|jagex] [--packets file]
+                            [--login-modulus hex] [--js5-modulus hex] [--require-keys] [--server void|jagex] [--packets file]
                             [--world id] [--lang english|german]
                             [--debug] [--[no-]zoom] [--render-distance x] [--fps n] [--scale x] [--msaa n] [--smaa] [--render-scale x] [--no-a2c] [--[no-]console] [--[no-]shift-drop] [--dev] [--dev-commands]
                             [--tile-markers] [--xp-drops] [--npc-labels] [--ground-items]""".trimIndent())

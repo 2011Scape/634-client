@@ -139,7 +139,8 @@ object Static701 {
 				}
 				BufferedConnectionContext.receivedBuffer!!.currentPosition = 0
 				@Pc(179) val packet: Packet = Packet(518)
-				@Pc(182) val clientSeed: IntArray = intArrayOf((util.random() * 9.9999999E7).toInt(), (util.random() * 9.9999999E7).toInt(), (util.random() * 9.9999999E7).toInt(), (util.random() * 9.9999999E7).toInt())
+				// Not part of the original client: the seeds come from a cryptographic random source.
+				@Pc(182) val clientSeed: IntArray = intArrayOf(secureSeed(), secureSeed(), secureSeed(), secureSeed())
 				packet.writeByte(10)
 				packet.writeInt(clientSeed[0])
 				packet.writeInt(clientSeed[1])

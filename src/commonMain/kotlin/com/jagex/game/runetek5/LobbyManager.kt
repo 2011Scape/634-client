@@ -21,6 +21,7 @@ import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.utils.Utils
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
+import secureSeed
 
 object LobbyManager {
 
@@ -189,7 +190,8 @@ object LobbyManager {
 		@Pc(13) val xteaKeys: IntArray = IntArray(4)
 		@Pc(15) var i: Int = 0
 		while (i < 4) {
-			xteaKeys[i] = (util.random() * 9.9999999E7).toInt()
+			// Not part of the original client: the keys come from a cryptographic random source.
+			xteaKeys[i] = secureSeed()
 			i++
 		}
 		packet.writeByte(10)
