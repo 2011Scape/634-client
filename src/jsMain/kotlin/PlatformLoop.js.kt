@@ -79,3 +79,14 @@ actual val emulatedLong: Boolean = true
 private var turnStart: Double = 0.0
 
 actual fun turnElapsedMs(): Double = window.performance.now() - turnStart
+
+/* crypto.getRandomValues, with values past the last whole multiple of the range redrawn so none is favoured. */
+actual fun secureSeed(): Int {
+    val limit = 4294967296.0 - 4294967296.0 % 99999999.0
+    while (true) {
+        val value: Double = js("crypto.getRandomValues(new Uint32Array(1))[0]").unsafeCast<Double>()
+        if (value < limit) {
+            return (value % 99999999.0).toInt()
+        }
+    }
+}

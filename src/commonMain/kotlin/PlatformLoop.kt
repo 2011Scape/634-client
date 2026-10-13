@@ -116,3 +116,10 @@ expect val emulatedLong: Boolean
  * JVM). SmokeTest's benchmark reads it at the end of a frame for the frame's work, apart from waiting.
  */
 expect fun turnElapsedMs(): Double
+
+/*
+ * Not part of the original client: a login seed (the ISAAC and XTEA keys sent in the RSA block), 0 to
+ * 99999998 as the original's util.random() * 9.9999999E7, but from the platform's cryptographic random
+ * source, so it cannot be predicted from earlier output of the shared generator.
+ */
+expect fun secureSeed(): Int

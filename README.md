@@ -67,13 +67,21 @@ you turn them on. Most can also be turned on and off in game with the command sh
 | `--port <port>` | The server's port, if it does not use Void's 43594. |
 | `--keys <file>` | Read the server's keys from its `game.properties` (Void keeps it in `game/src/main/resources`). |
 | `--login-modulus <hex>`, `--js5-modulus <hex>` | Give the server's keys in hex instead. |
+| `--require-keys` | Refuse to connect to a remote server with the standard Void keys, instead of warning. |
 | `--server <void\|jagex>` | The server's protocol. `void` (the default) suits a Void server; `jagex` restores the 2010 client's: login through the lobby, and the original packet sizes and scripts. |
 | `--packets <file>` | Override server packet sizes, one `<opcode>=<size>` per line (`-1` and `-2` for a size byte or short). |
 | `--world <id>` | The world. The default is 1. |
 | `--lang <english\|german>` | The language. The default is English. |
 
 The client has the keys of a standard Void server built in, so the key options are only needed
-for a server that changed them.
+for a server that changed them. Those standard keys are public, private halves included, in Void's
+repository: anyone who can see the traffic to a server that keeps them can read players' passwords
+and alter the game files the client downloads. A public server should generate its own keys, and
+players should pass them with `--keys`. The launcher warns when it connects to a remote server with
+the standard keys; it does not warn for `localhost`.
+
+Developer console commands that read or write local files (`setoutput`, `runscript`, `heapdump`, …)
+are off unless the client is started with `--dev-commands`.
 
 **Gameplay extras**
 
