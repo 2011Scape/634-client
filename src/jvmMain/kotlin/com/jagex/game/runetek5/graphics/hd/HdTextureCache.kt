@@ -7,6 +7,8 @@ package com.jagex.game.runetek5.graphics.hd
 import com.jagex.game.runetek5.cache.node.lru.LRUCache
 import com.jagex.game.runetek5.config.material.MaterialType
 import com.jagex.game.runetek5.config.material.MaterialProvider
+import com.jagex.game.runetek5.client.features.HdSettings
+import com.jagex.game.runetek5.graphics.hd.scene.HdMaterials
 
 class HdTextureCache {
 
@@ -32,10 +34,12 @@ class HdTextureCache {
 		} else if (this.materialProvider!!.textureAvailable(textureId)) {
 			val textureMetrics: MaterialType? = this.materialProvider.getMetrics(textureId)
 			val textureSize: Int = if (textureMetrics!!.isSmall) 64 else this.toolkit!!.size
+			// 634HD: every world texture mipmapped with client.hd.mipmaps
+			val mipmapped: Boolean = textureMetrics.mipmapping.toInt() != 0 || HdSettings.mipmaps
 			val texture: Hd2DTexture
 			if (textureMetrics.hdr && this.toolkit!!.bloom()) {
 				val hdrPixels: FloatArray? = this.materialProvider.floatArgbOutput(textureSize, 0.7f, textureSize, textureId)
-				texture = Hd2DTexture(this.toolkit, 3553, 34842, textureSize, textureSize, textureMetrics.mipmapping.toInt() != 0, hdrPixels, 6408)
+				texture = Hd2DTexture(this.toolkit, 3553, 34842, textureSize, textureSize, mipmapped, hdrPixels, 6408)
 			} else {
 				val pixels: IntArray?
 				if (textureMetrics.effectCombiner != 2 && MaterialType.isOpaqueEffect(textureMetrics.effectType.toInt())) {
@@ -43,9 +47,15 @@ class HdTextureCache {
 				} else {
 					pixels = this.materialProvider.getPixelsArgb(textureSize, 0.7f, textureId, textureSize)
 				}
-				texture = Hd2DTexture(this.toolkit, 3553, 6408, textureSize, textureSize, textureMetrics.mipmapping.toInt() != 0, pixels, 0, 0, false)
+				texture = Hd2DTexture(this.toolkit, 3553, 6408, textureSize, textureSize, mipmapped, pixels, 0, 0, false)
 			}
 			texture.setRepeat(textureMetrics.repeatT, textureMetrics.repeatS)
+			// 634HD: anisotropic filtering (client.hd.anisotropy), on the texture as it is bound
+			val anisotropy: Float = HdMaterials.anisotropy(HdSettings.anisotropy)
+			if (anisotropy > 0.0f && mipmapped) {
+				this.toolkit!!.setActiveTexture(texture)
+				com.jagex.game.runetek5.graphics.hd.gl.HdGl.glTexParameterf(3553, HdMaterials.TEXTURE_MAX_ANISOTROPY, anisotropy)
+			}
 			this.textureCache.put(texture, textureId.toLong())
 			return texture
 		} else {

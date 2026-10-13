@@ -13,6 +13,7 @@
 package com.jagex.game.runetek5.graphics.hd.scene
 
 import com.jagex.game.runetek5.client.features.ClientFeatures
+import com.jagex.game.runetek5.client.features.HdSettings
 import com.jagex.game.runetek5.config.material.MaterialType
 import com.jagex.game.runetek5.graphics.hd.Hd2DTexture
 import com.jagex.game.runetek5.graphics.hd.HdToolkit
@@ -24,6 +25,18 @@ import org.lwjgl.opengl.GL33C
 class HdMaterials(private val toolkit: HdToolkit) {
 
     companion object {
+        /** GL_TEXTURE_MAX_ANISOTROPY (GL 4.6, and the EXT/ARB extensions before it). */
+        const val TEXTURE_MAX_ANISOTROPY: Int = 0x84FE
+
+        /** The anisotropy to set for HdSettings.anisotropy [wanted]: 0 for none or no support, else at most the driver's limit. */
+        @JvmStatic
+        fun anisotropy(wanted: Int): Float {
+            if (wanted <= 0) return 0.0f
+            val caps = org.lwjgl.opengl.GL.getCapabilities()
+            if (!caps.OpenGL46 && !caps.GL_EXT_texture_filter_anisotropic && !caps.GL_ARB_texture_filter_anisotropic) return 0.0f
+            return minOf(wanted.toFloat(), GL33C.glGetFloat(0x84FF))
+        }
+
         const val FLAG_TEXTURED: Int = 1
         const val FLAG_MIPMAP: Int = 2
         const val FLAG_LINEAR: Int = 4
@@ -181,6 +194,41 @@ class HdMaterials(private val toolkit: HdToolkit) {
     }
 
     /** Copies every level of [texture] into the next layer of [array]; -1 when the array is full. */
+    /** The next mip level of an RGBA8 [source] [size] texels square: each texel the mean of four. */
+    private fun halve(source: ByteBuffer, size: Int): ByteBuffer {
+        val half: Int = maxOf(1, size shr 1)
+        val out: ByteBuffer = ByteBuffer.allocateDirect(half * half * 4).order(ByteOrder.nativeOrder())
+        for (y in 0 until half) {
+            for (x in 0 until half) {
+                for (c in 0 until 4) {
+                    val x0: Int = minOf(size - 1, x * 2)
+                    val x1: Int = minOf(size - 1, x * 2 + 1)
+                    val y0: Int = minOf(size - 1, y * 2)
+                    val y1: Int = minOf(size - 1, y * 2 + 1)
+                    val sum: Int = (source.get((y0 * size + x0) * 4 + c).toInt() and 0xFF) + (source.get((y0 * size + x1) * 4 + c).toInt() and 0xFF) +
+                        (source.get((y1 * size + x0) * 4 + c).toInt() and 0xFF) + (source.get((y1 * size + x1) * 4 + c).toInt() and 0xFF)
+                    out.put((y * half + x) * 4 + c, ((sum + 2) shr 2).toByte())
+                }
+            }
+        }
+        return out
+    }
+
+    /** The anisotropy the samplers have (HdSettings.anisotropy, within what the driver allows). */
+    private var samplerAnisotropy: Int = -1
+
+    /** Puts HdSettings.anisotropy on the array samplers, when it changed. */
+    private fun applyAnisotropy() {
+        val wanted: Int = HdSettings.anisotropy
+        if (wanted == samplerAnisotropy || linearSampler == 0) return
+        samplerAnisotropy = wanted
+        val level: Float = HdMaterials.anisotropy(wanted)
+        if (level > 0.0f) {
+            GL33C.glSamplerParameterf(linearSampler, HdMaterials.TEXTURE_MAX_ANISOTROPY, level)
+            GL33C.glSamplerParameterf(nearestSampler, HdMaterials.TEXTURE_MAX_ANISOTROPY, level)
+        }
+    }
+
     private fun copyLayer(texture: Hd2DTexture, array: TextureArray): Int {
         if (array.texture == 0) {
             val levels: Int = 32 - Integer.numberOfLeadingZeros(array.size)
@@ -214,17 +262,23 @@ class HdMaterials(private val toolkit: HdToolkit) {
         GL33C.glPixelStorei(GL33C.GL_UNPACK_ALIGNMENT, 4)
         GL33C.glPixelStorei(GL33C.GL_UNPACK_ROW_LENGTH, 0)
         var size: Int = array.size
+        var own: Boolean = true
         for (level in 0 until array.levels) {
-            // a texture without mipmaps has level 0 only; the shader samples level 0 for it
-            if (GL33C.glGetTexLevelParameteri(GL33C.GL_TEXTURE_2D, level, GL33C.GL_TEXTURE_WIDTH) != size) {
-                break
-            }
             val bytes: Int = size * size * 4
-            if (scratch.capacity() < bytes) {
-                scratch = ByteBuffer.allocateDirect(bytes).order(ByteOrder.nativeOrder())
+            if (own && GL33C.glGetTexLevelParameteri(GL33C.GL_TEXTURE_2D, level, GL33C.GL_TEXTURE_WIDTH) != size) {
+                // a texture without mipmaps has level 0 only; the shader samples level 0 for it unless
+                // 634HD's mipmaps are on, for which the rest of the chain is made here (box filter)
+                own = false
             }
-            scratch.clear()
-            GL33C.glGetTexImage(GL33C.GL_TEXTURE_2D, level, GL33C.GL_RGBA, GL33C.GL_UNSIGNED_BYTE, scratch)
+            if (own) {
+                if (scratch.capacity() < bytes) {
+                    scratch = ByteBuffer.allocateDirect(bytes).order(ByteOrder.nativeOrder())
+                }
+                scratch.clear()
+                GL33C.glGetTexImage(GL33C.GL_TEXTURE_2D, level, GL33C.GL_RGBA, GL33C.GL_UNSIGNED_BYTE, scratch)
+            } else {
+                scratch = halve(scratch, size * 2)
+            }
             GL33C.glTexSubImage3D(GL33C.GL_TEXTURE_2D_ARRAY, level, 0, 0, layer, size, size, 1, GL33C.GL_RGBA, GL33C.GL_UNSIGNED_BYTE, scratch)
             size = maxOf(1, size shr 1)
         }
@@ -276,6 +330,7 @@ class HdMaterials(private val toolkit: HdToolkit) {
 
     /** Binds the arrays, samplers and table to their units (UNIT_*). */
     fun bind() {
+        applyAnisotropy()
         bindArray(UNIT_SMALL_LINEAR, small.texture, linearSampler)
         bindArray(UNIT_SMALL_NEAREST, small.texture, nearestSampler)
         bindArray(UNIT_LARGE_LINEAR, large.texture, linearSampler)

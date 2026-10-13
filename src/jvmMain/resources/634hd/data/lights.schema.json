@@ -1,0 +1,33 @@
+{
+  "title": "634HD point lights",
+  "description": "Lights attached to objects (locs), NPCs, spot animations and projectiles, by 634 id. Used with client.hd.lights.",
+  "type": "object",
+  "required": ["lights"],
+  "additionalProperties": false,
+  "properties": {
+    "lights": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["colour", "radius"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "objects": { "$ref": "#/$defs/ids" },
+          "npcs": { "$ref": "#/$defs/ids" },
+          "spotAnimations": { "$ref": "#/$defs/ids" },
+          "projectiles": { "$ref": "#/$defs/ids" },
+          "colour": { "$ref": "#/$defs/colour" },
+          "radius": { "type": "number", "minimum": 0.1, "maximum": 64, "description": "tiles" },
+          "intensity": { "type": "number", "minimum": 0, "maximum": 16 },
+          "offset": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3, "description": "x, height, z in scene units (512 a tile)" },
+          "flicker": { "enum": ["none", "flicker", "pulse"] }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ids": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+    "colour": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+  }
+}

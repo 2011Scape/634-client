@@ -17,6 +17,7 @@ package com.jagex.game.runetek5.graphics.hd.scene
 import com.jagex.game.runetek5.client.features.HdSettings
 import com.jagex.game.runetek5.graphics.hd.gl.HdGl
 import com.jagex.game.runetek5.graphics.hd.gl.HdShaders
+import com.jagex.game.runetek5.graphics.hd.gl.Mat4
 import com.jagex.game.runetek5.graphics.hd.gl.WebGLProgram
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -65,6 +66,7 @@ class HdPost {
     private var up: WebGLProgram? = null
     private var composite: WebGLProgram? = null
     private var fxaa: WebGLProgram? = null
+    private var sky: WebGLProgram? = null
     private var lut: Int = 0
 
     private val bloom: Array<Target?> = arrayOfNulls(BLOOM_LEVELS)
@@ -94,6 +96,7 @@ class HdPost {
         up = program("post_up.frag")
         composite = program("post_composite.frag")
         fxaa = program("post_fxaa.frag")
+        sky = program("sky.frag")
         // the neutral table: each colour maps to itself
         val size = LUT_SIZE
         val pixels = ByteBuffer.allocateDirect(size * size * size * 4).order(ByteOrder.nativeOrder())
@@ -229,10 +232,6 @@ class HdPost {
         GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, drawFramebuffer)
         GL33C.glViewport(x, y, viewWidth, viewHeight)
         GL33C.glDrawArrays(GL33C.GL_TRIANGLES, 0, 3)
-        if (System.getProperty("client.test.hdDebug") != null && frame % 100 == 0) {
-            println("HDDEBUG post scene=" + scene + " " + width + "x" + height + " at " + x + "," + y + " " + viewWidth + "x" + viewHeight + " fb=" + drawFramebuffer + " error=" + GL33C.glGetError()
-                + " program=" + GL33C.glGetInteger(GL33C.GL_CURRENT_PROGRAM) + " status=" + GL33C.glCheckFramebufferStatus(GL33C.GL_DRAW_FRAMEBUFFER))
-        }
 
         // put everything back
         bindTexture(UNIT_A, 0)
@@ -252,6 +251,80 @@ class HdPost {
         state.invalidateProgramCache()
     }
 
+    /**
+     * The sky (HD_SKY) into the 3D view being drawn, where the depth buffer is still clear: called
+     * once the opaque entities are down, so only the background is covered. [projection] is the
+     * view's projection matrix.
+     */
+    fun drawSky(projection: FloatArray) {
+        HdGl.flushImmediate()
+        ensure()
+        val inverse = Mat4.invert(projection) ?: return
+        val blend = GL33C.glIsEnabled(GL33C.GL_BLEND)
+        val depth = GL33C.glIsEnabled(GL33C.GL_DEPTH_TEST)
+        val depthFunc = GL33C.glGetInteger(GL33C.GL_DEPTH_FUNC)
+        val depthMask = GL33C.glGetBoolean(GL33C.GL_DEPTH_WRITEMASK)
+        val cull = GL33C.glIsEnabled(GL33C.GL_CULL_FACE)
+        GL33C.glDisable(GL33C.GL_BLEND)
+        GL33C.glDisable(GL33C.GL_CULL_FACE)
+        GL33C.glEnable(GL33C.GL_DEPTH_TEST)
+        GL33C.glDepthFunc(GL33C.GL_LEQUAL)
+        GL33C.glDepthMask(false)
+        GL33C.glBindVertexArray(vao)
+        val program = sky!!
+        GL33C.glUseProgram(program.id)
+        GL33C.glUniformMatrix4fv(use(program, "uInverseProjection"), false, inverse)
+        GL33C.glUniform1i(use(program, "uHdScene"), 1)
+        GL33C.glDrawArrays(GL33C.GL_TRIANGLES, 0, 3)
+        if (blend) GL33C.glEnable(GL33C.GL_BLEND)
+        if (!depth) GL33C.glDisable(GL33C.GL_DEPTH_TEST)
+        GL33C.glDepthFunc(depthFunc)
+        GL33C.glDepthMask(depthMask)
+        if (cull) GL33C.glEnable(GL33C.GL_CULL_FACE)
+        GL33C.glBindVertexArray(HdGl.state.vertexArray)
+        HdGl.state.invalidateProgramCache()
+    }
+
+    /** Colour-grading tables by file name (634hd/luts), loaded when first used; 0 when missing. */
+    private val gradingTables = HashMap<String, Int>()
+
+    fun gradingTable(name: String): Int {
+        gradingTables[name]?.let { return it }
+        var texture = 0
+        try {
+            val stream = HdPost::class.java.getResourceAsStream("/634hd/luts/" + name)
+            if (stream != null) {
+                val image = stream.use { javax.imageio.ImageIO.read(it) }
+                if (image != null && image.width == image.height * image.height) {
+                    val pixels = ByteBuffer.allocateDirect(image.width * image.height * 4).order(ByteOrder.nativeOrder())
+                    for (y in 0 until image.height) {
+                        for (x in 0 until image.width) {
+                            val rgb = image.getRGB(x, y)
+                            pixels.put((rgb shr 16).toByte()).put((rgb shr 8).toByte()).put(rgb.toByte()).put(-1)
+                        }
+                    }
+                    pixels.flip()
+                    texture = GL33C.glGenTextures()
+                    GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, texture)
+                    GL33C.glTexImage2D(GL33C.GL_TEXTURE_2D, 0, GL33C.GL_RGBA8, image.width, image.height, 0, GL33C.GL_RGBA, GL33C.GL_UNSIGNED_BYTE, pixels)
+                    GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_MIN_FILTER, GL33C.GL_LINEAR)
+                    GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_MAG_FILTER, GL33C.GL_LINEAR)
+                    GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_WRAP_S, GL33C.GL_CLAMP_TO_EDGE)
+                    GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_WRAP_T, GL33C.GL_CLAMP_TO_EDGE)
+                    GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, 0)
+                } else {
+                    System.err.println("634HD: luts/$name is not a 16x16x16 strip (256x16)")
+                }
+            } else {
+                System.err.println("634HD: no luts/$name")
+            }
+        } catch (ex: java.io.IOException) {
+            System.err.println("634HD: luts/$name: $ex")
+        }
+        gradingTables[name] = texture
+        return texture
+    }
+
     private fun draw(target: Target) {
         GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, target.framebuffer)
         GL33C.glViewport(0, 0, target.width, target.height)
@@ -268,7 +341,10 @@ class HdPost {
         if (vao != 0) {
             GL33C.glDeleteVertexArrays(vao)
             GL33C.glDeleteTextures(lut)
-            for (p in arrayOf(bright, down, up, composite, fxaa)) if (p != null) GL33C.glDeleteProgram(p.id)
+            for (p in arrayOf(bright, down, up, composite, fxaa, sky)) if (p != null) GL33C.glDeleteProgram(p.id)
+            for (t in gradingTables.values) if (t != 0) GL33C.glDeleteTextures(t)
+            gradingTables.clear()
+            gradingTexture = 0
             vao = 0
         }
     }

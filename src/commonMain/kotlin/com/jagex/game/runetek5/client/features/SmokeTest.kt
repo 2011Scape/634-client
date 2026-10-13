@@ -972,6 +972,27 @@ object SmokeTest {
 	private var openToolkit: Int = -1
 
 	private fun findText() {
+		if (FIND_TEXT.startsWith("locs:") || FIND_TEXT.startsWith("npcs:")) {
+			// prints the loc (or NPC) types whose name matches a regular expression, for 634HD's data files
+			val npcs: Boolean = FIND_TEXT.startsWith("npcs:")
+			val pattern: Regex = Regex(FIND_TEXT.substring(5), RegexOption.IGNORE_CASE)
+			var found: Int = 0
+			for (id in 0 until (if (npcs) 20000 else 80000)) {
+				val name: String?
+				try {
+					name = if (npcs) TypeLists.NPC!!.list(id).name else TypeLists.LOC!!.list(id).name
+				} catch (ex: Exception) {
+					continue
+				}
+				if (name != null && name != "null" && pattern.containsMatchIn(name)) {
+					println("SMOKE " + (if (npcs) "NPC " else "LOC ") + id + " " + name)
+					found++
+				}
+			}
+			println("SMOKE PASS " + found + " types")
+			lang.flushOut()
+			lang.halt(0)
+		}
 		if (FIND_TEXT.startsWith("struct:")) {
 			// prints every struct string param holding the word (keys 0..4095)
 			val word: String = FIND_TEXT.substring(7).lowercase()
