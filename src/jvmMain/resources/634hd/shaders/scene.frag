@@ -15,6 +15,7 @@ in vec3 vEyeNormal;
 in vec3 vViewPos;
 flat in int vSlot;
 flat in int vLit;
+in float vOcclusion;
 
 uniform samplerBuffer uObjects;
 // alpha to coverage for the cut-outs (HD_FOLIAGE with a multisampled view)
@@ -139,7 +140,9 @@ void main() {
     }
     color = hdApplyMaterial(mapSlot, color, mapUv, vViewPos);
     color = hdApplyShadow(color, vViewPos, vEyeNormal);
-    color.rgb *= hdAmbientOcclusion(vViewPos, vEyeNormal);
+    // the retained scene's occlusion is baked into its vertices once the region is baked; the height
+    // maps (moving models, the ground) until then
+    color.rgb *= (hdOn(HD_AO) && hdAoBake.z > 0.5) ? mix(1.0, vOcclusion, hdAoParams.y) : hdAmbientOcclusion(vViewPos, vEyeNormal);
     float depth = gl_FragCoord.z / gl_FragCoord.w;
     if (hdFaded(length(vViewPos), gl_FragCoord.xy)) {
         discard;

@@ -185,7 +185,7 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
 | `pixelLighting` | the fixed-function formula per pixel | `ff.frag`, `scene.frag` |
 | `lights` | point lights from `lights.json`, 64 nearest | `scene/HdLights`, `hdPointLights` |
 | `shadows` (1024/2048/4096) | sun shadow map, PCF | `scene/HdShadows`, `hdShadow` |
-| `ambientOcclusion` | sky visibility from occlusion height maps: the region's static scene baked when its chunks change, moving models each frame | `scene/HdShadows`, `ao_bake.vert`, `hdAmbientOcclusion` |
+| `ambientOcclusion` | baked: the region's static scene into a height map when its chunks change, then into every retained vertex (a few ms a frame); the ground and moving models read the height maps | `scene/HdShadows`, `HdSceneRenderer.bakeVertexOcclusion`, `hdAmbientOcclusion` |
 | `fog`, `fade`, `sky` | environment fog, dithered fade at the edge, gradient sky and height fog | `scene/HdFeatures`, `hdFog`, `sky.frag` |
 | `water` | wave normals, Fresnel sky reflection, glint, tint | `hdWater`; `GlState.hdWater` |
 | `terrainBlend` | triplanar on slopes, anti-tiling blend, broad variation on the ground | `hdTerrainTexture`; `GlState.hdGround` |

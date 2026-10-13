@@ -418,6 +418,134 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     private var objectMatrices: FloatArray = FloatArray(4096 * 16)
     private var buildingMatrix: Int = 0
 
+    private var objectVertexStart: IntArray = IntArray(4096)
+    private var objectVertexCount: IntArray = IntArray(4096)
+
+    /**
+     * Bakes ambient occlusion into every retained vertex (the byte at offset 38) from the region's
+     * occlusion height map [heights] ([size] square; depth d means world y = [top] + d * [range]; u
+     * along x and v along z over [extent] scene units): how much of the sky the vertex sees, measured
+     * as hdAmbientOcclusion measures it for a fragment. The vertices go up again on the next draw.
+     */
+    fun bakeVertexOcclusion(heights: java.nio.FloatBuffer, size: Int, top: Float, range: Float, extent: Float) {
+        // started here, done a few milliseconds a frame (stepVertexOcclusion), so a bake is no hitch
+        bakeHeights = heights
+        bakeSize = size
+        bakeTop = top
+        bakeRange = range
+        bakeExtent = extent
+        bakeCursor = 0
+        bakeNanos = 0L
+    }
+
+    private var bakeHeights: java.nio.FloatBuffer? = null
+    private var bakeSize: Int = 0
+    private var bakeTop: Float = 0.0f
+    private var bakeRange: Float = 0.0f
+    private var bakeExtent: Float = 1.0f
+    private var bakeCursor: Int = 0
+    private var bakeNanos: Long = 0L
+
+    /** Bakes the next objects' vertex occlusion for up to [budgetNanos]; the vertices go up when all are done. */
+    fun stepVertexOcclusion(budgetNanos: Long) {
+        val heights: java.nio.FloatBuffer = bakeHeights ?: return
+        val size: Int = bakeSize
+        val top: Float = bakeTop
+        val range: Float = bakeRange
+        val start: Long = System.nanoTime()
+        val scale: Float = size / bakeExtent
+        val cosines: FloatArray = FloatArray(8) { kotlin.math.cos(it * 0.785398f + 0.39f) }
+        val sines: FloatArray = FloatArray(8) { kotlin.math.sin(it * 0.785398f + 0.39f) }
+        val m: FloatArray = FloatArray(16)
+        while (bakeCursor < objectCount) {
+            if (System.nanoTime() - start > budgetNanos) {
+                bakeNanos += System.nanoTime() - start
+                return
+            }
+            val objectId: Int = bakeCursor++
+            if (objectModels[objectId] == null) continue
+            System.arraycopy(objectMatrices, objectId * 16, m, 0, 16)
+            val first: Int = objectVertexStart[objectId]
+            val count: Int = objectVertexCount[objectId]
+            for (v in first until first + count) {
+                val at: Int = v * VERTEX_BYTES
+                val lx: Float = vertices.getFloat(at)
+                val ly: Float = vertices.getFloat(at + 4)
+                val lz: Float = vertices.getFloat(at + 8)
+                val x: Float = m[0] * lx + m[4] * ly + m[8] * lz + m[12]
+                val y: Float = m[1] * lx + m[5] * ly + m[9] * lz + m[13]
+                val z: Float = m[2] * lx + m[6] * ly + m[10] * lz + m[14]
+                val nlx: Float = vertices.getFloat(at + 24)
+                val nly: Float = vertices.getFloat(at + 28)
+                val nlz: Float = vertices.getFloat(at + 32)
+                var nx: Float = m[0] * nlx + m[4] * nly + m[8] * nlz
+                var ny: Float = m[1] * nlx + m[5] * nly + m[9] * nlz
+                var nz: Float = m[2] * nlx + m[6] * nly + m[10] * nlz
+                val nl: Float = kotlin.math.sqrt(nx * nx + ny * ny + nz * nz)
+                if (nl > 0.0001f) {
+                    nx /= nl; ny /= nl; nz /= nl
+                } else {
+                    nx = 0.0f; ny = -1.0f; nz = 0.0f
+                }
+                val up: Float = -ny
+                var occlusion: Float = 0.0f
+                var weight: Float = 0.0f
+                if (up > 0.5f) {
+                    val above: Float = y - occluderY(heights, size, scale, top, range, x, z)
+                    val t: Float = ((above - 240.0f) / 360.0f).coerceIn(0.0f, 1.0f)
+                    occlusion += 2.0f * t * t * (3.0f - 2.0f * t)
+                    weight += 2.0f
+                }
+                var o0: Float = 0.0f
+                var w0: Float = 0.0f
+                var o1: Float = 0.0f
+                var w1: Float = 0.0f
+                for (i in 0 until 8) {
+                    val facing: Float = cosines[i] * nx + sines[i] * nz
+                    if (up < 0.5f && kotlin.math.abs(facing) < 0.1f) continue
+                    val back: Boolean = up < 0.5f && facing < 0.0f
+                    for (r in 0 until 2) {
+                        val radius: Float = if (r == 0) 110.0f else 300.0f
+                        // occluders lower than a tall grass tuft are left out, as in the shader
+                        val height: Float = y - occluderY(heights, size, scale, top, range, x + cosines[i] * radius, z + sines[i] * radius) - 180.0f
+                        val o: Float = (height / (radius * 1.2f)).coerceIn(0.0f, 1.0f)
+                        if (back) { o1 += o; w1 += 1.0f } else { o0 += o; w0 += 1.0f }
+                    }
+                }
+                if (up < 0.5f && w1 > 0.0f && (w0 == 0.0f || o1 / w1 < o0 / w0)) {
+                    occlusion += o1; weight += w1
+                } else {
+                    occlusion += o0; weight += w0
+                }
+                val ao: Float = if (weight > 0.0f) 1.0f - occlusion / weight else 1.0f
+                vertices.put(at + 38, (ao * 255.0f + 0.5f).toInt().coerceIn(0, 255).toByte())
+            }
+        }
+        // every vertex goes up again (the buffer keeps its size)
+        uploadedVertices = 0
+        vertexOcclusionBaked = true
+        bakeNanos += System.nanoTime() - start
+        lastVertexBakeMs = (bakeNanos / 1000000L).toInt()
+        bakeHeights = null
+        if (System.getProperty("client.test.hdDebug") != null) {
+            println("HDDEBUG occlusion baked into the retained vertices: " + lastVertexBakeMs + " ms over several frames")
+        }
+    }
+
+    private fun occluderY(heights: java.nio.FloatBuffer, size: Int, scale: Float, top: Float, range: Float, x: Float, z: Float): Float {
+        val u: Int = (x * scale).toInt()
+        val v: Int = (z * scale).toInt()
+        if (u < 0 || v < 0 || u >= size || v >= size) return 1.0e9f
+        val d: Float = heights.get(v * size + u)
+        return if (d >= 1.0f) 1.0e9f else top + d * range
+    }
+
+    /** Whether the retained vertices carry baked occlusion; how long the last bake took. */
+    var vertexOcclusionBaked: Boolean = false
+        private set
+    var lastVertexBakeMs: Int = 0
+        private set
+
     /** Bumped whenever chunks are built or rebuilt: the occlusion bake is out of date. */
     var bakeVersion: Int = 0
         private set
@@ -487,6 +615,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         }
         val objectId: Int = objectCount
         val firstIndex: Int = indexCount
+        val firstVertex: Int = vertexCount
         objectFaceGroups[objectId] = null
         objectFaceCentres[objectId] = null
         if (!model.exportForScene(this, objectId)) {
@@ -501,6 +630,12 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         }
         System.arraycopy(captureMatrices, buildingMatrix * 16, objectMatrices, objectId * 16, 16)
         objectWindFrequency[objectId] = buildingWindFrequency
+        if (objectId >= objectVertexStart.size) {
+            objectVertexStart = objectVertexStart.copyOf(objectVertexStart.size * 2)
+            objectVertexCount = objectVertexCount.copyOf(objectVertexCount.size * 2)
+        }
+        objectVertexStart[objectId] = firstVertex
+        objectVertexCount[objectId] = vertexCount - firstVertex
         objectIndexStart[objectId] = firstIndex
         objectIndexCount[objectId] = indexCount - firstIndex
         objectCount++
@@ -656,7 +791,9 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
                 vertices.putFloat(at + 32, 0.0f)
             }
             vertices.putShort(at + 36, vertexSlots[v].toShort())
-            vertices.putShort(at + 38, 0.toShort())
+            // ambient occlusion baked per vertex (bakeVertexOcclusion), open sky until the first bake
+            vertices.put(at + 38, (-1).toByte())
+            vertices.put(at + 39, 0.toByte())
             vertices.putInt(at + 40, objectId)
         }
         vertexCount += vertexCountOfModel
@@ -692,6 +829,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     /** Drops the retained scene: every model draws the emulated way until the next build. */
     fun clear() {
         bakeVersion++
+        vertexOcclusionBaked = false
+        bakeHeights = null
         for (i in 0 until objectCount) {
             val model: HdModel? = objectModels[i]
             if (model != null) {
@@ -1315,6 +1454,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         GL33C.glVertexAttribIPointer(4, 1, GL33C.GL_UNSIGNED_SHORT, VERTEX_BYTES, 36L)
         GL33C.glEnableVertexAttribArray(5)
         GL33C.glVertexAttribIPointer(5, 1, GL33C.GL_UNSIGNED_INT, VERTEX_BYTES, 40L)
+        GL33C.glEnableVertexAttribArray(6)
+        GL33C.glVertexAttribPointer(6, 1, GL33C.GL_UNSIGNED_BYTE, true, VERTEX_BYTES, 38L)
 
         slotBuffer = GL33C.glGenBuffers()
         slotTexture = GL33C.glGenTextures()
