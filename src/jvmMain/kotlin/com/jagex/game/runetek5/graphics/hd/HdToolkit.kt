@@ -9,6 +9,7 @@ import com.jagex.game.runetek5.graphics.hd.gl.CoreGl
 import com.jagex.game.runetek5.graphics.hd.scene.HdFeatures
 import com.jagex.game.runetek5.graphics.hd.scene.HdSoftParticles
 import com.jagex.game.runetek5.graphics.hd.scene.HdMaterialMaps
+import com.jagex.game.runetek5.graphics.hd.scene.HdGpuParticles
 import com.jagex.game.runetek5.graphics.hd.content.HdContent
 import com.jagex.game.runetek5.Skybox
 
@@ -787,6 +788,10 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 
 	// 634HD: Phase 5 material maps (materials.json)
 	val materialMaps: HdMaterialMaps = HdMaterialMaps()
+
+	// 634HD: GPU particles (client.hd.particles), drawn once a frame
+	private val gpuParticles: HdGpuParticles = HdGpuParticles()
+	private var particlesDrawn: Boolean = false
 
 	// 634HD: the depth copy for soft particles
 	private val softParticles: HdSoftParticles = HdSoftParticles()
@@ -1800,6 +1805,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			this.hdPost.release()
 			this.softParticles.release()
 			this.materialMaps.release()
+			this.gpuParticles.release()
 			this.frameUniforms.release()
 			this.hdFeatures.release()
 			this.sceneRenderer.release()
@@ -3218,6 +3224,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	override fun beginScene(x: Int, y: Int, width: Int, height: Int) {
 		// 634HD: the debug panel reads the last frame, whole, before this one's 3D view starts
 		this.debugPanelTick()
+		this.particlesDrawn = false
 		// 634HD: the frame's uniforms for the features, and the 3D view's draws marked as such
 		this.sceneDrawing = true
 		this.frameUploaded = false
@@ -3282,6 +3289,12 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	// place in the frame. The clip is not reset through la(), which would move the picking bounds.
 	override fun endScene() {
 		HdToolkit.printDebugMaterials()
+		// 634HD: GPU particles over the finished 3D view, before it is resolved and post-processed
+		if (this.sceneDrawing && !this.particlesDrawn) {
+			this.particlesDrawn = true
+			this.setupMatrixRendering()
+			this.gpuParticles.draw(this.hdFeatures.lights, this.hdFeatures.worldToView)
+		}
 		if (this.gpuQueryActive) {
 			HdGl.flushImmediate()
 			org.lwjgl.opengl.GL33C.glEndQuery(org.lwjgl.opengl.GL33C.GL_TIME_ELAPSED)

@@ -98,6 +98,10 @@ object HdSettings {
 	@JvmField
 	var smoothInterface: Boolean = false
 
+	/** GPU particles: embers over fires and torches, sparks over lava (at the lights of lights.json). */
+	@JvmField
+	var particles: Boolean = false
+
 	/** Phase 5 material maps (materials.json): normal, occlusion/roughness, emissive and height maps. */
 	@JvmField
 	var materials: Boolean = false
@@ -109,7 +113,7 @@ object HdSettings {
 	private val NAMES: Array<String> = arrayOf(
 		"tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting",
 		"shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom",
-		"colourGrading", "interfaceScale", "smoothInterface", "materials", "panel",
+		"colourGrading", "interfaceScale", "smoothInterface", "materials", "particles", "panel",
 	)
 
 	init {
@@ -164,6 +168,7 @@ object HdSettings {
 			"interfacescale" -> interfaceScale = if (off) 0 else if (number in 2..4) number else return "takes off, 2, 3 or 4"
 			"smoothinterface" -> smoothInterface = flag(on, off) ?: return "takes on or off"
 			"materials" -> materials = flag(on, off) ?: return "takes on or off"
+			"particles" -> particles = flag(on, off) ?: return "takes on or off"
 			"panel" -> panel = flag(on, off) ?: return "takes on or off"
 			"all" -> {
 				// every feature at its usual setting, for a quick look (::hd all on|off)
@@ -183,6 +188,7 @@ object HdSettings {
 				sky = enable
 				softParticles = enable
 				materials = enable
+				particles = enable
 				fxaa = enable
 				bloom = enable
 				colourGrading = enable
@@ -204,7 +210,7 @@ object HdSettings {
 		"ambientOcclusion " + onOff(ambientOcclusion) + ", pixelLighting " + onOff(pixelLighting) + ", shadows " + shadows + ", lights " + onOff(lights),
 		"terrainBlend " + onOff(terrainBlend) + ", water " + water + ", foliage " + onOff(foliage) + ", softParticles " + onOff(softParticles),
 		"fxaa " + onOff(fxaa) + ", bloom " + onOff(bloom) + ", colourGrading " + onOff(colourGrading),
-		"interfaceScale " + interfaceScale + ", smoothInterface " + onOff(smoothInterface) + ", materials " + onOff(materials),
+		"interfaceScale " + interfaceScale + ", smoothInterface " + onOff(smoothInterface) + ", materials " + onOff(materials) + ", particles " + onOff(particles),
 	)
 
 	private fun onOff(value: Boolean): String = if (value) "on" else "off"
