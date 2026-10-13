@@ -66,9 +66,10 @@ expect val textAntialiased: Boolean
 expect val classFieldsAvailable: Boolean
 
 /*
- * The version line GlSmaaFilter starts its shaders with. "#version 130" on the JVM. In a browser it
- * is empty: the WebGL 2 emulator then translates the shaders to GLSL ES 3.00 (it leaves a source
- * that names its own version as it is, and WebGL has no GLSL 1.30).
+ * The version line GlSmaaFilter starts its shaders with. On the JVM "#version 130", or "#version 120"
+ * in a context older than GL 3.0 (macOS's legacy context), for which GlSmaaFilter rewrites its
+ * shaders. In a browser it is empty: the WebGL 2 emulator then translates the shaders to GLSL ES 3.00
+ * (it leaves a source that names its own version as it is, and WebGL has no GLSL 1.30).
  */
 expect val smaaGlslVersion: String
 

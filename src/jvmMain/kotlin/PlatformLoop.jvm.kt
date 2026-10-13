@@ -31,7 +31,14 @@ actual val textAntialiased: Boolean = false
 
 actual val classFieldsAvailable: Boolean = true
 
-actual val smaaGlslVersion: String = "#version 130\n"
+// GLSL 1.30 needs a GL 3.0 context; macOS gives a legacy 2.1 one (GlContext), which has GLSL 1.20.
+// Read when GlSmaaFilter compiles its shaders, with the toolkit's context current.
+actual val smaaGlslVersion: String
+    get() {
+        val version: String = jaggl.OpenGL.glGetString(0x1F02) ?: return "#version 120\n"
+        val major: Int = version.takeWhile { it.isDigit() }.toIntOrNull() ?: 0
+        return if (major >= 3) "#version 130\n" else "#version 120\n"
+    }
 
 actual val maxTicksPerFrame: Int = 10
 

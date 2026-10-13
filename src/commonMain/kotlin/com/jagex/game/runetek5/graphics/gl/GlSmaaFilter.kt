@@ -51,7 +51,7 @@ class GlSmaaFilter {
 				"out vec2 vTexcoord;\nout vec4 vOffset;\nvoid main() {\n\tvTexcoord = gl_MultiTexCoord0.xy;\n\tSMAANeighborhoodBlendingVS(vTexcoord, vOffset);\n\tgl_Position = ftransform();\n}\n",
 				"in vec2 vTexcoord;\nin vec4 vOffset;\nuniform sampler2D colorTex;\nuniform sampler2D blendTex;\nvoid main() {\n\tgl_FragColor = SMAANeighborhoodBlendingPS(vTexcoord, vOffset, colorTex, blendTex);\n}\n")
 			if (this.edgeProgram == null || this.blendProgram == null || this.neighbourhoodProgram == null) {
-				lang.printlnErr("client.smaa: this OpenGL driver cannot compile the SMAA shaders (GLSL 1.30); SMAA is off")
+				lang.printlnErr("client.smaa: this OpenGL driver cannot compile the SMAA shaders; SMAA is off")
 				return
 			}
 			this.areaTexture = lookup(resourceBytes("AreaTex.bin"), 160, 560, GL_LUMINANCE_ALPHA, true)
@@ -64,14 +64,39 @@ class GlSmaaFilter {
 	}
 
 	private fun program(smaa: String, vertexMain: String, fragmentMain: String): GlProgram? {
-		// the version line is "#version 130" on the JVM, and none in a browser (PlatformLoop.kt)
-		val header: String = smaaGlslVersion + "#define SMAA_GLSL_3\n#define SMAA_PRESET_HIGH\n#define SMAA_RT_METRICS rtMetrics\n#define SMAA_AREATEX_SELECT(sample) sample.ra\n#define SMAA_SEARCHTEX_SELECT(sample) sample.r\nuniform vec4 rtMetrics;\n"
-		val vertex: GlShader? = GlShader.compile(GL_VERTEX_SHADER, this.toolkit, header + "#define SMAA_INCLUDE_VS 1\n#define SMAA_INCLUDE_PS 0\n" + smaa + "\n" + vertexMain)
-		val fragment: GlShader? = GlShader.compile(GL_FRAGMENT_SHADER, this.toolkit, header + "#define SMAA_INCLUDE_VS 0\n#define SMAA_INCLUDE_PS 1\n" + smaa + "\n" + fragmentMain)
+		// the version line is "#version 130" on the JVM, "#version 120" in a GL 2.1 context (macOS), and
+		// none in a browser (PlatformLoop.kt)
+		val version: String = smaaGlslVersion
+		val legacy: Boolean = version.startsWith("#version 120")
+		val language: String = if (legacy) GLSL_120 else "#define SMAA_GLSL_3\n"
+		// the logo in SMAA.hlsl's licence comment ends lines in backslashes, a line continuation that
+		// GLSL before 4.20 does not have and a strict compiler rejects
+		val source: String = if (legacy) smaa.replace("\\\n", "\n") else smaa
+		val header: String = version + language + "#define SMAA_PRESET_HIGH\n#define SMAA_RT_METRICS rtMetrics\n#define SMAA_AREATEX_SELECT(sample) sample.ra\n#define SMAA_SEARCHTEX_SELECT(sample) sample.r\nuniform vec4 rtMetrics;\n"
+		val vertex: GlShader? = GlShader.compile(GL_VERTEX_SHADER, this.toolkit, header + "#define SMAA_INCLUDE_VS 1\n#define SMAA_INCLUDE_PS 0\n" + source + "\n" + if (legacy) varyings(vertexMain, "out ") else vertexMain)
+		val fragment: GlShader? = GlShader.compile(GL_FRAGMENT_SHADER, this.toolkit, header + "#define SMAA_INCLUDE_VS 0\n#define SMAA_INCLUDE_PS 1\n" + source + "\n" + if (legacy) varyings(fragmentMain, "in ") else fragmentMain)
 		if (vertex == null || fragment == null) {
 			return null
 		}
 		return GlProgram.link(this.toolkit, arrayOf<GlShader?>(vertex, fragment))
+	}
+
+	// GLSL 1.20 has no in/out variables: the mains' declarations that start a line become varyings.
+	private fun varyings(main: String, qualifier: String): String {
+		val lines: List<String> = main.split("\n")
+		val out: StringBuilder = StringBuilder()
+		for (i in 0 until lines.size) {
+			val line: String = lines[i]
+			if (line.startsWith(qualifier)) {
+				out.append("varying ").append(line.substring(qualifier.length))
+			} else {
+				out.append(line)
+			}
+			if (i < lines.size - 1) {
+				out.append('\n')
+			}
+		}
+		return out.toString()
 	}
 
 	private fun lookup(data: ByteArray, width: Int, height: Int, format: Int, linear: Boolean): OpenGl2DTexture {
@@ -210,6 +235,37 @@ class GlSmaaFilter {
 		private const val GL_CLAMP_TO_EDGE: Int = 33071
 		private const val GL_VERTEX_SHADER: Int = 35633
 		private const val GL_FRAGMENT_SHADER: Int = 35632
+
+		/*
+		 * SMAA.hlsl's GLSL 3 language macros, for GLSL 1.20 (a macOS legacy context): texture2D, and
+		 * texture2DLod from ARB_shader_texture_lod, where the offset is in pixels (SMAA_RT_METRICS);
+		 * round() came in 1.30.
+		 */
+		private const val GLSL_120: String = "#extension GL_ARB_shader_texture_lod : require\n" +
+			"#define SMAA_CUSTOM_SL\n" +
+			"#define SMAATexture2D(tex) sampler2D tex\n" +
+			"#define SMAATexturePass2D(tex) tex\n" +
+			"#define SMAASampleLevelZero(tex, coord) texture2DLod(tex, coord, 0.0)\n" +
+			"#define SMAASampleLevelZeroPoint(tex, coord) texture2DLod(tex, coord, 0.0)\n" +
+			"#define SMAASampleLevelZeroOffset(tex, coord, offset) texture2DLod(tex, coord + vec2(offset) * SMAA_RT_METRICS.xy, 0.0)\n" +
+			"#define SMAASample(tex, coord) texture2D(tex, coord)\n" +
+			"#define SMAASamplePoint(tex, coord) texture2D(tex, coord)\n" +
+			"#define SMAASampleOffset(tex, coord, offset) texture2D(tex, coord + vec2(offset) * SMAA_RT_METRICS.xy)\n" +
+			"#define SMAA_FLATTEN\n" +
+			"#define SMAA_BRANCH\n" +
+			"#define lerp(a, b, t) mix(a, b, t)\n" +
+			"#define saturate(a) clamp(a, 0.0, 1.0)\n" +
+			"#define mad(a, b, c) (a * b + c)\n" +
+			"#define round(a) floor((a) + 0.5)\n" +
+			"#define float2 vec2\n" +
+			"#define float3 vec3\n" +
+			"#define float4 vec4\n" +
+			"#define int2 ivec2\n" +
+			"#define int3 ivec3\n" +
+			"#define int4 ivec4\n" +
+			"#define bool2 bvec2\n" +
+			"#define bool3 bvec3\n" +
+			"#define bool4 bvec4\n"
 
 		private fun quad() {
 			OpenGL.glBegin(OpenGLConstants.GL_QUADS)
