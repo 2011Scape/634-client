@@ -1,4 +1,5 @@
 import com.jagex.game.runetek5.client.features.GroundItemLabels
+import com.jagex.game.runetek5.client.features.HdSettings
 import com.jagex.game.runetek5.client.features.HdFallback
 import com.jagex.game.runetek5.graphics.ToolkitType
 import com.jagex.game.runetek5.client.features.NpcLabels
@@ -68,6 +69,7 @@ import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 import lang.SecurityException
 import lang.javaTrim
+import lang.javaSplit
 import lang.OutOfMemoryError
 
 object ClientCommandProcessor {
@@ -416,6 +418,22 @@ object ClientCommandProcessor {
 						return
 					}
 					Console.printToConsole("Failed to enter tk5")
+					return
+				}
+				// Not part of the original client: 634HD's feature switches (HdSettings): ::hd lists them,
+				// ::hd <name> <value> sets one.
+				if (string.equals("hd", ignoreCase = true) || string.lowercase().startsWith("hd ")) {
+					val words: Array<String> = string.javaTrim().javaSplit(" ")
+					if (words.size < 3) {
+						val lines: Array<String> = HdSettings.describe()
+						for (line in lines) {
+							Console.printToConsole(line)
+						}
+						Console.printToConsole("::hd <name> <value>, or ::hd all on|off")
+						return
+					}
+					val error: String? = HdSettings.set(words[1], words[2])
+					Console.printToConsole(if (error == null) "634HD " + words[1] + " " + words[2] else words[1] + ": " + error)
 					return
 				}
 				// Not part of the original client: 634HD (toolkit 6). On failure the client is on whatever

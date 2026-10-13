@@ -32,19 +32,24 @@ class HdSceneTarget {
 	@JvmField
 	var complete: Boolean = false
 
-	constructor(toolkit: HdToolkit?, width: Int, height: Int, samples: Int, linear: Boolean) {
+	/** The colour format: GL_RGBA, or GL_RGBA16F when 634HD tonemaps (HdSettings.tonemap). */
+	@JvmField
+	val format: Int
+
+	constructor(toolkit: HdToolkit?, width: Int, height: Int, samples: Int, linear: Boolean, format: Int) {
 		this.width = width
 		this.height = height
 		this.samples = samples
+		this.format = format
 		this.resolve = HdFramebuffer(toolkit)
-		this.colour = Hd2DTexture(toolkit, OpenGLConstants.GL_TEXTURE_2D, OpenGLConstants.GL_RGBA, width, height)
+		this.colour = Hd2DTexture(toolkit, OpenGLConstants.GL_TEXTURE_2D, format, width, height)
 		this.colour.setLinearFilter(linear)
 		this.resolve.bind()
 		this.resolve.attachTexture(this.colour, 0)
 		this.resolve.drawBuffer(0)
 		if (samples > 0) {
 			this.multisample = HdFramebuffer(toolkit)
-			this.multisampleColour = HdRenderBuffer(toolkit, OpenGLConstants.GL_RGBA, width, height, samples)
+			this.multisampleColour = HdRenderBuffer(toolkit, format, width, height, samples)
 			this.multisampleDepth = HdRenderBuffer(toolkit, OpenGLConstants.GL_DEPTH_COMPONENT, width, height, samples)
 			this.multisample!!.bind()
 			this.multisample!!.attachRenderbuffer(0, this.multisampleColour)

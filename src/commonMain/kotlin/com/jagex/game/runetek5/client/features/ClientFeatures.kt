@@ -528,7 +528,8 @@ object ClientFeatures {
 	fun beginScene(toolkit: Toolkit?, x: Int, y: Int, width: Int, height: Int) {
 		if (AA_PIPELINE && toolkit is GlToolkit) {
 			toolkit.beginScene(x, y, width, height)
-		} else if (AA_PIPELINE && toolkit is SceneTargetToolkit) {
+		} else if (toolkit is SceneTargetToolkit) {
+			// 634HD decides itself: its features also use the view's framebuffer
 			toolkit.beginScene(x, y, width, height)
 		}
 	}
@@ -538,7 +539,7 @@ object ClientFeatures {
 	fun endScene(toolkit: Toolkit?) {
 		if (AA_PIPELINE && toolkit is GlToolkit) {
 			toolkit.endScene()
-		} else if (AA_PIPELINE && toolkit is SceneTargetToolkit) {
+		} else if (toolkit is SceneTargetToolkit) {
 			toolkit.endScene()
 		}
 	}

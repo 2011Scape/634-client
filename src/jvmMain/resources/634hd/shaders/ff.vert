@@ -2,6 +2,7 @@
 // Not part of the original client: 634HD (toolkit 6). The fixed-function pipeline as GLSL, ported
 // from the browser's jaggl emulator (src/jsMain/kotlin/jaggl/FixedFunctionShader.js.kt).
 #define MAX_LIGHTS 8
+#include "hd_lib.glsl"
 layout(location = 0) in vec4 aPosition;
 layout(location = 1) in vec4 aColor;
 layout(location = 2) in vec2 aTexCoord0;
@@ -68,9 +69,11 @@ void main() {
                 lit += (uLightAmbient[i] + uLightDiffuse[i] * diff) * atten;
             }
         }
-        vColor = vec4(clamp(aColor.rgb * lit.rgb, 0.0, 1.0), aColor.a);
+        // 634HD: in linear (HDR) colour the lit colour is not clamped; the tonemapper takes it down
+        vec4 base = hdColour(aColor);
+        vColor = hdOn(HD_LINEAR) ? vec4(base.rgb * lit.rgb, base.a) : vec4(clamp(aColor.rgb * lit.rgb, 0.0, 1.0), aColor.a);
     } else {
-        vColor = aColor;
+        vColor = hdColour(aColor);
     }
 
     vec3 reflected = reflect(normalize(viewPos.xyz), eyeNormal);

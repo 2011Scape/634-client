@@ -50,6 +50,7 @@ import java.util.regex.Pattern
  * --render-scale <x>          OpenGL: draw the 3D view x times larger and shrink it (1.0, 1.5, 2.0)
  * --no-a2c                    OpenGL: no alpha-to-coverage for cut-out textures
  * --toolkit <name>            start on a toolkit: hd (634HD, OpenGL 3.3), opengl, java (Safe Mode), or an id
+ * --hd <name=value,...>       634HD features (tonemap, shadows, pixelLighting, ...; ::hd in game lists them)
  * --dev                       --debug, --zoom and --console together
  * --dev-commands              the console commands that read or write local files (setoutput, runscript,
  *                             heapdump, ...); off by default
@@ -117,6 +118,13 @@ object RuneTek5 {
                 "--render-scale" -> System.setProperty("client.renderScale", java.lang.Double.toString(java.lang.Double.parseDouble(value(args, ++i, arg))))
                 "--no-a2c" -> System.setProperty("client.a2c", "false")
                 "--toolkit" -> System.setProperty("client.toolkit", value(args, ++i, arg))
+                "--hd" -> {
+                    // 634HD feature switches: --hd tonemap=aces,shadows=2048 (HdSettings)
+                    for (pair in value(args, ++i, arg).split(',')) {
+                        val equals = pair.indexOf('=')
+                        if (equals > 0) System.setProperty("client.hd." + pair.substring(0, equals).trim(), pair.substring(equals + 1).trim())
+                    }
+                }
                 "--dev" -> {
                     System.setProperty("client.debug", "true")
                     System.setProperty("client.zoom", "true")

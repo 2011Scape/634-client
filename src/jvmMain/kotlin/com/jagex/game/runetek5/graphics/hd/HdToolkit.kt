@@ -4,6 +4,16 @@
  */
 package com.jagex.game.runetek5.graphics.hd
 
+import com.jagex.game.runetek5.graphics.hd.gl.CoreGl
+
+import com.jagex.game.runetek5.graphics.hd.scene.HdFeatures
+
+import com.jagex.game.runetek5.graphics.hd.scene.HdFrameUniforms
+
+import com.jagex.game.runetek5.graphics.hd.scene.HdPost
+
+import com.jagex.game.runetek5.client.features.HdSettings
+
 import com.jagex.game.runetek5.scene.Scene
 
 import com.jagex.game.runetek5.client.features.RenderStats
@@ -614,6 +624,8 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 				}
 			}
 			this.effectManager = HdEffectManager(this)
+			// 634HD: the features' uniform block is bound from the start (HdFrameUniforms)
+			this.frameUniforms.upload(0)
 			this.prepareForRendering()
 			this.updateCanvasSize()
 			this.renderLastFrame()
@@ -622,6 +634,27 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			this.stop()
 			throw RuntimeException(ex3.message ?: ex3.toString(), ex3)
 		}
+	}
+
+	// ---- 634HD features (HdSettings) ----
+
+	/** While the game view is drawn (beginScene to endScene). */
+	private var sceneDrawing: Boolean = false
+
+	private var frameNumber: Int = 0
+
+	/** Whether this frame's uniform block went up (at the first setCamera of the game view). */
+	private var frameUploaded: Boolean = false
+
+	val frameUniforms: HdFrameUniforms = HdFrameUniforms()
+
+	val hdPost: HdPost = HdPost()
+
+	val hdFeatures: HdFeatures = HdFeatures()
+
+	/** The draws of the game view in perspective get 634HD's features (hd_lib.glsl uHdScene); nothing else does. */
+	private fun updateHdScene() {
+		HdGl.state.hdScene = if (this.sceneDrawing && this.depthClippingMode == 2) 1 else 0
 	}
 
 	// ---- 634HD retained scene (scene/HdSceneRenderer) ----
@@ -830,6 +863,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			this.loadProjectionMatrix()
 			this.updateModelViewAndLights()
 			this.functionMask = this.functionMask and 0xFFFFFFF8.toInt()
+			this.updateHdScene()
 		}
 	}
 
@@ -1047,6 +1081,13 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		this.inverseModelViewMatrix.setInverse(this.modelViewMatrix)
 		if (this.depthClippingMode != 1) {
 			this.updateModelViewAndLights()
+		}
+		if (this.sceneDrawing && !this.frameUploaded) {
+			// 634HD: the camera is known, so the frame's feature uniforms can go up
+			this.setupMatrixRendering()
+			this.hdFeatures.prepare(this, this.frameUniforms)
+			this.frameUniforms.upload(HdSettings.shadows)
+			this.frameUploaded = true
 		}
 	}
 
@@ -1462,6 +1503,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		HdGl.glLoadIdentity()
 		this.depthClippingMode = 1
 		this.functionMask = this.functionMask and 0xFFFFFFE7.toInt()
+		this.updateHdScene()
 	}
 
 	fun popDrawTarget(target: GlRenderTarget?) {
@@ -1581,6 +1623,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 
 	override fun stop() {
 		if (this.activeOpenglInstance != null) {
+			this.hdPost.release()
+			this.frameUniforms.release()
+			this.hdFeatures.release()
 			this.sceneRenderer.release()
 			this.vertexStream.release()
 			this.elementStream.release()
@@ -2963,7 +3008,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	// the extensions could be known, and a failed renderer is rebuilt from a setting that is safe mode
 	// at startup, so the renderer stays HdContext without anti-aliasing and says so.
 	private fun checkScenePipeline() {
-		if (!ClientFeatures.AA_PIPELINE || ClientFeatures.aaPipelineUnavailable) {
+		// 634HD: the 3D view's framebuffer also carries the post-processing features (HdSettings),
+		// so it is wanted whatever the anti-aliasing switches say
+		if (ClientFeatures.aaPipelineUnavailable) {
 			return
 		}
 		if (!this.extFramebufferObject || !this.framebufferBlit || !this.framebufferMultisample) {
@@ -2975,7 +3022,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		HdGl.glGetIntegerv(OpenGLConstants.GL_MAX_SAMPLES, max, 0)
 		this.sceneMaxSamples = max[0]
 		this.sceneAvailable = true
-		println("client.msaa: the 3D view is drawn in its own framebuffer; up to " + this.sceneMaxSamples + " samples")
+		if (ClientFeatures.AA_PIPELINE) {
+			println("client.msaa: the 3D view is drawn in its own framebuffer; up to " + this.sceneMaxSamples + " samples")
+		}
 	}
 
 	// The samples the view is drawn with now: the switch or the game's setting, within the driver's limit.
@@ -2988,16 +3037,25 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	// fit, pushed as the target, and the viewport moved so that the view lands at its origin, as the
 	// bloom filter does for its layer. The target's size and the projection stay in the frame's pixels.
 	override fun beginScene(x: Int, y: Int, width: Int, height: Int) {
+		// 634HD: the frame's uniforms for the features, and the 3D view's draws marked as such
+		this.sceneDrawing = true
+		this.frameUploaded = false
+		this.updateHdScene()
+		this.hdFeatures.beginFrame(this, x, y, width, height)
+		if (!ClientFeatures.AA_PIPELINE && !HdSettings.postProcessing()) {
+			return
+		}
 		if (!this.sceneAvailable || this.sceneActive || width <= 0 || height <= 0) {
 			return
 		}
 		val samples: Int = this.sceneSamples()
+		val format: Int = if (HdSettings.tonemap != 0) 34842 else OpenGLConstants.GL_RGBA
 		val scale: Double = ClientFeatures.renderScale
 		val targetWidth: Int = kotlin.math.floor(width.toDouble() * scale + 0.5).toInt()
 		val targetHeight: Int = kotlin.math.floor(height.toDouble() * scale + 0.5).toInt()
-		if (this.sceneTarget == null || this.sceneTarget!!.width != targetWidth || this.sceneTarget!!.height != targetHeight || this.sceneTarget!!.samples != samples) {
+		if (this.sceneTarget == null || this.sceneTarget!!.width != targetWidth || this.sceneTarget!!.height != targetHeight || this.sceneTarget!!.samples != samples || this.sceneTarget!!.format != format) {
 			this.dropSceneTarget()
-			val target: HdSceneTarget = HdSceneTarget(this, targetWidth, targetHeight, samples, true)
+			val target: HdSceneTarget = HdSceneTarget(this, targetWidth, targetHeight, samples, true, format)
 			this.rebindTargets()
 			if (!target.complete) {
 				target.release()
@@ -3024,6 +3082,8 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	// Ends the 3D view: the target is popped, the view resolved into its texture and drawn over its
 	// place in the frame. The clip is not reset through la(), which would move the picking bounds.
 	override fun endScene() {
+		this.sceneDrawing = false
+		this.updateHdScene()
 		if (!this.sceneActive) {
 			return
 		}
@@ -3049,6 +3109,13 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 				this.smaaFilter!!.apply(view, this.sceneTarget!!.width, this.sceneTarget!!.height)
 				view = this.smaaFilter!!.output
 			}
+		}
+		if (HdSettings.postProcessing()) {
+			// 634HD: bloom, tonemapping, grading, FXAA (scene/HdPost), into the view's place in the frame
+			this.hdPost.compose(CoreGl.textureName(view!!.getId()), this.sceneTarget!!.width, this.sceneTarget!!.height, this.sceneX, this.viewportHeight - this.sceneY - this.sceneHeight, this.sceneWidth, this.sceneHeight, this.frameNumber++)
+			HdGl.glEnable(OpenGLConstants.GL_SCISSOR_TEST)
+			this.defineScissorBox()
+			return
 		}
 		this.setColourOp(1)
 		this.activateTexture(0)

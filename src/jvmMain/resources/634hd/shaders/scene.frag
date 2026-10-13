@@ -4,6 +4,8 @@
 // combine stage, specialised), then the alpha test and fog. Textures come from two arrays (64 and
 // the toolkit's size) with a linear and a nearest sampler each; wrap and mipmapping per material.
 
+#include "hd_lib.glsl"
+
 in vec4 vColor;
 in vec2 vTexCoord;
 flat in int vMaterial;
@@ -65,7 +67,7 @@ void main() {
     vec4 material = texelFetch(uMaterials, vMaterial * 2);
     vec4 color = vColor;
     if ((int(material.w) & FLAG_TEXTURED) != 0) {
-        vec4 tex = sampleMaterial(material, texelFetch(uMaterials, vMaterial * 2 + 1));
+        vec4 tex = hdColour(sampleMaterial(material, texelFetch(uMaterials, vMaterial * 2 + 1)));
         int op = int(material.z);
         if (op == 1) {
             // REPLACE, REPLACE
@@ -90,7 +92,7 @@ void main() {
     if (uFogEnabled) {
         float depth = gl_FragCoord.z / gl_FragCoord.w;
         float fogFactor = clamp((uFogEnd - depth) / (uFogEnd - uFogStart), 0.0, 1.0);
-        color = vec4(mix(uFogColor.rgb, color.rgb, fogFactor), color.a);
+        color = vec4(mix(hdColour(uFogColor).rgb, color.rgb, fogFactor), color.a);
     }
     fragColor = color;
 }
