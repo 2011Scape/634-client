@@ -62,12 +62,48 @@ import com.jagex.game.runetek5.InterfaceManager
 import com.jagex.game.runetek5.NativeLibraryOwner
 import com.jagex.game.runetek5.preference.impl.MapSizePreference
 import com.jagex.game.runetek5.sign.SignLink
+import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 import lang.SecurityException
 import lang.javaTrim
 import lang.OutOfMemoryError
 
 object ClientCommandProcessor {
+
+	/** Not part of the original client: true while a client script's command (DOCHEAT) runs. */
+	@JvmField
+	var scriptCommand: Boolean = false
+
+	/** Not part of the original client: runs a client script's command (DOCHEAT), see [scriptCommand]. */
+	@JvmStatic
+	fun executeScriptCommand(string: String?) {
+		ClientCommandProcessor.scriptCommand = true
+		try {
+			ClientCommandProcessor.executeCommand(string, false, false)
+		} finally {
+			ClientCommandProcessor.scriptCommand = false
+		}
+	}
+
+	/** Not part of the original client: the developer commands that need client.devCommands. */
+	@JvmStatic
+	fun isDevOnlyCommand(string: String): Boolean {
+		return string.equals("errortest", ignoreCase = true) || string == "nativememerror" || string == "heapdump" || string == "closeoutput" || string.startsWith("setoutput ") || string.startsWith("runscript ")
+	}
+
+	/** Not part of the original client: sends a command to the server, as the end of [executeCommand] does. */
+	@JvmStatic
+	fun sendCheat(string: String, clientCommand: Boolean, tabComplete: Boolean) {
+		if (ClientState.mainLogicStep !== MainLogicStep.STEP_GAME_SCREEN) {
+			return
+		}
+		@Pc(0) val packet: TcpPacket? = TcpPacket.createPacket(ClientProt.CLIENT_CHEAT, TcpPacket.isaac)
+		packet!!.buffer!!.writeByte(string.length + 3)
+		packet.buffer!!.writeByte(if (clientCommand) 1 else 0)
+		packet.buffer!!.writeByte(if (tabComplete) 1 else 0)
+		packet.buffer!!.writeString(string)
+		BufferedConnectionContext.queuePacket(packet)
+	}
 
 	@OriginalMember(owner = "client!lba", name = "a", descriptor = "(Ljava/lang/String;ZZB)V")
 	@JvmStatic
@@ -150,6 +186,19 @@ object ClientCommandProcessor {
 			return
 		}
 		if (ServerEnvironment.LIVE !== ModeWhere.WTRC || LoginManager.staffModLevel >= 2) {
+			// Not part of the original client: a command from a client script (DOCHEAT) gets what a LIVE
+			// player's script got: the commands above, and the server's own commands. None of the
+			// developer commands below run for it.
+			if (ClientCommandProcessor.scriptCommand) {
+				ClientCommandProcessor.sendCheat(string!!, clientCommand, tabComplete)
+				return
+			}
+			// Not part of the original client: commands that touch local files or crash the client need
+			// client.devCommands.
+			if (!ClientFeatures.DEV_COMMANDS && ClientCommandProcessor.isDevOnlyCommand(string!!)) {
+				Console.printToConsole("Dev command disabled (start with client.devCommands)")
+				return
+			}
 			if (string!!.equals("errortest", ignoreCase = true)) {
 				throw RuntimeException()
 			}
@@ -746,6 +795,8 @@ object ClientCommandProcessor {
 					}
 					strings = Utils.split('\n', Utils.replaceCarriageReturns(Utils.bytesToString(fileData), ""))
 					ConsoleScriptRunner.runScript(strings)
+					// Not part of the original client: the runscript line itself is not sent to the server.
+					return
 				}
 				if (string.startsWith("zoom ")) {
 					@Pc(2182) val zoom: Short = Utils.parseInt(string.substring(5)).toShort()

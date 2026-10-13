@@ -1176,7 +1176,8 @@ object CS2Interpreter {
 					return
 				}
 				if (opcode == ClientScriptOpCode.DOCHEAT) {
-					ClientCommandProcessor.executeCommand(CS2State.stringStack[--CS2State.stringStackPtr], false, false)
+					// Not part of the original client: a script's command never runs a developer command here.
+					ClientCommandProcessor.executeScriptCommand(CS2State.stringStack[--CS2State.stringStackPtr])
 					return
 				}
 				if (opcode == ClientScriptOpCode.NOTIFY_ACCOUNTCREATED) {

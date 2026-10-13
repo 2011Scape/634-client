@@ -49,6 +49,8 @@ import java.util.regex.Pattern
  * --render-scale <x>          OpenGL: draw the 3D view x times larger and shrink it (1.0, 1.5, 2.0)
  * --no-a2c                    OpenGL: no alpha-to-coverage for cut-out textures
  * --dev                       --debug, --zoom and --console together
+ * --dev-commands              the console commands that read or write local files (setoutput, runscript,
+ *                             heapdump, ...); off by default
  * ```
  * On Linux the window class of a Java application is the simple name of its main class, and desktops
  * match windows to installed applications by it. This class is named after the engine rather than
@@ -100,6 +102,7 @@ object RuneTek5 {
                 "--no-zoom" -> System.setProperty("client.zoom", "false")
                 "--console" -> System.setProperty("client.console", "true")
                 "--no-console" -> System.setProperty("client.console", "false")
+                "--dev-commands" -> System.setProperty("client.devCommands", "true")
                 "--shift-drop" -> System.setProperty("client.shiftDrop", "true")
                 "--no-shift-drop" -> System.setProperty("client.shiftDrop", "false")
                 "--tile-markers" -> System.setProperty("client.tileMarkers", "true")
@@ -265,7 +268,7 @@ object RuneTek5 {
             usage: RuneTek5 [--address host] [--port port] [--keys game.properties]
                             [--login-modulus hex] [--js5-modulus hex] [--server void|jagex] [--packets file]
                             [--world id] [--lang english|german]
-                            [--debug] [--[no-]zoom] [--render-distance x] [--fps n] [--scale x] [--msaa n] [--smaa] [--render-scale x] [--no-a2c] [--[no-]console] [--[no-]shift-drop] [--dev]
+                            [--debug] [--[no-]zoom] [--render-distance x] [--fps n] [--scale x] [--msaa n] [--smaa] [--render-scale x] [--no-a2c] [--[no-]console] [--[no-]shift-drop] [--dev] [--dev-commands]
                             [--tile-markers] [--xp-drops] [--npc-labels] [--ground-items]""".trimIndent())
     }
 }
