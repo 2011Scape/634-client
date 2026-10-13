@@ -8,6 +8,7 @@ import com.jagex.game.runetek5.scene.Scene
 
 import com.jagex.game.runetek5.client.features.RenderStats
 
+import com.jagex.game.runetek5.graphics.hd.scene.HdDynamicStream
 import com.jagex.game.runetek5.graphics.hd.scene.HdSceneRenderer
 
 import com.jagex.game.runetek5.client.features.SceneTargetToolkit
@@ -626,6 +627,11 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	// ---- 634HD retained scene (scene/HdSceneRenderer) ----
 
 	val sceneRenderer: HdSceneRenderer = HdSceneRenderer(this)
+
+	/** Streamed dynamic geometry: animated models' vertices and indices, a range per upload. */
+	val vertexStream: HdDynamicStream = HdDynamicStream(this, HdDynamicStream.ARRAY)
+
+	val elementStream: HdDynamicStream = HdDynamicStream(this, HdDynamicStream.ELEMENTS)
 
 	/**
 	 * Whether models draw through the retained scene now: once it is built, and not in the
@@ -1572,6 +1578,8 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	override fun stop() {
 		if (this.activeOpenglInstance != null) {
 			this.sceneRenderer.release()
+			this.vertexStream.release()
+			this.elementStream.release()
 		}
 		var node: Node? = this.heapManager.first()
 		while (node != null) {
