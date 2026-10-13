@@ -64,6 +64,16 @@ void main() {
     mat4 mv = mat4(texelFetch(uObjects, base + 4), texelFetch(uObjects, base + 5), texelFetch(uObjects, base + 6), texelFetch(uObjects, base + 7));
     vec4 flags = texelFetch(uObjects, base + 8);
     vec4 position = vec4(aPosition, 1.0);
+    if (hdOn(HD_FOLIAGE) && flags.z > 0.0) {
+        // wind sway: the higher above the object's base (the game's y grows downwards), the further;
+        // a gust travels across the world, so neighbouring plants move together but not in step
+        float height = max(-aPosition.y, 0.0);
+        vec3 origin = (hdViewToWorld * vec4(mv[3].xyz, 1.0)).xyz;
+        float phase = dot(origin.xz, vec2(0.0011, 0.0007));
+        float t = hdTime.x * flags.w * 1.6 + phase;
+        float sway = sin(t) * 0.7 + sin(t * 2.3 + 1.7) * 0.3;
+        position.xz += vec2(0.8, 0.45) * sway * height * 0.08 * flags.z * hdTime.y;
+    }
     gl_Position = mvp * position;
 
     vec4 material = texelFetch(uMaterials, vMaterial * 2);

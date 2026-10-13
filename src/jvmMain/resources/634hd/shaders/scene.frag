@@ -16,6 +16,8 @@ flat in int vSlot;
 flat in int vLit;
 
 uniform samplerBuffer uObjects;
+// alpha to coverage for the cut-outs (HD_FOLIAGE with a multisampled view)
+uniform bool uAlphaToCoverage;
 uniform vec4 uGlobalAmbient;
 uniform vec4 uDirLight[2];
 uniform vec4 uDirDiffuse[2];
@@ -119,7 +121,14 @@ void main() {
             color = tex * primary;
         }
     }
-    if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
+    if (uAlphaToCoverage && uAlphaTestEnabled && hdOn(HD_FOLIAGE)) {
+        // a sharp edge one pixel wide, its coverage from the alpha: no stair-steps, no shimmer
+        float a = (color.a - 0.5) / max(fwidth(color.a), 0.0001) + 0.5;
+        if (a <= 0.0) {
+            discard;
+        }
+        color.a = clamp(a, 0.0, 1.0);
+    } else if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
         discard;
     }
     color = hdApplyShadow(color, vViewPos, vEyeNormal);

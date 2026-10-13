@@ -3007,6 +3007,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 
 	// Alpha-to-coverage for cut-out textures (alphaBlendMode 1) while the multisampled 3D view is the
 	// draw target, so leaves and fences get smooth edges; off everywhere else, and with client.a2c=false.
+	// 634HD: whether the 3D view is being drawn into a multisampled target (alpha to coverage works)
+	fun sceneMultisampled(): Boolean = this.sceneActive && this.sceneTarget != null && this.sceneTarget!!.multisample != null && this.drawTarget === this.sceneTarget!!.multisample
+
 	private fun setSceneAlphaToCoverage(cutout: Boolean) {
 		val on: Boolean = cutout && ClientFeatures.a2c && this.sceneActive && this.sceneTarget != null && this.sceneTarget!!.multisample != null && this.drawTarget === this.sceneTarget!!.multisample
 		if (on != this.sceneAlphaToCoverage) {

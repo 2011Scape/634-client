@@ -19,6 +19,7 @@
  */
 package com.jagex.game.runetek5.graphics.hd.scene
 
+import com.jagex.game.runetek5.client.features.HdSettings
 import com.jagex.game.runetek5.buffer.ArrayBufferGL
 import com.jagex.game.runetek5.buffer.ElementsBufferGL
 import com.jagex.game.runetek5.client.features.RenderStats
@@ -105,6 +106,12 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     private var objectFaceGroups: Array<IntArray?> = arrayOfNulls(4096)
 
     private var objectFaceCentres: Array<FloatArray?> = arrayOfNulls(4096)
+
+    // wind sway per object (foliage.json, model_overrides.json wind): strength (0 none), frequency
+    private var objectWind: FloatArray = FloatArray(4096)
+    private var objectWindFrequency: FloatArray = FloatArray(4096)
+    private var buildingWind: Float = 0.0f
+    private var buildingWindFrequency: Float = 1.0f
 
     /** Set while an alpha entity's objects are built (appendModel keeps their faces' sort data). */
     private var buildingAlpha: Boolean = false
@@ -203,6 +210,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     private var uFogColor: Int = -1
     private var uFogStart: Int = -1
     private var uFogEnd: Int = -1
+    private var uAlphaToCoverage: Int = -1
 
     // ======================================================================== build
 
@@ -343,6 +351,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
                 continue
             }
             captureCount = 0
+            windFor(entities[i]!!)
             capturing = this
             try {
                 val pickable: PickableEntity? = entities[i]!!.render(toolkit)
@@ -369,6 +378,24 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         buildingAlpha = false
     }
 
+    /** The wind sway of the objects [entity] is about to make, from foliage.json or a wind override. */
+    private fun windFor(entity: Entity) {
+        buildingWind = 0.0f
+        buildingWindFrequency = 1.0f
+        if (entity !is com.jagex.game.runetek5.entity.gameobject.GameObject) {
+            return
+        }
+        val id: Int = (entity as com.jagex.game.runetek5.entity.gameobject.GameObject).getId()
+        val content = toolkit.hdContent
+        val foliage = content.foliage[id]
+        if (foliage != null) {
+            buildingWind = foliage.strength
+            buildingWindFrequency = foliage.frequency
+        } else if (content.overridesByObject[id]?.wind == true) {
+            buildingWind = 0.5f
+        }
+    }
+
     /** Called by HdModel.render while capturing. */
     fun capture(model: HdModel) {
         if (captureCount == captureModels.size) {
@@ -387,6 +414,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             objectIndexCount = objectIndexCount.copyOf(size)
             objectFaceGroups = objectFaceGroups.copyOf(size)
             objectFaceCentres = objectFaceCentres.copyOf(size)
+            objectWind = objectWind.copyOf(size)
+            objectWindFrequency = objectWindFrequency.copyOf(size)
             val slots: IntArray = IntArray(size) { -1 }
             System.arraycopy(frameSlots, 0, slots, 0, frameSlots.size)
             frameSlots = slots
@@ -401,6 +430,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         objectModels[objectId] = model
         objectChunk[objectId] = chunk
         objectAlpha[objectId] = buildingAlpha
+        objectWind[objectId] = buildingWind
+        objectWindFrequency[objectId] = buildingWindFrequency
         objectIndexStart[objectId] = firstIndex
         objectIndexCount[objectId] = indexCount - firstIndex
         objectCount++
@@ -741,8 +772,9 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         }
         out[at + 32] = if (lit) 1.0f else 0.0f
         out[at + 33] = lights.toFloat()
-        out[at + 34] = 0.0f
-        out[at + 35] = 0.0f
+        // wind sway (HD_FOLIAGE): strength and frequency, 0 when off so nothing moves
+        out[at + 34] = if (HdSettings.foliage) objectWind[objectId] else 0.0f
+        out[at + 35] = objectWindFrequency[objectId]
     }
 
     /** Mat4.multiply's arithmetic, in the same order, into [out]. */
@@ -778,6 +810,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             println("HDDEBUG objects=" + objectCount + " visible=" + frameCount + " lit=" + litCount + " withLights=" + withLights + " lightsNow=" + enabled + " chunks=" + visibleChunkCount)
         }
         val state: GlState = HdGl.state
+        // cut-out foliage with alpha to coverage (HD_FOLIAGE), when the view is multisampled
+        alphaToCoverage = HdSettings.foliage && toolkit.sceneMultisampled()
         // the toolkit's 3D state (blend, alpha test, depth, fog), as the emulated draws had it
         toolkit.setupMatrixRendering()
         bindForDraw()
@@ -799,7 +833,13 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         drawCounts.flip()
         drawOffsets.flip()
         if (draws > 0) {
+            if (alphaToCoverage) {
+                GL33C.glEnable(GL33C.GL_SAMPLE_ALPHA_TO_COVERAGE)
+            }
             CoreGl.multiDrawElements(GL33C.GL_TRIANGLES, drawCounts, GL33C.GL_UNSIGNED_INT, drawOffsets, triangles)
+            if (alphaToCoverage) {
+                GL33C.glDisable(GL33C.GL_SAMPLE_ALPHA_TO_COVERAGE)
+            }
         }
 
         restoreEmulator()
@@ -808,6 +848,9 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         visibleChunkCount = 0
         java.util.Arrays.fill(chunkVisible, 0)
     }
+
+    /** Whether the opaque draw uses alpha to coverage for cut-outs (foliage, multisampled view). */
+    private var alphaToCoverage: Boolean = false
 
     /** Retained objects drawn into the shadow map last time, for the debug panel. */
     var lastShadowObjects: Int = 0
@@ -894,6 +937,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         CoreGl.uniform4fv(uFogColor, state.fogColor)
         GL33C.glUniform1f(uFogStart, state.fogStart)
         GL33C.glUniform1f(uFogEnd, state.fogEnd)
+        GL33C.glUniform1i(uAlphaToCoverage, if (alphaToCoverage) 1 else 0)
         if (!passUploaded) {
             materials.update(toolkit.lastTickMillis.toLong())
             uploadFrame()
@@ -1174,6 +1218,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         uFogColor = GL33C.glGetUniformLocation(id, "uFogColor")
         uFogStart = GL33C.glGetUniformLocation(id, "uFogStart")
         uFogEnd = GL33C.glGetUniformLocation(id, "uFogEnd")
+        uAlphaToCoverage = GL33C.glGetUniformLocation(id, "uAlphaToCoverage")
 
         vao = GL33C.glGenVertexArrays()
         vbo = GL33C.glGenBuffers()
