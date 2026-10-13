@@ -7,6 +7,7 @@ package com.jagex.game.runetek5.graphics.hd
 import com.jagex.game.runetek5.graphics.hd.gl.CoreGl
 
 import com.jagex.game.runetek5.graphics.hd.scene.HdFeatures
+import com.jagex.game.runetek5.graphics.hd.scene.HdSoftParticles
 import com.jagex.game.runetek5.graphics.hd.content.HdContent
 import com.jagex.game.runetek5.Skybox
 
@@ -654,6 +655,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 
 	val hdFeatures: HdFeatures = HdFeatures()
 
+	// 634HD: the depth copy for soft particles
+	private val softParticles: HdSoftParticles = HdSoftParticles()
+
 	// the texture filtering the world textures were made with (HdSettings.mipmaps, anisotropy)
 	private var texturesMipmapped: Boolean = false
 	private var texturesAnisotropy: Int = 0
@@ -1085,7 +1089,15 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	}
 
 	override fun render(particleList: ParticleList?) {
-		this.particleRenderer.drawParticles(this, -1, particleList)
+		// 634HD: soft particles need the view's depth so far (HdSettings.softParticles)
+		val soft: Boolean = this.sceneActive && this.sceneTarget != null && this.softParticles.begin(this.sceneTarget!!.width, this.sceneTarget!!.height)
+		try {
+			this.particleRenderer.drawParticles(this, -1, particleList)
+		} finally {
+			if (soft) {
+				this.softParticles.end()
+			}
+		}
 	}
 
 	fun updatePointSizeRange(alpha: Float, red: Float, blue: Float, green: Float) {
@@ -1646,6 +1658,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	override fun stop() {
 		if (this.activeOpenglInstance != null) {
 			this.hdPost.release()
+			this.softParticles.release()
 			this.frameUniforms.release()
 			this.hdFeatures.release()
 			this.sceneRenderer.release()

@@ -112,6 +112,9 @@ class FfFragmentUniformLocations(gl: WebGL2RenderingContext, program: WebGLProgr
     val hdWater: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdWater")
     // 634HD: whether the ground is being drawn (HD_TERRAIN)
     val hdGround: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdGround")
+    // 634HD: soft particles - on, and the projection's depth terms (HD_SOFT_PARTICLES)
+    val hdSoft: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdSoft")
+    val hdDepthParams: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdDepthParams")
 
     // Last values uploaded into *this* program's uniforms (each linked program has its own
     // storage), so uploadFfFragmentUniforms only sends the uniforms that actually differ.
@@ -154,6 +157,8 @@ fun uploadFfFragmentUniforms(gl: WebGL2RenderingContext, state: GlState, L: FfFr
     setInt(gl, L, L.hdScene, SI_HD_SCENE, state.hdScene)
     setInt(gl, L, L.hdWater, SI_HD_WATER, state.hdWater)
     setInt(gl, L, L.hdGround, SI_HD_GROUND, state.hdGround)
+    setInt(gl, L, L.hdSoft, SI_HD_SOFT, state.hdSoft)
+    if (state.hdSoft != 0) setFloat4(gl, L, L.hdDepthParams, SF_HD_DEPTH, state.hdDepthParams)
     for (unit in 0 until 3) {
         val cube = state.textureTarget[unit] == GL_TEXTURE_CUBE_MAP
         val is3d = state.textureTarget[unit] == GL_TEXTURE_3D
@@ -239,7 +244,8 @@ private const val SI_FOG_ENABLED = SI_ALPHA_TEST + 2
 private const val SI_HD_SCENE = SI_ALPHA_TEST + 3
 private const val SI_HD_WATER = SI_ALPHA_TEST + 4
 private const val SI_HD_GROUND = SI_ALPHA_TEST + 5
-internal const val FF_SHADOW_INTS = SI_ALPHA_TEST + 6
+private const val SI_HD_SOFT = SI_ALPHA_TEST + 6
+internal const val FF_SHADOW_INTS = SI_ALPHA_TEST + 7
 
 private const val SF_TEX_ENV_COLOR = 0
 private const val SF_ENV_SCALE = 4
@@ -249,4 +255,5 @@ private const val SF_FOG_COLOR = SF_ALPHA_REF + 1
 private const val SF_FOG_START = SF_ALPHA_REF + 5
 private const val SF_FOG_END = SF_ALPHA_REF + 6
 private const val SF_LOGICAL_SCALE = SF_ALPHA_REF + 7
-internal const val FF_SHADOW_FLOATS = SF_ALPHA_REF + 8
+private const val SF_HD_DEPTH = SF_ALPHA_REF + 8
+internal const val FF_SHADOW_FLOATS = SF_ALPHA_REF + 12
