@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.client.features
 
+import com.jagex.game.runetek5.LocType
 import turnElapsedMs
 import com.jagex.game.runetek5.ObjStackEntity
 import com.jagex.game.runetek5.MapRegion
@@ -972,6 +973,59 @@ object SmokeTest {
 	private var openToolkit: Int = -1
 
 	private fun findText() {
+		if (FIND_TEXT.startsWith("locmodels:")) {
+			// prints every loc type, named or not, that shares a model with a loc whose name matches a
+			// regular expression: the unnamed decorations (wall torches) that look like a named loc
+			val pattern: Regex = Regex(FIND_TEXT.substring(10), RegexOption.IGNORE_CASE)
+			val models: HashMap<Int, String> = HashMap()
+			val types: Array<LocType?> = arrayOfNulls(80000)
+			for (id in 0 until 80000) {
+				try {
+					types[id] = TypeLists.LOC!!.list(id)
+				} catch (ex: Exception) {
+					continue
+				}
+				val name: String? = types[id]!!.name
+				if (name != null && name != "null" && pattern.containsMatchIn(name)) {
+					// animations too, as -1 - id: an unnamed torch has its own model but the same flames
+					val animations: IntArray? = types[id]!!.animations
+					if (animations != null) {
+						for (animation in animations) {
+							if (animation >= 0) models[-1 - animation] = name
+						}
+					}
+					val ids: Array<IntArray?> = types[id]!!.hdModelIds() ?: continue
+					for (shape in ids) {
+						if (shape == null) continue
+						for (model in shape) models[model] = name
+					}
+				}
+			}
+			var found: Int = 0
+			for (id in 0 until 80000) {
+				val ids: Array<IntArray?> = types[id]?.hdModelIds() ?: continue
+				var match: String? = null
+				val animations: IntArray? = types[id]!!.animations
+				if (animations != null) {
+					for (animation in animations) {
+						if (animation >= 0 && models[-1 - animation] != null) match = models[-1 - animation]
+					}
+				}
+				for (shape in ids) {
+					if (shape == null) continue
+					for (model in shape) {
+						if (models[model] != null) match = models[model]
+					}
+				}
+				if (match != null) {
+					println("SMOKE LOC " + id + " " + types[id]!!.name + " like " + match)
+					found++
+				}
+			}
+			println("SMOKE PASS " + found + " types")
+			lang.flushOut()
+			lang.halt(0)
+		}
 		if (FIND_TEXT.startsWith("locs:") || FIND_TEXT.startsWith("npcs:")) {
 			// prints the loc (or NPC) types whose name matches a regular expression, for 634HD's data files
 			val npcs: Boolean = FIND_TEXT.startsWith("npcs:")

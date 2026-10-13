@@ -182,6 +182,7 @@ void main() {
         }
         gPrimary = hdApplyLight(vBase, lit);
     }
+    gPrimary = hdAddPointLights(gPrimary, vBase, vViewPos, vEyeNormal);
 #endif
     vec4 color = gPrimary;
     for (int i = 0; i < 3; i++) {

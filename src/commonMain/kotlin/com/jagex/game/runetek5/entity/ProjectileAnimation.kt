@@ -105,6 +105,9 @@ class ProjectileAnimation : AbstractInteractiveEntity {
 	@OriginalMember(owner = "client!to", name = "rb", descriptor = "I")
 	private val id: Int
 
+	// Not part of the original client: the id, for 634HD's lights (lights.json).
+	fun hdId(): Int = this.id
+
 	@OriginalMember(owner = "client!to", name = "sb", descriptor = "I")
 	@JvmField
 	val t2: Int

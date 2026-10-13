@@ -41,6 +41,9 @@ class HdFeatures {
     private var lastNanos: Long = 0L
     private val target: FloatArray = FloatArray(13)
 
+    /** The point lights from lights.json (HdSettings.lights). */
+    val lights: HdLights = HdLights()
+
     private var viewX: Int = 0
     private var viewY: Int = 0
     private var viewWidth: Int = 1
@@ -85,7 +88,7 @@ class HdFeatures {
         // the grading table of the environment (HdSettings.colourGrading)
         val lut: String? = this.environment?.lut
         toolkit.hdPost.gradingTexture = if (lut != null && HdSettings.colourGrading) toolkit.hdPost.gradingTable(lut) else 0
-        uniforms.setLightCount(0)
+        this.lights.prepare(toolkit.hdContent, uniforms, worldToView, seconds)
     }
 
     /** Picks the environment at the local player and eases the sky and fog values towards it. */

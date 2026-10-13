@@ -685,10 +685,12 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 
 	override fun sceneBuilt() {
 		this.sceneRenderer.build()
+		this.hdFeatures.lights.dirty = true
 	}
 
 	override fun sceneChanged(level: Int, x: Int, z: Int) {
 		this.sceneRenderer.sceneChanged(x, z)
+		this.hdFeatures.lights.dirty = true
 	}
 
 	override fun transparentEntitiesDone() {

@@ -39,6 +39,7 @@ const int FLAG_MIPMAP = 2;
 const int FLAG_LINEAR = 4;
 const int FLAG_REPEAT_S = 8;
 const int FLAG_REPEAT_T = 16;
+const int FLAG_UNLIT = 32;
 
 out vec4 fragColor;
 
@@ -94,6 +95,9 @@ vec4 pixelLit() {
 void main() {
     vec4 material = texelFetch(uMaterials, vMaterial * 2);
     vec4 primary = (vLit != 0 && hdOn(HD_PIXEL_LIGHTING)) ? pixelLit() : vColor;
+    if ((int(material.w) & FLAG_UNLIT) == 0) {
+        primary = hdAddPointLights(primary, vBase, vViewPos, vEyeNormal);
+    }
     vec4 color = primary;
     if ((int(material.w) & FLAG_TEXTURED) != 0) {
         vec4 tex = hdColour(sampleMaterial(material, texelFetch(uMaterials, vMaterial * 2 + 1)));

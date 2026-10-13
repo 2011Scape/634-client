@@ -55,6 +55,9 @@ class LocType {
 	@OriginalMember(owner = "client!iv", name = "Q", descriptor = "[[I")
 	private var objectModelIds: Array<IntArray?>? = null
 
+	// Not part of the original client: the model ids, for 634HD's data tools (SmokeTest locmodels:).
+	fun hdModelIds(): Array<IntArray?>? = this.objectModelIds
+
 	@OriginalMember(owner = "client!iv", name = "R", descriptor = "[S")
 	private var recolorDst: ShortArray? = null
 
