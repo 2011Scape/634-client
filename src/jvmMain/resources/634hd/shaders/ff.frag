@@ -22,10 +22,13 @@ uniform vec3 uLightAttenuation[8];
 #define FF_VIEW_POS vViewPos
 #define FF_NORMAL vEyeNormal
 #else
-// transpiled programs pass no eye position: the fragment's depth along the view axis stands in
-#define FF_VIEW_POS vec3(0.0, 0.0, -gl_FragCoord.z / gl_FragCoord.w)
+// transpiled programs pass the eye position (ArbVertexProgramTranspiler), but no normal
+in vec3 vArbViewPos;
+#define FF_VIEW_POS vArbViewPos
 #define FF_NORMAL vec3(0.0)
 #endif
+// 1 while the material is water (HD_WATER)
+uniform int uHdWater;
 // the primary colour: the vertex colour, or the per-pixel lit one
 vec4 gPrimary;
 in vec3 vTexCoord0;
@@ -192,6 +195,9 @@ void main() {
     }
     if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
         discard;
+    }
+    if (uHdWater != 0 && hdOn(HD_WATER)) {
+        color = hdWater(color, FF_VIEW_POS);
     }
     color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
     color.rgb *= hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);

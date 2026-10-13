@@ -83,6 +83,12 @@ class HdFeatures {
         uniforms.setSunColour(diffuse[0], diffuse[1], diffuse[2])
         uniforms.setAmbient(state.globalAmbient[0], state.globalAmbient[1], state.globalAmbient[2])
         this.environment(toolkit.hdContent, state)
+        val tint: FloatArray? = this.environment?.waterTint
+        if (tint != null) {
+            uniforms.setWater(tint[0], tint[1], tint[2], 0.45f)
+        } else {
+            uniforms.setWater(0.11f, 0.24f, 0.3f, 0.2f)
+        }
         // the sun's shadow map: where it looks from, and the matrix the receivers use
         HdGl.shadows = this.shadows
         this.shadows.beginFrame(viewToWorld, state.lightPosition[0], state.lightEnabled[0] && length > 0.0f)

@@ -997,6 +997,8 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 				combineMode = textureMetrics.combineMode
 			}
 			this.effectManager.loadEffect(effectParam1.toInt(), hasLight, effectType, effectParam2, allowStillWater)
+			// 634HD: water materials (the water effects) get 634HD's water shading with client.hd.water
+			HdGl.state.hdWater = if (effectType == 2 || effectType == 3 || effectType == 4 || effectType == 5 || effectType == 8 || effectType == 9) 1 else 0
 			if (!this.effectManager.bindTexture(combineMode, texture)) {
 				this.setActiveTexture(texture)
 				this.setColourOp(combineMode)

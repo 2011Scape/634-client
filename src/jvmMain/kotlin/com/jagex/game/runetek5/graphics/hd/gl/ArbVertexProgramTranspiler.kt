@@ -798,6 +798,8 @@ internal object ArbVertexProgramTranspiler {
         sb.append("out vec3 vTexCoord1;\n")
         sb.append("out vec3 vTexCoord2;\n")
         if (ctx.usesSecondary) sb.append("out vec4 vColorSecondary;\n")
+        // 634HD: the eye-space position, for the features' fog, shadows, occlusion and water (ff.frag)
+        sb.append("out vec3 vArbViewPos;\n")
         // Must match FixedFunctionShader.VERTEX_SOURCE's own invariant gl_Position declaration -
         // see the comment on the fallback assignment below.
         sb.append("invariant gl_Position;\n")
@@ -831,6 +833,7 @@ internal object ArbVertexProgramTranspiler {
         sb.append("    vTexCoord1 = oTexCoord1.xyz;\n")
         sb.append("    vTexCoord2 = oTexCoord2.xyz;\n")
         if (ctx.usesSecondary) sb.append("    vColorSecondary = oColorSecondary;\n")
+        sb.append(if (ATTRIB_POSITION in ctx.usedAttribs) "    vArbViewPos = (uModelViewMatrix * aPosition).xyz;\n" else "    vArbViewPos = vec3(0.0);\n")
         if (ctx.positionWritten) {
             sb.append("    gl_Position = oPosition;\n")
         } else {

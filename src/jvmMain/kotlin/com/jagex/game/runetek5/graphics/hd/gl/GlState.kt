@@ -70,6 +70,9 @@ class GlState(val gl: WebGL2RenderingContext) {
     /** 634HD: 1 while the toolkit draws the 3D view, 0 for the interface (hd_lib.glsl uHdScene). */
     var hdScene: Int = 0
 
+    // 634HD: 1 while the material being drawn is water (HdToolkit.renderTexture), for HD_WATER
+    var hdWater: Int = 0
+
     /** The vertex array the emulator draws with (HdGl.createState); other renderers bind it back. */
     var vertexArray: Int = 0
 
