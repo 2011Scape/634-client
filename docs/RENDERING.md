@@ -185,7 +185,7 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
 | `pixelLighting` | the fixed-function formula per pixel | `ff.frag`, `scene.frag` |
 | `lights` | point lights from `lights.json`, 64 nearest | `scene/HdLights`, `hdPointLights` |
 | `shadows` (1024/2048/4096) | sun shadow map, PCF | `scene/HdShadows`, `hdShadow` |
-| `ambientOcclusion` | sky visibility from a top-down occlusion height map | `scene/HdShadows`, `hdAmbientOcclusion` |
+| `ambientOcclusion` | sky visibility from occlusion height maps: the region's static scene baked when its chunks change, moving models each frame | `scene/HdShadows`, `ao_bake.vert`, `hdAmbientOcclusion` |
 | `fog`, `fade`, `sky` | environment fog, dithered fade at the edge, gradient sky and height fog | `scene/HdFeatures`, `hdFog`, `sky.frag` |
 | `water` | wave normals, Fresnel sky reflection, glint, tint | `hdWater`; `GlState.hdWater` |
 | `terrainBlend` | triplanar on slopes, anti-tiling blend, broad variation on the ground | `hdTerrainTexture`; `GlState.hdGround` |
@@ -200,7 +200,7 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   the `HdFrame` uniform block (`scene/HdFrameUniforms`, std140, binding 0). `hd_lib.glsl` holds the
   block and the shared functions; `hd_material.glsl` the fragment-only ones. `HdShaders.link` points
   every program's samplers at their units: shadow map 16, height map 17, soft-particle depth 18,
-  material arrays 19-21 (block `HdMaterialMaps`, binding 1).
+  material arrays 19-21 (block `HdMaterialMaps`, binding 1), baked occlusion 22.
 - **Shadow casters** are the retained objects drawn this frame plus every emulated indexed draw
   `HdGl` records between the camera and `opaqueEntitiesDone`. Translucent entities (drawn later)
   cast into the next frame's map. Moving models drawn before the map is made do not receive shadows.
@@ -217,7 +217,7 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
 - **Debug panel** (`HdDebugPanel`, `client.debug` only; F10 or `::hdpanel`): stats with GPU time,
   every switch, overlays, live editing of the current environment and nearest light with Save to
   the JSON file, texture and mini-menu inspection, content warnings.
-- **Not done:** compression at build time (the driver compresses at load), foam on water, blending
-  across tile texture edges, and per-vertex baked AO (occlusion is computed per pixel from a height
-  map drawn each frame instead). The game's own particle systems stay CPU-simulated; the GPU
+- **Not done:** compression at build time (the driver compresses at load), foam on water, and
+  blending across tile texture edges. Occlusion is baked into a height map per region, not into
+  vertices. The game's own particle systems stay CPU-simulated; the GPU
   particles are an added, data-driven system.
