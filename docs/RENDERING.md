@@ -171,3 +171,49 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
   - the bench at a position (`-Pclient.test.scenePosition=...`), which prints draw calls by category,
     the region-build hitch and chunk rebuilds (`client/features/RenderStats`).
 
+### 634HD features (Phase 4, 5 and content)
+
+Every feature is off by default and leaves the frame as toolkit 1 draws it (the parity harness runs
+with all of them off). Switches live in `client/features/HdSettings`: `client.hd.<name>=<value>` at
+start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playing, or the debug panel.
+
+| Switch | What it does | Where |
+| --- | --- | --- |
+| `tonemap` (aces, agx), `dither` | linear colour, half-float view, filmic tonemap | `scene/HdPost`, `post_composite.frag` |
+| `bloom`, `fxaa`, `colourGrading` | post chain; a 16³ LUT per environment (`luts/`, `tools/make_luts.py`) | `scene/HdPost` |
+| `mipmaps`, `anisotropy` | full mip chains for every world texture, anisotropic samplers | `HdTextureCache`, `scene/HdMaterials` |
+| `pixelLighting` | the fixed-function formula per pixel | `ff.frag`, `scene.frag` |
+| `lights` | point lights from `lights.json`, 64 nearest | `scene/HdLights`, `hdPointLights` |
+| `shadows` (1024/2048/4096) | sun shadow map, PCF | `scene/HdShadows`, `hdShadow` |
+| `ambientOcclusion` | sky visibility from a top-down occlusion height map | `scene/HdShadows`, `hdAmbientOcclusion` |
+| `fog`, `fade`, `sky` | environment fog, dithered fade at the edge, gradient sky and height fog | `scene/HdFeatures`, `hdFog`, `sky.frag` |
+| `water` | wave normals, Fresnel sky reflection, glint, tint | `hdWater`; `GlState.hdWater` |
+| `terrainBlend` | triplanar on slopes, anti-tiling blend, broad variation on the ground | `hdTerrainTexture`; `GlState.hdGround` |
+| `foliage` | wind sway from `foliage.json`; alpha to coverage with MSAA | `scene.vert`, `scene/HdSceneRenderer` |
+| `softParticles` | particles fade into geometry (depth copy) | `scene/HdSoftParticles` |
+| `interfaceScale` (2/3/4) | the window at a whole-number scale, 3D at native resolution | `gl/HdGl.windowScale` |
+| `materials` | Phase 5 normal / ORM / emissive / height maps | `scene/HdMaterialMaps`, `hd_material.glsl` |
+
+- **Frame data.** `scene/HdFeatures` works out per-frame values once the camera is set and writes
+  the `HdFrame` uniform block (`scene/HdFrameUniforms`, std140, binding 0). `hd_lib.glsl` holds the
+  block and the shared functions; `hd_material.glsl` the fragment-only ones. `HdShaders.link` points
+  every program's samplers at their units: shadow map 16, height map 17, soft-particle depth 18,
+  material arrays 19-21 (block `HdMaterialMaps`, binding 1).
+- **Shadow casters** are the retained objects drawn this frame plus every emulated indexed draw
+  `HdGl` records between the camera and `opaqueEntitiesDone`. Translucent entities (drawn later)
+  cast into the next frame's map. Moving models drawn before the map is made do not receive shadows.
+- **Content** (`hd/content/HdContent`): `src/jvmMain/resources/634hd/data/*.json`, each with a
+  `*.schema.json` checked at load (`JsonSchema`; a bad entry is skipped with its file and line). With
+  `client.debug` from the repository (or `client.hd.dataDir`) the folder is read directly and
+  reloaded when a file changes. `client.test.findText=locs:<regex>`, `locmodels:<regex>`, `npcs:` and
+  `textures:` list or dump cache data for writing it; `client.test.hdDebug` prints loc ids near the
+  player and texture use.
+- **Materials.** `tools/make_material_maps.py` derives map sets from the cache textures (dumped
+  with `client.test.findText=textures:`) into `634hd/materials/<texture>/` with a `recipe.txt` each,
+  and writes `materials.json`. Maps are uncompressed RGBA8 (23 sets, 22 MB).
+- **Debug panel** (`HdDebugPanel`, `client.debug` only; F10 or `::hdpanel`): stats with GPU time,
+  every switch, overlays, live editing of the current environment and nearest light with Save to
+  the JSON file, texture and mini-menu inspection, content warnings.
+- **Not done:** GPU-simulated particles (particles stay CPU-simulated, drawn in one batch),
+  `smoothInterface`, BC5/BC7 compression of the maps, foam on water, blending across tile texture
+  edges, and per-vertex baked AO (occlusion is computed per pixel from the height map instead).
