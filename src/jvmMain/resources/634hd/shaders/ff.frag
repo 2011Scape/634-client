@@ -29,6 +29,8 @@ in vec3 vArbViewPos;
 #endif
 // 1 while the material is water (HD_WATER)
 uniform int uHdWater;
+// 1 while the ground is drawn (HD_TERRAIN)
+uniform int uHdGround;
 // the primary colour: the vertex colour, or the per-pixel lit one
 vec4 gPrimary;
 in vec3 vTexCoord0;
@@ -154,12 +156,33 @@ highp vec2 logicalCentre(highp vec2 coord) {
     return coord + dFdx(coord) * offset.x + dFdy(coord) * offset.y;
 }
 
+// The ground's texture (HD_TERRAIN) at [uv] for a fragment at eye-space [viewPos]: on steep ground
+// projected from the side (triplanar) instead of stretched; elsewhere a second, rotated and larger
+// sample blended in through a noise mask, so the tile texture does not repeat visibly; and a broad
+// brightness variation. In the texture's own (sRGB) colour.
+vec4 hdTerrainTexture(sampler2D tex, vec2 uv, vec3 viewPos) {
+    vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
+    vec3 n = normalize(cross(dFdx(world), dFdy(world)));
+    float steep = clamp((1.0 - abs(n.y) - 0.35) * 3.0, 0.0, 1.0);
+    vec4 base = texture(tex, uv);
+    float mask = smoothstep(0.35, 0.75, hdNoise(world.xz / 1900.0));
+    vec2 rotated = mat2(0.799, -0.602, 0.602, 0.799) * uv * 0.61 + vec2(0.37, 0.71);
+    base = mix(base, texture(tex, rotated), mask * 0.5);
+    if (steep > 0.0) {
+        vec2 side = abs(n.x) > abs(n.z) ? world.zy : world.xy;
+        base = mix(base, texture(tex, side / 512.0), steep);
+    }
+    base.rgb *= 0.9 + 0.2 * hdNoise(world.xz / 5200.0 + vec2(17.0, 3.0));
+    return base;
+}
+
 vec4 sampleUnit(int unit) {
     // 3D textures (the animated water normal map) are sampled with the texcoord's full vec3;
     // the animated slice coordinate r arrives through the per-unit texture matrix.
     if (unit == 0) {
         if (uIs3D[0] != 0) return sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0);
-        // 634HD: the base texture in linear colour too (HdSettings.tonemap)
+        // 634HD: the ground's texture blended (HD_TERRAIN); the base texture in linear colour too (tonemap)
+        if (uHdGround != 0 && hdOn(HD_TERRAIN)) return hdColour(hdTerrainTexture(uTexture0, vTexCoord0.xy, FF_VIEW_POS));
         return hdColour(texture(uTexture0, vTexCoord0.xy));
     }
     if (unit == 1) {

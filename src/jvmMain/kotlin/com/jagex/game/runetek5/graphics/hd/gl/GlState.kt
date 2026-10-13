@@ -73,6 +73,9 @@ class GlState(val gl: WebGL2RenderingContext) {
     // 634HD: 1 while the material being drawn is water (HdToolkit.renderTexture), for HD_WATER
     var hdWater: Int = 0
 
+    // 634HD: 1 while HdGround draws the ground, for HD_TERRAIN
+    var hdGround: Int = 0
+
     /** The vertex array the emulator draws with (HdGl.createState); other renderers bind it back. */
     var vertexArray: Int = 0
 

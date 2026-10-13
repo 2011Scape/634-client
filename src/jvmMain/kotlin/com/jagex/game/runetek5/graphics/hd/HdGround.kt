@@ -807,9 +807,12 @@ class HdGround : Ground {
 			return
 		}
 		RenderStats.category = RenderStats.CATEGORY_GROUND
+		// 634HD: the ground's draws are marked, for its texture blending (HdSettings.terrainBlend)
+		HdGl.state.hdGround = 1
 		try {
 			this.renderGroundLayers(orthoZoom, radius, belowLowestPlane, x, skipFlags, visibility, z)
 		} finally {
+			HdGl.state.hdGround = 0
 			RenderStats.category = RenderStats.CATEGORY_OTHER
 		}
 	}
