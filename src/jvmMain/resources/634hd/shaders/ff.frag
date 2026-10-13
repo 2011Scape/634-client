@@ -160,6 +160,25 @@ vec4 sampleLuminanceAlpha3D(sampler3D s, vec3 coord) {
 // which shimmers against the frame as the rotating minimap under them moves. Re-evaluating the
 // (affine, in 2D) texcoord at the logical pixel's centre samples exactly where 1x does.
 // highp: window coordinates past 2048 don't fit mediump at half-pixel precision.
+// 1 to draw the scaled interface smoothly (HdSettings.smoothInterface): see sharpBilinear()
+uniform int uHdSmooth;
+
+// The interface at a whole-number scale, smoothed: bilinear between texels with smoothstep weights,
+// so the steps between pixels soften while flat areas and texel centres keep their colour.
+vec4 sharpBilinear(sampler2D tex, vec2 uv) {
+    ivec2 size = textureSize(tex, 0);
+    vec2 p = uv * vec2(size) - 0.5;
+    vec2 i = floor(p);
+    vec2 f = smoothstep(0.0, 1.0, p - i);
+    ivec2 a = clamp(ivec2(i), ivec2(0), size - 1);
+    ivec2 b = clamp(ivec2(i) + 1, ivec2(0), size - 1);
+    vec4 c00 = texelFetch(tex, a, 0);
+    vec4 c10 = texelFetch(tex, ivec2(b.x, a.y), 0);
+    vec4 c01 = texelFetch(tex, ivec2(a.x, b.y), 0);
+    vec4 c11 = texelFetch(tex, b, 0);
+    return mix(mix(c00, c10, f.x), mix(c01, c11, f.x), f.y);
+}
+
 highp vec2 logicalCentre(highp vec2 coord) {
     if (uLogicalScale <= 1.0) return coord;
     highp vec2 centre = (floor(gl_FragCoord.xy / uLogicalScale) + 0.5) * uLogicalScale;
@@ -194,6 +213,7 @@ vec4 sampleUnit(int unit) {
         if (uIs3D[0] != 0) return sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0);
         // 634HD: the ground's texture blended (HD_TERRAIN); the base texture in linear colour too (tonemap)
         if (uHdGround != 0 && hdOn(HD_TERRAIN)) return hdColour(hdTerrainTexture(uTexture0, gUv0, FF_VIEW_POS));
+        if (uHdSmooth != 0 && uLogicalScale > 1.0 && uHdScene == 0) return sharpBilinear(uTexture0, gUv0);
         return hdColour(texture(uTexture0, gUv0));
     }
     if (unit == 1) {
