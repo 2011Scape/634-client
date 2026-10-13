@@ -193,6 +193,8 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
 | `softParticles` | particles fade into geometry (depth copy) | `scene/HdSoftParticles` |
 | `interfaceScale` (2/3/4) | the window at a whole-number scale, 3D at native resolution | `gl/HdGl.windowScale` |
 | `materials` | Phase 5 normal / ORM / emissive / height maps | `scene/HdMaterialMaps`, `hd_material.glsl` |
+| `particles` | GPU particles: embers over fires and torches, sparks over lava, one instanced draw | `scene/HdGpuParticles`, `particles.vert` |
+| `smoothInterface` | the scaled interface sampled with smoothstep bilinear | `ff.frag` `sharpBilinear` |
 
 - **Frame data.** `scene/HdFeatures` works out per-frame values once the camera is set and writes
   the `HdFrame` uniform block (`scene/HdFrameUniforms`, std140, binding 0). `hd_lib.glsl` holds the
@@ -210,10 +212,12 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   player and texture use.
 - **Materials.** `tools/make_material_maps.py` derives map sets from the cache textures (dumped
   with `client.test.findText=textures:`) into `634hd/materials/<texture>/` with a `recipe.txt` each,
-  and writes `materials.json`. Maps are uncompressed RGBA8 (23 sets, 22 MB).
+  and writes `materials.json`. The driver compresses them on upload: BC5 normals, BC7 packed and
+  emissive maps with the height in the packed map's alpha (23 sets, 5 MB; RGBA8 without BC7).
 - **Debug panel** (`HdDebugPanel`, `client.debug` only; F10 or `::hdpanel`): stats with GPU time,
   every switch, overlays, live editing of the current environment and nearest light with Save to
   the JSON file, texture and mini-menu inspection, content warnings.
-- **Not done:** GPU-simulated particles (particles stay CPU-simulated, drawn in one batch),
-  `smoothInterface`, BC5/BC7 compression of the maps, foam on water, blending across tile texture
-  edges, and per-vertex baked AO (occlusion is computed per pixel from the height map instead).
+- **Not done:** compression at build time (the driver compresses at load), foam on water, blending
+  across tile texture edges, and per-vertex baked AO (occlusion is computed per pixel from a height
+  map drawn each frame instead). The game's own particle systems stay CPU-simulated; the GPU
+  particles are an added, data-driven system.
