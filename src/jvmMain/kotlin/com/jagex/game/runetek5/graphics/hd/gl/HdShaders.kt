@@ -73,6 +73,14 @@ object HdShaders {
             throw IllegalStateException("634HD: " + name + " does not link:\n" + log)
         }
         bindFrameBlock(program)
+        // the shadow map's sampler (hd_lib.glsl) on its own unit, so it never shares one with a sampler2D
+        val shadowMap = org.lwjgl.opengl.GL33C.glGetUniformLocation(program.id, "uHdShadowMap")
+        if (shadowMap >= 0) {
+            val previous = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_CURRENT_PROGRAM)
+            org.lwjgl.opengl.GL33C.glUseProgram(program.id)
+            org.lwjgl.opengl.GL33C.glUniform1i(shadowMap, com.jagex.game.runetek5.graphics.hd.scene.HdShadows.UNIT)
+            org.lwjgl.opengl.GL33C.glUseProgram(previous)
+        }
         return program
     }
 

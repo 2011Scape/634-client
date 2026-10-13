@@ -20,9 +20,11 @@ uniform vec3 uLightAttenuation[8];
 #endif
 #ifndef ARB_VERTEX
 #define FF_VIEW_POS vViewPos
+#define FF_NORMAL vEyeNormal
 #else
 // transpiled programs pass no eye position: the fragment's depth along the view axis stands in
 #define FF_VIEW_POS vec3(0.0, 0.0, -gl_FragCoord.z / gl_FragCoord.w)
+#define FF_NORMAL vec3(0.0)
 #endif
 // the primary colour: the vertex colour, or the per-pixel lit one
 vec4 gPrimary;
@@ -191,6 +193,7 @@ void main() {
     if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
         discard;
     }
+    color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
     float depth = gl_FragCoord.z / gl_FragCoord.w;
     if (hdFaded(length(FF_VIEW_POS), gl_FragCoord.xy)) {
         discard;

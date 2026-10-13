@@ -694,10 +694,15 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	}
 
 	override fun transparentEntitiesDone() {
+		this.hdFeatures.shadows.endTransparentPass()
 		this.sceneRenderer.endPass()
 	}
 
 	override fun opaqueEntitiesDone() {
+		// 634HD: the sun's shadow map from what is known now, for the retained scene, ground and translucent entities
+		if (this.sceneDrawing) {
+			this.hdFeatures.shadows.render(this.sceneRenderer)
+		}
 		// 634HD: the sky behind everything drawn so far, before the ground and translucent entities
 		if (HdSettings.sky && this.sceneDrawing && Skybox.configNpcJs5 == null) {
 			this.hdPost.drawSky(HdGl.state.matrixStack.projection())
@@ -3104,6 +3109,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	// place in the frame. The clip is not reset through la(), which would move the picking bounds.
 	override fun endScene() {
 		this.sceneDrawing = false
+		this.hdFeatures.shadows.recording = false
 		this.updateHdScene()
 		if (!this.sceneActive) {
 			return

@@ -122,6 +122,7 @@ void main() {
     if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
         discard;
     }
+    color = hdApplyShadow(color, vViewPos, vEyeNormal);
     float depth = gl_FragCoord.z / gl_FragCoord.w;
     if (hdFaded(length(vViewPos), gl_FragCoord.xy)) {
         discard;

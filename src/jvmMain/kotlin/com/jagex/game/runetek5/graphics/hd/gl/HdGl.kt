@@ -1277,6 +1277,10 @@ object HdGl {
         return out
     }
 
+    /** 634HD: the shadow map maker recording casters (HdToolkit sets it). */
+    @JvmField
+    var shadows: com.jagex.game.runetek5.graphics.hd.scene.HdShadows? = null
+
     fun glDrawElements(arg0: Int, arg1: Int, arg2: Int, arg3: Long) = exec {
         bindClientArrays()
         if (state.boundElementArrayBuffer == null) {
@@ -1285,6 +1289,14 @@ object HdGl {
                 WebGL2RenderingContext.UNSIGNED_BYTE -> 1
                 5123 -> 2
                 else -> 4
+            }
+            // 634HD: an opaque model of the 3D view with its indices in memory: a shadow caster, its indices copied
+            val recorder = shadows
+            if (recorder != null && recorder.recording && state.hdScene != 0 && arg0 == 4 && arg3 != 0L) {
+                val p = state.clientArrays[ATTRIB_POSITION]
+                if (p.enabled && p.sourceBuffer != null) {
+                    recorder.recordIndices(p.sourceBuffer!!.id, p.size, p.type, p.stride, p.offset, arg3, arg1 * bytesPerIndex, arg1, arg2, state.matrixStack.modelview())
+                }
             }
             gl.bindBuffer(WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER, state.clientElementBuffer)
             if (arg3 != 0L) {
@@ -1297,6 +1309,14 @@ object HdGl {
             // Every path that binds another ELEMENT_ARRAY_BUFFER restores this binding.
             state.prepareDraw()
             gl.drawElements(arg0, arg1, arg2, arg3)
+            // 634HD: an opaque model of the 3D view, recorded as a shadow caster (HdShadows)
+            val recorder = shadows
+            if (recorder != null && recorder.recording && state.hdScene != 0 && arg0 == 4) {
+                val p = state.clientArrays[ATTRIB_POSITION]
+                if (p.enabled && p.sourceBuffer != null) {
+                    recorder.record(p.sourceBuffer!!.id, p.size, p.type, p.stride, p.offset, state.boundElementArrayBuffer!!.id, arg1, arg2, arg3, state.matrixStack.modelview())
+                }
+            }
         }
     }
 
