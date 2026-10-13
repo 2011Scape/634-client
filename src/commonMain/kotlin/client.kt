@@ -2,6 +2,7 @@ import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.client.login.LoginStep
 import com.jagex.game.runetek5.client.window.WindowModeType
 import com.jagex.game.runetek5.client.features.SmokeTest
+import com.jagex.game.runetek5.client.features.HdFallback
 import com.jagex.game.runetek5.core.constants.MainLogicStep
 import com.jagex.game.runetek5.WorldConnectionInfo
 import com.jagex.game.runetek5.InterfaceRectangles
@@ -410,6 +411,8 @@ class client : GameShell() {
 	override fun onPulse() {
 		// Not part of the original client: the smoke test (client.test=smoke) runs each logic tick.
 		SmokeTest.tick()
+		// Not part of the original client: says once in game why 634HD fell back (HdFallback).
+		HdFallback.tick()
 		if (GamePreferences.uid!!.toolkit!!.getValue() != 2) {
 			this.pulse()
 			return

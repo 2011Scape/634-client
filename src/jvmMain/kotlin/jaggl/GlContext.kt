@@ -252,8 +252,21 @@ internal class GlContext private constructor(private val data: GLData, main: Sur
          * client needs immediate mode, the matrix stack and ARB programs) and the legacy 2.1 context
          * on macOS.
          */
-        fun create(canvas: Canvas, red: Int, green: Int, blue: Int, depth: Int, stencil: Int, samples: Int): GlContext {
+        fun create(canvas: Canvas, red: Int, green: Int, blue: Int, depth: Int, stencil: Int, samples: Int): GlContext =
+            create(canvas, red, green, blue, depth, stencil, samples, false)
+
+        /**
+         * With [core], a 3.3 core profile context instead (forward compatible; 4.1 core on macOS),
+         * for 634HD (toolkit 6); the other toolkits never ask for one.
+         */
+        fun create(canvas: Canvas, red: Int, green: Int, blue: Int, depth: Int, stencil: Int, samples: Int, core: Boolean): GlContext {
             val data = GLData()
+            if (core) {
+                data.majorVersion = 3
+                data.minorVersion = 3
+                data.profile = GLData.Profile.CORE
+                data.forwardCompatible = true
+            }
             data.redSize = red
             data.greenSize = green
             data.blueSize = blue
@@ -313,6 +326,10 @@ internal class GlContext private constructor(private val data: GLData, main: Sur
             to.sampleBuffers = from.sampleBuffers
             to.samples = from.samples
             to.swapInterval = from.swapInterval
+            to.majorVersion = from.majorVersion
+            to.minorVersion = from.minorVersion
+            to.profile = from.profile
+            to.forwardCompatible = from.forwardCompatible
             return to
         }
     }

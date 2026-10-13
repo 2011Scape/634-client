@@ -57,3 +57,6 @@ private val secureRandom: java.security.SecureRandom = java.security.SecureRando
 actual fun secureSeed(): Int = secureRandom.nextInt(99999999)
 
 actual val homeCacheOnly: Boolean = true
+
+actual fun createHdToolkit(multiSamples: Int, canvas: awt.Canvas?, textureSource: com.jagex.game.runetek5.config.material.MaterialProvider?): com.jagex.game.runetek5.graphics.Toolkit =
+    com.jagex.game.runetek5.graphics.hd.HdToolkit.create(multiSamples, canvas, textureSource)

@@ -393,7 +393,8 @@ object LoadingStageWork {
 			if (client.isForcedSafemode) {
 				ToolkitSwitch.loadAssets(false, 0)
 			} else {
-				ToolkitSwitch.loadAssets(false, GamePreferences.uid!!.toolkitDefault!!.getValue())
+				// Not part of the original client: client.toolkit picks the toolkit to start on.
+				ToolkitSwitch.loadAssets(false, if (ClientFeatures.TOOLKIT >= 0) ClientFeatures.TOOLKIT else GamePreferences.uid!!.toolkitDefault!!.getValue())
 			}
 			WindowModeRequest.requestWindowMode(WindowModeType.fromId(GamePreferences.uid!!.fixedScreen!!.getValue()), -1, false, -1)
 			FontCombo.createFonts(ClientState.activeToolkit)

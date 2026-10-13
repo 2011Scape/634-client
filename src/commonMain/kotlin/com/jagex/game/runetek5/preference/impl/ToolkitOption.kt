@@ -7,6 +7,7 @@ import org.openrs2.deob.annotation.OriginalMember
 import com.jagex.game.runetek5.preference.Preference
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.NativeLibraryOwner
+import com.jagex.game.runetek5.graphics.ToolkitType
 import kotlin.jvm.JvmField
 
 @OriginalClass("client!eea")
@@ -61,7 +62,8 @@ class ToolkitOption : Preference {
 		if (!this.gamePreferences!!.getProcessorSpecs().isSigned()) {
 			this.value = 0
 		}
-		if (this.value < 0 || this.value > 5) {
+		// Not part of the original client: 6 (634HD) is a toolkit too.
+		if (this.value < 0 || this.value > 5 && this.value != ToolkitType.HD) {
 			this.value = this.getDefaultValue()
 		}
 	}

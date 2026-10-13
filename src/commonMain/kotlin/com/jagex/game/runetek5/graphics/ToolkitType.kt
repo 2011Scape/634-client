@@ -16,10 +16,14 @@ object ToolkitType {
 
 	const val GLX: Int = 5
 
+	/** Not part of the original client: 634HD, the GL 3.3 core toolkit (desktop only). */
+	const val HD: Int = 6
+
 	@OriginalMember(owner = "client!eh", name = "b", descriptor = "(II)Z")
 	@JvmStatic
 	fun isHardwareToolkit(@OriginalArg(1) toolkitId: Int): Boolean {
-		return toolkitId == 1 || toolkitId == 3 || toolkitId == 5
+		// Not part of the original client: 6 is 634HD.
+		return toolkitId == 1 || toolkitId == 3 || toolkitId == 5 || toolkitId == HD
 	}
 
 	@OriginalMember(owner = "client!ok", name = "a", descriptor = "(BI)Z")

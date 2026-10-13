@@ -3,6 +3,8 @@ package jaggl
 import java.awt.AWTException
 import java.awt.Canvas
 import org.lwjgl.opengl.WGL
+import org.lwjgl.opengl.WGLARBCreateContext
+import org.lwjgl.opengl.WGLARBCreateContextProfile
 import org.lwjgl.opengl.WGLARBMultisample
 import org.lwjgl.opengl.WGLARBPixelFormat
 import org.lwjgl.opengl.awt.GLData
@@ -53,6 +55,7 @@ internal class WglCanvas : PlatformGLCanvas {
                         throw AWTException("SetPixelFormat failed (error " + error.get(0) + ")")
                     }
                 }
+                if (data.majorVersion >= 3) return createVersioned(data)
                 val context = WGL.wglCreateContext(error, hdc)
                 if (context == 0L) throw AWTException("wglCreateContext failed (error " + error.get(0) + ")")
                 return context
@@ -61,6 +64,32 @@ internal class WglCanvas : PlatformGLCanvas {
             dispose()
             throw ex
         }
+    }
+
+    /**
+     * A context of the version and profile [data] asks for (634HD's 3.3 core), through
+     * wglCreateContextAttribsARB; LWJGL finds the function through a context of its own when none is
+     * current, as for wglChoosePixelFormatARB.
+     */
+    private fun createVersioned(data: GLData): Long {
+        var flags = 0
+        if (data.forwardCompatible) flags = flags or WGLARBCreateContext.WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB
+        val profile = if (data.profile == GLData.Profile.CORE) WGLARBCreateContextProfile.WGL_CONTEXT_CORE_PROFILE_BIT_ARB
+            else WGLARBCreateContextProfile.WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB
+        val attributes = intArrayOf(
+            WGLARBCreateContext.WGL_CONTEXT_MAJOR_VERSION_ARB, data.majorVersion,
+            WGLARBCreateContext.WGL_CONTEXT_MINOR_VERSION_ARB, data.minorVersion,
+            WGLARBCreateContext.WGL_CONTEXT_FLAGS_ARB, flags,
+            WGLARBCreateContextProfile.WGL_CONTEXT_PROFILE_MASK_ARB, profile,
+            0,
+        )
+        val context = try {
+            WGLARBCreateContext.wglCreateContextAttribsARB(hdc, 0L, attributes)
+        } catch (ex: Exception) {
+            throw AWTException("wglCreateContextAttribsARB is unavailable: " + ex)
+        }
+        if (context == 0L) throw AWTException("no OpenGL " + data.majorVersion + "." + data.minorVersion + " context (wglCreateContextAttribsARB)")
+        return context
     }
 
     private fun choosePixelFormat(data: GLData): Int {

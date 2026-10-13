@@ -1,4 +1,6 @@
 import com.jagex.game.runetek5.client.features.GroundItemLabels
+import com.jagex.game.runetek5.client.features.HdFallback
+import com.jagex.game.runetek5.graphics.ToolkitType
 import com.jagex.game.runetek5.client.features.NpcLabels
 import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.client.features.TileMarkers
@@ -414,6 +416,20 @@ object ClientCommandProcessor {
 						return
 					}
 					Console.printToConsole("Failed to enter tk5")
+					return
+				}
+				// Not part of the original client: 634HD (toolkit 6). On failure the client is on whatever
+				// toolkit the fallback reached, and the console says why (HdFallback).
+				if (string.equals("tk6", ignoreCase = true)) {
+					ToolkitSwitch.loadAssets(false, ToolkitType.HD)
+					if (GamePreferences.uid!!.toolkit!!.getValue() == ToolkitType.HD) {
+						Console.printToConsole("Entered tk6 (634HD)")
+						GamePreferences.uid!!.setValue(GamePreferences.uid!!.toolkitDefault, ToolkitType.HD)
+						GamePreferences.savePreferences()
+						GamePreferences.preferencesSavedOnServer = false
+						return
+					}
+					Console.printToConsole("Failed to enter tk6: " + HdFallback.reason)
 					return
 				}
 				if (string.startsWith("setba")) {
