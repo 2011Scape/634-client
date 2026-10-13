@@ -94,6 +94,21 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
 
     private var objectChunk: IntArray = IntArray(4096)
 
+    /** Objects from the scene's transparent static list: drawn on their own, sorted, in the client's order. */
+    private var objectAlpha: BooleanArray = BooleanArray(4096)
+
+    private var objectIndexStart: IntArray = IntArray(4096)
+
+    private var objectIndexCount: IntArray = IntArray(4096)
+
+    /** Per alpha object, per face: its priority group (from the face sort) and centre, for the sort. */
+    private var objectFaceGroups: Array<IntArray?> = arrayOfNulls(4096)
+
+    private var objectFaceCentres: Array<FloatArray?> = arrayOfNulls(4096)
+
+    /** Set while an alpha entity's objects are built (appendModel keeps their faces' sort data). */
+    private var buildingAlpha: Boolean = false
+
     private var objectCount: Int = 0
 
     // ---- chunks ----
@@ -211,22 +226,27 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
      */
     fun build() {
         clear()
-        val heads: Array<Entity?> = Scene.stringStack ?: return
-        var entity: Entity? = heads[0]
-        while (entity != null) {
-            if (isStatic(entity)) {
-                val chunk: Int = chunkOf(entity)
-                if (chunk >= 0) {
-                    queueEntity(chunk, entity)
-                }
-            }
-            entity = entity.nextEntity
-        }
+        queueList(Scene.stringStack, -1)
+        queueList(Scene.aClass3_Sub1Array129, -1)
         built = true
         RenderStats.chunkRebuilds = 0
         RenderStats.lastRegionUploadMs = 0
         regionStart = System.nanoTime()
         regionBuildNanos = 0L
+    }
+
+    /** Queues the static entities of a scene list ([onlyChunk] or all chunks when -1). */
+    private fun queueList(heads: Array<Entity?>?, onlyChunk: Int) {
+        var entity: Entity? = heads?.get(0)
+        while (entity != null) {
+            if (isStatic(entity)) {
+                val chunk: Int = chunkOf(entity)
+                if (chunk >= 0 && (onlyChunk == -1 || chunk == onlyChunk)) {
+                    queueEntity(chunk, entity)
+                }
+            }
+            entity = entity.nextEntity
+        }
     }
 
     private var regionStart: Long = 0L
@@ -308,7 +328,19 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     /** Captures [count] entities' models and appends their geometry as [chunk]'s index range. */
     private fun buildChunk(chunk: Int, entities: Array<Entity?>, count: Int) {
         val firstIndex: Int = indexCount
+        buildEntities(chunk, entities, count, false)
+        chunkIndexStart[chunk] = firstIndex
+        chunkIndexCount[chunk] = indexCount - firstIndex
+        chunkTriangles[chunk] = (indexCount - firstIndex) / 3
+        buildEntities(chunk, entities, count, true)
+    }
+
+    private fun buildEntities(chunk: Int, entities: Array<Entity?>, count: Int, alpha: Boolean) {
+        buildingAlpha = alpha
         for (i in 0 until count) {
+            if (entities[i]!!.hasAlpha() != alpha) {
+                continue
+            }
             captureCount = 0
             capturing = this
             try {
@@ -333,9 +365,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
                 addObject(model, chunk)
             }
         }
-        chunkIndexStart[chunk] = firstIndex
-        chunkIndexCount[chunk] = indexCount - firstIndex
-        chunkTriangles[chunk] = (indexCount - firstIndex) / 3
+        buildingAlpha = false
     }
 
     /** Called by HdModel.render while capturing. */
@@ -351,16 +381,27 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             val size: Int = objectCount * 2
             objectModels = objectModels.copyOf(size)
             objectChunk = objectChunk.copyOf(size)
+            objectAlpha = objectAlpha.copyOf(size)
+            objectIndexStart = objectIndexStart.copyOf(size)
+            objectIndexCount = objectIndexCount.copyOf(size)
+            objectFaceGroups = objectFaceGroups.copyOf(size)
+            objectFaceCentres = objectFaceCentres.copyOf(size)
             val slots: IntArray = IntArray(size) { -1 }
             System.arraycopy(frameSlots, 0, slots, 0, frameSlots.size)
             frameSlots = slots
         }
         val objectId: Int = objectCount
+        val firstIndex: Int = indexCount
+        objectFaceGroups[objectId] = null
+        objectFaceCentres[objectId] = null
         if (!model.exportForScene(this, objectId)) {
             return
         }
         objectModels[objectId] = model
         objectChunk[objectId] = chunk
+        objectAlpha[objectId] = buildingAlpha
+        objectIndexStart[objectId] = firstIndex
+        objectIndexCount[objectId] = indexCount - firstIndex
         objectCount++
     }
 
@@ -401,7 +442,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     fun appendModel(
         objectId: Int, vertexCountOfModel: Int,
         positions: OpenGlArrayDrawBuffer, colours: OpenGlArrayDrawBuffer, normals: OpenGlArrayDrawBuffer?, texCoords: OpenGlArrayDrawBuffer?,
-        elements: ElementsBufferGL, faceCount: Int, batchOffsets: IntArray, batchMaterials: IntArray,
+        elements: ElementsBufferGL, faceCount: Int, batchOffsets: IntArray, batchMaterials: IntArray, faceGroups: IntArray?,
     ): BooleanArray? {
         val batches: Int = batchMaterials.size
         val taken: BooleanArray = BooleanArray(batches)
@@ -443,6 +484,17 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         // indices first: they say which material each vertex is drawn with
         ensureIndices(faceCount * 3)
         val base: Int = vertexCount
+        val positionStrideRead: Int = positionBuffer.getStride()
+        val positionOffsetRead: Int = positions.offset.toInt() and 0xFF
+        var keptFaces: Int = 0
+        for (b in 0 until batches) {
+            if (taken[b]) {
+                keptFaces += batchOffsets[b + 1] - batchOffsets[b]
+            }
+        }
+        val groups: IntArray? = if (buildingAlpha) IntArray(keptFaces) else null
+        val centres: FloatArray? = if (buildingAlpha) FloatArray(keptFaces * 3) else null
+        var kept: Int = 0
         for (b in 0 until batches) {
             if (!taken[b]) {
                 continue
@@ -453,9 +505,21 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
                     vertexSlots[vertex] = slots[b]
                     indices.putInt(indexCount * 4, base + vertex)
                     indexCount++
+                    if (centres != null) {
+                        val p: Int = vertex * positionStrideRead + positionOffsetRead
+                        centres[kept * 3] += positionData.getFloat(p) / 3.0f
+                        centres[kept * 3 + 1] += positionData.getFloat(p + 4) / 3.0f
+                        centres[kept * 3 + 2] += positionData.getFloat(p + 8) / 3.0f
+                    }
                 }
+                if (groups != null) {
+                    groups[kept] = if (faceGroups != null && face < faceGroups.size) faceGroups[face] else 0
+                }
+                kept++
             }
         }
+        objectFaceGroups[objectId] = groups
+        objectFaceCentres[objectId] = centres
         ensureVertices(vertexCountOfModel)
         val positionStride: Int = positionBuffer.getStride()
         val positionOffset: Int = positions.offset.toInt() and 0xFF
@@ -615,14 +679,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
                 java.util.Arrays.fill(pending[chunk]!!, 0, pendingCount[chunk], null)
                 pendingCount[chunk] = 0
             }
-            val heads: Array<Entity?> = Scene.stringStack ?: continue
-            var entity: Entity? = heads[0]
-            while (entity != null) {
-                if (isStatic(entity) && chunkOf(entity) == chunk) {
-                    queueEntity(chunk, entity)
-                }
-                entity = entity.nextEntity
-            }
+            queueList(Scene.stringStack, chunk)
+            queueList(Scene.aClass3_Sub1Array129, chunk)
             RenderStats.chunkRebuilds++
         }
         dirtyCount = 0
@@ -703,7 +761,6 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     fun flushOpaque() {
         HdGl.flushImmediate()
         if (frameCount == 0) {
-            rebuildDirtyChunks()
             return
         }
         ensureProgram()
@@ -722,27 +779,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         val state: GlState = HdGl.state
         // the toolkit's 3D state (blend, alpha test, depth, fog), as the emulated draws had it
         toolkit.setupMatrixRendering()
-        val program: WebGLProgram = this.program!!
-        GL33C.glUseProgram(program.id)
-        CoreGl.uniform4fv(uGlobalAmbient, state.globalAmbient)
-        setDirLight(uDirLight0, uDirDiffuse0, state, 0)
-        setDirLight(uDirLight1, uDirDiffuse1, state, 1)
-        GL33C.glUniform1i(uAlphaTestEnabled, if (state.alphaTestEnabled) 1 else 0)
-        GL33C.glUniform1i(uAlphaFunc, state.alphaFunc)
-        GL33C.glUniform1f(uAlphaRef, state.alphaRef)
-        GL33C.glUniform1i(uFogEnabled, if (state.fogEnabled) 1 else 0)
-        CoreGl.uniform4fv(uFogColor, state.fogColor)
-        GL33C.glUniform1f(uFogStart, state.fogStart)
-        GL33C.glUniform1f(uFogEnd, state.fogEnd)
-
-        materials.update(toolkit.lastTickMillis.toLong())
-        uploadFrame()
-        materials.bind()
-        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT_OBJECT_SLOTS)
-        GL33C.glBindTexture(GL33C.GL_TEXTURE_BUFFER, slotTexture)
-        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT_OBJECTS)
-        GL33C.glBindTexture(GL33C.GL_TEXTURE_BUFFER, objectTexture)
-
+        bindForDraw()
         GL33C.glBindVertexArray(vao)
         drawCounts.clear()
         drawOffsets.clear()
@@ -764,13 +801,17 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             CoreGl.multiDrawElements(GL33C.GL_TRIANGLES, drawCounts, GL33C.GL_UNSIGNED_INT, drawOffsets, triangles)
         }
 
-        // the emulator's bindings back
-        GL33C.glBindVertexArray(state.vertexArray)
-        GL33C.glBindBuffer(GL33C.GL_ARRAY_BUFFER, state.boundArrayBuffer?.id ?: 0)
-        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + state.activeTextureUnit)
-        state.invalidateProgramCache()
+        restoreEmulator()
 
-        // reset for the next frame
+        // the scene is drawn again after the ground and the transparent entities (endPass resets)
+        visibleChunkCount = 0
+        java.util.Arrays.fill(chunkVisible, 0)
+    }
+
+    fun isAlpha(objectId: Int): Boolean = objectAlpha[objectId]
+
+    /** After a drawTiles pass: forgets what was drawn, and builds or rebuilds chunks for a while. */
+    fun endPass() {
         for (i in 0 until frameCount) {
             frameSlots[frameObjects[i]] = -1
         }
@@ -778,8 +819,204 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             chunkVisible[visibleChunks[i]] = 0
         }
         frameCount = 0
+        uploadedFrameCount = 0
+        passUploaded = false
         visibleChunkCount = 0
-        rebuildDirtyChunks()
+        if (built) {
+            rebuildDirtyChunks()
+        }
+    }
+
+    /** Program, per-frame uniforms, object tables and textures, ready for a draw of the scene. */
+    private fun bindForDraw() {
+        val state: GlState = HdGl.state
+        val program: WebGLProgram = this.program!!
+        GL33C.glUseProgram(program.id)
+        CoreGl.uniform4fv(uGlobalAmbient, state.globalAmbient)
+        setDirLight(uDirLight0, uDirDiffuse0, state, 0)
+        setDirLight(uDirLight1, uDirDiffuse1, state, 1)
+        GL33C.glUniform1i(uAlphaTestEnabled, if (state.alphaTestEnabled) 1 else 0)
+        GL33C.glUniform1i(uAlphaFunc, state.alphaFunc)
+        GL33C.glUniform1f(uAlphaRef, state.alphaRef)
+        GL33C.glUniform1i(uFogEnabled, if (state.fogEnabled) 1 else 0)
+        CoreGl.uniform4fv(uFogColor, state.fogColor)
+        GL33C.glUniform1f(uFogStart, state.fogStart)
+        GL33C.glUniform1f(uFogEnd, state.fogEnd)
+        if (!passUploaded) {
+            materials.update(toolkit.lastTickMillis.toLong())
+            uploadFrame()
+            passUploaded = true
+        } else {
+            uploadNewSlots()
+        }
+        materials.bind()
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT_OBJECT_SLOTS)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_BUFFER, slotTexture)
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT_OBJECTS)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_BUFFER, objectTexture)
+    }
+
+    /** The emulator's own bindings back, after a draw of the scene. */
+    private fun restoreEmulator() {
+        val state: GlState = HdGl.state
+        GL33C.glBindVertexArray(state.vertexArray)
+        GL33C.glBindBuffer(GL33C.GL_ARRAY_BUFFER, state.boundArrayBuffer?.id ?: 0)
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + state.activeTextureUnit)
+        state.invalidateProgramCache()
+    }
+
+    /** Whether this pass's object tables are on the GPU (later objects are added by uploadNewSlots). */
+    private var passUploaded: Boolean = false
+
+    private var uploadedFrameCount: Int = 0
+
+    private var objectCapacity: Int = 0
+
+    private var slotCapacity: Int = 0
+
+    private val oneSlot: ByteBuffer = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder())
+
+    /** Objects marked since the last upload (drawn in the transparent pass): their slots and data. */
+    private fun uploadNewSlots() {
+        if (frameCount <= uploadedFrameCount) {
+            return
+        }
+        if (frameCount > objectCapacity) {
+            uploadFrame()
+            return
+        }
+        val floats: Int = (frameCount - uploadedFrameCount) * OBJECT_FLOATS
+        if (objectUpload.capacity() < floats * 4) {
+            objectUpload = ByteBuffer.allocateDirect(floats * 8).order(ByteOrder.nativeOrder())
+        }
+        objectUpload.clear()
+        objectUpload.asFloatBuffer().put(frameData, uploadedFrameCount * OBJECT_FLOATS, floats)
+        objectUpload.limit(floats * 4)
+        GL33C.glBindBuffer(GL33C.GL_TEXTURE_BUFFER, objectBuffer)
+        GL33C.glBufferSubData(GL33C.GL_TEXTURE_BUFFER, uploadedFrameCount.toLong() * OBJECT_FLOATS * 4, objectUpload)
+        GL33C.glBindBuffer(GL33C.GL_TEXTURE_BUFFER, slotBuffer)
+        for (slot in uploadedFrameCount until frameCount) {
+            val objectId: Int = frameObjects[slot]
+            oneSlot.clear()
+            oneSlot.putInt(0, slot)
+            GL33C.glBufferSubData(GL33C.GL_TEXTURE_BUFFER, objectId.toLong() * 4, oneSlot)
+        }
+        GL33C.glBindBuffer(GL33C.GL_TEXTURE_BUFFER, 0)
+        uploadedFrameCount = frameCount
+    }
+
+    private var alphaIbo: Int = 0
+
+    private var alphaKeys: LongArray = LongArray(1024)
+
+    private var alphaOrder: IntArray = IntArray(1024)
+
+    private var alphaIndices: ByteBuffer = ByteBuffer.allocateDirect(1024 * 12).order(ByteOrder.nativeOrder())
+
+    /**
+     * Draws a retained object with translucent faces now, at its place in the client's back-to-front
+     * order of entities. Its faces are sorted on the CPU: by priority group first (the layers the face
+     * sort put them in, opaque faces before translucent ones), then back to front by eye depth.
+     */
+    fun drawAlphaObject(objectId: Int) {
+        val slot: Int = frameSlots[objectId]
+        val groups: IntArray = objectFaceGroups[objectId] ?: return
+        val centres: FloatArray = objectFaceCentres[objectId] ?: return
+        val faces: Int = groups.size
+        if (slot < 0 || faces == 0) {
+            return
+        }
+        HdGl.flushImmediate()
+        ensureProgram()
+        uploadGeometry()
+        val at: Int = slot * OBJECT_FLOATS + 16
+        val mv: FloatArray = frameData
+        if (alphaKeys.size < faces) {
+            alphaKeys = LongArray(faces * 2)
+            alphaOrder = IntArray(faces * 2)
+        }
+        for (f in 0 until faces) {
+            val x: Float = centres[f * 3]
+            val y: Float = centres[f * 3 + 1]
+            val z: Float = centres[f * 3 + 2]
+            // eye-space z: more negative is farther; ascending z is back to front
+            val eyeZ: Float = mv[at + 2] * x + mv[at + 6] * y + mv[at + 10] * z + mv[at + 14]
+            var bits: Int = java.lang.Float.floatToRawIntBits(eyeZ)
+            bits = if (bits < 0) bits.inv() else bits or Int.MIN_VALUE
+            alphaKeys[f] = (groups[f].toLong() shl 32) or (bits.toLong() and 0xFFFFFFFFL)
+            alphaOrder[f] = f
+        }
+        sortByKey(alphaOrder, alphaKeys, 0, faces - 1)
+        val bytes: Int = faces * 12
+        if (alphaIndices.capacity() < bytes) {
+            alphaIndices = ByteBuffer.allocateDirect(bytes * 2).order(ByteOrder.nativeOrder())
+        }
+        alphaIndices.clear()
+        val start: Int = objectIndexStart[objectId]
+        for (i in 0 until faces) {
+            val face: Int = alphaOrder[i]
+            val from: Int = (start + face * 3) * 4
+            alphaIndices.putInt(indices.getInt(from))
+            alphaIndices.putInt(indices.getInt(from + 4))
+            alphaIndices.putInt(indices.getInt(from + 8))
+        }
+        alphaIndices.flip()
+        bindForDraw()
+        GL33C.glBindVertexArray(vao)
+        if (alphaIbo == 0) {
+            alphaIbo = GL33C.glGenBuffers()
+        }
+        GL33C.glBindBuffer(GL33C.GL_ELEMENT_ARRAY_BUFFER, alphaIbo)
+        GL33C.glBufferData(GL33C.GL_ELEMENT_ARRAY_BUFFER, alphaIndices, GL33C.GL_STREAM_DRAW)
+        RenderStats.drawCalls++
+        RenderStats.categoryDrawCalls[RenderStats.category]++
+        RenderStats.triangles += faces
+        GL33C.glDrawElements(GL33C.GL_TRIANGLES, faces * 3, GL33C.GL_UNSIGNED_INT, 0L)
+        GL33C.glBindBuffer(GL33C.GL_ELEMENT_ARRAY_BUFFER, ibo)
+        restoreEmulator()
+    }
+
+    /** Sorts [order] by [keys] (ascending), keys moving with it. */
+    private fun sortByKey(order: IntArray, keys: LongArray, low: Int, high: Int) {
+        var lo: Int = low
+        var hi: Int = high
+        while (lo < hi) {
+            if (hi - lo < 16) {
+                for (i in lo + 1..hi) {
+                    val key: Long = keys[i]
+                    val value: Int = order[i]
+                    var j: Int = i - 1
+                    while (j >= lo && keys[j] > key) {
+                        keys[j + 1] = keys[j]
+                        order[j + 1] = order[j]
+                        j--
+                    }
+                    keys[j + 1] = key
+                    order[j + 1] = value
+                }
+                return
+            }
+            val pivot: Long = keys[(lo + hi) ushr 1]
+            var i: Int = lo
+            var j: Int = hi
+            while (i <= j) {
+                while (keys[i] < pivot) i++
+                while (keys[j] > pivot) j--
+                if (i <= j) {
+                    val k: Long = keys[i]; keys[i] = keys[j]; keys[j] = k
+                    val o: Int = order[i]; order[i] = order[j]; order[j] = o
+                    i++
+                    j--
+                }
+            }
+            if (j - lo < hi - i) {
+                sortByKey(order, keys, lo, j)
+                lo = i
+            } else {
+                sortByKey(order, keys, i, hi)
+                hi = j
+            }
+        }
     }
 
     private fun setDirLight(direction: Int, diffuse: Int, state: GlState, light: Int) {
@@ -799,7 +1036,11 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         }
         slotUpload.flip()
         GL33C.glBindBuffer(GL33C.GL_TEXTURE_BUFFER, slotBuffer)
-        GL33C.glBufferData(GL33C.GL_TEXTURE_BUFFER, slotUpload, GL33C.GL_STREAM_DRAW)
+        if (slots > slotCapacity) {
+            slotCapacity = slots + 1024
+            GL33C.glBufferData(GL33C.GL_TEXTURE_BUFFER, slotCapacity.toLong() * 4, GL33C.GL_STREAM_DRAW)
+        }
+        GL33C.glBufferSubData(GL33C.GL_TEXTURE_BUFFER, 0L, slotUpload)
         val floats: Int = frameCount * OBJECT_FLOATS
         if (objectUpload.capacity() < floats * 4) {
             objectUpload = ByteBuffer.allocateDirect(floats * 8).order(ByteOrder.nativeOrder())
@@ -808,8 +1049,12 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         objectUpload.asFloatBuffer().put(frameData, 0, floats)
         objectUpload.limit(floats * 4)
         GL33C.glBindBuffer(GL33C.GL_TEXTURE_BUFFER, objectBuffer)
-        GL33C.glBufferData(GL33C.GL_TEXTURE_BUFFER, objectUpload, GL33C.GL_STREAM_DRAW)
+        // room for the objects the transparent pass adds (uploadNewSlots); orphaned every frame
+        objectCapacity = maxOf(frameCount * 2, 2048)
+        GL33C.glBufferData(GL33C.GL_TEXTURE_BUFFER, objectCapacity.toLong() * OBJECT_FLOATS * 4, GL33C.GL_STREAM_DRAW)
+        GL33C.glBufferSubData(GL33C.GL_TEXTURE_BUFFER, 0L, objectUpload)
         GL33C.glBindBuffer(GL33C.GL_TEXTURE_BUFFER, 0)
+        uploadedFrameCount = frameCount
     }
 
     private fun uploadGeometry() {
