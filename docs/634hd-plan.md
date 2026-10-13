@@ -112,6 +112,10 @@ Done when: 634HD matches the existing OpenGL toolkit in the screenshot test set,
 
 ## Phase 4: Rendering features
 
+**Status (Oct 13, 2026): done on Linux x64 (RTX 5070) except GPU particles and smooth interface
+scaling; see docs/RENDERING.md "634HD features". All on, Varrock at 1920x1006 with 4x MSAA: 305 fps,
+447 draw calls, 26 ms worst region frame. Iris Xe, RTX 3060, Windows and macOS not measured.**
+
 Build these in order, one pull request each. Every feature gets a toggle or quality level in settings and must not change behaviour when disabled.
 
 1. Decouple rendering from the 20ms logic cycle and uncap the framerate. Interpolate camera, player and NPC positions and orientations between ticks using the fraction of the current cycle elapsed. Blend between animation keyframes rather than holding frames (check which 634 sequences already tween and leave those alone). Add an FPS cap setting.
@@ -133,6 +137,10 @@ Build these in order, one pull request each. Every feature gets a toggle or qual
 Skip motion blur and depth of field.
 
 ## Phase 5: Material system and texture maps
+
+**Status (Oct 13, 2026): done with 23 derived map sets (22 MB, uncompressed RGBA8; BC5/BC7 not
+done). Tangents come from screen-space derivatives, not per-face data. Materials off restores the
+Phase 4 look (harness unchanged).**
 
 Outcome: textured surfaces support normal, roughness, ambient occlusion, emissive and optional height maps, loaded from files outside the cache. Depends on per-pixel lighting (Phase 4, item 6).
 
@@ -163,6 +171,9 @@ struct Material {
 Done when: a test set of at least 20 common textures (ground, stone, wood, water, lava) has full map sets, toggling materials off restores the Phase 4 look exactly, and memory for the texture arrays stays under 512 MB at the highest quality.
 
 ## Content pipeline and tooling
+
+**Status (Oct 13, 2026): done: five JSON files with schemas, hot reload, debug panel. GPU time is a
+timer query around the 3D view; the light-cluster overlay shows per-pixel light counts.**
 
 All 634HD visual data lives in versioned files in the repo, keyed by 634 IDs and coordinates, and hot-reloads in debug builds. Build the debug panel during Phase 4, not after; content work depends on it.
 
