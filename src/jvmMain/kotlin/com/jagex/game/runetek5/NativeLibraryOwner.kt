@@ -27,6 +27,22 @@ actual class NativeLibraryOwner {
 		@OriginalMember(owner = "client!gba", name = "a", descriptor = "(Ljava/lang/Class;BLjava/lang/String;)Z")
 		@JvmStatic
 		actual fun loadLibrary(@OriginalArg(0) class2: Class<*>?, @OriginalArg(2) string: String?): Boolean {
+			// Not part of the original client: jaggl runs on LWJGL (jaggl.OpenGL), so there is no
+			// libjaggl to load. jaclib's memory classes are pure JVM code too; libjaclib is still loaded
+			// where the cache has one, because libhw3d links against it, but toolkits 0 and 1 do not
+			// need it (there is none for arm64).
+			if (string == "jaggl") {
+				return true
+			}
+			if (string == "jaclib") {
+				NativeLibraryOwner.loadNativeLibrary(class2, string)
+				return true
+			}
+			return NativeLibraryOwner.loadNativeLibrary(class2, string)
+		}
+
+		// Not part of the original client: the original loadLibrary, which loadLibrary above wraps.
+		private fun loadNativeLibrary(class2: Class<*>?, string: String?): Boolean {
 			@Pc(8) val class3: Class<*>? = NativeLibraryOwner.nativeLibraryOwners.get(string) as Class<*>?
 			if (class3 != null) {
 				return class3.getClassLoader() === class2!!.getClassLoader()

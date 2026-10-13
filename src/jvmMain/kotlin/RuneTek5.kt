@@ -224,9 +224,11 @@ object RuneTek5 {
                 command.add(option)
             }
         }
-        // the release jar's manifest opens java.lang, which a JVM started by -cp does not read
+        // the release jar's manifest opens java.lang and allows native access (LWJGL's natives), which
+        // a JVM started by -cp does not read
         command.add("--add-opens")
         command.add("java.base/java.lang=ALL-UNNAMED")
+        command.add("--enable-native-access=ALL-UNNAMED")
         command.add("-cp")
         command.add(System.getProperty("java.class.path"))
         command.add(RuneTek5::class.java.name)
