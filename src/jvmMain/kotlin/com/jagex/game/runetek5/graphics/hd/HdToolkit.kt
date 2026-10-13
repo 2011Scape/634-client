@@ -3095,8 +3095,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		val samples: Int = this.sceneSamples()
 		val format: Int = if (HdSettings.tonemap != 0) 34842 else OpenGLConstants.GL_RGBA
 		val scale: Double = ClientFeatures.renderScale
-		val targetWidth: Int = kotlin.math.floor(width.toDouble() * scale + 0.5).toInt()
-		val targetHeight: Int = kotlin.math.floor(height.toDouble() * scale + 0.5).toInt()
+		// 634HD: at a whole-number interface scale the view is drawn at the window's resolution
+		val targetWidth: Int = kotlin.math.floor(width.toDouble() * scale * HdGl.windowScale + 0.5).toInt()
+		val targetHeight: Int = kotlin.math.floor(height.toDouble() * scale * HdGl.windowScale + 0.5).toInt()
 		if (this.sceneTarget == null || this.sceneTarget!!.width != targetWidth || this.sceneTarget!!.height != targetHeight || this.sceneTarget!!.samples != samples || this.sceneTarget!!.format != format) {
 			this.dropSceneTarget()
 			val target: HdSceneTarget = HdSceneTarget(this, targetWidth, targetHeight, samples, true, format)
@@ -3215,6 +3216,13 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	// and the game's size. Needs the framebuffer object and blit extensions; without them the scale is
 	// given up, and the client lays the window out at the game's own size again.
 	private fun updateScaledTarget() {
+		// 634HD: a whole-number interface scale draws straight to the window, scaled by HdGl
+		val direct: Boolean = HdSettings.interfaceScale > 1 && ClientFeatures.scaled() && ClientFeatures.wholeScale() && this.currentCanvas is GameCanvas
+		HdGl.windowScale = if (direct) ClientFeatures.SCALE.toInt() else 1
+		if (direct) {
+			this.dropScaledTarget()
+			return
+		}
 		var wanted: Boolean = ClientFeatures.scaled() && this.currentCanvas is GameCanvas && this.width > 0 && this.height > 0
 		if (wanted && (!this.extFramebufferObject || !this.framebufferBlit)) {
 			lang.printlnErr("client.scale: this HdContext driver has no framebuffer objects, so the game is drawn at its own size")
@@ -3450,6 +3458,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	override fun na(x: Int, y: Int, width: Int, height: Int): IntArray {
 		val pixels: IntArray = IntArray(width * height)
 		this.beginReadFrame(x, this.viewportHeight - y - height, width, height) // Not part of the original client: see beginReadFrame.
+		HdGl.wideShot(x, this.viewportHeight - y - height, width, height) // Not part of the original client: 634HD debugging (client.test.hdWideShot).
 		for (i in 0 until height) {
 			HdGl.glReadPixelsi(x, this.viewportHeight - y - i, width, 1, OpenGLConstants.GL_BGRA, this.pixelType, pixels, width * i)
 		}

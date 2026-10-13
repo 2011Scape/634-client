@@ -123,9 +123,11 @@ object ClientFeatures {
 	 * DirectX, which draw the frame off screen at the game's size and copy it to the window scaled.
 	 * The native software renderer reads each frame back and draws it scaled through Java. The native
 	 * OpenGL renderer draws through native code only, so with it the game keeps its own size.
+	 * 634HD's client.hd.interfaceScale (2, 3 or 4) sets it when client.scale is not given: 634HD then
+	 * draws the window at that scale directly, the 3D view at the window's resolution.
 	 */
 	@JvmField
-	val SCALE: Double = kotlin.math.max(1.0, parseDouble(lang.getProperty("client.scale"), 1.0))
+	val SCALE: Double = kotlin.math.max(1.0, parseDouble(lang.getProperty("client.scale"), if (HdSettings.interfaceScale > 1) HdSettings.interfaceScale.toDouble() else 1.0))
 
 	/**
 	 * client.toolkit: the toolkit to start on, by id (0 Java, 1 OpenGL, 2 native software, 3 DirectX,

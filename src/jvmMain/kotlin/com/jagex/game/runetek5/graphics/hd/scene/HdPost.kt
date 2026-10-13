@@ -230,7 +230,9 @@ class HdPost {
             bindTexture(UNIT_A, intermediate.texture)
         }
         GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, drawFramebuffer)
-        GL33C.glViewport(x, y, viewWidth, viewHeight)
+        // the window may be drawn at a whole-number interface scale (HdGl.windowScale)
+        val n = if (drawFramebuffer == 0) HdGl.windowScale else 1
+        GL33C.glViewport(x * n, y * n, viewWidth * n, viewHeight * n)
         GL33C.glDrawArrays(GL33C.GL_TRIANGLES, 0, 3)
 
         // put everything back
