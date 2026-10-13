@@ -2,6 +2,10 @@
  * Not part of the original client: 634HD (toolkit 6). The per-frame side of the rendering features
  * (HdSettings): what they need is worked out once the camera is set (HdToolkit.setCamera) and written
  * into the frame's uniform block (HdFrameUniforms) before the scene is drawn.
+ *
+ * The environment (environments.json, HdContent) is the one whose area holds the local player; its
+ * values are eased towards over about a second when that changes. Where it gives nothing, the
+ * game's own atmosphere (fog colour and distance, sun) is used, so dungeons keep their dark fog.
  */
 package com.jagex.game.runetek5.graphics.hd.scene
 
@@ -9,6 +13,10 @@ import com.jagex.game.runetek5.graphics.hd.HdToolkit
 import com.jagex.game.runetek5.graphics.hd.gl.GlState
 import com.jagex.game.runetek5.graphics.hd.gl.HdGl
 import com.jagex.game.runetek5.graphics.hd.gl.Mat4
+import com.jagex.game.runetek5.MapRegion
+import com.jagex.game.runetek5.client.features.HdSettings
+import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
+import com.jagex.game.runetek5.graphics.hd.content.HdContent
 
 class HdFeatures {
 
@@ -21,6 +29,17 @@ class HdFeatures {
     /** World space to eye space (the camera), this frame. */
     @JvmField
     val worldToView: FloatArray = FloatArray(16)
+
+    /** The environment that applies now (null: none), its name for the debug panel. */
+    var environment: HdContent.EnvironmentDef? = null
+        private set
+
+    // the eased values: sky top, sky horizon, fog colour (rgb), fog start, end, height density, top
+    private val sky: FloatArray = FloatArray(6)
+    private val fog: FloatArray = FloatArray(7)
+    private var eased: Boolean = false
+    private var lastNanos: Long = 0L
+    private val target: FloatArray = FloatArray(13)
 
     private var viewX: Int = 0
     private var viewY: Int = 0
@@ -57,10 +76,62 @@ class HdFeatures {
         val diffuse: FloatArray = state.lightDiffuse[0]
         uniforms.setSunColour(diffuse[0], diffuse[1], diffuse[2])
         uniforms.setAmbient(state.globalAmbient[0], state.globalAmbient[1], state.globalAmbient[2])
-        uniforms.setFog(state.fogColor[0], state.fogColor[1], state.fogColor[2], state.fogStart, state.fogEnd, 0.0f, 0.0f)
-        uniforms.setSky(state.fogColor[0], state.fogColor[1], state.fogColor[2], state.fogColor[0], state.fogColor[1], state.fogColor[2])
+        this.environment(toolkit.hdContent, state)
+        uniforms.setFog(fog[0], fog[1], fog[2], fog[3], fog[4], fog[5], fog[6])
+        uniforms.setSky(sky[0], sky[1], sky[2], sky[3], sky[4], sky[5])
+        // locs fade over the last three tiles before the fog closes (HD_FADE)
+        val fadeEnd: Float = if (HdSettings.fog) fog[4] else state.fogEnd
+        uniforms.setTime(seconds, 1.0f, fadeEnd - 1536.0f, 1536.0f)
+        // the grading table of the environment (HdSettings.colourGrading)
+        val lut: String? = this.environment?.lut
+        toolkit.hdPost.gradingTexture = if (lut != null && HdSettings.colourGrading) toolkit.hdPost.gradingTable(lut) else 0
         uniforms.setLightCount(0)
     }
+
+    /** Picks the environment at the local player and eases the sky and fog values towards it. */
+    private fun environment(content: HdContent, state: GlState) {
+        content.poll()
+        val player = PlayerUpdate.localPlayer
+        var environment: HdContent.EnvironmentDef? = null
+        if (player != null) {
+            environment = content.environmentAt((player.x shr 9) + MapRegion.sceneBaseX, (player.z shr 9) + MapRegion.sceneBaseY, player.level.toInt())
+        }
+        this.environment = environment
+        val fogColour: FloatArray = state.fogColor
+        // the sky: the environment's, else drawn from the game's fog colour (a deeper, bluer top)
+        val top: FloatArray? = environment?.skyTop
+        val horizon: FloatArray? = environment?.skyHorizon
+        target[0] = top?.get(0) ?: fogColour[0] * 0.62f
+        target[1] = top?.get(1) ?: fogColour[1] * 0.74f
+        target[2] = top?.get(2) ?: minOf(1.0f, fogColour[2] * 0.95f + 0.04f)
+        target[3] = horizon?.get(0) ?: fogColour[0]
+        target[4] = horizon?.get(1) ?: fogColour[1]
+        target[5] = horizon?.get(2) ?: fogColour[2]
+        val envFog: FloatArray? = environment?.fogColour
+        target[6] = envFog?.get(0) ?: fogColour[0]
+        target[7] = envFog?.get(1) ?: fogColour[1]
+        target[8] = envFog?.get(2) ?: fogColour[2]
+        // distances in tiles in the file, scene units (512 a tile) here; else the game's fog
+        val start: Float = environment?.fogStart ?: Float.NaN
+        val end: Float = environment?.fogEnd ?: Float.NaN
+        target[9] = if (start.isNaN()) state.fogStart else start * 512.0f
+        target[10] = if (end.isNaN()) state.fogEnd else end * 512.0f
+        target[11] = environment?.heightFogDensity ?: 0.0f
+        target[12] = environment?.heightFogTop ?: 0.0f
+        val now: Long = System.nanoTime()
+        val step: Float = if (!eased || content.version != easedVersion) 1.0f else 1.0f - kotlin.math.exp(-((now - lastNanos) / 1.0e9f) / 0.4f)
+        easedVersion = content.version
+        lastNanos = now
+        eased = true
+        for (i in 0 until 6) {
+            sky[i] += (target[i] - sky[i]) * step
+        }
+        for (i in 0 until 7) {
+            fog[i] += (target[6 + i] - fog[i]) * step
+        }
+    }
+
+    private var easedVersion: Int = -1
 
     fun release() {
     }

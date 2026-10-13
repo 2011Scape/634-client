@@ -7,6 +7,8 @@ package com.jagex.game.runetek5.graphics.hd
 import com.jagex.game.runetek5.graphics.hd.gl.CoreGl
 
 import com.jagex.game.runetek5.graphics.hd.scene.HdFeatures
+import com.jagex.game.runetek5.graphics.hd.content.HdContent
+import com.jagex.game.runetek5.Skybox
 
 import com.jagex.game.runetek5.graphics.hd.scene.HdFrameUniforms
 
@@ -652,6 +654,13 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 
 	val hdFeatures: HdFeatures = HdFeatures()
 
+	// the texture filtering the world textures were made with (HdSettings.mipmaps, anisotropy)
+	private var texturesMipmapped: Boolean = false
+	private var texturesAnisotropy: Int = 0
+
+	// 634HD: the data files (lights, environments, materials, overrides, foliage), read on first use
+	val hdContent: HdContent by lazy { HdContent() }
+
 	/** The draws of the game view in perspective get 634HD's features (hd_lib.glsl uHdScene); nothing else does. */
 	private fun updateHdScene() {
 		HdGl.state.hdScene = if (this.sceneDrawing && this.depthClippingMode == 2) 1 else 0
@@ -687,6 +696,10 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	}
 
 	override fun opaqueEntitiesDone() {
+		// 634HD: the sky behind everything drawn so far, before the ground and translucent entities
+		if (HdSettings.sky && this.sceneDrawing && Skybox.configNpcJs5 == null) {
+			this.hdPost.drawSky(HdGl.state.matrixStack.projection())
+		}
 		if (!this.sceneRenderer.built) {
 			// a toolkit switched to with a scene already built (the scene is not built again)
 			if (Scene.stringStack != null) {
@@ -3042,6 +3055,12 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		this.frameUploaded = false
 		this.updateHdScene()
 		this.hdFeatures.beginFrame(this, x, y, width, height)
+		if (HdSettings.mipmaps != this.texturesMipmapped || HdSettings.anisotropy != this.texturesAnisotropy) {
+			// world textures are made again with the new filtering as they are next used
+			this.texturesMipmapped = HdSettings.mipmaps
+			this.texturesAnisotropy = HdSettings.anisotropy
+			this.textureCache.reset()
+		}
 		if (!ClientFeatures.AA_PIPELINE && !HdSettings.postProcessing()) {
 			return
 		}

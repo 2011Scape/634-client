@@ -65,7 +65,7 @@ vec4 sampleMaterial(vec4 material, vec4 extra) {
     vec3 coord = vec3(uv, material.x);
     bool large = material.y > 0.5;
     bool linear = (flags & FLAG_LINEAR) != 0;
-    if ((flags & FLAG_MIPMAP) != 0) {
+    if ((flags & FLAG_MIPMAP) != 0 || hdOn(HD_MIPMAPS)) {
         if (large) return linear ? texture(uLargeLinear, coord) : texture(uLargeNearest, coord);
         return linear ? texture(uSmallLinear, coord) : texture(uSmallNearest, coord);
     }
@@ -118,10 +118,12 @@ void main() {
     if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
         discard;
     }
+    float depth = gl_FragCoord.z / gl_FragCoord.w;
+    if (hdFaded(length(vViewPos), gl_FragCoord.xy)) {
+        discard;
+    }
     if (uFogEnabled) {
-        float depth = gl_FragCoord.z / gl_FragCoord.w;
-        float fogFactor = clamp((uFogEnd - depth) / (uFogEnd - uFogStart), 0.0, 1.0);
-        color = vec4(mix(hdColour(uFogColor).rgb, color.rgb, fogFactor), color.a);
+        color = hdFog(color, vViewPos, depth, uFogColor, uFogStart, uFogEnd);
     }
     fragColor = color;
 }

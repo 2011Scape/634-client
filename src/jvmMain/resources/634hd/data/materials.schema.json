@@ -1,0 +1,29 @@
+{
+  "title": "634HD materials",
+  "description": "Extra maps for 634 textures, keyed by texture id. The cache texture stays the albedo; maps live under 634hd/materials/<texture>/. Used with client.hd.materials.",
+  "type": "object",
+  "required": ["materials"],
+  "additionalProperties": false,
+  "properties": {
+    "materials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["texture"],
+        "additionalProperties": false,
+        "properties": {
+          "texture": { "type": "integer", "minimum": 0 },
+          "name": { "type": "string" },
+          "normal": { "type": "string" },
+          "orm": { "type": "string", "description": "red: ambient occlusion, green: roughness, blue: emissive mask" },
+          "height": { "type": "string" },
+          "emissive": { "type": "string" },
+          "uvScroll": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+          "specular": { "type": "number", "minimum": 0, "maximum": 4 },
+          "emissiveStrength": { "type": "number", "minimum": 0, "maximum": 16 },
+          "parallax": { "type": "number", "minimum": 0, "maximum": 0.2 }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "overrides": [
+    {
+      "name": "Flags and banners sway",
+      "objects": [],
+      "wind": true
+    }
+  ]
+}

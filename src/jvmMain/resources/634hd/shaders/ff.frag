@@ -18,6 +18,12 @@ uniform vec4 uLightDiffuse[8];
 uniform vec4 uLightPosition[8];
 uniform vec3 uLightAttenuation[8];
 #endif
+#ifndef ARB_VERTEX
+#define FF_VIEW_POS vViewPos
+#else
+// transpiled programs pass no eye position: the fragment's depth along the view axis stands in
+#define FF_VIEW_POS vec3(0.0, 0.0, -gl_FragCoord.z / gl_FragCoord.w)
+#endif
 // the primary colour: the vertex colour, or the per-pixel lit one
 vec4 gPrimary;
 in vec3 vTexCoord0;
@@ -184,10 +190,12 @@ void main() {
     if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
         discard;
     }
+    float depth = gl_FragCoord.z / gl_FragCoord.w;
+    if (hdFaded(length(FF_VIEW_POS), gl_FragCoord.xy)) {
+        discard;
+    }
     if (uFogEnabled) {
-        float depth = gl_FragCoord.z / gl_FragCoord.w;
-        float fogFactor = clamp((uFogEnd - depth) / (uFogEnd - uFogStart), 0.0, 1.0);
-        color = vec4(mix(hdColour(uFogColor).rgb, color.rgb, fogFactor), color.a);
+        color = hdFog(color, FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd);
     }
     fragColor = color;
 }

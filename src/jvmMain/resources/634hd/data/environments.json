@@ -1,0 +1,130 @@
+{
+  "environments": [
+    {
+      "name": "Default",
+      "heightFog": {
+        "density": 0.15,
+        "top": -200
+      }
+    },
+    {
+      "name": "Lumbridge",
+      "area": {
+        "regions": [
+          12850,
+          12851,
+          12594
+        ]
+      },
+      "sky": {
+        "top": "#5a8ed0",
+        "horizon": "#c2d3e4"
+      },
+      "sun": {
+        "colour": "#fff3e0",
+        "intensity": 1.0
+      },
+      "lut": "neutral_warm.png"
+    },
+    {
+      "name": "Varrock",
+      "area": {
+        "regions": [
+          12853,
+          12854,
+          13109,
+          12598
+        ]
+      },
+      "sky": {
+        "top": "#6487bf",
+        "horizon": "#c6ced8"
+      },
+      "lut": "neutral_warm.png"
+    },
+    {
+      "name": "Draynor",
+      "area": {
+        "regions": [
+          12339,
+          12338,
+          12083
+        ]
+      },
+      "sky": {
+        "top": "#566f8c",
+        "horizon": "#b8c0c0"
+      },
+      "heightFog": {
+        "density": 0.35,
+        "top": -100
+      },
+      "lut": "swamp.png",
+      "waterTint": "#2c4a3c"
+    },
+    {
+      "name": "Karamja volcano",
+      "area": {
+        "regions": [
+          11313,
+          11314
+        ]
+      },
+      "sky": {
+        "top": "#7a6050",
+        "horizon": "#d8a070"
+      },
+      "heightFog": {
+        "density": 0.2,
+        "top": -150
+      },
+      "lut": "volcanic.png",
+      "waterTint": "#1e5a6e"
+    },
+    {
+      "name": "Varrock sewers",
+      "area": {
+        "regions": [
+          12954,
+          12955
+        ]
+      },
+      "ambient": {
+        "colour": "#5a6a5a",
+        "intensity": 0.8
+      },
+      "fog": {
+        "colour": "#0c100c",
+        "start": 8,
+        "end": 22
+      },
+      "lut": "dungeon.png"
+    },
+    {
+      "name": "Falador park",
+      "area": {
+        "regions": [
+          11828
+        ]
+      },
+      "sky": {
+        "top": "#5590d8",
+        "horizon": "#c4d6e6"
+      },
+      "lut": "neutral_warm.png"
+    },
+    {
+      "name": "Wizards' Tower",
+      "area": {
+        "regions": [
+          12337
+        ]
+      },
+      "sky": {
+        "top": "#5b84c4",
+        "horizon": "#c0d2e2"
+      },
+      "waterTint": "#244e64"
+    }
+  ]
+}

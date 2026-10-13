@@ -1,0 +1,23 @@
+{
+  "title": "634HD foliage",
+  "description": "Objects that sway in the wind (client.hd.foliage), by 634 object id.",
+  "type": "object",
+  "required": ["foliage"],
+  "additionalProperties": false,
+  "properties": {
+    "foliage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["objects"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "objects": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 1 },
+          "strength": { "type": "number", "minimum": 0, "maximum": 4 },
+          "frequency": { "type": "number", "minimum": 0, "maximum": 8 }
+        }
+      }
+    }
+  }
+}
