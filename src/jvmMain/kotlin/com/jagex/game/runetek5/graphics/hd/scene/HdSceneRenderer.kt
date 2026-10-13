@@ -809,6 +809,56 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         java.util.Arrays.fill(chunkVisible, 0)
     }
 
+    /** Retained objects drawn into the shadow map last time, for the debug panel. */
+    var lastShadowObjects: Int = 0
+        private set
+
+    /**
+     * The retained objects marked so far this pass into the shadow map (HdShadows.render), with
+     * [program] (shadow_scene.vert), which is in use; the object tables go up as for a draw.
+     */
+    fun drawShadowCasters(program: WebGLProgram) {
+        lastShadowObjects = 0
+        if (frameCount == 0 || visibleChunkCount == 0) {
+            return
+        }
+        uploadGeometry()
+        if (!passUploaded) {
+            materials.update(toolkit.lastTickMillis.toLong())
+            uploadFrame()
+            passUploaded = true
+        } else {
+            uploadNewSlots()
+        }
+        GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uObjectSlots"), UNIT_OBJECT_SLOTS)
+        GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uObjects"), UNIT_OBJECTS)
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT_OBJECT_SLOTS)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_BUFFER, slotTexture)
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT_OBJECTS)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_BUFFER, objectTexture)
+        GL33C.glBindVertexArray(vao)
+        drawCounts.clear()
+        drawOffsets.clear()
+        var triangles: Int = 0
+        var draws: Int = 0
+        for (i in 0 until visibleChunkCount) {
+            val chunk: Int = visibleChunks[i]
+            if (chunkIndexCount[chunk] == 0) {
+                continue
+            }
+            drawCounts.put(chunkIndexCount[chunk])
+            drawOffsets.put(chunkIndexStart[chunk].toLong() * 4L)
+            triangles += chunkTriangles[chunk]
+            draws++
+        }
+        drawCounts.flip()
+        drawOffsets.flip()
+        if (draws > 0) {
+            CoreGl.multiDrawElements(GL33C.GL_TRIANGLES, drawCounts, GL33C.GL_UNSIGNED_INT, drawOffsets, triangles)
+        }
+        lastShadowObjects = frameCount
+    }
+
     fun isAlpha(objectId: Int): Boolean = objectAlpha[objectId]
 
     /** After a drawTiles pass: forgets what was drawn, and builds or rebuilds chunks for a while. */

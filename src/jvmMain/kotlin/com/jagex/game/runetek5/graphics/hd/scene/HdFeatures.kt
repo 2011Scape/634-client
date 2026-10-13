@@ -41,6 +41,9 @@ class HdFeatures {
     private var lastNanos: Long = 0L
     private val target: FloatArray = FloatArray(13)
 
+    /** The sun's shadow map (HdSettings.shadows). */
+    val shadows: HdShadows = HdShadows()
+
     /** The point lights from lights.json (HdSettings.lights). */
     val lights: HdLights = HdLights()
 
@@ -80,6 +83,12 @@ class HdFeatures {
         uniforms.setSunColour(diffuse[0], diffuse[1], diffuse[2])
         uniforms.setAmbient(state.globalAmbient[0], state.globalAmbient[1], state.globalAmbient[2])
         this.environment(toolkit.hdContent, state)
+        // the sun's shadow map: where it looks from, and the matrix the receivers use
+        HdGl.shadows = this.shadows
+        this.shadows.beginFrame(viewToWorld, state.lightPosition[0], state.lightEnabled[0] && length > 0.0f)
+        if (this.shadows.active) {
+            uniforms.setShadowMatrix(this.shadows.shadowMatrix)
+        }
         uniforms.setFog(fog[0], fog[1], fog[2], fog[3], fog[4], fog[5], fog[6])
         uniforms.setSky(sky[0], sky[1], sky[2], sky[3], sky[4], sky[5])
         // locs fade over the last three tiles before the fog closes (HD_FADE)
@@ -137,5 +146,6 @@ class HdFeatures {
     private var easedVersion: Int = -1
 
     fun release() {
+        shadows.release()
     }
 }

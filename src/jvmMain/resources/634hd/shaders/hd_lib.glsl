@@ -50,6 +50,9 @@ layout(std140) uniform HdFrame {
 // 1 for a draw that belongs to the 3D view, 0 for the interface and everything else.
 uniform int uHdScene;
 
+// The sun's shadow map (HD_SHADOWS) on texture unit 16; HdShaders.link points every program here.
+uniform sampler2DShadow uHdShadowMap;
+
 bool hdOn(int feature) {
     return uHdScene != 0 && (hdFlags.x & feature) != 0;
 }
@@ -161,4 +164,33 @@ vec4 hdAddPointLights(vec4 color, vec4 base, vec3 viewPos, vec3 normal) {
     if (!hdOn(HD_LIGHTS) || hdLightInfo.x == 0) return color;
     // not clamped: the texture multiplies it next, and a lit stone wall is near white already
     return vec4(color.rgb + base.rgb * hdPointLights(viewPos, normal), color.a);
+}
+
+// How much of the sun reaches a fragment at eye-space [viewPos] (HD_SHADOWS): 1 in the open, 0 in
+// full shadow; 3x3 PCF, fading out towards the edge of the shadow map.
+float hdShadow(vec3 viewPos) {
+    if (!hdOn(HD_SHADOWS)) return 1.0;
+    vec4 p = hdShadowMatrix * vec4(viewPos, 1.0);
+    if (p.x <= 0.0 || p.x >= 1.0 || p.y <= 0.0 || p.y >= 1.0 || p.z >= 1.0) return 1.0;
+    float texel = 1.0 / float(max(hdFlags.z, 1));
+    float sum = 0.0;
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+            sum += texture(uHdShadowMap, vec3(p.xy + vec2(x, y) * texel, p.z - 0.0008));
+        }
+    }
+    vec2 edge = min(p.xy, 1.0 - p.xy);
+    float fade = clamp(min(edge.x, edge.y) * 12.0, 0.0, 1.0);
+    return mix(1.0, sum / 9.0, fade);
+}
+
+// [color] darkened where the sun is blocked: by the share of its light the surface would get from the
+// sun ([normal] the game's eye-space normal; a zero normal counts as facing it).
+vec4 hdApplyShadow(vec4 color, vec3 viewPos, vec3 normal) {
+    if (!hdOn(HD_SHADOWS) || hdSunDirection.w < 0.5) return color;
+    float lit = hdShadow(viewPos);
+    if (lit >= 0.999) return color;
+    float normalLength = length(normal);
+    float facing = normalLength > 0.0001 ? max(dot(normal / normalLength, hdSunDirection.xyz), 0.0) : 1.0;
+    return vec4(color.rgb * (1.0 - 0.42 * facing * (1.0 - lit)), color.a);
 }
