@@ -342,6 +342,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         chunkIndexCount[chunk] = indexCount - firstIndex
         chunkTriangles[chunk] = (indexCount - firstIndex) / 3
         buildEntities(chunk, entities, count, true)
+        bakeVersion++
     }
 
     private fun buildEntities(chunk: Int, entities: Array<Entity?>, count: Int, alpha: Boolean) {
@@ -362,6 +363,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
                 capturing = null
             }
             for (c in 0 until captureCount) {
+                buildingMatrix = c
                 val model: HdModel = captureModels[c]!!
                 captureModels[c] = null
                 if (model.retainedObject >= 0) {
@@ -397,11 +399,74 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     }
 
     /** Called by HdModel.render while capturing. */
-    fun capture(model: HdModel) {
+    fun capture(model: HdModel, modelMatrix: FloatArray?) {
         if (captureCount == captureModels.size) {
             captureModels = captureModels.copyOf(captureCount * 2)
+            captureMatrices = captureMatrices.copyOf(captureCount * 2 * 16)
+        }
+        if (modelMatrix != null) {
+            System.arraycopy(modelMatrix, 0, captureMatrices, captureCount * 16, 16)
+        } else {
+            java.util.Arrays.fill(captureMatrices, captureCount * 16, captureCount * 16 + 16, 0.0f)
         }
         captureModels[captureCount++] = model
+    }
+
+    // the model matrices of the models captured for an entity, and of every retained object: the
+    // ambient occlusion bake draws the whole region with them (HdShadows), seen or not
+    private var captureMatrices: FloatArray = FloatArray(64 * 16)
+    private var objectMatrices: FloatArray = FloatArray(4096 * 16)
+    private var buildingMatrix: Int = 0
+
+    /** Bumped whenever chunks are built or rebuilt: the occlusion bake is out of date. */
+    var bakeVersion: Int = 0
+        private set
+    private var bakeUploaded: Int = -1
+    private var bakeBuffer: Int = 0
+    private var bakeTexture: Int = 0
+
+    /**
+     * Every chunk of the retained scene with [program] (ao_bake.vert), which is in use: each object
+     * placed by the model matrix it was captured with, whether the client drew it this frame or not.
+     */
+    fun drawAllForBake(program: WebGLProgram, unit: Int) {
+        if (objectCount == 0) return
+        uploadGeometry()
+        if (bakeTexture == 0) {
+            bakeBuffer = GL33C.glGenBuffers()
+            bakeTexture = GL33C.glGenTextures()
+        }
+        if (bakeUploaded != bakeVersion) {
+            bakeUploaded = bakeVersion
+            val data: java.nio.FloatBuffer = org.lwjgl.BufferUtils.createFloatBuffer(maxOf(objectCount, 1) * 16)
+            data.put(objectMatrices, 0, objectCount * 16).flip()
+            GL33C.glBindBuffer(GL33C.GL_TEXTURE_BUFFER, bakeBuffer)
+            GL33C.glBufferData(GL33C.GL_TEXTURE_BUFFER, data, GL33C.GL_STATIC_DRAW)
+            GL33C.glBindBuffer(GL33C.GL_TEXTURE_BUFFER, 0)
+        }
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + unit)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_BUFFER, bakeTexture)
+        GL33C.glTexBuffer(GL33C.GL_TEXTURE_BUFFER, GL33C.GL_RGBA32F, bakeBuffer)
+        GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uModels"), unit)
+        GL33C.glBindVertexArray(vao)
+        drawCounts.clear()
+        drawOffsets.clear()
+        var triangles: Int = 0
+        var draws: Int = 0
+        for (chunk in 0 until CHUNKS) {
+            if (chunkIndexCount[chunk] == 0) continue
+            if (draws == drawCounts.capacity()) break
+            drawCounts.put(chunkIndexCount[chunk])
+            drawOffsets.put(chunkIndexStart[chunk].toLong() * 4L)
+            triangles += chunkTriangles[chunk]
+            draws++
+        }
+        drawCounts.flip()
+        drawOffsets.flip()
+        if (draws > 0) {
+            CoreGl.multiDrawElements(GL33C.GL_TRIANGLES, drawCounts, GL33C.GL_UNSIGNED_INT, drawOffsets, triangles)
+        }
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_BUFFER, 0)
     }
 
     private fun addObject(model: HdModel, chunk: Int) {
@@ -431,6 +496,10 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         objectChunk[objectId] = chunk
         objectAlpha[objectId] = buildingAlpha
         objectWind[objectId] = buildingWind
+        if ((objectId + 1) * 16 > objectMatrices.size) {
+            objectMatrices = objectMatrices.copyOf(objectMatrices.size * 2)
+        }
+        System.arraycopy(captureMatrices, buildingMatrix * 16, objectMatrices, objectId * 16, 16)
         objectWindFrequency[objectId] = buildingWindFrequency
         objectIndexStart[objectId] = firstIndex
         objectIndexCount[objectId] = indexCount - firstIndex
@@ -622,6 +691,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
 
     /** Drops the retained scene: every model draws the emulated way until the next build. */
     fun clear() {
+        bakeVersion++
         for (i in 0 until objectCount) {
             val model: HdModel? = objectModels[i]
             if (model != null) {

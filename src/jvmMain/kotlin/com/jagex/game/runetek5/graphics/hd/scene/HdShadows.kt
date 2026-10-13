@@ -9,10 +9,11 @@
  * locs - whose draws HdGl records while [recording] (their buffers, element ranges and model-to-world),
  * replayed through shadow.vert. A model drawn before the map is made is not darkened by it.
  *
- * The same casters go into a second map with client.hd.ambientOcclusion: the heights of everything
- * around the player seen from straight above (an occlusion height map). The shaders measure how much
- * of the sky a fragment sees from it (hdAmbientOcclusion): darker at the foot of walls, under trees
- * and overhangs. Nothing is computed per vertex, so it works on the ground and on moving models too.
+ * With client.hd.ambientOcclusion, the region's static scene is baked into an occlusion height map
+ * (the heights of everything, seen from straight above) when its chunks are built or change, and the
+ * moving models recorded each frame go into a small second one around the player. The shaders measure
+ * how much of the sky a fragment sees from the two (hdAmbientOcclusion): darker at the foot of walls,
+ * under trees and overhangs, on the ground and on moving models too.
  */
 package com.jagex.game.runetek5.graphics.hd.scene
 
@@ -31,6 +32,12 @@ class HdShadows {
         // past the units the retained scene (8-15) and the post passes use
         const val UNIT: Int = 16
         const val AO_UNIT: Int = 17
+        const val AO_BAKE_UNIT: Int = 22
+        /** The baked map: the whole 104x104-tile scene, and the heights it holds (y grows downwards). */
+        private const val BAKE_EXTENT: Float = 104.0f * 512.0f
+        private const val BAKE_SIZE: Int = 2048
+        private const val BAKE_TOP: Float = -20000.0f
+        private const val BAKE_RANGE: Float = 32000.0f
         /** The height map: its half side and resolution, and the height range it holds. */
         private const val AO_HALF_EXTENT: Float = 24.0f * 512.0f
         private const val AO_SIZE: Int = 1024
@@ -90,6 +97,113 @@ class HdShadows {
 
     private val sun: DepthMap = DepthMap(UNIT, true)
     private val heights: DepthMap = DepthMap(AO_UNIT, false)
+
+    // the region's baked occlusion height map: all retained objects, drawn when the region's chunks
+    // change (at most every BAKE_INTERVAL frames while a region builds), not every frame
+    private val baked: DepthMap = DepthMap(AO_BAKE_UNIT, false)
+    private var bakedVersion: Int = -1
+    private var framesSinceBake: Int = 1000
+    private var bakeProgram: WebGLProgram? = null
+
+    /** World space to the baked map's (u, v, depth), for the frame block. */
+    @JvmField
+    val aoBakeMatrix: FloatArray = FloatArray(16)
+
+    /** The baked map's top and height range, and 1 once a bake exists (frame block). */
+    @JvmField
+    val aoBakeParams: FloatArray = floatArrayOf(BAKE_TOP, BAKE_RANGE, 0.0f, 0.0f)
+
+    /** Bakes done, for the debug panel. */
+    var bakes: Int = 0
+        private set
+
+    /**
+     * Bakes the region's occlusion height map again if its retained scene changed: straight down onto
+     * the whole scene, every retained object placed by its captured model matrix.
+     */
+    fun bake(scene: HdSceneRenderer) {
+        framesSinceBake++
+        if (!HdSettings.ambientOcclusion || scene.bakeVersion == bakedVersion || framesSinceBake < 20) return
+        bakedVersion = scene.bakeVersion
+        framesSinceBake = 0
+        baked.ensure(BAKE_SIZE)
+        if (bakeProgram == null) {
+            val vs = HdShaders.compile(GL33C.GL_VERTEX_SHADER, HdShaders.source("ao_bake.vert"), "ao_bake.vert")
+            val fs = HdShaders.compile(GL33C.GL_FRAGMENT_SHADER, HdShaders.source("shadow.frag"), "shadow.frag")
+            bakeProgram = HdShaders.link(vs, fs, "ao_bake")
+            GL33C.glDeleteShader(vs.id)
+            GL33C.glDeleteShader(fs.id)
+        }
+        val w: Float = BAKE_EXTENT
+        val toUvd: FloatArray = floatArrayOf(
+            1.0f / w, 0.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f / BAKE_RANGE, 0.0f,
+            0.0f, 1.0f / w, 0.0f, 0.0f,
+            0.0f, 0.0f, -BAKE_TOP / BAKE_RANGE, 1.0f,
+        )
+        System.arraycopy(toUvd, 0, aoBakeMatrix, 0, 16)
+        val toClip: FloatArray = Mat4.multiply(Mat4.multiply(Mat4.translate(-1.0f, -1.0f, -1.0f), Mat4.scale(2.0f, 2.0f, 2.0f)), toUvd)
+        HdGl.flushImmediate()
+        val drawFramebuffer: Int = GL33C.glGetInteger(GL33C.GL_DRAW_FRAMEBUFFER_BINDING)
+        val viewport = IntArray(4)
+        GL33C.glGetIntegerv(GL33C.GL_VIEWPORT, viewport)
+        val scissor: Boolean = GL33C.glIsEnabled(GL33C.GL_SCISSOR_TEST)
+        val blend: Boolean = GL33C.glIsEnabled(GL33C.GL_BLEND)
+        val cull: Boolean = GL33C.glIsEnabled(GL33C.GL_CULL_FACE)
+        val depthTest: Boolean = GL33C.glIsEnabled(GL33C.GL_DEPTH_TEST)
+        val depthMask: Boolean = GL33C.glGetBoolean(GL33C.GL_DEPTH_WRITEMASK)
+        val depthFunc: Int = GL33C.glGetInteger(GL33C.GL_DEPTH_FUNC)
+        val elementBinding: Int = GL33C.glGetInteger(GL33C.GL_ELEMENT_ARRAY_BUFFER_BINDING)
+        val colourMask = ByteBuffer.allocateDirect(4)
+        GL33C.glGetBooleanv(GL33C.GL_COLOR_WRITEMASK, colourMask)
+        GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, baked.framebuffer)
+        GL33C.glViewport(0, 0, BAKE_SIZE, BAKE_SIZE)
+        GL33C.glDisable(GL33C.GL_SCISSOR_TEST)
+        GL33C.glDisable(GL33C.GL_BLEND)
+        GL33C.glDisable(GL33C.GL_CULL_FACE)
+        GL33C.glEnable(GL33C.GL_DEPTH_TEST)
+        GL33C.glDepthFunc(GL33C.GL_LESS)
+        GL33C.glDepthMask(true)
+        GL33C.glColorMask(false, false, false, false)
+        GL33C.glClear(GL33C.GL_DEPTH_BUFFER_BIT)
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + AO_BAKE_UNIT)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, 0)
+        val program: WebGLProgram = bakeProgram!!
+        GL33C.glUseProgram(program.id)
+        val matrix: java.nio.FloatBuffer = org.lwjgl.BufferUtils.createFloatBuffer(16)
+        matrix.put(toClip).flip()
+        GL33C.glUniformMatrix4fv(GL33C.glGetUniformLocation(program.id, "uWorldToClip"), false, matrix)
+        scene.drawAllForBake(program, 23)
+        bakes++
+        aoBakeParams[2] = 1.0f
+        GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, drawFramebuffer)
+        GL33C.glViewport(viewport[0], viewport[1], viewport[2], viewport[3])
+        if (scissor) GL33C.glEnable(GL33C.GL_SCISSOR_TEST)
+        if (blend) GL33C.glEnable(GL33C.GL_BLEND)
+        if (cull) GL33C.glEnable(GL33C.GL_CULL_FACE)
+        if (!depthTest) GL33C.glDisable(GL33C.GL_DEPTH_TEST)
+        GL33C.glDepthFunc(depthFunc)
+        GL33C.glDepthMask(depthMask)
+        GL33C.glColorMask(colourMask.get(0).toInt() != 0, colourMask.get(1).toInt() != 0, colourMask.get(2).toInt() != 0, colourMask.get(3).toInt() != 0)
+        val state = HdGl.state
+        GL33C.glBindVertexArray(state.vertexArray)
+        GL33C.glBindBuffer(GL33C.GL_ARRAY_BUFFER, state.boundArrayBuffer?.id ?: 0)
+        GL33C.glBindBuffer(GL33C.GL_ELEMENT_ARRAY_BUFFER, elementBinding)
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + AO_BAKE_UNIT)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, baked.texture)
+        GL33C.glBindSampler(AO_BAKE_UNIT, 0)
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + state.activeTextureUnit)
+        state.invalidateProgramCache()
+    }
+
+    /** Binds the baked map for the frame's receivers (it stays bound between bakes otherwise). */
+    fun bindBaked() {
+        if (baked.texture == 0) return
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + AO_BAKE_UNIT)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, baked.texture)
+        GL33C.glBindSampler(AO_BAKE_UNIT, 0)
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + HdGl.state.activeTextureUnit)
+    }
     private var sceneProgram: WebGLProgram? = null
     private var dynamicProgram: WebGLProgram? = null
     private var uSceneMatrix: Int = -1
@@ -210,6 +324,7 @@ class HdShadows {
         val x0: Float = kotlin.math.floor((cx - AO_HALF_EXTENT) / texel) * texel
         val z0: Float = kotlin.math.floor((cz - AO_HALF_EXTENT) / texel) * texel
         val top: Float = cy - AO_RANGE * 0.5f
+        aoParams[3] = top
         val w: Float = AO_HALF_EXTENT * 2.0f
         // world to (u, v, depth) in 0..1, column-major
         val toUvd: FloatArray = floatArrayOf(
@@ -432,12 +547,15 @@ class HdShadows {
             GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + map.unit)
             GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, 0)
 
-            val program: WebGLProgram = sceneProgram!!
-            GL33C.glUseProgram(program.id)
-            map.viewToClipBuffer.clear()
-            map.viewToClipBuffer.put(map.viewToClip).flip()
-            GL33C.glUniformMatrix4fv(uSceneMatrix, false, map.viewToClipBuffer)
-            scene.drawShadowCasters(program)
+            if (map === sun) {
+                // the height map of moving models only: the static scene is in the baked one
+                val program: WebGLProgram = sceneProgram!!
+                GL33C.glUseProgram(program.id)
+                map.viewToClipBuffer.clear()
+                map.viewToClipBuffer.put(map.viewToClip).flip()
+                GL33C.glUniformMatrix4fv(uSceneMatrix, false, map.viewToClipBuffer)
+                scene.drawShadowCasters(program)
+            }
 
             GL33C.glUseProgram(dynamicProgram!!.id)
             GL33C.glBindVertexArray(vao)
@@ -482,6 +600,10 @@ class HdShadows {
     fun release() {
         sun.release()
         heights.release()
+        baked.release()
+        bakedVersion = -1
+        if (bakeProgram != null) GL33C.glDeleteProgram(bakeProgram!!.id)
+        bakeProgram = null
         if (sceneProgram != null) GL33C.glDeleteProgram(sceneProgram!!.id)
         if (dynamicProgram != null) GL33C.glDeleteProgram(dynamicProgram!!.id)
         if (vao != 0) GL33C.glDeleteVertexArrays(vao)

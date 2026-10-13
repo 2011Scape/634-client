@@ -2496,7 +2496,7 @@ class HdModel : Model {
 		val capturing: HdSceneRenderer? = HdSceneRenderer.capturing
 		if (capturing != null) {
 			// 634HD retained scene: a static entity drawn once at build time, to learn its model
-			capturing.capture(this)
+			capturing.capture(this, (matrix as Matrix43?)?.getColumnMajor())
 			return
 		}
 		val viewMatrix: Matrix43 = this.glToolkit!!.viewMatrix43
