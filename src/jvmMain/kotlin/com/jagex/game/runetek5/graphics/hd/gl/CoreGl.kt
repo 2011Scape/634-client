@@ -6,6 +6,7 @@
  */
 package com.jagex.game.runetek5.graphics.hd.gl
 
+import com.jagex.game.runetek5.client.features.RenderStats
 import jaggl.GlScratch
 import org.lwjgl.opengl.GL33C
 import org.lwjgl.system.MemoryStack
@@ -125,8 +126,19 @@ object CoreGl {
         GL33C.glVertexAttribPointer(index, size, type, normalized, stride, offset)
     fun vertexAttrib3f(index: Int, x: Float, y: Float, z: Float) = GL33C.glVertexAttrib3f(index, x, y, z)
     fun vertexAttrib4f(index: Int, x: Float, y: Float, z: Float, w: Float) = GL33C.glVertexAttrib4f(index, x, y, z, w)
-    fun drawArrays(mode: Int, first: Int, count: Int) = GL33C.glDrawArrays(mode, first, count)
-    fun drawElements(mode: Int, count: Int, type: Int, offset: Long) = GL33C.glDrawElements(mode, count, type, offset)
+    fun drawArrays(mode: Int, first: Int, count: Int) {
+        RenderStats.drawCalls++
+        RenderStats.categoryDrawCalls[RenderStats.category]++
+        if (mode == TRIANGLES) RenderStats.triangles += count / 3
+        GL33C.glDrawArrays(mode, first, count)
+    }
+
+    fun drawElements(mode: Int, count: Int, type: Int, offset: Long) {
+        RenderStats.drawCalls++
+        RenderStats.categoryDrawCalls[RenderStats.category]++
+        if (mode == TRIANGLES) RenderStats.triangles += count / 3
+        GL33C.glDrawElements(mode, count, type, offset)
+    }
 
     // ---- fixed state ----
 

@@ -4,6 +4,8 @@
  */
 package com.jagex.game.runetek5.graphics.hd
 
+import com.jagex.game.runetek5.client.features.RenderStats
+
 import com.jagex.game.runetek5.graphics.model.Mesh
 import com.jagex.game.runetek5.graphics.model.Model
 
@@ -2544,7 +2546,9 @@ class HdModel : Model {
 		}
 		this.glToolkit.setupMatrixRendering()
 		this.glToolkit.multiMatrix(modelMatrix)
+		RenderStats.category = RenderStats.CATEGORY_MODEL
 		this.drawOpaqueFaces()
+		RenderStats.category = RenderStats.CATEGORY_OTHER
 		this.glToolkit.popMatrix()
 		this.renderBillboards()
 	}

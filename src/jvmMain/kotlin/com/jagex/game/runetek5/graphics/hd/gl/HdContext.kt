@@ -6,6 +6,7 @@
  */
 package com.jagex.game.runetek5.graphics.hd.gl
 
+import com.jagex.game.runetek5.client.features.RenderStats
 import jaggl.GlContext
 import java.awt.Canvas
 import org.lwjgl.opengl.GL33C
@@ -104,6 +105,7 @@ class HdContext {
     }
 
     fun swapBuffers() {
+        RenderStats.frameEnded()
         context?.swapBuffers()
     }
 

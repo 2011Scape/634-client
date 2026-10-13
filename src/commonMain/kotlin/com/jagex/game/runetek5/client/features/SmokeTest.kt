@@ -26,6 +26,7 @@ import com.jagex.game.runetek5.graphics.Toolkit
 import com.jagex.game.runetek5.core.constants.MainLogicStep
 import com.jagex.game.runetek5.entity.PathingEntitySpotAnimation
 import com.jagex.game.runetek5.entity.PlayerEntity
+import awt.getInsets
 import awt.image.BufferedImage
 import io.File
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
@@ -255,6 +256,27 @@ object SmokeTest {
 	private val BENCH: Int = lang.getInteger("client.test.bench", 0)
 
 	private val BENCH_MODE: String = lang.getProperty("client.test.benchMode", "")
+
+	/**
+	 * client.test.scenePosition=x,y[,level[,yaw,pitch,zoom]]: the bench runs there (teleported, needs
+	 * an admin account), with the camera held as for a scene, then the player is sent home.
+	 */
+	private val BENCH_POSITION: String = lang.getProperty("client.test.scenePosition", "")
+
+	private var benchArrived: Boolean = false
+
+	private var benchDrawCalls: Long = 0L
+
+	private val benchCategories: LongArray = LongArray(3)
+
+	private var benchTriangles: Long = 0L
+
+	private var benchHomeFrame: Int = -1
+
+	private var benchCamera: IntArray? = null
+
+	/** client.test.benchWindow=WxH: the game area size to bench at (the window is grown to hold it), e.g. 1920x1080. */
+	private val BENCH_WINDOW: String = lang.getProperty("client.test.benchWindow", "")
 
 	private const val BENCH_SETTLE: Int = 60
 
@@ -607,6 +629,44 @@ object SmokeTest {
 	 * BENCH frames from one frame() to the next, print the SMOKE BENCH line and stop.
 	 */
 	private fun bench() {
+		if (benchHomeFrame >= 0) {
+			val player: PlayerEntity = PlayerUpdate.localPlayer!!
+			if (sceneArrived(player, SCENE_HOME[0], SCENE_HOME[1], SCENE_HOME[2]) || gameFrames - benchHomeFrame > SCENE_WAIT) {
+				lang.flushOut()
+				lang.halt(0)
+			}
+			return
+		}
+		if (BENCH_POSITION.length > 0 && !benchArrived) {
+			val values: Array<String> = BENCH_POSITION.javaSplit(",")
+			val x: Int = values[0].javaTrim().toInt()
+			val y: Int = values[1].javaTrim().toInt()
+			val level: Int = if (values.size > 2) values[2].javaTrim().toInt() else 0
+			benchCamera = intArrayOf(if (values.size > 3) values[3].javaTrim().toInt() else 0, if (values.size > 4) values[4].javaTrim().toInt() else 1400, if (values.size > 5) values[5].javaTrim().toInt() else 0)
+			val player: PlayerEntity = PlayerUpdate.localPlayer!!
+			if (sceneStep == 0) {
+				sendCommand("tele " + x + " " + y + " " + level)
+				sceneStep = 1
+				sceneFrame = gameFrames
+				return
+			}
+			if (!sceneArrived(player, x, y, level)) {
+				if (gameFrames - sceneFrame > SCENE_WAIT) {
+					fail("bench: never arrived at " + BENCH_POSITION)
+				}
+				return
+			}
+			benchArrived = true
+			sceneStep = 0
+		}
+		val camera: IntArray? = benchCamera
+		if (camera != null) {
+			Camera.camAngleY = camera[0].toFloat()
+			Camera.camAngleX = camera[1].toFloat()
+			Camera.cameraYawVelocity = 0.0f
+			Camera.cameraPitchVelocity = 0.0f
+			ClientFeatures.zoomOffset = camera[2]
+		}
 		if (benchModeFrame < 0) {
 			benchModeFrame = frames
 			if (BENCH_MODE == "resizable") {
@@ -614,6 +674,12 @@ object SmokeTest {
 				// or 1024x768; put back before stopping, since the smoke references are taken with the cap
 				benchMaxScreenSize = GamePreferences.uid!!.maxScreenSize!!.getValue()
 				GamePreferences.uid!!.setValue(GamePreferences.uid!!.maxScreenSize, 0)
+			}
+			if (BENCH_WINDOW.length > 0) {
+				val size: Array<String> = BENCH_WINDOW.javaSplit("x")
+				val frame: awt.Frame = com.jagex.game.runetek5.client.GameShell.engineFrame!!
+				val insets: awt.Insets = frame.getInsets()
+				frame.setSize(size[0].toInt() + insets.left + insets.right, size[1].toInt() + insets.top + insets.bottom)
 			}
 			if (BENCH_MODE == "resizable" && WindowMode.getWindowMode() !== WindowModeType.RESIZABLE) {
 				sendCommand("wm2")
@@ -636,6 +702,11 @@ object SmokeTest {
 			return
 		}
 		val times: DoubleArray = benchTimes!!
+		benchDrawCalls += RenderStats.lastDrawCalls.toLong()
+		for (i in 0 until 3) {
+			benchCategories[i] += RenderStats.lastCategoryDrawCalls[i].toLong()
+		}
+		benchTriangles += RenderStats.lastTriangles.toLong()
 		benchWork!![benchCount] = work
 		times[benchCount++] = (now - benchLast).toDouble() / 1000000.0
 		benchLast = now
@@ -664,10 +735,17 @@ object SmokeTest {
 		val size: String = dimensions[0].toString() + "x" + dimensions[1]
 		println("SMOKE BENCH toolkit=" + GamePreferences.uid!!.toolkit!!.getValue() + " size=" + size + " mode=" + WindowMode.getWindowMode() + " frames=" + BENCH
 			+ " avg=" + format(average) + "ms p50=" + format(times[BENCH / 2]) + "ms p95=" + format(times[kotlin.math.min(BENCH - 1, BENCH * 95 / 100)]) + "ms"
-			+ " fps=" + format(1000.0 / average) + workLine + " ticks/frame=" + format(benchTicks.toDouble() / BENCH.toDouble()))
+			+ " fps=" + format(1000.0 / average) + workLine + " ticks/frame=" + format(benchTicks.toDouble() / BENCH.toDouble())
+			+ (if (benchDrawCalls > 0L) " drawCalls=" + (benchDrawCalls / BENCH.toLong()) + " (models " + (benchCategories[1] / BENCH.toLong()) + ", ground " + (benchCategories[2] / BENCH.toLong()) + ", other " + (benchCategories[0] / BENCH.toLong()) + ") triangles=" + (benchTriangles / BENCH.toLong()) else ""))
 		if (benchMaxScreenSize >= 0) {
 			GamePreferences.uid!!.setValue(GamePreferences.uid!!.maxScreenSize, benchMaxScreenSize)
 			GamePreferences.savePreferences()
+		}
+		if (benchArrived) {
+			// home again before stopping, or the other checks' references stop matching
+			sendCommand("tele " + SCENE_HOME[0] + " " + SCENE_HOME[1] + " " + SCENE_HOME[2])
+			benchHomeFrame = gameFrames
+			return
 		}
 		lang.flushOut()
 		lang.halt(0)
