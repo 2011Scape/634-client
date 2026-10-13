@@ -39,9 +39,17 @@ object RenderStats {
 	@JvmField
 	val lastCategoryDrawCalls: IntArray = IntArray(3)
 
-	/** Milliseconds the last region upload (static scene build) took, or -1. */
+	/** Chunks of the retained scene rebuilt since the region was built (a loc added or removed). */
+	@JvmField
+	var chunkRebuilds: Int = 0
+
+	/** The longest a frame spent building the retained scene of the last region (its hitch), in ms, or -1. */
 	@JvmField
 	var lastRegionUploadMs: Int = -1
+
+	/** Milliseconds the last region's retained scene took to build in all, spread over frames, or -1. */
+	@JvmField
+	var lastRegionBuildMs: Int = -1
 
 	@JvmStatic
 	fun frameEnded() {

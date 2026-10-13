@@ -187,6 +187,7 @@ object Scene {
 	@OriginalMember(owner = "client!ik", name = "a", descriptor = "(IIILclient!un;Lclient!un;)V")
 	@JvmStatic
 	fun addWallDecoration(@OriginalArg(0) level: Int, @OriginalArg(1) x: Int, @OriginalArg(2) z: Int, @OriginalArg(3) wallDecor: WallDecor?, @OriginalArg(4) wallDecor2: WallDecor?) {
+		Scene.toolkit?.sceneChanged(level, x, z) // Not part of the original client: 634HD keeps the scene (Toolkit.sceneChanged).
 		@Pc(4) val tile: Tile? = Scene.getTile(level, x, z)
 		if (tile == null) {
 			return
@@ -276,6 +277,7 @@ object Scene {
 	@OriginalMember(owner = "client!ffa", name = "a", descriptor = "(IIILclient!qfa;Lclient!qfa;)V")
 	@JvmStatic
 	fun addWall(@OriginalArg(0) level: Int, @OriginalArg(1) x: Int, @OriginalArg(2) z: Int, @OriginalArg(3) wall: Wall?, @OriginalArg(4) wall2: Wall?) {
+		Scene.toolkit?.sceneChanged(level, x, z) // Not part of the original client: 634HD keeps the scene (Toolkit.sceneChanged).
 		@Pc(4) val tile: Tile? = Scene.getTile(level, x, z)
 		if (tile == null) {
 			return
@@ -465,6 +467,7 @@ object Scene {
 	@OriginalMember(owner = "client!ta", name = "a", descriptor = "(IIII)V")
 	@JvmStatic
 	fun offsetWallDecoration(@OriginalArg(0) minLevel: Int, @OriginalArg(1) x: Int, @OriginalArg(2) z: Int, @OriginalArg(3) decorDisplacement: Int) {
+		Scene.toolkit?.sceneChanged(minLevel, x, z) // Not part of the original client: 634HD keeps the scene (Toolkit.sceneChanged).
 		@Pc(7) val tile: Tile? = Scene.aClass100ArrayArrayArray3!![minLevel]!![x]!![z]
 		if (tile == null) {
 			return
@@ -493,6 +496,7 @@ object Scene {
 		if (entity == null) {
 			return
 		}
+		Scene.toolkit?.sceneChanged(entity.level.toInt(), entity.x shr 9, entity.z shr 9) // Not part of the original client: see Toolkit.sceneChanged.
 		@Pc(4) var i: Int = 0
 		while (i < 2) {
 			@Pc(7) var entity2: Entity? = null
@@ -906,6 +910,9 @@ object Scene {
 		@Pc(10) var scale: Short = 0
 		@Pc(12) var intensity: Byte = 0
 		positionEntity!!.updateBounds()
+		if (!temporary) {
+			Scene.toolkit?.sceneChanged(positionEntity.level.toInt(), positionEntity.startX.toInt(), positionEntity.startZ.toInt()) // Not part of the original client: see Toolkit.sceneChanged.
+		}
 		if (positionEntity.startX < 0 || positionEntity.startZ < 0 || positionEntity.endX >= Scene.sceneWidth || positionEntity.endZ >= Camera.sceneLength) {
 			return false
 		}
@@ -1348,6 +1355,7 @@ object Scene {
 	@OriginalMember(owner = "client!ada", name = "a", descriptor = "(IIILclient!aba;)V")
 	@JvmStatic
 	fun setGroundDecoration(@OriginalArg(0) level: Int, @OriginalArg(1) x: Int, @OriginalArg(2) z: Int, @OriginalArg(3) groundDecor: GroundDecor?) {
+		Scene.toolkit?.sceneChanged(level, x, z) // Not part of the original client: 634HD keeps the scene (Toolkit.sceneChanged).
 		@Pc(4) val tile: Tile? = Scene.getTile(level, x, z)
 		if (tile == null) {
 			return

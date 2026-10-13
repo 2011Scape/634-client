@@ -323,6 +323,8 @@ object SceneDrawer {
 				entityIndex++
 			}
 		}
+		// Not part of the original client: a toolkit that keeps the scene on the GPU draws it now (634HD).
+		Scene.toolkit!!.opaqueEntitiesDone()
 		if (SceneDrawer.copyLights) {
 			Scene.toolkit!!.copyLights(0, null)
 		}
@@ -447,6 +449,8 @@ object SceneDrawer {
 				entityIndex++
 			}
 		}
+		// Not part of the original client: see Toolkit.transparentEntitiesDone (634HD).
+		Scene.toolkit!!.transparentEntitiesDone()
 	}
 
 	@OriginalMember(owner = "client!eea", name = "A", descriptor = "I")

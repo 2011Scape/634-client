@@ -4,6 +4,12 @@
  */
 package com.jagex.game.runetek5.graphics.hd
 
+import com.jagex.game.runetek5.scene.Scene
+
+import com.jagex.game.runetek5.client.features.RenderStats
+
+import com.jagex.game.runetek5.graphics.hd.scene.HdSceneRenderer
+
 import com.jagex.game.runetek5.client.features.SceneTargetToolkit
 import com.jagex.game.runetek5.client.GameCanvas
 import com.jagex.game.runetek5.sound.jagtheora.OggStreamDecoder
@@ -497,7 +503,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 
 	private val s3Graphics: Boolean
 
-	private val textureCache: HdTextureCache
+	val textureCache: HdTextureCache
 
 	@JvmField
 	val texture3dShader: HdTexture3DShader
@@ -615,6 +621,39 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			this.stop()
 			throw RuntimeException(ex3.message ?: ex3.toString(), ex3)
 		}
+	}
+
+	// ---- 634HD retained scene (scene/HdSceneRenderer) ----
+
+	val sceneRenderer: HdSceneRenderer = HdSceneRenderer(this)
+
+	/**
+	 * Whether models draw through the retained scene now: once it is built, and not in the
+	 * underwater pass (per-entity water parameters) or the orthographic view (its own static layer).
+	 */
+	fun sceneRetained(): Boolean {
+		return this.sceneRenderer.built && !this.stillWaterToggled && this.depthClippingMode != 3
+	}
+
+	override fun sceneBuilt() {
+		this.sceneRenderer.build()
+	}
+
+	override fun sceneChanged(level: Int, x: Int, z: Int) {
+		this.sceneRenderer.sceneChanged(x, z)
+	}
+
+	override fun opaqueEntitiesDone() {
+		if (!this.sceneRenderer.built) {
+			// a toolkit switched to with a scene already built (the scene is not built again)
+			if (Scene.stringStack != null) {
+				this.sceneRenderer.build()
+			}
+			return
+		}
+		RenderStats.category = RenderStats.CATEGORY_MODEL
+		this.sceneRenderer.flushOpaque()
+		RenderStats.category = RenderStats.CATEGORY_OTHER
 	}
 
 	override fun L(fogColour: Int, fogDensity: Int, fogOffset: Int) {
@@ -1531,6 +1570,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	}
 
 	override fun stop() {
+		if (this.activeOpenglInstance != null) {
+			this.sceneRenderer.release()
+		}
 		var node: Node? = this.heapManager.first()
 		while (node != null) {
 			(node as GlMemoryPool).deallocate()

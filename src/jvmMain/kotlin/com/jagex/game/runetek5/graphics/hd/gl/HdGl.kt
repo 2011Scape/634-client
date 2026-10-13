@@ -69,6 +69,7 @@ object HdGl {
         val vao = CoreGl.createVertexArray()
         CoreGl.bindVertexArray(vao)
         val newState = GlState(CoreGl)
+        newState.vertexArray = vao
         newState.immediateMode = ImmediateModeEmulator(CoreGl, newState)
         newState.fixedFunctionShader = FixedFunctionShader(CoreGl)
         return newState
