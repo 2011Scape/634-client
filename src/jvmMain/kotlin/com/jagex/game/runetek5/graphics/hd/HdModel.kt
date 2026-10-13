@@ -5,6 +5,7 @@
 package com.jagex.game.runetek5.graphics.hd
 
 import com.jagex.game.runetek5.client.features.RenderStats
+import com.jagex.game.runetek5.graphics.hd.scene.HdDynamicStream
 import com.jagex.game.runetek5.graphics.hd.scene.HdSceneRenderer
 
 import com.jagex.game.runetek5.graphics.model.Mesh
@@ -801,6 +802,9 @@ class HdModel : Model {
 				this.buildElementsBuffer((this.renderState.toInt() and 0x10) != 0)
 			}
 			if (this.modelElementsBuffer!!.openglElementsBuffer != null) {
+				// 634HD: stream ranges from an earlier frame are written again (HdDynamicStream)
+				(this.dynamicArrayBuffer as? HdDynamicStream.Range)?.ensureCurrent()
+				(this.modelElementsBuffer!!.openglElementsBuffer as? HdDynamicStream.Range)?.ensureCurrent()
 				this.glToolkit!!.setLightingEnabled(this.normalsBuffer != null)
 				this.glToolkit.toggleDrawingClientstates(this.vertexBuffer, this.colorsBuffer, this.textureCoordinatesBuffer, this.normalsBuffer)
 				val batchCount: Int = this.materialBatchOffsets!!.size - 1
@@ -852,11 +856,11 @@ class HdModel : Model {
 			return
 		}
 		if (reuseBuffer) {
+			// 634HD: a range of the frame's stream buffer (scene/HdDynamicStream)
 			if (this.dynamicElementsBuffer == null) {
-				this.dynamicElementsBuffer = this.glToolkit.createElementsArrayBuffer(gpuPacket.currentPosition, gpuPacket.buffer, true)
-			} else {
-				this.dynamicElementsBuffer!!.putElements(gpuPacket.buffer, gpuPacket.currentPosition)
+				this.dynamicElementsBuffer = this.glToolkit.elementStream.ElementRange()
 			}
+			this.dynamicElementsBuffer!!.putElements(gpuPacket.buffer, gpuPacket.currentPosition)
 			this.modelElementsBuffer!!.openglElementsBuffer = this.dynamicElementsBuffer
 		} else {
 			this.modelElementsBuffer!!.openglElementsBuffer = this.glToolkit.createElementsArrayBuffer(gpuPacket.currentPosition, gpuPacket.buffer, false)
@@ -2446,11 +2450,11 @@ class HdModel : Model {
 		gpuPacket.currentPosition = this.numNormals * stride
 		val arrayBuffer: ArrayBufferGL?
 		if (checkFlags) {
+			// 634HD: a range of the frame's stream buffer (scene/HdDynamicStream), not a buffer of its own
 			if (this.dynamicArrayBuffer == null) {
-				this.dynamicArrayBuffer = this.glToolkit.createArrayBuffer(true, stride.toInt(), gpuPacket.buffer, gpuPacket.currentPosition)
-			} else {
-				this.dynamicArrayBuffer!!.putArray(stride.toInt(), gpuPacket.currentPosition, gpuPacket.buffer)
+				this.dynamicArrayBuffer = this.glToolkit.vertexStream.VertexRange()
 			}
+			this.dynamicArrayBuffer!!.putArray(stride.toInt(), gpuPacket.currentPosition, gpuPacket.buffer)
 			arrayBuffer = this.dynamicArrayBuffer
 			this.renderState = 0
 		} else {
