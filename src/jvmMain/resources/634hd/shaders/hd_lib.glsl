@@ -45,6 +45,10 @@ layout(std140) uniform HdFrame {
     vec4 hdLightPosition[HD_MAX_LIGHTS];
     // colour times intensity, w: unused
     vec4 hdLightColour[HD_MAX_LIGHTS];
+    // world space to the occlusion height map's (u, v, depth) (HD_AO)
+    mat4 hdAoMatrix;
+    // x: height range of the map's depth, y: strength, z: uv per scene unit
+    vec4 hdAoParams;
 };
 
 // 1 for a draw that belongs to the 3D view, 0 for the interface and everything else.
@@ -52,6 +56,9 @@ uniform int uHdScene;
 
 // The sun's shadow map (HD_SHADOWS) on texture unit 16; HdShaders.link points every program here.
 uniform sampler2DShadow uHdShadowMap;
+
+// The occlusion height map (HD_AO) on texture unit 17: depth from above, so smaller is higher.
+uniform sampler2D uHdAoMap;
 
 bool hdOn(int feature) {
     return uHdScene != 0 && (hdFlags.x & feature) != 0;
@@ -176,7 +183,7 @@ float hdShadow(vec3 viewPos) {
     float sum = 0.0;
     for (int y = -1; y <= 1; y++) {
         for (int x = -1; x <= 1; x++) {
-            sum += texture(uHdShadowMap, vec3(p.xy + vec2(x, y) * texel, p.z - 0.0008));
+            sum += texture(uHdShadowMap, vec3(p.xy + vec2(x, y) * texel, p.z - 0.0012));
         }
     }
     vec2 edge = min(p.xy, 1.0 - p.xy);
@@ -193,4 +200,54 @@ vec4 hdApplyShadow(vec4 color, vec3 viewPos, vec3 normal) {
     float normalLength = length(normal);
     float facing = normalLength > 0.0001 ? max(dot(normal / normalLength, hdSunDirection.xyz), 0.0) : 1.0;
     return vec4(color.rgb * (1.0 - 0.42 * facing * (1.0 - lit)), color.a);
+}
+
+// How much of the sky a fragment at eye-space [viewPos] sees (HD_AO), from the height map: the
+// heights around it at two distances in eight directions (only those in front of a wall-like
+// [normal]) and straight above it. 1 in the open.
+float hdAmbientOcclusion(vec3 viewPos, vec3 normal) {
+    if (!hdOn(HD_AO)) return 1.0;
+    vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
+    vec3 p = (hdAoMatrix * vec4(world, 1.0)).xyz;
+    if (p.x <= 0.0 || p.x >= 1.0 || p.y <= 0.0 || p.y >= 1.0) return 1.0;
+    float range = hdAoParams.x;
+    float normalLength = length(normal);
+    vec3 n = normalLength > 0.0001 ? mat3(hdViewToWorld) * (normal / normalLength) : vec3(0.0, -1.0, 0.0);
+    float up = -n.y;
+    vec2 side = n.xz;
+    float occlusion = 0.0;
+    float weight = 0.0;
+    // straight above: a roof, a canopy
+    if (up > 0.5) {
+        float above = (p.z - texture(uHdAoMap, p.xy).r) * range;
+        occlusion += 2.0 * smoothstep(240.0, 600.0, above);
+        weight += 2.0;
+    }
+    // around it; for a wall-like face, each side on its own and the opener one kept (the game's
+    // normals do not say reliably which side is out)
+    float sideOcclusion[2] = float[2](0.0, 0.0);
+    float sideWeight[2] = float[2](0.0, 0.0);
+    for (int i = 0; i < 8; i++) {
+        float angle = float(i) * 0.785398 + 0.39;
+        vec2 dir = vec2(cos(angle), sin(angle));
+        float facing = dot(dir, side);
+        int which = (up < 0.5 && facing < 0.0) ? 1 : 0;
+        if (up < 0.5 && abs(facing) < 0.1) continue;
+        for (int r = 0; r < 2; r++) {
+            float radius = r == 0 ? 110.0 : 300.0;
+            // occluders lower than a tall grass tuft (about 180 units) are left out: grass is not a wall
+            float height = (p.z - texture(uHdAoMap, p.xy + dir * radius * hdAoParams.z).r) * range - 180.0;
+            sideOcclusion[which] += clamp(height / (radius * 1.2), 0.0, 1.0);
+            sideWeight[which] += 1.0;
+        }
+    }
+    if (up < 0.5 && sideWeight[1] > 0.0 && (sideWeight[0] == 0.0 || sideOcclusion[1] / sideWeight[1] < sideOcclusion[0] / sideWeight[0])) {
+        occlusion += sideOcclusion[1];
+        weight += sideWeight[1];
+    } else {
+        occlusion += sideOcclusion[0];
+        weight += sideWeight[0];
+    }
+    float ao = weight > 0.0 ? 1.0 - occlusion / weight : 1.0;
+    return mix(1.0, ao, hdAoParams.y);
 }
