@@ -212,8 +212,12 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   player and texture use.
 - **Materials.** `tools/make_material_maps.py` derives map sets from the cache textures (dumped
   with `client.test.findText=textures:`) into `634hd/materials/<texture>/` with a `recipe.txt` each,
-  and writes `materials.json`. The driver compresses them on upload: BC5 normals, BC7 packed and
-  emissive maps with the height in the packed map's alpha (23 sets, 5 MB; RGBA8 without BC7).
+  and writes `materials.json`. `./gradlew compressMaterialMaps` (`tools/compress_material_maps.py`)
+  precompresses them at build time - BC5 normals, BC7 (mode 6) packed maps with the height in alpha,
+  BC7 emissive maps, every mip level - and `HdMaterialMaps` uploads those blocks as they are (23 sets,
+  5 MB; GPU decode within 1.8/255 of the PNGs for BC5, 3.3 for BC7, checked with
+  `client.test.hdDebug`). Without a precompressed file the driver compresses the PNG at load; without
+  BC7 the arrays are RGBA8.
 - **Debug panel** (`HdDebugPanel`, `client.debug` only; F10 or `::hdpanel`): stats with GPU time,
   every switch, overlays, live editing of the current environment and nearest light with Save to
   the JSON file, texture and mini-menu inspection, content warnings.
@@ -222,7 +226,7 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   LIBGL_ALWAYS_SOFTWARE=1`, `-Pclient.test.hdGlVersion=4.1`): every shader compiles, every feature
   runs, and with them off the harness matches toolkit 1. Intel (Iris) on Linux uses the same Mesa
   compiler. Windows and macOS themselves, and Iris Xe and RTX 3060 speeds, are not measured.
-- **Not done:** compression at build time (the driver compresses at load), foam on water, and
+- **Not done:** foam on water, and
   blending across tile texture edges. Occlusion is baked into a height map per region, not into
   vertices. The game's own particle systems stay CPU-simulated; the GPU
   particles are an added, data-driven system.

@@ -102,6 +102,59 @@ class HdMaterialMaps {
         }
     }
 
+    /** Layers uploaded from precompressed files at the last load (the rest compressed by the driver). */
+    var precompressedLayers: Int = 0
+        private set
+
+    /** Every mip level of one layer from [data], blocks as tools/compress_material_maps.py writes them. */
+    private fun uploadBlocks(data: ByteArray, layer: Int, format: Int): Boolean {
+        var size: Int = SIZE
+        var at: Int = 0
+        val levels: Int = 32 - Integer.numberOfLeadingZeros(SIZE)
+        val buffer: ByteBuffer = ByteBuffer.allocateDirect(data.size).order(ByteOrder.nativeOrder())
+        buffer.put(data).flip()
+        for (level in 0 until levels) {
+            val blocksAcross: Int = maxOf(1, (size + 3) / 4)
+            val bytes: Int = blocksAcross * blocksAcross * 16
+            if (at + bytes > data.size) return false
+            buffer.limit(at + bytes).position(at)
+            GL33C.glCompressedTexSubImage3D(GL33C.GL_TEXTURE_2D_ARRAY, level, 0, 0, layer, size, size, 1, format, buffer)
+            at += bytes
+            size = maxOf(1, size shr 1)
+        }
+        return true
+    }
+
+    private fun readBytes(content: HdContent, texture: Int, name: String): ByteArray? {
+        val folder: File? = content.folder
+        val file: File? = if (folder != null) File(folder, "../materials/$texture/$name") else null
+        if (file != null && file.isFile) return file.readBytes()
+        val stream = HdMaterialMaps::class.java.getResourceAsStream("/634hd/materials/$texture/$name") ?: return null
+        return stream.use { it.readBytes() }
+    }
+
+    /** client.test.hdDebug: how far the GPU's decoding of layer 0 is from the PNGs it was made from. */
+    private fun checkDecode(content: HdContent, texture: Int, files: Array<String?>) {
+        val png: ByteBuffer = ByteBuffer.allocateDirect(SIZE * SIZE * 4).order(ByteOrder.nativeOrder())
+        val decoded: ByteBuffer = ByteBuffer.allocateDirect(SIZE * SIZE * 4 * count).order(ByteOrder.nativeOrder())
+        for (type in 0 until 2) {
+            val name: String = files[type] ?: continue
+            png.clear()
+            if (!read(content, texture, name, png)) continue
+            GL33C.glBindTexture(GL33C.GL_TEXTURE_2D_ARRAY, arrays[type])
+            decoded.clear()
+            GL33C.glGetTexImage(GL33C.GL_TEXTURE_2D_ARRAY, 0, GL33C.GL_RGBA, GL33C.GL_UNSIGNED_BYTE, decoded)
+            var error: Long = 0L
+            val channels: Int = if (type == 0) 2 else 3
+            for (i in 0 until SIZE * SIZE) {
+                for (c in 0 until channels) {
+                    error += Math.abs((png.get(i * 4 + c).toInt() and 0xFF) - (decoded.get(i * 4 + c).toInt() and 0xFF))
+                }
+            }
+            println("HDDEBUG material " + texture + " " + name + " decoded vs png: mean error " + String.format(java.util.Locale.ROOT, "%.2f", error.toDouble() / (SIZE * SIZE * channels)) + " of 255")
+        }
+    }
+
     private fun load(content: HdContent) {
         release()
         val materials = content.materials.values.sortedBy { it.texture }.take(MAX_MAPS)
@@ -141,6 +194,7 @@ class HdMaterialMaps {
             GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D_ARRAY, GL33C.GL_TEXTURE_WRAP_T, GL33C.GL_REPEAT)
         }
         bytes = 0L
+        precompressedLayers = 0
         val heights: ByteArray = ByteArray(SIZE * SIZE)
         for ((slot, m) in materials.withIndex()) {
             slots[m.texture] = slot
@@ -149,6 +203,19 @@ class HdMaterialMaps {
             for (type in 0 until 3) {
                 GL33C.glBindTexture(GL33C.GL_TEXTURE_2D_ARRAY, arrays[type])
                 pixels.clear()
+                // precompressed blocks (tools/compress_material_maps.py) go up as they are
+                val blocksFile: String? = if (files[type] == null) null else files[type]!!.substringBeforeLast('.') + (if (type == 0) ".bc5" else ".bc7")
+                val precompressed: ByteArray? = if (blocksFile != null && formats[type] != GL33C.GL_RGBA8) readBytes(content, m.texture, blocksFile) else null
+                if (precompressed != null && uploadBlocks(precompressed, slot, formats[type])) {
+                    has[type] = true
+                    if (type == 0) {
+                        // the height is in the precompressed packed map already; the PNG path needs it from here
+                        read(content, m.texture, files[type]!!, pixels)
+                        for (i in 0 until SIZE * SIZE) heights[i] = pixels.get(i * 4 + 3)
+                    }
+                    precompressedLayers++
+                    continue
+                }
                 has[type] = files[type] != null && read(content, m.texture, files[type]!!, pixels)
                 if (!has[type]) {
                     // the neutral map of this type
@@ -183,6 +250,10 @@ class HdMaterialMaps {
             bytes += SIZE.toLong() * SIZE * count * perPixel * 4L / 3L
         }
         compressed = !uncompressed
+        if (System.getProperty("client.test.hdDebug") != null && materials.isNotEmpty()) {
+            val first = materials[0]
+            checkDecode(content, first.texture, arrayOf(first.normal, first.orm, first.emissive))
+        }
         GL33C.glBindTexture(GL33C.GL_TEXTURE_2D_ARRAY, 0)
         GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + HdGl.state.activeTextureUnit)
         buffer = GL33C.glGenBuffers()
@@ -190,7 +261,7 @@ class HdMaterialMaps {
         table.clear()
         GL33C.glBufferData(GL33C.GL_UNIFORM_BUFFER, table, GL33C.GL_STATIC_DRAW)
         GL33C.glBindBuffer(GL33C.GL_UNIFORM_BUFFER, 0)
-        println("634HD: " + count + " material map sets, " + (bytes / 1048576L) + " MB" + (if (compressed) " (BC5/BC7)" else " (uncompressed)"))
+        println("634HD: " + count + " material map sets, " + (bytes / 1048576L) + " MB" + (if (compressed) " (BC5/BC7, " + precompressedLayers + " layers precompressed)" else " (uncompressed)"))
     }
 
     /** One map's pixels at SIZE x SIZE (scaled if it is not), RGBA, into [out]; false if it is missing or unreadable. */

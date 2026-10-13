@@ -137,8 +137,8 @@ Skip motion blur and depth of field.
 
 ## Phase 5: Material system and texture maps
 
-**Status (Oct 13, 2026): done with 23 derived map sets (5 MB; BC5/BC7, compressed by the driver at
-load rather than at build time). Tangents come from screen-space derivatives, not per-face data. Materials off restores the
+**Status (Oct 13, 2026): done with 23 derived map sets (5 MB; BC5/BC7 precompressed at build time by
+`./gradlew compressMaterialMaps`). Tangents come from screen-space derivatives, not per-face data. Materials off restores the
 Phase 4 look (harness unchanged).**
 
 Outcome: textured surfaces support normal, roughness, ambient occlusion, emissive and optional height maps, loaded from files outside the cache. Depends on per-pixel lighting (Phase 4, item 6).
