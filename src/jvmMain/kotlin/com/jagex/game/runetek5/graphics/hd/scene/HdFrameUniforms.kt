@@ -50,7 +50,8 @@ class HdFrameUniforms {
         private const val AO_MATRIX: Int = LIGHT_COLOUR + MAX_LIGHTS * 16
         private const val AO_PARAMS: Int = AO_MATRIX + 64
         private const val WATER: Int = AO_PARAMS + 16
-        const val SIZE: Int = WATER + 16
+        private const val DEBUG: Int = WATER + 16
+        const val SIZE: Int = DEBUG + 16
     }
 
     private var buffer: Int = 0
@@ -117,6 +118,9 @@ class HdFrameUniforms {
     }
 
     fun setLightCount(count: Int) = putInt4(LIGHT_INFO, count, 0, 0, 0)
+
+    /** The debug panel's overlay (HdDebugPanel.OVERLAYS), 0 for none. */
+    fun setDebug(overlay: Int) = putInt4(DEBUG, overlay, 0, 0, 0)
 
     /** Water's tint (HD_WATER): colour, w how strongly it replaces the game's water colour. */
     fun setWater(r: Float, g: Float, b: Float, strength: Float) = putVec4(WATER, r, g, b, strength)

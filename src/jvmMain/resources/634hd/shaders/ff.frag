@@ -34,6 +34,8 @@ uniform int uHdWater;
 uniform int uHdGround;
 // the slot of the texture's 634HD maps (HD_MATERIALS), -1 without
 uniform int uHdMapSlot;
+// the 634 texture id of unit 0 (the debug panel's texture overlay), -1 for none
+uniform int uHdTexture;
 // unit 0's coordinate, after parallax (main sets it before the texture stages)
 vec2 gUv0;
 // soft particles (HD_SOFT_PARTICLES): on, the scene's depth so far, the projection's depth terms
@@ -252,5 +254,5 @@ void main() {
     if (uFogEnabled) {
         color = hdFog(color, FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd);
     }
-    fragColor = color;
+    fragColor = hdDebugOverlay(color, FF_VIEW_POS, FF_NORMAL, uUseTexture[0] ? uHdTexture : -1);
 }
