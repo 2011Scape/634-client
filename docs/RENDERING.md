@@ -210,8 +210,13 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   reloaded when a file changes. `client.test.findText=locs:<regex>`, `locmodels:<regex>`, `npcs:` and
   `textures:` list or dump cache data for writing it; `client.test.hdDebug` prints loc ids near the
   player and texture use.
-- **Materials.** `tools/make_material_maps.py` derives map sets from the cache textures (dumped
-  with `client.test.findText=textures:`) into `634hd/materials/<texture>/` with a `recipe.txt` each,
+- **Materials.** `tools/make_material_maps.py` builds map sets from the cache textures (dumped
+  with `client.test.findText=textures:`) into `634hd/materials/<texture>/` with a `recipe.txt` each.
+  Fine relief comes from height maps made with `/generate` (nano-banana-2-lite, the cache texture
+  as the reference; output and sidecar in `~/Pictures/generations/634hd_height-<id>_*`, prompt in
+  `prompt.txt` and the sidecar in `generate.json` beside each set): their high frequencies over the
+  albedo's own shapes, normals then computed from that (plan rule 3), every height made to tile
+  (checked: no edge seam left in any of the 23). It
   and writes `materials.json`. `./gradlew compressMaterialMaps` (`tools/compress_material_maps.py`)
   precompresses them at build time - BC5 normals, BC7 (mode 6) packed maps with the height in alpha,
   BC7 emissive maps, every mip level - and `HdMaterialMaps` uploads those blocks as they are (23 sets,

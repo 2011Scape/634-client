@@ -137,7 +137,7 @@ Skip motion blur and depth of field.
 
 ## Phase 5: Material system and texture maps
 
-**Status (Oct 13, 2026): done with 23 derived map sets (5 MB; BC5/BC7 precompressed at build time by
+**Status (Oct 13, 2026): done with 23 map sets, fine height detail generated with /generate (5 MB; BC5/BC7 precompressed at build time by
 `./gradlew compressMaterialMaps`). Tangents come from screen-space derivatives, not per-face data. Materials off restores the
 Phase 4 look (harness unchanged).**
 
