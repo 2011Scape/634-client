@@ -194,6 +194,7 @@ void main() {
         discard;
     }
     color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
+    color.rgb *= hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);
     float depth = gl_FragCoord.z / gl_FragCoord.w;
     if (hdFaded(length(FF_VIEW_POS), gl_FragCoord.xy)) {
         discard;

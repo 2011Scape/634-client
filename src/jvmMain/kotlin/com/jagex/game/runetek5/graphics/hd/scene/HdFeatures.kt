@@ -89,6 +89,9 @@ class HdFeatures {
         if (this.shadows.active) {
             uniforms.setShadowMatrix(this.shadows.shadowMatrix)
         }
+        if (this.shadows.aoActive) {
+            uniforms.setAmbientOcclusion(this.shadows.aoMatrix, this.shadows.aoParams)
+        }
         uniforms.setFog(fog[0], fog[1], fog[2], fog[3], fog[4], fog[5], fog[6])
         uniforms.setSky(sky[0], sky[1], sky[2], sky[3], sky[4], sky[5])
         // locs fade over the last three tiles before the fog closes (HD_FADE)

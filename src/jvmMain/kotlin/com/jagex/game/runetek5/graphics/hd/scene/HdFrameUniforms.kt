@@ -46,7 +46,9 @@ class HdFrameUniforms {
         private const val LIGHT_INFO: Int = 288
         private const val LIGHT_POSITION: Int = 304
         private const val LIGHT_COLOUR: Int = LIGHT_POSITION + MAX_LIGHTS * 16
-        const val SIZE: Int = LIGHT_COLOUR + MAX_LIGHTS * 16
+        private const val AO_MATRIX: Int = LIGHT_COLOUR + MAX_LIGHTS * 16
+        private const val AO_PARAMS: Int = AO_MATRIX + 64
+        const val SIZE: Int = AO_PARAMS + 16
     }
 
     private var buffer: Int = 0
@@ -112,6 +114,12 @@ class HdFrameUniforms {
     }
 
     fun setLightCount(count: Int) = putInt4(LIGHT_INFO, count, 0, 0, 0)
+
+    /** The occlusion height map (HD_AO): world to (u, v, depth), and range, strength, uv per unit. */
+    fun setAmbientOcclusion(matrix: FloatArray, params: FloatArray) {
+        putMat4(AO_MATRIX, matrix)
+        putVec4(AO_PARAMS, params[0], params[1], params[2], params[3])
+    }
 
     /** Writes the flags and uploads the block; every program reading it sees this frame's values. */
     fun upload(shadowSize: Int) {

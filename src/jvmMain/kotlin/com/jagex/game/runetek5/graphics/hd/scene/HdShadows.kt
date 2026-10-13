@@ -8,6 +8,11 @@
  * shadow_scene.vert) and the models drawn the emulated way before that point - players, NPCs, animated
  * locs - whose draws HdGl records while [recording] (their buffers, element ranges and model-to-world),
  * replayed through shadow.vert. A model drawn before the map is made is not darkened by it.
+ *
+ * The same casters go into a second map with client.hd.ambientOcclusion: the heights of everything
+ * around the player seen from straight above (an occlusion height map). The shaders measure how much
+ * of the sky a fragment sees from it (hdAmbientOcclusion): darker at the foot of walls, under trees
+ * and overhangs. Nothing is computed per vertex, so it works on the ground and on moving models too.
  */
 package com.jagex.game.runetek5.graphics.hd.scene
 
@@ -25,6 +30,11 @@ class HdShadows {
     companion object {
         // past the units the retained scene (8-15) and the post passes use
         const val UNIT: Int = 16
+        const val AO_UNIT: Int = 17
+        /** The height map: its half side and resolution, and the height range it holds. */
+        private const val AO_HALF_EXTENT: Float = 24.0f * 512.0f
+        private const val AO_SIZE: Int = 1024
+        private const val AO_RANGE: Float = 16000.0f
         /** Half the side of the box the map covers, in scene units (512 a tile). */
         private const val HALF_EXTENT: Float = 26.0f * 512.0f
         /** How far towards the sun the light's eye sits, and the depth range beyond. */
@@ -32,9 +42,54 @@ class HdShadows {
         private const val MAX_CASTERS: Int = 4096
     }
 
-    private var size: Int = 0
-    private var texture: Int = 0
-    private var framebuffer: Int = 0
+    /** A depth map drawn from a matrix: the sun's, or the height map from above. */
+    private class DepthMap(val unit: Int, val compare: Boolean) {
+        var size: Int = 0
+        var texture: Int = 0
+        var framebuffer: Int = 0
+        var active: Boolean = false
+        /** World space to the map's clip space. */
+        val worldToClip: FloatArray = FloatArray(16)
+        /** Eye space to the map's clip space. */
+        val viewToClip: FloatArray = FloatArray(16)
+        val viewToClipBuffer: java.nio.FloatBuffer = org.lwjgl.BufferUtils.createFloatBuffer(16)
+
+        fun ensure(wanted: Int) {
+            if (size == wanted && texture != 0) return
+            release()
+            size = wanted
+            texture = GL33C.glGenTextures()
+            GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + unit)
+            GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, texture)
+            GL33C.glTexImage2D(GL33C.GL_TEXTURE_2D, 0, GL33C.GL_DEPTH_COMPONENT24, size, size, 0, GL33C.GL_DEPTH_COMPONENT, GL33C.GL_UNSIGNED_INT, null as ByteBuffer?)
+            GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_MIN_FILTER, GL33C.GL_LINEAR)
+            GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_MAG_FILTER, GL33C.GL_LINEAR)
+            GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_WRAP_S, GL33C.GL_CLAMP_TO_EDGE)
+            GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_WRAP_T, GL33C.GL_CLAMP_TO_EDGE)
+            if (compare) {
+                GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_COMPARE_MODE, GL33C.GL_COMPARE_REF_TO_TEXTURE)
+                GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_COMPARE_FUNC, GL33C.GL_LEQUAL)
+            }
+            GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + HdGl.state.activeTextureUnit)
+            val previous: Int = GL33C.glGetInteger(GL33C.GL_DRAW_FRAMEBUFFER_BINDING)
+            framebuffer = GL33C.glGenFramebuffers()
+            GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, framebuffer)
+            GL33C.glFramebufferTexture2D(GL33C.GL_DRAW_FRAMEBUFFER, GL33C.GL_DEPTH_ATTACHMENT, GL33C.GL_TEXTURE_2D, texture, 0)
+            GL33C.glDrawBuffer(GL33C.GL_NONE)
+            GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, previous)
+        }
+
+        fun release() {
+            if (texture != 0) GL33C.glDeleteTextures(texture)
+            if (framebuffer != 0) GL33C.glDeleteFramebuffers(framebuffer)
+            texture = 0
+            framebuffer = 0
+            size = 0
+        }
+    }
+
+    private val sun: DepthMap = DepthMap(UNIT, true)
+    private val heights: DepthMap = DepthMap(AO_UNIT, false)
     private var sceneProgram: WebGLProgram? = null
     private var dynamicProgram: WebGLProgram? = null
     private var uSceneMatrix: Int = -1
@@ -43,20 +98,23 @@ class HdShadows {
     /** Eye space to world space, this frame. */
     private val viewToWorld: FloatArray = FloatArray(16)
 
-    /** World space to the light's clip space, this frame. */
-    private val lightViewProjection: FloatArray = FloatArray(16)
-
-    /** Eye space to the light's clip space (lightViewProjection after viewToWorld). */
-    @JvmField
-    val viewToLight: FloatArray = FloatArray(16)
-
     /** Eye space to the shadow map's texture space, for the frame block. */
     @JvmField
     val shadowMatrix: FloatArray = FloatArray(16)
 
-    /** Whether the map is made this frame (a sun, shadows on). */
-    var active: Boolean = false
-        private set
+    /** Whether the sun's map is made this frame (a sun, shadows on). */
+    val active: Boolean get() = sun.active
+
+    /** Whether the height map is made this frame (ambient occlusion on). */
+    val aoActive: Boolean get() = heights.active
+
+    /** World space to the height map's texture space (u, v, depth), for the frame block. */
+    @JvmField
+    val aoMatrix: FloatArray = FloatArray(16)
+
+    /** The height map's parameters for the frame block: height range, strength, uv per scene unit. */
+    @JvmField
+    val aoParams: FloatArray = floatArrayOf(AO_RANGE, 0.55f, 1.0f / (AO_HALF_EXTENT * 2.0f), 0.0f)
 
     /** Whether HdGl records the opaque emulated draws as casters now. */
     @JvmField
@@ -128,12 +186,47 @@ class HdShadows {
         late.count = 0
         late.indices.clear()
         lateMode = false
-        active = false
+        sun.active = false
+        heights.active = false
         recording = false
-        if (HdSettings.shadows == 0 || !sunPresent) {
-            return
-        }
         val player = PlayerUpdate.localPlayer ?: return
+        System.arraycopy(viewToWorld, 0, this.viewToWorld, 0, 16)
+        if (HdSettings.ambientOcclusion) {
+            beginHeights(player.x.toFloat(), player.y.toFloat(), player.z.toFloat(), viewToWorld)
+        }
+        if (HdSettings.shadows != 0 && sunPresent) {
+            beginSun(player.x.toFloat(), player.y.toFloat(), player.z.toFloat(), viewToWorld, sunEye)
+        }
+        recording = sun.active || heights.active
+        if (recording) {
+            ensurePrograms()
+        }
+    }
+
+    /** The height map: straight down onto a square around the player; u along x, v along z, depth along y. */
+    private fun beginHeights(cx: Float, cy: Float, cz: Float, viewToWorld: FloatArray) {
+        heights.ensure(AO_SIZE)
+        val texel: Float = AO_HALF_EXTENT * 2.0f / AO_SIZE
+        val x0: Float = kotlin.math.floor((cx - AO_HALF_EXTENT) / texel) * texel
+        val z0: Float = kotlin.math.floor((cz - AO_HALF_EXTENT) / texel) * texel
+        val top: Float = cy - AO_RANGE * 0.5f
+        val w: Float = AO_HALF_EXTENT * 2.0f
+        // world to (u, v, depth) in 0..1, column-major
+        val toUvd: FloatArray = floatArrayOf(
+            1.0f / w, 0.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f / AO_RANGE, 0.0f,
+            0.0f, 1.0f / w, 0.0f, 0.0f,
+            -x0 / w, -z0 / w, -top / AO_RANGE, 1.0f,
+        )
+        System.arraycopy(toUvd, 0, aoMatrix, 0, 16)
+        // and to clip space for drawing it: 2 * uvd - 1
+        val toClip: FloatArray = Mat4.multiply(Mat4.multiply(Mat4.translate(-1.0f, -1.0f, -1.0f), Mat4.scale(2.0f, 2.0f, 2.0f)), toUvd)
+        System.arraycopy(toClip, 0, heights.worldToClip, 0, 16)
+        System.arraycopy(Mat4.multiply(toClip, viewToWorld), 0, heights.viewToClip, 0, 16)
+        heights.active = true
+    }
+
+    private fun beginSun(cx: Float, cy: Float, cz: Float, viewToWorld: FloatArray, sunEye: FloatArray) {
         // the direction towards the sun in world space
         var dx: Float = viewToWorld[0] * sunEye[0] + viewToWorld[4] * sunEye[1] + viewToWorld[8] * sunEye[2]
         var dy: Float = viewToWorld[1] * sunEye[0] + viewToWorld[5] * sunEye[1] + viewToWorld[9] * sunEye[2]
@@ -152,11 +245,9 @@ class HdShadows {
             dz *= scale
             dy = -0.42f
         }
-        ensure()
+        sun.ensure(HdSettings.shadows)
+        val size: Int = sun.size
         // the light's view: looking from the sun towards the player, y up as close to the world's as can be
-        val cx: Float = player.x.toFloat()
-        val cy: Float = player.y.toFloat()
-        val cz: Float = player.z.toFloat()
         val view: FloatArray = lookAt(cx + dx * DISTANCE, cy + dy * DISTANCE, cz + dz * DISTANCE, cx, cy, cz)
         // snap the centre to whole texels in light space, so the map does not shimmer as the player walks
         val texel: Float = HALF_EXTENT * 2.0f / size
@@ -167,13 +258,11 @@ class HdShadows {
         val projection: FloatArray = Mat4.ortho(-HALF_EXTENT.toDouble(), HALF_EXTENT.toDouble(), -HALF_EXTENT.toDouble(), HALF_EXTENT.toDouble(), 1.0, (DISTANCE * 2.0f).toDouble())
         // centred on the player's light-space position, rounded down to a whole texel
         val centred: FloatArray = Mat4.multiply(Mat4.translate(-(lx - sx), -(ly - sy), 0.0f), view)
-        System.arraycopy(Mat4.multiply(projection, centred), 0, lightViewProjection, 0, 16)
-        System.arraycopy(Mat4.multiply(lightViewProjection, viewToWorld), 0, viewToLight, 0, 16)
-        System.arraycopy(viewToWorld, 0, this.viewToWorld, 0, 16)
+        System.arraycopy(Mat4.multiply(projection, centred), 0, sun.worldToClip, 0, 16)
+        System.arraycopy(Mat4.multiply(sun.worldToClip, viewToWorld), 0, sun.viewToClip, 0, 16)
         val bias: FloatArray = Mat4.multiply(Mat4.translate(0.5f, 0.5f, 0.5f), Mat4.scale(0.5f, 0.5f, 0.5f))
-        System.arraycopy(Mat4.multiply(bias, viewToLight), 0, shadowMatrix, 0, 16)
-        active = true
-        recording = true
+        System.arraycopy(Mat4.multiply(bias, sun.viewToClip), 0, shadowMatrix, 0, 16)
+        sun.active = true
     }
 
     private fun lookAt(ex: Float, ey: Float, ez: Float, tx: Float, ty: Float, tz: Float): FloatArray {
@@ -249,9 +338,9 @@ class HdShadows {
     }
 
     /** Draws [list]'s casters from [from] on; their copied indices go up first (all of them, each time). */
-    private fun drawCasters(list: Casters, from: Int) {
+    private fun drawCasters(list: Casters, from: Int, map: DepthMap, upload: Boolean) {
         if (from >= list.count) return
-        if (list.indices.position() > 0) {
+        if (upload && list.indices.position() > 0) {
             if (list.indexBuffer == 0) list.indexBuffer = GL33C.glGenBuffers()
             GL33C.glBindBuffer(GL33C.GL_ELEMENT_ARRAY_BUFFER, list.indexBuffer)
             val bytes: Int = list.indices.position()
@@ -262,7 +351,7 @@ class HdShadows {
         }
         for (i in from until list.count) {
             for (k in 0 until 16) matrix[k] = list.modelView[i * 16 + k]
-            val m: FloatArray = Mat4.multiply(lightViewProjection, matrix)
+            val m: FloatArray = Mat4.multiply(map.worldToClip, matrix)
             matrixBuffer.clear()
             matrixBuffer.put(m).flip()
             GL33C.glUniformMatrix4fv(uDynamicMatrix, false, matrixBuffer)
@@ -273,28 +362,7 @@ class HdShadows {
         }
     }
 
-    private fun ensure() {
-        val wanted: Int = HdSettings.shadows
-        if (size == wanted && texture != 0) return
-        releaseMap()
-        size = wanted
-        texture = GL33C.glGenTextures()
-        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT)
-        GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, texture)
-        GL33C.glTexImage2D(GL33C.GL_TEXTURE_2D, 0, GL33C.GL_DEPTH_COMPONENT24, size, size, 0, GL33C.GL_DEPTH_COMPONENT, GL33C.GL_UNSIGNED_INT, null as ByteBuffer?)
-        GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_MIN_FILTER, GL33C.GL_LINEAR)
-        GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_MAG_FILTER, GL33C.GL_LINEAR)
-        GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_WRAP_S, GL33C.GL_CLAMP_TO_EDGE)
-        GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_WRAP_T, GL33C.GL_CLAMP_TO_EDGE)
-        GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_COMPARE_MODE, GL33C.GL_COMPARE_REF_TO_TEXTURE)
-        GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_COMPARE_FUNC, GL33C.GL_LEQUAL)
-        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + HdGl.state.activeTextureUnit)
-        val previous: Int = GL33C.glGetInteger(GL33C.GL_DRAW_FRAMEBUFFER_BINDING)
-        framebuffer = GL33C.glGenFramebuffers()
-        GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, framebuffer)
-        GL33C.glFramebufferTexture2D(GL33C.GL_DRAW_FRAMEBUFFER, GL33C.GL_DEPTH_ATTACHMENT, GL33C.GL_TEXTURE_2D, texture, 0)
-        GL33C.glDrawBuffer(GL33C.GL_NONE)
-        GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, previous)
+    private fun ensurePrograms() {
         if (sceneProgram == null) {
             sceneProgram = link("shadow_scene.vert")
             dynamicProgram = link("shadow.vert")
@@ -318,10 +386,10 @@ class HdShadows {
      * recorded casters. GL state the emulator relies on is put back; the map is left on UNIT.
      */
     fun render(scene: HdSceneRenderer) {
-        // the scene is drawn in a pass per level range: the first clears the map, later ones add to it
+        // the scene is drawn in a pass per level range: the first clears the maps, later ones add to them
         val first: Boolean = !rendered
         rendered = true
-        if (!active) {
+        if (!sun.active && !heights.active) {
             recording = false
             lastCasters = 0
             return
@@ -339,8 +407,6 @@ class HdShadows {
         val colourMask = ByteBuffer.allocateDirect(4)
         GL33C.glGetBooleanv(GL33C.GL_COLOR_WRITEMASK, colourMask)
         val elementBinding: Int = GL33C.glGetInteger(GL33C.GL_ELEMENT_ARRAY_BUFFER_BINDING)
-        GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, framebuffer)
-        GL33C.glViewport(0, 0, size, size)
         GL33C.glDisable(GL33C.GL_SCISSOR_TEST)
         GL33C.glDisable(GL33C.GL_BLEND)
         GL33C.glDisable(GL33C.GL_CULL_FACE)
@@ -348,35 +414,43 @@ class HdShadows {
         GL33C.glDepthFunc(GL33C.GL_LESS)
         GL33C.glDepthMask(true)
         GL33C.glColorMask(false, false, false, false)
-        if (first) {
-            GL33C.glClear(GL33C.GL_DEPTH_BUFFER_BIT)
+        var uploaded: Boolean = false
+        for (map in arrayOf(sun, heights)) {
+            if (!map.active) continue
+            GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, map.framebuffer)
+            GL33C.glViewport(0, 0, map.size, map.size)
+            if (first) {
+                GL33C.glClear(GL33C.GL_DEPTH_BUFFER_BIT)
+            }
+            if (map === sun) {
+                GL33C.glEnable(GL33C.GL_POLYGON_OFFSET_FILL)
+                GL33C.glPolygonOffset(1.5f, 3.0f)
+            } else {
+                GL33C.glDisable(GL33C.GL_POLYGON_OFFSET_FILL)
+            }
+            // the map texture must not be bound for sampling while it is drawn into
+            GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + map.unit)
+            GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, 0)
+
+            val program: WebGLProgram = sceneProgram!!
+            GL33C.glUseProgram(program.id)
+            map.viewToClipBuffer.clear()
+            map.viewToClipBuffer.put(map.viewToClip).flip()
+            GL33C.glUniformMatrix4fv(uSceneMatrix, false, map.viewToClipBuffer)
+            scene.drawShadowCasters(program)
+
+            GL33C.glUseProgram(dynamicProgram!!.id)
+            GL33C.glBindVertexArray(vao)
+            GL33C.glEnableVertexAttribArray(0)
+            drawCasters(casters, drawnCasters, map, !uploaded)
+            if (first) {
+                // last frame's translucent casters (kept in world space): a frame behind
+                drawCasters(previous, 0, map, !uploaded)
+            }
+            uploaded = true
         }
-        GL33C.glEnable(GL33C.GL_POLYGON_OFFSET_FILL)
-        GL33C.glPolygonOffset(1.5f, 3.0f)
-        // the map texture must not be bound for sampling while it is drawn into
-        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT)
-        GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, 0)
-
-        val program: WebGLProgram = sceneProgram!!
-        GL33C.glUseProgram(program.id)
-        matrixBuffer.clear()
-        matrixBuffer.put(viewToLight).flip()
-        GL33C.glUniformMatrix4fv(uSceneMatrix, false, matrixBuffer)
-        scene.drawShadowCasters(program)
-
-        GL33C.glUseProgram(dynamicProgram!!.id)
-        GL33C.glBindVertexArray(vao)
-        GL33C.glEnableVertexAttribArray(0)
-        drawCasters(casters, drawnCasters)
+        lastCasters = casters.count - drawnCasters + previous.count + scene.lastShadowObjects
         drawnCasters = casters.count
-        if (first) {
-            // last frame's translucent casters (kept in world space): a frame behind
-            drawCasters(previous, 0)
-        }
-        lastCasters = casters.count + previous.count + scene.lastShadowObjects
-        if (System.getProperty("client.test.hdDebug") != null && (debugFrame++ % 100) == 0) {
-            println("HDDEBUG shadows casters=" + casters.count + " late=" + previous.count + " retained=" + scene.lastShadowObjects + " missed=" + missed)
-        }
 
         GL33C.glDisable(GL33C.GL_POLYGON_OFFSET_FILL)
         GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, drawFramebuffer)
@@ -392,25 +466,22 @@ class HdShadows {
         GL33C.glBindVertexArray(state.vertexArray)
         GL33C.glBindBuffer(GL33C.GL_ARRAY_BUFFER, state.boundArrayBuffer?.id ?: 0)
         GL33C.glBindBuffer(GL33C.GL_ELEMENT_ARRAY_BUFFER, elementBinding)
-        // the map, for the receivers
-        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT)
-        GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, texture)
-        GL33C.glBindSampler(UNIT, 0)
+        // the maps, for the receivers
+        for (map in arrayOf(sun, heights)) {
+            if (!map.active) continue
+            GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + map.unit)
+            GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, map.texture)
+            GL33C.glBindSampler(map.unit, 0)
+        }
         GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + state.activeTextureUnit)
         state.invalidateProgramCache()
-        // what is drawn from here on (translucent entities) goes into the next frame's map
+        // what is drawn from here on (translucent entities) goes into the next frame's maps
         lateMode = true
     }
 
-    private fun releaseMap() {
-        if (texture != 0) GL33C.glDeleteTextures(texture)
-        if (framebuffer != 0) GL33C.glDeleteFramebuffers(framebuffer)
-        texture = 0
-        framebuffer = 0
-    }
-
     fun release() {
-        releaseMap()
+        sun.release()
+        heights.release()
         if (sceneProgram != null) GL33C.glDeleteProgram(sceneProgram!!.id)
         if (dynamicProgram != null) GL33C.glDeleteProgram(dynamicProgram!!.id)
         if (vao != 0) GL33C.glDeleteVertexArrays(vao)
@@ -421,6 +492,5 @@ class HdShadows {
         sceneProgram = null
         dynamicProgram = null
         vao = 0
-        size = 0
     }
 }
