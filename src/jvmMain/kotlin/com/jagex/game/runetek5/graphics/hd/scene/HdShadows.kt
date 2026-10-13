@@ -104,6 +104,7 @@ class HdShadows {
     private var bakedVersion: Int = -1
     private var framesSinceBake: Int = 1000
     private var bakeProgram: WebGLProgram? = null
+    private var bakeDepths: java.nio.FloatBuffer? = null
 
     /** World space to the baked map's (u, v, depth), for the frame block. */
     @JvmField
@@ -123,6 +124,7 @@ class HdShadows {
      */
     fun bake(scene: HdSceneRenderer) {
         framesSinceBake++
+        scene.stepVertexOcclusion(4000000L)
         if (!HdSettings.ambientOcclusion || scene.bakeVersion == bakedVersion || framesSinceBake < 20) return
         bakedVersion = scene.bakeVersion
         framesSinceBake = 0
@@ -175,6 +177,15 @@ class HdShadows {
         GL33C.glUniformMatrix4fv(GL33C.glGetUniformLocation(program.id, "uWorldToClip"), false, matrix)
         scene.drawAllForBake(program, 23)
         bakes++
+        // and into the retained vertices: the height map read back, each vertex's sky measured once
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + AO_BAKE_UNIT)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, baked.texture)
+        // one buffer, kept and reused: 16 MB of direct memory is not left to the garbage collector
+        if (bakeDepths == null) bakeDepths = org.lwjgl.system.MemoryUtil.memAllocFloat(BAKE_SIZE * BAKE_SIZE)
+        val depths: java.nio.FloatBuffer = bakeDepths!!
+        depths.clear()
+        GL33C.glGetTexImage(GL33C.GL_TEXTURE_2D, 0, GL33C.GL_DEPTH_COMPONENT, GL33C.GL_FLOAT, depths)
+        scene.bakeVertexOcclusion(depths, BAKE_SIZE, BAKE_TOP, BAKE_RANGE, BAKE_EXTENT)
         aoBakeParams[2] = 1.0f
         GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, drawFramebuffer)
         GL33C.glViewport(viewport[0], viewport[1], viewport[2], viewport[3])
@@ -602,6 +613,8 @@ class HdShadows {
         heights.release()
         baked.release()
         bakedVersion = -1
+        if (bakeDepths != null) org.lwjgl.system.MemoryUtil.memFree(bakeDepths)
+        bakeDepths = null
         if (bakeProgram != null) GL33C.glDeleteProgram(bakeProgram!!.id)
         bakeProgram = null
         if (sceneProgram != null) GL33C.glDeleteProgram(sceneProgram!!.id)

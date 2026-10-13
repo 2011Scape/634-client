@@ -12,6 +12,8 @@ layout(location = 2) in vec2 aTexCoord;
 layout(location = 3) in vec3 aNormal;
 layout(location = 4) in uint aMaterial;
 layout(location = 5) in uint aObject;
+// ambient occlusion baked into the vertex (HdSceneRenderer.bakeVertexOcclusion), 1 for open sky
+layout(location = 6) in float aOcclusion;
 
 // Per retained object: its slot in uObjects this frame, or -1 when the client did not draw it.
 uniform isamplerBuffer uObjectSlots;
@@ -40,6 +42,7 @@ out vec3 vEyeNormal;
 out vec3 vViewPos;
 flat out int vSlot;
 flat out int vLit;
+out float vOcclusion;
 
 // As in ff.vert: the same expression for the position keeps retained and emulated draws of the
 // same surface on identical depths.
@@ -47,6 +50,7 @@ invariant gl_Position;
 
 void main() {
     int slot = texelFetch(uObjectSlots, int(aObject)).r;
+    vOcclusion = aOcclusion;
     vMaterial = int(aMaterial);
     if (slot < 0) {
         gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
