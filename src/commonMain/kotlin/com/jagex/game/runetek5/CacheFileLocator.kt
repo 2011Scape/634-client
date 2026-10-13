@@ -1,6 +1,8 @@
 package com.jagex.game.runetek5
 
 import com.jagex.game.runetek5.core.io.FileCache
+import com.jagex.game.runetek5.systeminfo.SystemInfo
+import homeCacheOnly
 import io.File
 import io.RandomAccessFile
 import org.openrs2.deob.annotation.OriginalArg
@@ -23,7 +25,11 @@ class CacheFileLocator @OriginalMember(owner = "client!br", name = "<init>", des
 			if (file != null) {
 				return file
 			}
-			@Pc(50) val strings: Array<String?> = arrayOf("c:/rscache/", "/rscache/", "c:/windows/", "c:/winnt/", "c:/", FileCache.homeDirectory, "/tmp/", "")
+			@Pc(50) var strings: Array<String?> = arrayOf("c:/rscache/", "/rscache/", "c:/windows/", "c:/winnt/", "c:/", FileCache.homeDirectory, "/tmp/", "")
+			// Not part of the original client: away from Windows, only the home directory (homeCacheOnly).
+			if (homeCacheOnly && !SystemInfo.operatingSystemLowercase!!.startsWith("win")) {
+				strings = arrayOf(FileCache.homeDirectory)
+			}
 			@Pc(73) val strings2: Array<String?> = arrayOf(".jagex_cache_" + cacheId, ".file_store_" + cacheId)
 			for (@Pc(75) i in 0 until 2) {
 				for (@Pc(78) j in 0 until strings2.size) {

@@ -90,3 +90,5 @@ actual fun secureSeed(): Int {
         }
     }
 }
+
+actual val homeCacheOnly: Boolean = false

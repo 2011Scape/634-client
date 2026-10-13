@@ -48,3 +48,5 @@ actual fun turnElapsedMs(): Double = -1.0
 private val secureRandom: java.security.SecureRandom = java.security.SecureRandom()
 
 actual fun secureSeed(): Int = secureRandom.nextInt(99999999)
+
+actual val homeCacheOnly: Boolean = true

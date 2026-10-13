@@ -123,3 +123,11 @@ expect fun turnElapsedMs(): Double
  * source, so it cannot be predicted from earlier output of the shared generator.
  */
 expect fun secureSeed(): Int
+
+/*
+ * Not part of the original client: whether the cache is looked for only in the home directory on a
+ * system other than Windows. The original also tried /tmp/, /rscache/ and paths that are relative to
+ * the working directory there ("c:/rscache/"), which another user or a planted directory can supply,
+ * and the client loads native libraries from the cache. A browser's file system is the page's own.
+ */
+expect val homeCacheOnly: Boolean
