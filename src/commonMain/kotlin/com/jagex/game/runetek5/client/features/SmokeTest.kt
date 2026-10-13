@@ -32,6 +32,7 @@ import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
 import com.jagex.game.runetek5.client.window.WindowMode
 import com.jagex.game.runetek5.OverlayManager
 import com.jagex.game.runetek5.client.login.LoginManager
+import com.jagex.game.runetek5.client.login.LoginStep
 import com.jagex.game.runetek5.preference.GamePreferences
 import com.jagex.game.runetek5.client.ClientState
 import kotlin.jvm.JvmField
@@ -42,6 +43,10 @@ import lang.jClass
 import lang.javaSplit
 import lang.javaTrim
 import ClientCommandProcessor
+import ClientLogout
+import com.jagex.game.runetek5.Minimap
+import com.jagex.game.runetek5.scene.culling.Culling
+import com.jagex.game.runetek5.client.input.camera.Camera
 import MiniMenuActionExecutor
 import ModalInterfaceClose
 import SubInterfaceOpener
@@ -267,6 +272,59 @@ object SmokeTest {
 	/* The maximum screen size preference before benchMode=resizable lifted it, or -1. */
 	private var benchMaxScreenSize: Int = -1
 
+	/**
+	 * client.test.scenes: the screenshot harness, run instead of the checks. "default" takes
+	 * DEFAULT_SCENES; otherwise a list of name:x,y,level,yaw,pitch,zoom separated by ';'. For each
+	 * scene the player is teleported there (::tele, which needs an admin account), the map is built,
+	 * the camera is held at the given yaw (0-16383), pitch (1024-3072) and zoom offset, and after
+	 * client.test.sceneFrames frames (default 150) the frame is saved to build/smoke/scenes/ and
+	 * compared pixel by pixel with scene-<name>-toolkit<id>.png in client.test.reference.
+	 * client.test.sceneReferenceToolkit compares against another toolkit's references (634HD against
+	 * toolkit 1). A pixel differs when a channel is off by more than client.test.scenePixelTolerance
+	 * (default 24); a scene fails when more than client.test.sceneMaxDifferent pixels per thousand
+	 * (default 40) differ, and a diff image (differing pixels red over a dimmed frame) is saved. Two
+	 * runs of toolkit 1 differ by 3 to 29: moving NPCs and the player's idle animation.
+	 * After the list, the first scene is captured again after a map reload (teleport away and back)
+	 * and after a relog. The player is sent home (SCENE_HOME) at the end.
+	 */
+	private val SCENES: String = lang.getProperty("client.test.scenes", "")
+
+	private val SCENE_FRAMES: Int = lang.getInteger("client.test.sceneFrames", 150)
+
+	private val SCENE_REFERENCE_TOOLKIT: Int = lang.getInteger("client.test.sceneReferenceToolkit", -1)
+
+	private val SCENE_PIXEL_TOLERANCE: Int = lang.getInteger("client.test.scenePixelTolerance", 24)
+
+	private val SCENE_MAX_DIFFERENT: Int = lang.getInteger("client.test.sceneMaxDifferent", 40)
+
+	private const val SCENE_WAIT: Int = 600
+
+	/** Where smoketest starts, and must be left: the other references are taken there. */
+	private val SCENE_HOME: IntArray = intArrayOf(3094, 3107, 0)
+
+	private val DEFAULT_SCENES: String = "lumbridge:3222,3218,0,0,1400,0;" +
+		"varrock:3212,3428,0,2048,1400,0;" +
+		"grand_exchange:3164,3478,0,0,1600,0;" +
+		"falador_park:3007,3373,0,4096,1400,0;" +
+		"draynor_swamp:3108,3290,0,8192,1400,0;" +
+		"karamja_volcano:2852,3168,0,12288,1600,0;" +
+		"varrock_sewers:3237,9866,0,0,1400,0;" +
+		"cows:3256,3276,0,4096,1400,0;" +
+		"wizards_tower:3109,3162,0,0,1400,0"
+
+	private var sceneList: Array<String?>? = null
+
+	private var sceneIndex: Int = 0
+
+	/* 0 teleport, 1 wait to arrive, 2 settle and capture; 3 logged out for the relog. */
+	private var sceneStep: Int = 0
+
+	private var sceneFrame: Int = 0
+
+	private var sceneFailures: Int = 0
+
+	private var sceneSummary: String = ""
+
 	/** The checks done so far, one bit each in the order frame() runs them. */
 	private var checksDone: Int = 0
 
@@ -291,6 +349,10 @@ object SmokeTest {
 	private val START: Long = lang.currentTimeMillis()
 
 	private var loginSent: Boolean = false
+
+	private var loginTime: Long = 0L
+
+	private const val LOGIN_RETRY: Long = 8000L
 
 	private var highestStep: Int = 0
 
@@ -317,8 +379,11 @@ object SmokeTest {
 			highestStep = kotlin.math.max(highestStep, step)
 			println("SMOKE step " + step + " at " + elapsed() + "s")
 		}
-		if (ClientState.mainLogicStep === MainLogicStep.STEP_LOGIN_SCREEN && !loginSent) {
+		// after a relog the server may still hold the old session for a while and refuse ("already
+		// logged in"): try again every LOGIN_RETRY ms while the login screen is idle
+		if (ClientState.mainLogicStep === MainLogicStep.STEP_LOGIN_SCREEN && (!loginSent || sceneStep == 3 && lang.currentTimeMillis() - loginTime > LOGIN_RETRY && LoginManager.loginStep == LoginStep.IDLE)) {
 			loginSent = true
+			loginTime = lang.currentTimeMillis()
 			println("SMOKE logging in as " + USER)
 			LoginManager.lobbyLogin(USER, PASSWORD)
 		}
@@ -368,6 +433,10 @@ object SmokeTest {
 		}
 		if (BENCH > 0) {
 			bench()
+			return
+		}
+		if (SCENES.length > 0) {
+			scenes(player)
 			return
 		}
 		if (firstImage == null) {
@@ -586,6 +655,221 @@ object SmokeTest {
 		}
 		lang.flushOut()
 		lang.halt(0)
+	}
+
+	/**
+	 * The screenshot harness (client.test.scenes), a frame at a time: teleport, wait to arrive, hold
+	 * the camera, capture and compare; then the map reload and relog captures, then home and report.
+	 */
+	private fun scenes(player: PlayerEntity) {
+		if (sceneList == null) {
+			val parsed: Array<String> = (if (SCENES == "default") DEFAULT_SCENES else SCENES).javaSplit(";")
+			val list: Array<String?> = arrayOfNulls(parsed.size + 2)
+			for (i in 0 until parsed.size) {
+				list[i] = parsed[i].javaTrim()
+			}
+			// the first scene again, after a map reload (away and back) and after a relog
+			list[parsed.size] = "reload" + list[0]
+			list[parsed.size + 1] = "relog" + list[0]
+			sceneList = list
+			println("SMOKE scenes: " + parsed.size + " positions, then a map reload and a relog")
+		}
+		val list: Array<String?> = sceneList!!
+		if (sceneIndex >= list.size) {
+			if (!sceneArrived(player, SCENE_HOME[0], SCENE_HOME[1], SCENE_HOME[2])) {
+				if (sceneStep == 0) {
+					sendCommand("tele " + SCENE_HOME[0] + " " + SCENE_HOME[1] + " " + SCENE_HOME[2])
+					sceneStep = 1
+					sceneFrame = gameFrames
+				} else if (gameFrames - sceneFrame > SCENE_WAIT) {
+					fail("could not return home to " + SCENE_HOME[0] + "," + SCENE_HOME[1])
+				}
+				return
+			}
+			if (sceneFailures > 0) {
+				fail(sceneFailures.toString() + " of " + list.size + " scenes differ:" + sceneSummary)
+			}
+			passLine = "SMOKE PASS scenes on toolkit " + GamePreferences.uid!!.toolkit!!.getValue() + " after " + elapsed() + "s:" + sceneSummary
+			if (toolkitSwitched && startToolkit != TOOLKIT) {
+				println("SMOKE switching back to toolkit " + startToolkit)
+				switchToolkit(startToolkit)
+				restoreFrame = frames
+				return
+			}
+			println(passLine)
+			lang.flushOut()
+			lang.halt(0)
+			return
+		}
+		var entry: String = list[sceneIndex]!!
+		val reload: Boolean = entry.startsWith("reload")
+		val relog: Boolean = entry.startsWith("relog")
+		if (reload) {
+			entry = entry.substring(6)
+		} else if (relog) {
+			entry = entry.substring(5)
+		}
+		val colon: Int = entry.indexOf(':')
+		val name: String = entry.substring(0, colon) + (if (reload) "-reload" else if (relog) "-relog" else "")
+		val reference: String = entry.substring(0, colon)
+		val values: Array<String> = entry.substring(colon + 1).javaSplit(",")
+		val x: Int = values[0].javaTrim().toInt()
+		val y: Int = values[1].javaTrim().toInt()
+		val level: Int = if (values.size > 2) values[2].javaTrim().toInt() else 0
+		val yaw: Int = if (values.size > 3) values[3].javaTrim().toInt() else 0
+		val pitch: Int = if (values.size > 4) values[4].javaTrim().toInt() else 1400
+		val zoom: Int = if (values.size > 5) values[5].javaTrim().toInt() else 0
+		if (sceneStep == 0) {
+			if (reload && sceneArrived(player, x, y, level)) {
+				// already there: go away first, so coming back builds the map again
+				sendCommand("tele " + SCENE_HOME[0] + " " + SCENE_HOME[1] + " " + SCENE_HOME[2])
+				sceneFrame = gameFrames
+				sceneStep = 4
+				return
+			}
+			if (relog) {
+				println("SMOKE scene " + name + ": logging out")
+				loginSent = false
+				ClientLogout.logout(false)
+				sceneStep = 3
+				return
+			}
+			println("SMOKE scene " + name + ": teleporting to " + x + "," + y + "," + level)
+			sendCommand("tele " + x + " " + y + " " + level)
+			sceneStep = 1
+			sceneFrame = gameFrames
+			return
+		}
+		if (sceneStep == 4) {
+			if (sceneArrived(player, SCENE_HOME[0], SCENE_HOME[1], SCENE_HOME[2])) {
+				sendCommand("tele " + x + " " + y + " " + level)
+				println("SMOKE scene " + name + ": back to " + x + "," + y + "," + level)
+				sceneStep = 1
+				sceneFrame = gameFrames
+			} else if (gameFrames - sceneFrame > SCENE_WAIT) {
+				fail("scene " + name + ": could not teleport away")
+			}
+			return
+		}
+		if (sceneStep == 3) {
+			// back in game after the relog (frame() only runs in game)
+			println("SMOKE scene " + name + ": logged back in")
+			sceneStep = 1
+			sceneFrame = gameFrames
+		}
+		if (sceneStep == 1) {
+			if (!sceneArrived(player, x, y, level)) {
+				if (gameFrames - sceneFrame > SCENE_WAIT) {
+					fail("scene " + name + ": never arrived at " + x + "," + y + "," + level + " (at " + (player.movementBaseX[0] + MapRegion.sceneBaseX) + "," + (player.movementBaseY[0] + MapRegion.sceneBaseY) + ")")
+				}
+				return
+			}
+			sceneStep = 2
+			sceneFrame = gameFrames
+		}
+		// hold the camera where the scene asks, whatever the client's own camera logic does
+		Camera.camAngleY = yaw.toFloat()
+		Camera.camAngleX = pitch.toFloat()
+		Camera.cameraYawVelocity = 0.0f
+		Camera.cameraPitchVelocity = 0.0f
+		Camera.cameraRandomisationA = 0
+		Camera.cameraRandomisationV = 0
+		Camera.cameraRandomisationX = 0
+		Minimap.minimapRotation = 0
+		Minimap.minimapZoom = 0
+		ClientFeatures.zoomOffset = zoom
+		// the fps and memory text changes from run to run
+		Culling.wallCullingEnabled = false
+		if (gameFrames - sceneFrame < SCENE_FRAMES) {
+			return
+		}
+		val result: String = compareScene(name, reference)
+		sceneSummary += " " + result + ";"
+		println("SMOKE scene " + result)
+		sceneIndex++
+		sceneStep = 0
+	}
+
+	private fun sceneArrived(player: PlayerEntity, x: Int, y: Int, level: Int): Boolean {
+		return player.movementBaseX[0] + MapRegion.sceneBaseX == x && player.movementBaseY[0] + MapRegion.sceneBaseY == y && PlayerUpdate.currentLevel == level
+	}
+
+	/**
+	 * Saves the frame as scene-<name>-toolkit<id>.png and compares it with the reference pixel by
+	 * pixel, saving a diff image beside it when any pixel differs. Returns a summary.
+	 */
+	private fun compareScene(name: String, referenceName: String): String {
+		val toolkit: Toolkit = ClientState.activeToolkit!!
+		val size: IntArray = IntArray(2)
+		toolkit.accumulateViewportDimensions(size)
+		val width: Int = size[0]
+		val height: Int = size[1]
+		val pixels: IntArray = toolkit.na(0, 0, width, height)!!
+		val toolkitId: Int = GamePreferences.uid!!.toolkit!!.getValue()
+		val shot: BufferedImage = BufferedImage(width, height, awt.image.BUFFERED_IMAGE_TYPE_INT_RGB)
+		shot.setRGB(0, 0, width, height, pixels, 0, width)
+		val shotFile: File = File("build/smoke/scenes/scene-" + name + "-toolkit" + toolkitId + ".png")
+		try {
+			shotFile.getParentFile()!!.mkdirs()
+			writePng(shot, shotFile)
+		} catch (ex: Exception) {
+			fail("cannot save " + shotFile + ": " + ex)
+		}
+		if (spread(blocks(shot)) < 8.0) {
+			sceneFailures++
+			return name + " blank"
+		}
+		if (REFERENCE.length == 0) {
+			return name + " saved"
+		}
+		val referenceToolkit: Int = if (SCENE_REFERENCE_TOOLKIT >= 0) SCENE_REFERENCE_TOOLKIT else toolkitId
+		val referenceFile: File = File(REFERENCE, "scene-" + referenceName + "-toolkit" + referenceToolkit + ".png")
+		if (!referenceFile.isFile()) {
+			return name + " saved, no reference " + referenceFile.getName()
+		}
+		val expected: BufferedImage?
+		try {
+			expected = readImage(referenceFile)
+		} catch (ex: Exception) {
+			fail("cannot read " + referenceFile + ": " + ex)
+			return ""
+		}
+		if (expected!!.getWidth() != width || expected.getHeight() != height) {
+			sceneFailures++
+			return name + " size " + width + "x" + height + " but the reference is " + expected.getWidth() + "x" + expected.getHeight()
+		}
+		val diff: IntArray = IntArray(width * height)
+		var different: Int = 0
+		for (y in 0 until height) {
+			for (x in 0 until width) {
+				val a: Int = pixels[y * width + x]
+				val b: Int = expected.getRGB(x, y)
+				val dr: Int = kotlin.math.abs((a shr 16 and 0xFF) - (b shr 16 and 0xFF))
+				val dg: Int = kotlin.math.abs((a shr 8 and 0xFF) - (b shr 8 and 0xFF))
+				val db: Int = kotlin.math.abs((a and 0xFF) - (b and 0xFF))
+				if (dr > SCENE_PIXEL_TOLERANCE || dg > SCENE_PIXEL_TOLERANCE || db > SCENE_PIXEL_TOLERANCE) {
+					different++
+					diff[y * width + x] = 0xFF0000
+				} else {
+					diff[y * width + x] = (a shr 2) and 0x3F3F3F
+				}
+			}
+		}
+		val perMille: Int = (different.toLong() * 1000L / (width * height).toLong()).toInt()
+		if (different > 0) {
+			val diffImage: BufferedImage = BufferedImage(width, height, awt.image.BUFFERED_IMAGE_TYPE_INT_RGB)
+			diffImage.setRGB(0, 0, width, height, diff, 0, width)
+			try {
+				writePng(diffImage, File("build/smoke/scenes/scene-" + name + "-toolkit" + toolkitId + "-diff.png"))
+			} catch (ex: Exception) {
+				fail("cannot save the diff image: " + ex)
+			}
+		}
+		val ok: Boolean = perMille <= SCENE_MAX_DIFFERENT
+		if (!ok) {
+			sceneFailures++
+		}
+		return name + (if (ok) " ok " else " DIFFERS ") + perMille + "/1000 pixels against " + referenceFile.getName()
 	}
 
 	/**
