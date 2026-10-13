@@ -132,3 +132,10 @@ expect fun secureSeed(): Int
  * and the client loads native libraries from the cache. A browser's file system is the page's own.
  */
 expect val homeCacheOnly: Boolean
+
+/*
+ * 634HD (toolkit 6, ToolkitType.HD): a GL 3.3 core toolkit built on LWJGL, on the desktop only. The
+ * JVM makes it (graphics/hd/HdToolkit); a browser throws, which drops it back to toolkit 1 (OpenGL),
+ * as on a desktop whose driver has no 3.3 core context.
+ */
+expect fun createHdToolkit(multiSamples: Int, canvas: awt.Canvas?, textureSource: com.jagex.game.runetek5.config.material.MaterialProvider?): com.jagex.game.runetek5.graphics.Toolkit

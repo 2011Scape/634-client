@@ -27,6 +27,9 @@ object ToolkitFactory {
 			return GlxToolkit.createToolkit(canvas, textureSource, shaders, multiSamples)
 		} else if (toolkitType == ToolkitType.D3D) {
 			return D3DToolkitFactory.createD3DToolkit(multiSamples, textureSource, shaders, canvas)
+		} else if (toolkitType == ToolkitType.HD) {
+			// Not part of the original client: 634HD, on the desktop only (PlatformLoop.kt).
+			return createHdToolkit(multiSamples, canvas, textureSource)
 		} else {
 			throw IllegalArgumentException("UM")
 		}

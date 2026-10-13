@@ -24,6 +24,7 @@ import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.Js5TextureSource
 import com.jagex.game.runetek5.graphics.ifcomponent.InterfaceComponentRenderer
 import com.jagex.game.runetek5.preference.impl.ToolkitOption
+import com.jagex.game.runetek5.client.features.HdFallback
 import kotlin.jvm.JvmStatic
 
 object ActiveToolkitInit {
@@ -83,14 +84,23 @@ object ActiveToolkitInit {
 					}
 					return@label216
 				} catch (@Pc(175) ex2: Throwable) {
-					@Pc(180) val toolkitSetting: Int = GamePreferences.uid!!.toolkit!!.getValue()
-					if (toolkitSetting == 2) {
-						ToolkitOption.renderWithCpu = true
+					if (toolkitId == ToolkitType.HD) {
+						// Not part of the original client: 634HD falls back to OpenGL, and from there, as
+						// any toolkit does, to the Java toolkit; the player is told why (HdFallback).
+						HdFallback.failed(ex2)
+						GamePreferences.uid!!.setValue(GamePreferences.uid!!.toolkit, 0)
+						prepareForRendering(string, ToolkitType.GL, skipSettingsVerification)
+						var14 = false
+					} else {
+						@Pc(180) val toolkitSetting: Int = GamePreferences.uid!!.toolkit!!.getValue()
+						if (toolkitSetting == 2) {
+							ToolkitOption.renderWithCpu = true
+						}
+						GamePreferences.uid!!.setValue(GamePreferences.uid!!.toolkit, 0)
+						prepareForRendering(string, toolkitSetting, skipSettingsVerification)
+						@Pc(199) val obj: Any? = null
+						var14 = false
 					}
-					GamePreferences.uid!!.setValue(GamePreferences.uid!!.toolkit, 0)
-					prepareForRendering(string, toolkitSetting, skipSettingsVerification)
-					@Pc(199) val obj: Any? = null
-					var14 = false
 				} finally {
 					if (var14) {
 						font2 = null

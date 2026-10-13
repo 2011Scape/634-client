@@ -127,6 +127,14 @@ object ClientFeatures {
 	@JvmField
 	val SCALE: Double = kotlin.math.max(1.0, parseDouble(lang.getProperty("client.scale"), 1.0))
 
+	/**
+	 * client.toolkit: the toolkit to start on, by id (0 Java, 1 OpenGL, 2 native software, 3 DirectX,
+	 * 5 native OpenGL, 6 634HD) or name (java/safe, opengl, sse, directx, glx, hd); -1, the default,
+	 * keeps the saved choice. Forced Safe Mode (a crash on the last start) still wins.
+	 */
+	@JvmField
+	val TOOLKIT: Int = toolkit(lang.getProperty("client.toolkit"))
+
 	/** A host to connect to instead of the one the client works out itself, or null. */
 	@JvmField
 	val ADDRESS: String? = lang.getProperty("client.address")
@@ -149,6 +157,37 @@ object ClientFeatures {
 	/** The last wheel movement of this tick, kept apart because the console clears the shared one. */
 	@JvmField
 	var wheelDelta: Int = 0
+
+	private fun toolkit(value: String?): Int {
+		if (value == null || value.length == 0) {
+			return -1
+		}
+		val name: String = value.lowercase()
+		if (name == "java" || name == "safe" || name == "software") {
+			return 0
+		}
+		if (name == "opengl" || name == "gl") {
+			return 1
+		}
+		if (name == "sse") {
+			return 2
+		}
+		if (name == "directx" || name == "d3d") {
+			return 3
+		}
+		if (name == "glx" || name == "native") {
+			return 5
+		}
+		if (name == "hd" || name == "634hd") {
+			return 6
+		}
+		val id: Int = name.toIntOrNull() ?: -2
+		if (id == 4 || id < -1 || id > 6) {
+			lang.printlnErr("client.toolkit: unknown toolkit " + value + ", keeping the saved one")
+			return -1
+		}
+		return id
+	}
 
 	private fun server(value: String?): String {
 		if (value == null || value.equals("void", ignoreCase = true)) {
@@ -478,6 +517,8 @@ object ClientFeatures {
 		}
 		if (toolkit is GlToolkit) {
 			toolkit.dropSceneTarget()
+		} else if (toolkit is SceneTargetToolkit) {
+			toolkit.dropSceneTarget()
 		}
 		return "MSAA " + msaa + ", SMAA " + (if (smaa) "on" else "off") + ", render scale " + renderScale + "."
 	}
@@ -487,6 +528,8 @@ object ClientFeatures {
 	fun beginScene(toolkit: Toolkit?, x: Int, y: Int, width: Int, height: Int) {
 		if (AA_PIPELINE && toolkit is GlToolkit) {
 			toolkit.beginScene(x, y, width, height)
+		} else if (AA_PIPELINE && toolkit is SceneTargetToolkit) {
+			toolkit.beginScene(x, y, width, height)
 		}
 	}
 
@@ -494,6 +537,8 @@ object ClientFeatures {
 	@JvmStatic
 	fun endScene(toolkit: Toolkit?) {
 		if (AA_PIPELINE && toolkit is GlToolkit) {
+			toolkit.endScene()
+		} else if (AA_PIPELINE && toolkit is SceneTargetToolkit) {
 			toolkit.endScene()
 		}
 	}
@@ -513,7 +558,7 @@ object ClientFeatures {
 			return true
 		}
 		val name: String = toolkit.jClass.getName()
-		return name == "JavaToolkit" || name == "oa" || name == "com.jagex.game.runetek5.graphics.gl.GlToolkit" || name == "com.jagex.game.runetek5.toolkit.D3DToolkit"
+		return name == "JavaToolkit" || name == "oa" || name == "com.jagex.game.runetek5.graphics.gl.GlToolkit" || name == "com.jagex.game.runetek5.toolkit.D3DToolkit" || name == "com.jagex.game.runetek5.graphics.hd.HdToolkit"
 	}
 
 	/** Whether the scale is a whole number, so that a game pixel maps to a block of screen pixels. */

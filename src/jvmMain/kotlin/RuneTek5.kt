@@ -49,6 +49,7 @@ import java.util.regex.Pattern
  * --smaa                      OpenGL: smooth the 3D view's edges with SMAA 1x as well
  * --render-scale <x>          OpenGL: draw the 3D view x times larger and shrink it (1.0, 1.5, 2.0)
  * --no-a2c                    OpenGL: no alpha-to-coverage for cut-out textures
+ * --toolkit <name>            start on a toolkit: hd (634HD, OpenGL 3.3), opengl, java (Safe Mode), or an id
  * --dev                       --debug, --zoom and --console together
  * --dev-commands              the console commands that read or write local files (setoutput, runscript,
  *                             heapdump, ...); off by default
@@ -115,6 +116,7 @@ object RuneTek5 {
                 "--smaa" -> System.setProperty("client.smaa", "true")
                 "--render-scale" -> System.setProperty("client.renderScale", java.lang.Double.toString(java.lang.Double.parseDouble(value(args, ++i, arg))))
                 "--no-a2c" -> System.setProperty("client.a2c", "false")
+                "--toolkit" -> System.setProperty("client.toolkit", value(args, ++i, arg))
                 "--dev" -> {
                     System.setProperty("client.debug", "true")
                     System.setProperty("client.zoom", "true")
@@ -305,7 +307,7 @@ object RuneTek5 {
             usage: RuneTek5 [--address host] [--port port] [--keys game.properties]
                             [--login-modulus hex] [--js5-modulus hex] [--require-keys] [--server void|jagex] [--packets file]
                             [--world id] [--lang english|german]
-                            [--debug] [--[no-]zoom] [--render-distance x] [--fps n] [--scale x] [--msaa n] [--smaa] [--render-scale x] [--no-a2c] [--[no-]console] [--[no-]shift-drop] [--dev] [--dev-commands]
+                            [--debug] [--[no-]zoom] [--render-distance x] [--fps n] [--scale x] [--msaa n] [--smaa] [--render-scale x] [--no-a2c] [--toolkit hd|opengl|java] [--[no-]console] [--[no-]shift-drop] [--dev] [--dev-commands]
                             [--tile-markers] [--xp-drops] [--npc-labels] [--ground-items]""".trimIndent())
     }
 }
