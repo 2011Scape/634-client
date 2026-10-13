@@ -198,9 +198,17 @@ object HdGl {
     private var readFramebuffer: WebGLFramebuffer? = null
     private var drawFramebuffer: WebGLFramebuffer? = null
 
-    /** Window coordinates are the client's: the 2D interface scale is the toolkit's (FramebufferCompositor). */
-    internal const val drawScale: Int = 1
-    private const val readScale: Int = 1
+    /**
+     * 634HD's whole-number interface scale (HdSettings.interfaceScale): the window is [windowScale]
+     * times the client's size, and everything drawn to it - the interface pixel-snapped and sampled
+     * at texel centres (ImmediateModeEmulator), the 3D view at the window's own resolution - is
+     * scaled here. Off-screen framebuffers keep the client's units.
+     */
+    @JvmField
+    var windowScale: Int = 1
+
+    internal val drawScale: Int get() = if (drawFramebuffer == null) windowScale else 1
+    private val readScale: Int get() = if (readFramebuffer == null) windowScale else 1
 
     private fun applyViewport() {
         val n = drawScale
@@ -1013,9 +1021,43 @@ object HdGl {
         gl.copyTexSubImage2D(fixTarget(arg0), arg1, arg2, arg3, arg4, arg5, arg6, arg7)
     }
 
+    /** client.test.hdWideShot=<file.png>: a frame read at an interface scale, saved at the window's full size (debugging). */
+    fun wideShot(x: Int, y: Int, width: Int, height: Int) {
+        val path = System.getProperty("client.test.hdWideShot") ?: return
+        val n = readScale
+        if (n == 1 || width <= 0 || height <= 0) return
+        val w = width * n
+        val h = height * n
+        val pixels = IntArray(w * h)
+        val address = GlScratch.space(pixels.size * 4)
+        gl.readPixels(x * n, y * n, w, h, GL33C.GL_BGRA, GL33C.GL_UNSIGNED_BYTE, address)
+        GlScratch.readInts(pixels, 0, pixels.size)
+        val image = java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_RGB)
+        for (row in 0 until h) {
+            for (col in 0 until w) {
+                image.setRGB(col, row, pixels[(h - 1 - row) * w + col] and 0xFFFFFF)
+            }
+        }
+        javax.imageio.ImageIO.write(image, "png", java.io.File(path))
+    }
+
     fun glReadPixelsi(arg0: Int, arg1: Int, arg2: Int, arg3: Int, arg4: Int, arg5: Int, arg6: IntArray?, arg7: Int) {
         val out = arg6 ?: return
         if (arg2 <= 0 || arg3 <= 0) return
+        val n = readScale
+        if (n != 1) {
+            // the window is n times larger: read it all, keep one pixel of each n x n block
+            val wide = IntArray(arg2 * n * arg3 * n)
+            val address = GlScratch.space(wide.size * 4)
+            gl.readPixels(arg0 * n, arg1 * n, arg2 * n, arg3 * n, coreFormat(arg4), arg5, address)
+            GlScratch.readInts(wide, 0, wide.size)
+            for (y in 0 until arg3) {
+                for (x in 0 until arg2) {
+                    out[arg7 + y * arg2 + x] = wide[(y * n) * arg2 * n + x * n]
+                }
+            }
+            return
+        }
         val address = GlScratch.space(arg2 * arg3 * 4)
         gl.readPixels(arg0, arg1, arg2, arg3, coreFormat(arg4), arg5, address)
         GlScratch.readInts(out, arg7, arg2 * arg3)
