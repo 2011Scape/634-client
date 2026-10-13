@@ -157,6 +157,15 @@ tasks.register<JavaExec>("runClient") {
  * The release jar: everything the client needs in one runnable jar. The manifest opens java.lang the
  * way --add-opens does on the command line, so `java -jar` and a double click both work.
  */
+// 634HD's material maps: derived from dumped cache textures, then precompressed to BC5/BC7 for the
+// GPU. Run by hand after changing a map (the results are committed); needs python3 with Pillow and
+// NumPy. See tools/make_material_maps.py and tools/compress_material_maps.py.
+tasks.register<Exec>("compressMaterialMaps") {
+    group = "634hd"
+    description = "Precompresses src/jvmMain/resources/634hd/materials/*/ to BC5/BC7 (tools/compress_material_maps.py)."
+    commandLine("python3", "tools/compress_material_maps.py")
+}
+
 val releaseJar = tasks.register<Jar>("releaseJar") {
     group = "distribution"
     description = "Builds the runnable release jar that starts RuneTek5."
