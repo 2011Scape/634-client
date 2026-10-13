@@ -69,15 +69,94 @@ def blur(a, radius):
     return a
 
 
+GENERATED = os.path.expanduser('~/Pictures/generations')
+
+
+def wrap_resize(image, mode):
+    """Resizes a tiling image to SIZE x SIZE without edge seams: resampled as a 3x3 tiling, middle kept."""
+    w, h = image.size
+    tiled = Image.new(image.mode, (w * 3, h * 3))
+    for y in range(3):
+        for x in range(3):
+            tiled.paste(image, (x * w, y * h))
+    big = tiled.resize((SIZE * 3, SIZE * 3), mode)
+    return big.crop((SIZE, SIZE, SIZE * 2, SIZE * 2))
+
+
+def generated_height(texture):
+    """The newest /generate height map for [texture] (634hd_height-<id>_<time>.jpg|png), as a tiling
+    256x256 array in 0..1, with its prompt; (None, None) if there is none."""
+    if not os.path.isdir(GENERATED):
+        return None, None
+    names = sorted(f for f in os.listdir(GENERATED) if f.startswith('634hd_height-%d_' % texture) and f.endswith(('.png', '.jpg', '.jpeg')))
+    if not names:
+        return None, None
+    path = os.path.join(GENERATED, names[-1])
+    image = np.asarray(Image.open(path).convert('L').resize((SIZE, SIZE), Image.BICUBIC), dtype=np.float64) / 255.0
+    image = make_tiling(image)
+    sidecar = os.path.splitext(path)[0] + '.json'
+    prompt = json.load(open(sidecar)).get('prompt') if os.path.exists(sidecar) else None
+    if isinstance(prompt, dict):
+        prompt = prompt.get('prompt')
+    return image, (os.path.basename(path), prompt, sidecar if os.path.exists(sidecar) else None)
+
+
+def make_tiling(a):
+    """Removes edge seams: a cross-fade with the image shifted by half, weighted towards the shifted
+    copy near the edges (where it is continuous if the image's middle is) and the original in the
+    middle. A generated image may have a seam of its own down the middle, which the shift would move
+    to the edge: whichever of the two tiles better is kept."""
+    shifted = np.roll(np.roll(a, SIZE // 2, 0), SIZE // 2, 1)
+    t = np.abs(np.arange(SIZE) - (SIZE - 1) / 2.0) / (SIZE / 2.0)
+    w = np.clip((np.maximum(t[:, None], t[None, :]) - 0.6) / 0.4, 0, 1)
+    blended = a * (1 - w) + shifted * w
+    return blended if seam(blended) < seam(a) else a
+
+
+def fix_edges(a):
+    """Cancels the jump across both wraps with a smooth linear ramp (rows, then columns): the edges
+    then meet exactly, and nothing finer than the ramp changes."""
+    ramp = np.arange(SIZE) / (SIZE - 1.0) - 0.5
+    for _ in range(6):
+        # each pass disturbs the other direction's edges a little: a few passes settle both
+        jump = a[:, 0] - a[:, -1]
+        a = a + jump[:, None] * ramp[None, :]
+        jump = a[0, :] - a[-1, :]
+        a = a + jump[None, :] * ramp[:, None]
+    return a
+
+
+def seam(a):
+    """How visible the tiling seam is: the mean jump across the wrap, over the mean jump inside."""
+    across = (np.abs(a[:, 0] - a[:, -1]).mean() + np.abs(a[0, :] - a[-1, :]).mean()) / 2
+    inside = (np.abs(np.diff(a, axis=1)).mean() + np.abs(np.diff(a, axis=0)).mean()) / 2
+    return across / max(inside, 1e-6)
+
+
 def make(texture, name, cls):
     strength, soften, rough_base, rough_var, specular, parallax = CLASSES[cls]
     albedo = Image.open(os.path.join(SOURCE, '%d.png' % texture)).convert('RGB')
-    big = albedo.resize((SIZE, SIZE), Image.BICUBIC)
+    big = wrap_resize(albedo, Image.BICUBIC)
     rgb = np.asarray(big, dtype=np.float64) / 255.0
     lum = rgb @ np.array([0.299, 0.587, 0.114])
     height = blur(lum, soften)
     low, high = np.percentile(height, 2), np.percentile(height, 98)
     height = np.clip((height - low) / max(high - low, 1e-6), 0.0, 1.0)
+    # a /generate height map adds the fine relief: its high frequencies only, over the albedo's own
+    # shapes, so the stones and planks stay where the cache texture draws them
+    generated, source = generated_height(texture)
+    if generated is not None:
+        detail = generated - blur(generated, 8)
+        detail /= max(np.abs(detail).max(), 1e-6)
+        height = np.clip(height * 0.75 + 0.25 * (0.5 + detail * 0.5) + (detail * 0.15), 0.0, 1.0)
+        low, high = np.percentile(height, 2), np.percentile(height, 98)
+        height = np.clip((height - low) / max(high - low, 1e-6), 0.0, 1.0)
+        # where the cache texture tiles cleanly, the result must too (plan rule 4); where the cache
+        # texture has its own seam (board edges, a frame), the height keeps it, matching the colour
+        if seam(height) > max(1.5, seam(lum) * 1.2):
+            height = make_tiling(height)
+        # and the edges made to meet exactly (a low-frequency ramp, invisible inside the tile)
+        height = np.clip(fix_edges(height), 0.0, 1.0)
     # normals from the height field's slopes (Sobel, wrapping); y up in the texture is -v
     dx = (np.roll(height, -1, 1) - np.roll(height, 1, 1)) * 2 + (np.roll(np.roll(height, -1, 1), 1, 0) - np.roll(np.roll(height, 1, 1), 1, 0)) + (np.roll(np.roll(height, -1, 1), -1, 0) - np.roll(np.roll(height, 1, 1), -1, 0))
     dy = (np.roll(height, -1, 0) - np.roll(height, 1, 0)) * 2 + (np.roll(np.roll(height, -1, 0), 1, 1) - np.roll(np.roll(height, 1, 0), 1, 1)) + (np.roll(np.roll(height, -1, 0), -1, 1) - np.roll(np.roll(height, 1, 0), -1, 1))
@@ -99,6 +178,16 @@ def make(texture, name, cls):
     Image.fromarray((orm * 255 + 0.5).astype(np.uint8), 'RGB').save(os.path.join(OUT, str(texture), 'orm.png'))
     emissive = rgb * mask[..., None] * 1.2
     Image.fromarray((np.clip(emissive, 0, 1) * 255 + 0.5).astype(np.uint8), 'RGB').save(os.path.join(OUT, str(texture), 'emissive.png'))
+    if generated is not None:
+        name_, prompt, sidecar = source
+        with open(os.path.join(OUT, str(texture), 'prompt.txt'), 'w') as f:
+            f.write('Height detail generated with /generate (nano-banana-2-lite, Kie.ai), reference: the cache texture %d.\n' % texture)
+            f.write('Output: ~/Pictures/generations/%s (sidecar beside it).\n\nPrompt:\n%s\n' % (name_, prompt or '(see sidecar)'))
+            f.write('\nUsed as: high-pass (minus a 8-texel blur) over the albedo-derived height, made tileable by a half-offset cross-fade.\n')
+            f.write('Tiling seam (jump across the wrap / jump inside): %.2f\n' % seam(height))
+        if sidecar:
+            import shutil
+            shutil.copy(sidecar, os.path.join(OUT, str(texture), 'generate.json'))
     with open(os.path.join(OUT, str(texture), 'recipe.txt'), 'w') as f:
         f.write('Derived by tools/make_material_maps.py from cache texture %d (%s), class %s:\n' % (texture, name, cls))
         f.write('normal strength %.2f, height blur %.2f, roughness %.2f +- %.2f by brightness, specular %.2f, parallax %.3f.\n' % (strength, soften, rough_base, rough_var, specular, parallax))

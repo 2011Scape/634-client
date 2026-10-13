@@ -1,0 +1,27 @@
+{
+  "model": "nano-banana-2-lite",
+  "prompt": "Greyscale height map (displacement map) for a seamlessly tiling game texture: meadow grass. The reference image is the original 2010 RuneScape texture; follow its layout, scale and shapes exactly (the same stones, planks, cracks or ripples in the same places) so the height map lines up with it. White is raised, black is recessed. Add fine, believable surface relief in the hand-made RuneScape HD style. Square image, flat even lighting, no shading, no shadows, no colour, no text, no border; the left and right edges and the top and bottom edges must continue seamlessly when tiled.",
+  "refs": [
+    "/home/pixel/Pictures/generations/refs/634hd_tex276.png"
+  ],
+  "ref_urls": [
+    "https://tempfile.redpandaai.co/kieai/12068753/generate-refs/1791933827987-7jn2a7riumn.png"
+  ],
+  "params": {
+    "aspect_ratio": "1:1",
+    "image_urls": [
+      "https://tempfile.redpandaai.co/kieai/12068753/generate-refs/1791933827987-7jn2a7riumn.png"
+    ]
+  },
+  "taskId": "5f33c8880578df41d5d25bd6d79132ad",
+  "creditsConsumed": 4.0,
+  "costTimeMs": 21,
+  "resultUrls": [
+    "https://tempfile.aiquickdraw.com/vnp/5f33c8880578df41d5d25bd6d79132ad_0_1791933849.jpeg"
+  ],
+  "files": [
+    "634hd_height-276_1791933853.jpeg"
+  ],
+  "created": "2026-10-13T23:24:13+00:00",
+  "note": null
+}
