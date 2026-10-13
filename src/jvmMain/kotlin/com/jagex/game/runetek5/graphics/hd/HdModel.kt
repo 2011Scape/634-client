@@ -5,6 +5,7 @@
 package com.jagex.game.runetek5.graphics.hd
 
 import com.jagex.game.runetek5.client.features.RenderStats
+import com.jagex.game.runetek5.graphics.hd.scene.HdSceneRenderer
 
 import com.jagex.game.runetek5.graphics.model.Mesh
 import com.jagex.game.runetek5.graphics.model.Model
@@ -166,6 +167,19 @@ class HdModel : Model {
 	private var colorsBuffer: OpenGlArrayDrawBuffer? = null
 
 	private var modelElementsBuffer: ModelElementsBufferGL? = null
+
+	/** 634HD retained scene (HdSceneRenderer): this model's object there, or -1. */
+	@JvmField
+	var retainedObject: Int = -1
+
+	/** Per material batch, whether the retained scene draws it (the rest draw here). */
+	@JvmField
+	var retainedBatches: BooleanArray? = null
+
+	/** Material batches as built, kept for the retained scene (materialBatchOffsets may be released). */
+	private var sceneBatchOffsets: IntArray? = null
+
+	private var sceneBatchMaterials: IntArray? = null
 
 	constructor(glToolkit: HdToolkit?) : super() {
 		this.glToolkit = glToolkit
@@ -686,6 +700,16 @@ class HdModel : Model {
 			}
 		}
 		this.materialBatchOffsets!![batchCount] = this.renderedFaceCount
+		this.sceneBatchOffsets = this.materialBatchOffsets
+		val sceneMaterials: IntArray = IntArray(batchCount)
+		for (i in 0 until batchCount) {
+			var material: Int = this.facesMaterial!![this.materialBatchOffsets!![i]].toInt() and 0xFFFF
+			if (material == 65535) {
+				material = -1
+			}
+			sceneMaterials[i] = material
+		}
+		this.sceneBatchMaterials = sceneMaterials
 		HdModel.normalsUid = null
 		this.normalsX = ArrayUtils.method9229(this.normalsX, this.numNormals)
 		this.normalsY = ArrayUtils.method9229(this.normalsY, this.numNormals)
@@ -780,7 +804,11 @@ class HdModel : Model {
 				this.glToolkit!!.setLightingEnabled(this.normalsBuffer != null)
 				this.glToolkit.toggleDrawingClientstates(this.vertexBuffer, this.colorsBuffer, this.textureCoordinatesBuffer, this.normalsBuffer)
 				val batchCount: Int = this.materialBatchOffsets!!.size - 1
+				val retained: BooleanArray? = if (this.retainedObject >= 0 && this.glToolkit.sceneRetained()) this.retainedBatches else null
 				for (i in 0 until batchCount) {
+					if (retained != null && retained[i]) {
+						continue
+					}
 					val start: Int = this.materialBatchOffsets!![i]
 					val end: Int = this.materialBatchOffsets!![i + 1]
 					var materialId: Int = this.facesMaterial!![start].toInt() and 0xFFFF
@@ -1816,6 +1844,10 @@ class HdModel : Model {
 		glModel.triangles = this.triangles
 		glModel.effectiveVertices = this.effectiveVertices
 		glModel.materialBatchOffsets = this.materialBatchOffsets
+		glModel.sceneBatchOffsets = this.sceneBatchOffsets
+		glModel.sceneBatchMaterials = this.sceneBatchMaterials
+		glModel.retainedObject = -1
+		glModel.retainedBatches = null
 		if (this.boundsCalculated) {
 			glModel.minX = this.minX
 			glModel.size3d = this.size3d
@@ -2072,6 +2104,24 @@ class HdModel : Model {
 		for (i in 0 until this.numFaces) {
 			if (this.facesMaterial!![i] == src) {
 				this.facesMaterial!![i] = dst
+			}
+		}
+		// 634HD retained scene: the batches' materials follow (a copy: copies of a model share the array)
+		val sceneMaterials: IntArray? = this.sceneBatchMaterials
+		if (sceneMaterials != null) {
+			val from: Int = if ((src.toInt() and 0xFFFF) == 65535) -1 else src.toInt() and 0xFFFF
+			val to: Int = if ((dst.toInt() and 0xFFFF) == 65535) -1 else dst.toInt() and 0xFFFF
+			var changed: IntArray? = null
+			for (i in 0 until sceneMaterials.size) {
+				if (sceneMaterials[i] == from) {
+					if (changed == null) {
+						changed = sceneMaterials.copyOf()
+					}
+					changed[i] = to
+				}
+			}
+			if (changed != null) {
+				this.sceneBatchMaterials = changed
 			}
 		}
 		var alpha: Byte = 0
@@ -2429,6 +2479,12 @@ class HdModel : Model {
 		if (this.numNormals == 0) {
 			return
 		}
+		val capturing: HdSceneRenderer? = HdSceneRenderer.capturing
+		if (capturing != null) {
+			// 634HD retained scene: a static entity drawn once at build time, to learn its model
+			capturing.capture(this)
+			return
+		}
 		val viewMatrix: Matrix43 = this.glToolkit!!.viewMatrix43
 		if (!this.boundsCalculated) {
 			this.calculateBounds()
@@ -2545,12 +2601,45 @@ class HdModel : Model {
 			}
 		}
 		this.glToolkit.setupMatrixRendering()
+		val retained: BooleanArray? = this.retainedBatches
+		if (retained != null && this.retainedObject >= 0 && this.glToolkit.sceneRetained()) {
+			// 634HD retained scene: the batches it holds draw with it after the opaque entities
+			this.glToolkit.sceneRenderer.markVisible(this.retainedObject, modelMatrix.getColumnMajor(), this.normalsBuffer != null)
+		}
 		this.glToolkit.multiMatrix(modelMatrix)
 		RenderStats.category = RenderStats.CATEGORY_MODEL
 		this.drawOpaqueFaces()
 		RenderStats.category = RenderStats.CATEGORY_OTHER
 		this.glToolkit.popMatrix()
 		this.renderBillboards()
+	}
+
+	/**
+	 * 634HD retained scene: makes sure the model's buffers are uploaded and hands them to [scene] as
+	 * object [objectId]. False when no batch of it can be retained.
+	 */
+	fun exportForScene(scene: HdSceneRenderer, objectId: Int): Boolean {
+		val offsets: IntArray = this.sceneBatchOffsets ?: return false
+		val materials: IntArray = this.sceneBatchMaterials ?: return false
+		if (this.renderedFaceCount == 0 || this.numNormals == 0) {
+			return false
+		}
+		if (this.renderState.toInt() != 0) {
+			this.upload(true)
+		}
+		this.upload(false)
+		val elements: ModelElementsBufferGL = this.modelElementsBuffer ?: return false
+		if (elements.openglElementsBuffer == null) {
+			this.buildElementsBuffer((this.renderState.toInt() and 0x10) != 0)
+		}
+		val elementBuffer: ElementsBufferGL = elements.openglElementsBuffer ?: return false
+		val positions: OpenGlArrayDrawBuffer = this.vertexBuffer ?: return false
+		val colours: OpenGlArrayDrawBuffer = this.colorsBuffer ?: return false
+		val taken: BooleanArray = scene.appendModel(objectId, this.numNormals, positions, colours, this.normalsBuffer, this.textureCoordinatesBuffer, elementBuffer, this.renderedFaceCount, offsets, materials) ?: return false
+		this.retainedObject = objectId
+		this.retainedBatches = taken
+		this.releaseUploadedData()
+		return true
 	}
 
 	override fun WA(): Int {

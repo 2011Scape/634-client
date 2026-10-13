@@ -67,6 +67,9 @@ class GlState(val gl: WebGL2RenderingContext) {
     val glObjects = LongHandleTable<ShaderOrProgram>()
     internal val arbPrograms = IntHandleTable<ArbProgramRuntime>()
 
+    /** The vertex array the emulator draws with (HdGl.createState); other renderers bind it back. */
+    var vertexArray: Int = 0
+
     val matrixStack = MatrixStack()
     val displayLists = DisplayListManager()
     lateinit var immediateMode: ImmediateModeEmulator

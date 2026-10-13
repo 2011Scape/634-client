@@ -736,7 +736,7 @@ object SmokeTest {
 		println("SMOKE BENCH toolkit=" + GamePreferences.uid!!.toolkit!!.getValue() + " size=" + size + " mode=" + WindowMode.getWindowMode() + " frames=" + BENCH
 			+ " avg=" + format(average) + "ms p50=" + format(times[BENCH / 2]) + "ms p95=" + format(times[kotlin.math.min(BENCH - 1, BENCH * 95 / 100)]) + "ms"
 			+ " fps=" + format(1000.0 / average) + workLine + " ticks/frame=" + format(benchTicks.toDouble() / BENCH.toDouble())
-			+ (if (benchDrawCalls > 0L) " drawCalls=" + (benchDrawCalls / BENCH.toLong()) + " (models " + (benchCategories[1] / BENCH.toLong()) + ", ground " + (benchCategories[2] / BENCH.toLong()) + ", other " + (benchCategories[0] / BENCH.toLong()) + ") triangles=" + (benchTriangles / BENCH.toLong()) else ""))
+			+ (if (benchDrawCalls > 0L) " drawCalls=" + (benchDrawCalls / BENCH.toLong()) + " (models " + (benchCategories[1] / BENCH.toLong()) + ", ground " + (benchCategories[2] / BENCH.toLong()) + ", other " + (benchCategories[0] / BENCH.toLong()) + ") triangles=" + (benchTriangles / BENCH.toLong()) + " regionHitch=" + RenderStats.lastRegionUploadMs + "ms regionBuild=" + RenderStats.lastRegionBuildMs + "ms chunkRebuilds=" + RenderStats.chunkRebuilds else ""))
 		if (benchMaxScreenSize >= 0) {
 			GamePreferences.uid!!.setValue(GamePreferences.uid!!.maxScreenSize, benchMaxScreenSize)
 			GamePreferences.savePreferences()

@@ -332,6 +332,8 @@ object MapBuildStep {
 		SoundEffectPlayer.updatePlayers()
 		GameShell.resetDrawCache()
 		Scene.staticSceneDirty = true
+		// Not part of the original client: a toolkit that keeps the scene on the GPU builds it now (634HD).
+		Scene.toolkit?.sceneBuilt()
 		if (MapBuildStep.rebuildProfile) {
 			Console.printToConsole("Took: " + (Utils.currentTimeMillis() - MapRegion.debugRegionLoadTimeStart) + "ms")
 			MapBuildStep.rebuildProfile = false

@@ -246,6 +246,33 @@ object CoreGl {
     fun uniformMatrix3fv(location: WebGLUniformLocation?, transpose: Boolean, value: FloatArray) = GL33C.glUniformMatrix3fv(location ?: -1, transpose, value)
     fun uniformMatrix4fv(location: WebGLUniformLocation?, transpose: Boolean, value: FloatArray) = GL33C.glUniformMatrix4fv(location ?: -1, transpose, value)
 
+    // ---- scene renderer (634HD's own GL objects, beside the emulator's) ----
+
+    /** Reads [size] bytes of buffer [name] (a GL name) into [out], through GL_COPY_READ_BUFFER so no emulated binding changes. */
+    fun readBuffer(name: Int, offset: Long, size: Int, out: java.nio.ByteBuffer) {
+        GL33C.glBindBuffer(GL33C.GL_COPY_READ_BUFFER, name)
+        out.clear()
+        out.limit(size)
+        GL33C.glGetBufferSubData(GL33C.GL_COPY_READ_BUFFER, offset, out)
+        GL33C.glBindBuffer(GL33C.GL_COPY_READ_BUFFER, 0)
+    }
+
+    /** The real GL name behind an emulated buffer handle, or 0. */
+    fun bufferName(handle: Int): Int = HdGl.state.buffers[handle]?.id ?: 0
+
+    /** The real GL name behind an emulated texture handle, or 0. */
+    fun textureName(handle: Int): Int = HdGl.state.textures[handle]?.id ?: 0
+
+    fun vertexAttribIPointer(index: Int, size: Int, type: Int, stride: Int, offset: Long) =
+        GL33C.glVertexAttribIPointer(index, size, type, stride, offset)
+
+    fun multiDrawElements(mode: Int, counts: java.nio.IntBuffer, type: Int, offsets: org.lwjgl.PointerBuffer, triangles: Int) {
+        RenderStats.drawCalls++
+        RenderStats.categoryDrawCalls[RenderStats.category]++
+        RenderStats.triangles += triangles
+        GL33C.glMultiDrawElements(mode, counts, type, offsets)
+    }
+
     // ---- vertex arrays ----
 
     fun createVertexArray(): Int = GL33C.glGenVertexArrays()

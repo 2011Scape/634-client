@@ -454,4 +454,25 @@ abstract class Toolkit {
 
 	@OriginalMember(owner = "client!ha", name = "a", descriptor = "([IIIIIZ)Lclient!mi;")
 	abstract fun createNativeSprite(@OriginalArg(0) pixels: IntArray?, @OriginalArg(2) rowLength: Int, @OriginalArg(3) width: Int, @OriginalArg(4) height: Int, @OriginalArg(5) copyPixels: Boolean): NativeSprite?
+
+	/*
+	 * Not part of the original client: hooks for a toolkit that keeps the scene on the GPU (634HD).
+	 * The others ignore them.
+	 */
+
+	/** A region's scene is built (MapBuildStep.loadRegion, after shading). */
+	open fun sceneBuilt() {
+	}
+
+	/** A loc was added to, removed from or moved on tile ([x], [z]) of [level] after the build. */
+	open fun sceneChanged(level: Int, x: Int, z: Int) {
+	}
+
+	/** SceneDrawer has drawn the opaque entities of a pass, before the ground. */
+	open fun opaqueEntitiesDone() {
+	}
+
+	/** SceneDrawer has drawn the transparent entities of a pass. */
+	open fun transparentEntitiesDone() {
+	}
 }
