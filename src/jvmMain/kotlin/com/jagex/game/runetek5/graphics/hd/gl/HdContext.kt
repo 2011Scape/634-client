@@ -105,6 +105,7 @@ class HdContext {
     }
 
     fun swapBuffers() {
+        if (state != null) HdGl.flushImmediate()
         RenderStats.frameEnded()
         context?.swapBuffers()
     }

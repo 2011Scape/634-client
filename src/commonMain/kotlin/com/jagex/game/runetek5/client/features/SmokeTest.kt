@@ -1213,7 +1213,9 @@ object SmokeTest {
 		val shotContrast: DoubleArray = contrast(shot)
 		var n: Int = 1
 		while (true) {
-			val candidate: File = File(REFERENCE, "smoke-toolkit" + toolkitId + suffix + (if (n == 1) "" else "." + n) + ".png")
+			// client.test.sceneReferenceToolkit: another toolkit's references (634HD against OpenGL's)
+			val referenceToolkit: Int = if (SCENE_REFERENCE_TOOLKIT >= 0) SCENE_REFERENCE_TOOLKIT else toolkitId
+			val candidate: File = File(REFERENCE, "smoke-toolkit" + referenceToolkit + suffix + (if (n == 1) "" else "." + n) + ".png")
 			if (!candidate.isFile()) {
 				break
 			}
@@ -1234,7 +1236,7 @@ object SmokeTest {
 			n++
 		}
 		if (reference == null) {
-			return summary + ", no reference at " + File(REFERENCE, "smoke-toolkit" + toolkitId + suffix + ".png")
+			return summary + ", no reference at " + File(REFERENCE, "smoke-toolkit" + (if (SCENE_REFERENCE_TOOLKIT >= 0) SCENE_REFERENCE_TOOLKIT else toolkitId) + suffix + ".png")
 		}
 		if (difference > TOLERANCE || detailDifference > DETAIL_TOLERANCE) {
 			fail("the frame differs from its closest reference, " + reference + ": colour by " + format(difference) + " (at most " + TOLERANCE + "), detail by " + format(detailDifference) + " (at most " + DETAIL_TOLERANCE + "); " + summary + ", saved to " + shotPath)

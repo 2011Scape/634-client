@@ -107,16 +107,112 @@ class ImmediateModeEmulator(private val gl: WebGL2RenderingContext, private val 
         vertexCount = 0
         vertexFloatCount = 0
         if (count == 0) return
+        if (canBatch(mode)) {
+            if (CoreGl.pendingImmediate && pendingMode == mode && snapshot.matches(state)) {
+                append(count)
+                return
+            }
+            if (CoreGl.pendingImmediate) flushPending()
+            snapshot.save(state)
+            pendingMode = mode
+            pendingCount = 0
+            pendingFloatCount = 0
+            append(count)
+            CoreGl.pendingImmediate = pendingCount > 0
+            return
+        }
+        drawNow(vertices, count, floatCount, mode)
+    }
 
-        var source = vertices
+    // ---- 634HD: consecutive immediate-mode draws in the same state are one draw ----
+    //
+    // Text (a draw per glyph), fills and runs of sprites from one texture are drawn by the client as
+    // separate glBegin/glEnd batches, each its own draw. A batch that is unlit and unprogrammed is
+    // kept, its vertices taken to eye space on the CPU (so glyphs placed with glTranslatef can join),
+    // and the next such batch in the same fragment state is appended to it. The batch is drawn, with
+    // the state it was made in, before anything else reaches GL (CoreGl.beforeGl) or a projection or
+    // texture matrix changes (HdGl).
+
+    private var pendingVertices = FloatArray(INITIAL_VERTEX_CAPACITY)
+    private var pendingFloatCount = 0
+    private var pendingCount = 0
+    private var pendingMode = 0
+    private val snapshot = FragmentStateSnapshot()
+    private var flushing = false
+
+    private fun canBatch(mode: Int): Boolean {
+        if (mode != GL_QUADS && mode != WebGL2RenderingContext.TRIANGLES) return false
+        if (state.boundProgramObj != null || state.vertexProgramEnabled || state.lightingEnabled) return false
+        if (HdGl.drawScale != 1 || state.displayLists.isRecording) return false
+        for (unit in 0 until 3) {
+            val gen = state.texGenEnabled[unit]
+            if (gen[0] || gen[1] || gen[2] || gen[3]) return false
+        }
+        val m = state.matrixStack.modelview()
+        return m[3] == 0f && m[7] == 0f && m[11] == 0f && m[15] == 1f
+    }
+
+    /** Appends the batch just ended, positions in eye space. Quads that are not whole are dropped, as GL does. */
+    private fun append(count: Int) {
+        val whole = if (pendingMode == GL_QUADS) count / 4 * 4 else count / 3 * 3
+        if (whole == 0) return
+        val needed = pendingFloatCount + whole * FLOATS_PER_VERTEX
+        if (needed > pendingVertices.size) {
+            var size = pendingVertices.size * 2
+            while (size < needed) size *= 2
+            pendingVertices = pendingVertices.copyOf(size)
+        }
+        val m = state.matrixStack.modelview()
+        System.arraycopy(vertices, 0, pendingVertices, pendingFloatCount, whole * FLOATS_PER_VERTEX)
+        var at = pendingFloatCount
+        for (v in 0 until whole) {
+            val x = pendingVertices[at]
+            val y = pendingVertices[at + 1]
+            val z = pendingVertices[at + 2]
+            pendingVertices[at] = m[0] * x + m[4] * y + m[8] * z + m[12]
+            pendingVertices[at + 1] = m[1] * x + m[5] * y + m[9] * z + m[13]
+            pendingVertices[at + 2] = m[2] * x + m[6] * y + m[10] * z + m[14]
+            at += FLOATS_PER_VERTEX
+        }
+        pendingFloatCount = at
+        pendingCount += whole
+    }
+
+    /** Draws the pending batch, in the fragment state and with the matrices it was made with. */
+    fun flushPending() {
+        if (!CoreGl.pendingImmediate || flushing) return
+        flushing = true
+        CoreGl.pendingImmediate = false
+        snapshot.swap(state)
+        val stack = state.matrixStack
+        val mode = stack.mode
+        stack.mode = GL_MODELVIEW
+        stack.push()
+        stack.loadIdentity()
+        try {
+            drawNow(pendingVertices, pendingCount, pendingFloatCount, pendingMode)
+        } finally {
+            stack.mode = GL_MODELVIEW
+            stack.pop()
+            stack.mode = mode
+            snapshot.swap(state)
+            pendingCount = 0
+            pendingFloatCount = 0
+            flushing = false
+        }
+    }
+
+    /** Draws [count] vertices of [vertexData] as [mode], as glEnd did. */
+    private fun drawNow(vertexData: FloatArray, count: Int, floatCount: Int, mode: Int) {
+        var source = vertexData
         var drawCount = count
         var drawFloatCount = floatCount
         var drawMode = if (mode == GL_POLYGON) WebGL2RenderingContext.TRIANGLE_FAN else mode
         var disableCull = false
         val scaled = HdGl.drawScale > 1 && loadWindowTransform()
         val isLines = mode == GL_LINES || mode == GL_LINE_LOOP || mode == GL_LINE_STRIP
-        if (scaled && mode == GL_QUADS) snapToPixelGrid(count)
-        if (scaled && isLines) {
+        if (scaled && mode == GL_QUADS && source === vertices) snapToPixelGrid(count)
+        if (scaled && isLines && source === vertices) {
             val expanded = expandLines(count)
             if (expanded == 0) return
             if (expanded > 0) {
@@ -392,5 +488,131 @@ class ImmediateModeEmulator(private val gl: WebGL2RenderingContext, private val 
         var newSize = vertices.size * 2
         while (newSize < required) newSize *= 2
         vertices = vertices.copyOf(newSize)
+    }
+}
+
+/**
+ * Not part of the browser's emulator: the fixed-function fragment state a pending immediate-mode
+ * batch was made in (ImmediateModeEmulator), compared with the state of the next batch and swapped
+ * into GlState while the batch draws.
+ */
+internal class FragmentStateSnapshot {
+    private val ints = IntArray(3 * 16 + 1)
+    private val floats = FloatArray(3 * 6 + 7)
+    private val flags = BooleanArray(3 + 2)
+    private val textures = arrayOfNulls<WebGLTexture>(9)
+    private var projectionVersion = -1
+    private val textureVersions = IntArray(3)
+
+    private fun unitInts(state: GlState, unit: Int, out: IntArray, at: Int) {
+        out[at] = state.textureTarget[unit]
+        out[at + 1] = state.combineRgb[unit]
+        out[at + 2] = state.combineAlpha[unit]
+        out[at + 3] = state.source0Rgb[unit]
+        out[at + 4] = state.source1Rgb[unit]
+        out[at + 5] = state.source2Rgb[unit]
+        out[at + 6] = state.operand0Rgb[unit]
+        out[at + 7] = state.operand1Rgb[unit]
+        out[at + 8] = state.operand2Rgb[unit]
+        out[at + 9] = state.source0Alpha[unit]
+        out[at + 10] = state.source1Alpha[unit]
+        out[at + 11] = state.source2Alpha[unit]
+        out[at + 12] = state.operand0Alpha[unit]
+        out[at + 13] = state.operand1Alpha[unit]
+        out[at + 14] = state.operand2Alpha[unit]
+        out[at + 15] = if (state.texturingEnabled[unit]) 1 else 0
+    }
+
+    private fun setUnitInts(state: GlState, unit: Int, from: IntArray, at: Int) {
+        state.textureTarget[unit] = from[at]
+        state.combineRgb[unit] = from[at + 1]
+        state.combineAlpha[unit] = from[at + 2]
+        state.source0Rgb[unit] = from[at + 3]
+        state.source1Rgb[unit] = from[at + 4]
+        state.source2Rgb[unit] = from[at + 5]
+        state.operand0Rgb[unit] = from[at + 6]
+        state.operand1Rgb[unit] = from[at + 7]
+        state.operand2Rgb[unit] = from[at + 8]
+        state.source0Alpha[unit] = from[at + 9]
+        state.source1Alpha[unit] = from[at + 10]
+        state.source2Alpha[unit] = from[at + 11]
+        state.operand0Alpha[unit] = from[at + 12]
+        state.operand1Alpha[unit] = from[at + 13]
+        state.operand2Alpha[unit] = from[at + 14]
+        state.texturingEnabled[unit] = from[at + 15] != 0
+    }
+
+    private val scratchInts = IntArray(ints.size)
+    private val scratchFloats = FloatArray(floats.size)
+    private val scratchFlags = BooleanArray(flags.size)
+
+    private fun read(state: GlState, i: IntArray, f: FloatArray, b: BooleanArray) {
+        for (unit in 0 until 3) {
+            unitInts(state, unit, i, unit * 16)
+            f[unit * 6] = state.rgbScale[unit]
+            f[unit * 6 + 1] = state.alphaScale[unit]
+            val c = state.textureEnvColor[unit]
+            f[unit * 6 + 2] = c[0]; f[unit * 6 + 3] = c[1]; f[unit * 6 + 4] = c[2]; f[unit * 6 + 5] = c[3]
+        }
+        i[48] = state.alphaFunc
+        f[18] = state.alphaRef
+        f[19] = state.fogStart
+        f[20] = state.fogEnd
+        f[21] = state.fogColor[0]; f[22] = state.fogColor[1]; f[23] = state.fogColor[2]; f[24] = state.fogColor[3]
+        b[0] = state.alphaTestEnabled
+        b[1] = state.fogEnabled
+    }
+
+    private fun write(state: GlState, i: IntArray, f: FloatArray, b: BooleanArray) {
+        for (unit in 0 until 3) {
+            setUnitInts(state, unit, i, unit * 16)
+            state.rgbScale[unit] = f[unit * 6]
+            state.alphaScale[unit] = f[unit * 6 + 1]
+            val c = state.textureEnvColor[unit]
+            c[0] = f[unit * 6 + 2]; c[1] = f[unit * 6 + 3]; c[2] = f[unit * 6 + 4]; c[3] = f[unit * 6 + 5]
+            state.texEnvDirty[unit] = true
+        }
+        state.alphaFunc = i[48]
+        state.alphaRef = f[18]
+        state.fogStart = f[19]
+        state.fogEnd = f[20]
+        state.fogColor[0] = f[21]; state.fogColor[1] = f[22]; state.fogColor[2] = f[23]; state.fogColor[3] = f[24]
+        state.alphaTestEnabled = b[0]
+        state.fogEnabled = b[1]
+        state.ffpStateDirty = true
+    }
+
+    fun save(state: GlState) {
+        read(state, ints, floats, flags)
+        for (unit in 0 until 3) {
+            textures[unit * 3] = state.boundTexture2D[unit]
+            textures[unit * 3 + 1] = state.boundTexture3D[unit]
+            textures[unit * 3 + 2] = state.boundTextureCubeMap[unit]
+            textureVersions[unit] = state.matrixStack.version(GL_TEXTURE_MATRIX, unit)
+        }
+        projectionVersion = state.matrixStack.version(GL_PROJECTION)
+    }
+
+    fun matches(state: GlState): Boolean {
+        if (projectionVersion != state.matrixStack.version(GL_PROJECTION)) return false
+        for (unit in 0 until 3) {
+            if (textures[unit * 3] !== state.boundTexture2D[unit] || textures[unit * 3 + 1] !== state.boundTexture3D[unit] ||
+                textures[unit * 3 + 2] !== state.boundTextureCubeMap[unit]) return false
+            if (textureVersions[unit] != state.matrixStack.version(GL_TEXTURE_MATRIX, unit)) return false
+        }
+        read(state, scratchInts, scratchFloats, scratchFlags)
+        for (k in ints.indices) if (ints[k] != scratchInts[k]) return false
+        for (k in floats.indices) if (floats[k] != scratchFloats[k]) return false
+        for (k in flags.indices) if (flags[k] != scratchFlags[k]) return false
+        return true
+    }
+
+    /** Exchanges the saved state with the state's own (twice restores it). */
+    fun swap(state: GlState) {
+        read(state, scratchInts, scratchFloats, scratchFlags)
+        write(state, ints, floats, flags)
+        scratchInts.copyInto(ints)
+        scratchFloats.copyInto(floats)
+        scratchFlags.copyInto(flags)
     }
 }

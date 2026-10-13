@@ -296,26 +296,26 @@ object HdGl {
     // ---- Matrix stack -----------------------------------------------------
 
     fun glMatrixMode(arg0: Int) = exec { state.matrixStack.mode = arg0 }
-    fun glLoadIdentity() = exec { state.matrixStack.loadIdentity() }
+    fun glLoadIdentity() = exec { matrixWillChange(); state.matrixStack.loadIdentity() }
     // Array arguments are copied before exec throughout: see glTexEnvfv.
     fun glLoadMatrixf(arg0: FloatArray?, arg1: Int) {
         val m = arg0.slice(arg1, 16)
-        exec { state.matrixStack.loadMatrix(m) }
+        exec { matrixWillChange(); state.matrixStack.loadMatrix(m) }
     }
     fun glMultMatrixf(arg0: FloatArray?, arg1: Int) {
         val m = arg0.slice(arg1, 16)
-        exec { state.matrixStack.mult(m) }
+        exec { matrixWillChange(); state.matrixStack.mult(m) }
     }
-    fun glPushMatrix() = exec { state.matrixStack.push() }
-    fun glPopMatrix() = exec { state.matrixStack.pop() }
-    fun glTranslatef(arg0: Float, arg1: Float, arg2: Float) = exec { state.matrixStack.translate(arg0, arg1, arg2) }
-    fun glScalef(arg0: Float, arg1: Float, arg2: Float) = exec { state.matrixStack.scale(arg0, arg1, arg2) }
-    fun glRotatef(arg0: Float, arg1: Float, arg2: Float, arg3: Float) = exec { state.matrixStack.rotate(arg0, arg1, arg2, arg3) }
-    fun glOrtho(arg0: Double, arg1: Double, arg2: Double, arg3: Double, arg4: Double, arg5: Double) = exec {
+    fun glPushMatrix() = exec { matrixWillChange(); state.matrixStack.push() }
+    fun glPopMatrix() = exec { matrixWillChange(); state.matrixStack.pop() }
+    fun glTranslatef(arg0: Float, arg1: Float, arg2: Float) = exec { matrixWillChange(); state.matrixStack.translate(arg0, arg1, arg2) }
+    fun glScalef(arg0: Float, arg1: Float, arg2: Float) = exec { matrixWillChange(); state.matrixStack.scale(arg0, arg1, arg2) }
+    fun glRotatef(arg0: Float, arg1: Float, arg2: Float, arg3: Float) = exec { matrixWillChange(); state.matrixStack.rotate(arg0, arg1, arg2, arg3) }
+    fun glOrtho(arg0: Double, arg1: Double, arg2: Double, arg3: Double, arg4: Double, arg5: Double) = exec { matrixWillChange();
         state.matrixStack.ortho(arg0, arg1, arg2, arg3, arg4, arg5)
     }
 
-    fun glFrustum(arg0: Double, arg1: Double, arg2: Double, arg3: Double, arg4: Double, arg5: Double) = exec {
+    fun glFrustum(arg0: Double, arg1: Double, arg2: Double, arg3: Double, arg4: Double, arg5: Double) = exec { matrixWillChange();
         state.matrixStack.frustum(arg0, arg1, arg2, arg3, arg4, arg5)
     }
 
@@ -334,6 +334,16 @@ object HdGl {
     fun glCallList(arg0: Int) = exec { state.displayLists.callList(arg0) }
 
     // ---- Core / fixed-function state ------------------------------------
+
+    /** A pending immediate-mode batch draws before a projection or texture matrix changes under it. */
+    private fun matrixWillChange() {
+        if (CoreGl.pendingImmediate && state.matrixStack.mode != GL_MODELVIEW) state.immediateMode.flushPending()
+    }
+
+    /** Draws a pending immediate-mode batch now (before a buffer swap, or GL use outside the emulator). */
+    fun flushImmediate() {
+        if (CoreGl.pendingImmediate) state.immediateMode.flushPending()
+    }
 
     private fun texturingUnitIndex(): Int? = when (state.activeTextureUnit) {
         0, 1, 2 -> state.activeTextureUnit
