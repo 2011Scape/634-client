@@ -12,12 +12,13 @@ to the toolkit that made it.
 | Part | Class | What it does |
 |---|---|---|
 | The renderer API | `graphics/Toolkit` | The abstract toolkit: 2D (`fillRect`, `drawLine`, `outlineRect`), clipping (`KA`, `la`), the camera (`createMatrix`, `setCamera`), and the factories for models, grounds, sprites and fonts (`createModel`, `createGround`, `generateSprite`, `createNativeSprite`, `createFontRenderer`). `renderFrame` and `flipDirtyRects` show the frame |
-| Toolkit ids | `graphics/ToolkitType` | `JAVA` = 0, `GL` = 1, `SSE` = 2, `D3D` = 3, `GLX` = 5 |
+| Toolkit ids | `graphics/ToolkitType` | `JAVA` = 0, `GL` = 1, `SSE` = 2, `D3D` = 3, `GLX` = 5, `HD` = 6 |
 | Java | `JavaToolkit` (root package) | Pure Java software renderer. Always available; the fallback |
 | SSE | `oa` | Native software renderer in the `sw3d` library |
 | GL | `graphics/gl/GlToolkit` | OpenGL driven from Java through `jaggl.OpenGL` |
 | GLX | `toolkit/GlxToolkit` | OpenGL in the native `hw3d` library. Shares `toolkit/AbstractNativeToolkit` with D3D |
 | D3D | `toolkit/D3DToolkit` | Direct3D through `jagdx`. Windows only |
+| HD | `graphics/hd/HdToolkit` (jvmMain) | 634HD: OpenGL 3.3 core, no Jagex library. See "634HD" below |
 | Models | `graphics/model/Model` | `JavaModel`, `GlModel`, `GpuModel` (GLX and D3D) and `i` (SSE). `render`, `copy`, `transform`, `picked` |
 | Grounds | `scene/ground/Ground` | One per level, made by `Terrain` with `createGround`: `JavaGround`, `GlGround`, `GpuFloorModel` (GLX and D3D) and `t` (SSE). `addTile`, `renderTiles`, `drawMinimap` |
 | Sprites | `graphics/sprite/NativeSprite` | `SpriteSM` (`OpaqueSpriteSM`, `TransparentSpriteSM`, `PaletteSpriteSM`) for Java, `SpriteGL`, `GpuSprite` and `j` |
@@ -123,3 +124,50 @@ If showing the frame fails, or the SSE toolkit throws while drawing, the client 
 `Scene`), adds the viewport's offset, and draws the outline with `Toolkit.line`, which every toolkit
 implements. The menu entry that marks a tile is added beside Walk here in `ViewportMiniMenuPicking`
 and handled in `MiniMenuActionExecutor`, with its own click type (`MiniMenuAction.TILE_MARKER`).
+
+## 634HD (toolkit 6)
+
+Not part of the original client; desktop only (`createHdToolkit` in `PlatformLoop.kt`; a browser
+throws and falls back). The plan and its status are in `634hd-plan.md`.
+
+- **Code.** `src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/` holds `HdToolkit`, `HdModel`,
+  `HdGround`, `HdSprite`, `HdFont` and the rest. They are copies of the Java OpenGL toolkit's classes
+  (toolkit 1 is never edited for 634HD) that call `gl/HdGl` instead of `jaggl.OpenGL`.
+- **`gl/HdGl`** is jaggl's API on a GL 3.3 core context (`gl/HdContext`, made by
+  `jaggl.GlContext.create(..., core = true)`; WGL through `wglCreateContextAttribsARB`). It is the
+  browser's WebGL 2 emulator ported to LWJGL:
+  - fixed-function state, immediate mode, matrix stacks, display lists, and ARB vertex programs
+    transpiled to GLSL;
+  - shaders in `src/jvmMain/resources/634hd/shaders/` (`ff.vert`, `ff.frag`; `HdShaders` loads them
+    and prints the driver's log against numbered lines);
+  - luminance, alpha and intensity textures become R8/RG8 with swizzles;
+  - consecutive unlit immediate-mode draws in the same fragment state are drawn as one. Every
+    `CoreGl` call draws a pending batch first, so GL sees draws in the client's order.
+- **Retained scene** (`scene/HdSceneRenderer`). Static locs (`Static*` entities on the scene's static
+  lists) are captured once per region (`Toolkit.sceneBuilt`, from `MapBuildStep`) by running their own
+  `render()` in a capture mode. Their uploaded geometry is read back into one buffer of 8×8-tile chunks.
+  - **Per frame:** `SceneDrawer` still decides what is drawn. `HdModel.render` marks a retained
+    object visible with the matrices and point lights the emulator would use. After the opaque
+    entities (`Toolkit.opaqueEntitiesDone`) the visible chunks draw in one `glMultiDrawElements`
+    (`scene.vert`, `scene.frag`).
+  - **Translucent locs** draw when the client draws them, faces sorted on the CPU by priority group,
+    then back to front.
+  - **Materials** are copied into texture arrays (`scene/HdMaterials`). Water, environment maps and
+    HDR stay on the emulated path, batch by batch.
+  - **Changes.** `Toolkit.sceneChanged` (hooked in `Scene`'s add and remove functions) rebuilds a
+    chunk. A region builds a few chunks per frame, nearest first.
+- **Streamed geometry** (`scene/HdDynamicStream`). Animated models upload into ranges of one stream
+  buffer, orphaned when full, instead of rewriting a shared buffer between draws.
+- **Fallback.** `ActiveToolkitInit` falls back 6 → 1 → 0, and `client/features/HdFallback` says why in
+  the chat box. `client.test.hdFail=context|extension` forces it.
+- **Selection.** `client.toolkit` / `--toolkit`, `::tk6`, and `client/features/HdOptionsButton`, a
+  toggle the client draws in the Graphics Options title bar (the screen is a cache script that knows
+  toolkits 0 to 5 only).
+- **Checks:**
+  - the scene harness against toolkit 1's references (`-Pclient.test.toolkit=6
+    -Pclient.test.scenes=default -Pclient.test.sceneReferenceToolkit=1`): every scene, the reload, the
+    relog and a loc change within the noise of toolkit 1 against itself;
+  - the regular smoke test against toolkit 1's references;
+  - the bench at a position (`-Pclient.test.scenePosition=...`), which prints draw calls by category,
+    the region-build hitch and chunk rebuilds (`client/features/RenderStats`).
+
