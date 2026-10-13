@@ -135,3 +135,30 @@ bool hdFaded(float dist, vec2 fragCoord) {
     int bayer[16] = int[16](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
     return share > (float(bayer[index]) + 0.5) / 16.0;
 }
+
+// The point lights of lights.json (HD_LIGHTS) on a fragment at eye-space [viewPos] with the game's
+// eye-space [normal] (any scale; a zero normal, as on the ground's unlit draws, takes light from every
+// side): the light to multiply the unlit colour by, in the space the scene is lit in.
+vec3 hdPointLights(vec3 viewPos, vec3 normal) {
+    vec3 sum = vec3(0.0);
+    float normalLength = length(normal);
+    vec3 n = normalLength > 0.0001 ? normal / normalLength : vec3(0.0);
+    for (int i = 0; i < hdLightInfo.x; i++) {
+        vec3 toLight = hdLightPosition[i].xyz - viewPos;
+        float dist = length(toLight);
+        float radius = hdLightPosition[i].w;
+        if (dist >= radius) continue;
+        float falloff = 1.0 - dist / radius;
+        falloff *= falloff;
+        float facing = normalLength > 0.0001 ? max(dot(n, toLight / max(dist, 0.0001)), 0.0) * 0.8 + 0.2 : 1.0;
+        sum += hdLightColour[i].rgb * falloff * facing;
+    }
+    return hdOn(HD_LINEAR) ? sum : sum * 0.8;
+}
+
+// [color] with the point lights added on its unlit colour [base] (HD_LIGHTS). The frame clamps the result.
+vec4 hdAddPointLights(vec4 color, vec4 base, vec3 viewPos, vec3 normal) {
+    if (!hdOn(HD_LIGHTS) || hdLightInfo.x == 0) return color;
+    // not clamped: the texture multiplies it next, and a lit stone wall is near white already
+    return vec4(color.rgb + base.rgb * hdPointLights(viewPos, normal), color.a);
+}

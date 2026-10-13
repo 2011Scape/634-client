@@ -60,6 +60,9 @@ class SpotAnimation : AbstractInteractiveEntity {
 	@OriginalMember(owner = "client!lf", name = "sb", descriptor = "I")
 	private val id: Int
 
+	// Not part of the original client: the id, for 634HD's lights (lights.json).
+	fun hdId(): Int = this.id
+
 	@OriginalMember(owner = "client!lf", name = "mb", descriptor = "I")
 	@JvmField
 	val startCycle: Int
