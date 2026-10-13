@@ -52,6 +52,14 @@ object ClientFeatures {
 	val CONSOLE: Boolean = lang.getBoolean("client.console")
 
 	/**
+	 * The developer console commands that write or read local files or crash the client on purpose
+	 * (setoutput, closeoutput, runscript, heapdump, errortest, nativememerror). Off by default: the
+	 * client runs in LOCAL mode, which would otherwise open them to everyone.
+	 */
+	@JvmField
+	val DEV_COMMANDS: Boolean = lang.getBoolean("client.devCommands")
+
+	/**
 	 * Holding Shift makes a left click on an inventory item drop it, where the item can be dropped.
 	 * The console command `shiftdrop` turns it on and off while playing.
 	 */

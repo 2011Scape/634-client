@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.client.features
 
 import com.jagex.game.runetek5.client.input.console.Console
+import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
 /**
@@ -19,23 +20,50 @@ object ConsoleEditing {
 	private const val BACKSPACE: Int = 85
 	private const val DELETE: Int = 101
 	private const val CTRL: Int = 0x4
+	private const val HISTORY_SIZE: Int = 50
+
+	/**
+	 * The commands the player submitted, newest first. Kept apart from the console's output, which the
+	 * server can write lines into that look like commands.
+	 */
+	private val history: Array<String?> = arrayOfNulls<String>(HISTORY_SIZE)
+	private var historyCount: Int = 0
+
+	/** Whether a Tab completion was sent and the server's answer may replace the input line. */
+	@JvmField
+	var awaitingCompletion: Boolean = false
+
+	/** Records a command the player submitted. */
+	@JvmStatic
+	fun record(command: String?) {
+		if (command == null || command.length == 0) {
+			return
+		}
+		var i: Int = HISTORY_SIZE - 1
+		while (i > 0) {
+			history[i] = history[i - 1]
+			i--
+		}
+		history[0] = command
+		if (historyCount < HISTORY_SIZE) {
+			historyCount++
+		}
+	}
 
 	/** Handles one key; returns whether it was handled, so the console skips its own handling. */
 	@JvmStatic
 	fun handle(key: Int, modifiers: Int): Boolean {
 		if (key == UP) {
-			if (Console.historyIndex < Console.displayedOutput!!.size) {
+			if (Console.historyIndex < historyCount) {
 				Console.historyIndex++
-				Console.adjustCommandString()
-				Console.commandLength = Console.commandString!!.length
+				recall()
 			}
 			return true
 		}
 		if (key == DOWN) {
 			if (Console.historyIndex > 0) {
 				Console.historyIndex--
-				Console.adjustCommandString()
-				Console.commandLength = Console.commandString!!.length
+				recall()
 			}
 			return true
 		}
@@ -76,6 +104,16 @@ object ConsoleEditing {
 			i--
 		}
 		return i
+	}
+
+	/** Puts the history entry at [Console.historyIndex] (0: an empty line) on the input line. */
+	private fun recall() {
+		if (Console.historyIndex <= 0) {
+			Console.commandString = ""
+		} else {
+			Console.commandString = history[Console.historyIndex - 1]
+		}
+		Console.commandLength = Console.commandString!!.length
 	}
 
 	/** The end of the word after the cursor, and the spaces after it. */

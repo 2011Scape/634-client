@@ -59,7 +59,9 @@ object ReflectionCheckManager {
 					}
 					reflectionCheck.operations!![i] = operation
 					reflectionCheck.fieldInput!![i] = fieldValue
-					reflectionCheck.fieldsToCheck!![i] = signLink!!.getDeclaredField(string2, ReflectionCheckManager.getTypeClass(string))
+					// Not part of the original client: the server never gets to read or write a field of
+					// ours (it relied on the applet sandbox); every check answers "class not found".
+					reflectionCheck.exceptionsEncountered!![i] = -1
 				} else if (operation == 3 || operation == 4) {
 					string = packet.readString()
 					string2 = packet.readString()
@@ -68,22 +70,16 @@ object ReflectionCheckManager {
 					for (@Pc(99) j in 0 until argumentCount) {
 						strings[j] = packet.readString()
 					}
-					@Pc(114) val arguments: Array<ByteArray?> = arrayOfNulls<ByteArray>(argumentCount)
-					@Pc(125) val local125: Int
+					// Not part of the original client: the serialized arguments are skipped, never
+					// deserialized, and no method is looked up or invoked; the check answers "class not found".
 					if (operation == 3) {
 						for (@Pc(119) k in 0 until argumentCount) {
 							val argumentLength: Int = packet.readInt()
-							arguments[k] = ByteArray(argumentLength)
-							packet.readBytes(0, argumentLength, arguments[k])
+							packet.currentPosition += argumentLength
 						}
 					}
 					reflectionCheck.operations!![i] = operation
-					@Pc(150) val classes: Array<Class<*>?> = arrayOfNulls<Class<*>>(argumentCount)
-					for (argumentIndex in 0 until argumentCount) {
-						classes[argumentIndex] = ReflectionCheckManager.getTypeClass(strings[argumentIndex])
-					}
-					reflectionCheck.methodsToCheck!![i] = signLink!!.getDeclaredMethod(classes, ReflectionCheckManager.getTypeClass(string), string2)
-					reflectionCheck.argumentBuffers!![i] = arguments
+					reflectionCheck.exceptionsEncountered!![i] = -1
 				}
 			} catch (@Pc(231) ex: ClassNotFoundException) {
 				reflectionCheck.exceptionsEncountered!![i] = -1

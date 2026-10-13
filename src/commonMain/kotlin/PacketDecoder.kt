@@ -38,6 +38,7 @@ import io.IOException
 import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.client.features.ClientFeatures
+import com.jagex.game.runetek5.client.features.ConsoleEditing
 import com.jagex.game.runetek5.client.loading.screen.op.instance.PriorityIfPositionUpdate
 import com.jagex.game.runetek5.cache.node.ObjStack
 import com.jagex.game.runetek5.client.web.ClientURLTools
@@ -1321,9 +1322,13 @@ object PacketDecoder {
 												if (messageType == 99) {
 													Console.printToConsole(string3)
 												} else if (ClientFeatures.CONSOLE && messageType == 98) {
-													// Not part of the original client: the server sets the console input, to complete it.
-													Console.commandString = string3
-													Console.commandLength = string3!!.length
+													// Not part of the original client: the server sets the console input, to complete it,
+													// only in answer to the player's Tab.
+													if (ConsoleEditing.awaitingCompletion) {
+														ConsoleEditing.awaitingCompletion = false
+														Console.commandString = string3
+														Console.commandLength = string3!!.length
+													}
 												} else if (string2!!.equals("") || !IgnoreList.isIgnored(string2)) {
 													ChatLineWriter.writeMessage(string2, messageType, effectFlags, string3, string4, string4)
 												} else {
