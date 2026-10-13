@@ -33,6 +33,13 @@ const int FLAG_UNLIT = 32;
 out vec4 vColor;
 out vec2 vTexCoord;
 flat out int vMaterial;
+// 634HD per-pixel lighting (HD_PIXEL_LIGHTING): unlit colour, eye-space normal and position, the
+// object's slot (for its point lights) and whether it is lit at all
+out vec4 vBase;
+out vec3 vEyeNormal;
+out vec3 vViewPos;
+flat out int vSlot;
+flat out int vLit;
 
 // As in ff.vert: the same expression for the position keeps retained and emulated draws of the
 // same surface on identical depths.
@@ -45,6 +52,11 @@ void main() {
         gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
         vColor = vec4(0.0);
         vTexCoord = vec2(0.0);
+        vBase = vec4(0.0);
+        vEyeNormal = vec3(0.0);
+        vViewPos = vec3(0.0);
+        vSlot = 0;
+        vLit = 0;
         return;
     }
     int base = slot * OBJECT_TEXELS;
@@ -59,9 +71,15 @@ void main() {
     vTexCoord = aTexCoord + scroll.xy;
 
     bool unlit = (int(material.w) & FLAG_UNLIT) != 0;
+    vec4 eyePos = mv * position;
+    vBase = hdColour(aColor);
+    vEyeNormal = mat3(mv) * aNormal;
+    vViewPos = eyePos.xyz;
+    vSlot = slot;
+    vLit = (flags.x > 0.5 && !unlit) ? 1 : 0;
     if (flags.x > 0.5 && !unlit) {
-        vec4 viewPos = mv * position;
-        vec3 rawEyeNormal = mat3(mv) * aNormal;
+        vec4 viewPos = eyePos;
+        vec3 rawEyeNormal = vEyeNormal;
         vec4 lit = uGlobalAmbient;
         for (int i = 0; i < 2; i++) {
             if (uDirLight[i].w > 0.5) {

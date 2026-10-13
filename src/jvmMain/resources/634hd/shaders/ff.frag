@@ -6,6 +6,20 @@ precision mediump float;
 precision highp sampler3D;
 
 in vec4 vColor;
+#ifndef ARB_VERTEX
+in vec4 vBase;
+in vec3 vEyeNormal;
+in vec3 vViewPos;
+// the fixed-function lights, for per-pixel lighting (the vertex stage has the same uniforms)
+uniform bool uLightingEnabled;
+uniform vec4 uGlobalAmbient;
+uniform bool uLightEnabled[8];
+uniform vec4 uLightDiffuse[8];
+uniform vec4 uLightPosition[8];
+uniform vec3 uLightAttenuation[8];
+#endif
+// the primary colour: the vertex colour, or the per-pixel lit one
+vec4 gPrimary;
 in vec3 vTexCoord0;
 in vec3 vTexCoord1;
 in vec3 vTexCoord2;
@@ -44,7 +58,7 @@ uniform highp float uLogicalScale;
 vec4 combineSource(int src, vec4 texColor, vec4 previous, vec4 constant) {
     if (src == 34166) return constant;
     if (src == 5890) return texColor;
-    if (src == 34167) return vColor;
+    if (src == 34167) return gPrimary;
     return previous;
 }
 
@@ -148,7 +162,22 @@ vec4 sampleUnit(int unit) {
 }
 
 void main() {
-    vec4 color = vColor;
+    gPrimary = vColor;
+#ifndef ARB_VERTEX
+    if (hdOn(HD_PIXEL_LIGHTING) && uLightingEnabled) {
+        vec4 lit = uGlobalAmbient;
+        for (int i = 0; i < 8; i++) {
+            if (!uLightEnabled[i]) continue;
+            if (uLightPosition[i].w == 0.0) {
+                lit += uLightDiffuse[i] * max(dot(vEyeNormal, normalize(uLightPosition[i].xyz)), 0.0);
+            } else {
+                lit += hdPointLight(vEyeNormal, vViewPos, uLightPosition[i].xyz, uLightAttenuation[i], uLightDiffuse[i].rgb);
+            }
+        }
+        gPrimary = hdApplyLight(vBase, lit);
+    }
+#endif
+    vec4 color = gPrimary;
     for (int i = 0; i < 3; i++) {
         if (uUseTexture[i]) color = combineStage(i, sampleUnit(i), color);
     }

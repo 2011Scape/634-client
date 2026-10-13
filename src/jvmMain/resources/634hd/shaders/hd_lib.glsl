@@ -75,3 +75,16 @@ vec3 hdSunLight(vec3 normal) {
     }
     return light;
 }
+
+// One point light as fixed-function lighting has it (quadratic attenuation), for per-pixel lighting.
+vec4 hdPointLight(vec3 normal, vec3 viewPos, vec3 lightPos, vec3 attenuation, vec3 diffuse) {
+    vec3 toLight = lightPos - viewPos;
+    float dist = length(toLight);
+    vec3 lightDir = toLight / max(dist, 0.0001);
+    float atten = 1.0 / max(attenuation.x + attenuation.y * dist + attenuation.z * dist * dist, 0.0001);
+    return vec4(diffuse * max(dot(normal, lightDir), 0.0) * atten, 0.0);
+}
+
+vec4 hdApplyLight(vec4 base, vec4 lit) {
+    return hdOn(HD_LINEAR) ? vec4(base.rgb * lit.rgb, base.a) : vec4(clamp(base.rgb * lit.rgb, 0.0, 1.0), base.a);
+}

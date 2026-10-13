@@ -984,7 +984,8 @@ internal class ArbProgramRuntime {
         val vsSource = vertexSource ?: return false
         return try {
             val vs = HdShaders.compile(WebGL2RenderingContext.VERTEX_SHADER, vsSource, "transpiled ARB vertex program")
-            val fs = HdShaders.compile(WebGL2RenderingContext.FRAGMENT_SHADER, FF_FRAGMENT_SOURCE, "ff.frag")
+            // ff.frag without the inputs only ff.vert writes (634HD per-pixel lighting)
+            val fs = HdShaders.compile(WebGL2RenderingContext.FRAGMENT_SHADER, HdShaders.source("ff.frag", "#define ARB_VERTEX\n"), "ff.frag (ARB)")
             val prog = HdShaders.link(vs, fs, "transpiled ARB vertex program")
             HdShaders.bindFrameBlock(prog)
             gl.deleteShader(vs)

@@ -28,6 +28,10 @@ uniform vec4 uLightPosition[MAX_LIGHTS];
 uniform vec3 uLightAttenuation[MAX_LIGHTS];
 
 out vec4 vColor;
+// 634HD per-pixel lighting (HD_PIXEL_LIGHTING): the unlit colour, the eye-space normal and position
+out vec4 vBase;
+out vec3 vEyeNormal;
+out vec3 vViewPos;
 out vec3 vTexCoord0;
 out vec3 vTexCoord1;
 out vec3 vTexCoord2;
@@ -47,6 +51,9 @@ void main() {
     vec4 viewPos = uModelView * aPosition;
 
     vec3 rawEyeNormal = mat3(uModelView) * aNormal;
+    vBase = hdColour(aColor);
+    vEyeNormal = rawEyeNormal;
+    vViewPos = viewPos.xyz;
     float eyeNormalLenSq = dot(rawEyeNormal, rawEyeNormal);
     vec3 eyeNormal = eyeNormalLenSq > 0.0 ? rawEyeNormal * inversesqrt(eyeNormalLenSq) : vec3(0.0);
 

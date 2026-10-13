@@ -9,6 +9,16 @@
 in vec4 vColor;
 in vec2 vTexCoord;
 flat in int vMaterial;
+in vec4 vBase;
+in vec3 vEyeNormal;
+in vec3 vViewPos;
+flat in int vSlot;
+flat in int vLit;
+
+uniform samplerBuffer uObjects;
+uniform vec4 uGlobalAmbient;
+uniform vec4 uDirLight[2];
+uniform vec4 uDirDiffuse[2];
 
 uniform samplerBuffer uMaterials;
 uniform sampler2DArray uSmallLinear;
@@ -63,9 +73,28 @@ vec4 sampleMaterial(vec4 material, vec4 extra) {
     return linear ? textureLod(uSmallLinear, coord, 0.0) : textureLod(uSmallNearest, coord, 0.0);
 }
 
+// The colour lit per pixel, as scene.vert lights it per vertex (HD_PIXEL_LIGHTING).
+vec4 pixelLit() {
+    vec4 lit = uGlobalAmbient;
+    for (int i = 0; i < 2; i++) {
+        if (uDirLight[i].w > 0.5) {
+            lit += uDirDiffuse[i] * max(dot(vEyeNormal, normalize(uDirLight[i].xyz)), 0.0);
+        }
+    }
+    int base = vSlot * 17;
+    int count = int(texelFetch(uObjects, base + 8).y);
+    for (int i = 0; i < count; i++) {
+        vec4 light = texelFetch(uObjects, base + 9 + i * 2);
+        vec4 diffuse = texelFetch(uObjects, base + 10 + i * 2);
+        lit += hdPointLight(vEyeNormal, vViewPos, light.xyz, vec3(diffuse.w, 0.0, light.w), diffuse.rgb);
+    }
+    return hdApplyLight(vBase, lit);
+}
+
 void main() {
     vec4 material = texelFetch(uMaterials, vMaterial * 2);
-    vec4 color = vColor;
+    vec4 primary = (vLit != 0 && hdOn(HD_PIXEL_LIGHTING)) ? pixelLit() : vColor;
+    vec4 color = primary;
     if ((int(material.w) & FLAG_TEXTURED) != 0) {
         vec4 tex = hdColour(sampleMaterial(material, texelFetch(uMaterials, vMaterial * 2 + 1)));
         int op = int(material.z);
@@ -74,16 +103,16 @@ void main() {
             color = tex;
         } else if (op == 2) {
             // INTERPOLATE(texture, previous, previous alpha), REPLACE
-            color = vec4(clamp(tex.rgb * vColor.a + vColor.rgb * (1.0 - vColor.a), 0.0, 1.0), tex.a);
+            color = vec4(clamp(tex.rgb * primary.a + primary.rgb * (1.0 - primary.a), 0.0, 1.0), tex.a);
         } else if (op == 3) {
             // ADD, MODULATE
-            color = vec4(clamp(tex.rgb + vColor.rgb, 0.0, 1.0), tex.a * vColor.a);
+            color = vec4(clamp(tex.rgb + primary.rgb, 0.0, 1.0), tex.a * primary.a);
         } else if (op == 4) {
             // SUBTRACT, SUBTRACT
-            color = clamp(tex - vColor, 0.0, 1.0);
+            color = clamp(tex - primary, 0.0, 1.0);
         } else {
             // MODULATE, MODULATE
-            color = tex * vColor;
+            color = tex * primary;
         }
     }
     if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
