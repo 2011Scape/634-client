@@ -262,8 +262,12 @@ internal class GlContext private constructor(private val data: GLData, main: Sur
         fun create(canvas: Canvas, red: Int, green: Int, blue: Int, depth: Int, stencil: Int, samples: Int, core: Boolean): GlContext {
             val data = GLData()
             if (core) {
-                data.majorVersion = 3
-                data.minorVersion = 3
+                // macOS has 4.1 core and nothing between it and 2.1; client.test.hdGlVersion=4.1 asks
+                // for the same elsewhere, to check 634HD as a Mac would run it
+                val mac = System.getProperty("os.name", "").lowercase().contains("mac")
+                val forced = System.getProperty("client.test.hdGlVersion")
+                data.majorVersion = if (mac || forced == "4.1") 4 else 3
+                data.minorVersion = if (mac || forced == "4.1") 1 else 3
                 data.profile = GLData.Profile.CORE
                 data.forwardCompatible = true
             }
@@ -280,7 +284,15 @@ internal class GlContext private constructor(private val data: GLData, main: Sur
             }
             data.swapInterval = 0
             val platform = newPlatformCanvas()
-            val context = platform.create(canvas, data, GLData())
+            val context = try {
+                platform.create(canvas, data, GLData())
+            } catch (ex: AWTException) {
+                // a GLX without a swap-control extension (Mesa's software renderer, some remote and
+                // virtual displays) refuses a context that asks for a swap interval: ask without one
+                if (ex.message?.contains("wap") != true) throw ex
+                data.swapInterval = null
+                platform.create(canvas, data, GLData())
+            }
             val gl = GlContext(data, Surface(canvas, platform, context, true))
             try {
                 platform.lock()
