@@ -973,6 +973,34 @@ object SmokeTest {
 	private var openToolkit: Int = -1
 
 	private fun findText() {
+		if (FIND_TEXT.startsWith("textures:")) {
+			// writes every cache texture (or those listed, comma-separated) as build/textures/<id>.png at
+			// 128x128 as the toolkits make them, with its metrics on a line each: 634HD's material maps
+			// are derived from these (tools/make_material_maps.py)
+			val provider = ClientState.activeToolkit!!.materialProvider!!
+			val wanted: String = FIND_TEXT.substring(9)
+			var written: Int = 0
+			io.File("build/textures").mkdirs()
+			for (id in 0 until provider.textureCount()) {
+				if (wanted.isNotEmpty() && ("," + wanted + ",").indexOf("," + id + ",") < 0) continue
+				val metrics = try { provider.getMetrics(id) } catch (ex: Exception) { null } ?: continue
+				if (!provider.textureAvailable(id)) continue
+				val size: Int = if (metrics.isSmall) 64 else 128
+				val pixels: IntArray = provider.getPixels(false, id, 0.7f, size, size) ?: continue
+				val image: BufferedImage = BufferedImage(size, size, awt.image.BUFFERED_IMAGE_TYPE_INT_RGB)
+				for (y in 0 until size) {
+					for (x in 0 until size) {
+						image.setRGB(x, y, pixels[y * size + x])
+					}
+				}
+				writePng(image, io.File("build/textures/" + id + ".png"))
+				println("SMOKE TEXTURE " + id + " size " + size + " effect " + metrics.effectType + " param " + metrics.effectParam1 + " combiner " + metrics.effectCombiner + " op " + metrics.combineMode + " scroll " + metrics.speedU + "," + metrics.speedV + " hdr " + metrics.hdr)
+				written++
+			}
+			println("SMOKE PASS " + written + " textures")
+			lang.flushOut()
+			lang.halt(0)
+		}
 		if (FIND_TEXT.startsWith("locmodels:")) {
 			// prints every loc type, named or not, that shares a model with a loc whose name matches a
 			// regular expression: the unnamed decorations (wall torches) that look like a named loc

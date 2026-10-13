@@ -88,6 +88,20 @@ object HdShaders {
             org.lwjgl.opengl.GL33C.glUniform1i(sceneDepth, com.jagex.game.runetek5.graphics.hd.scene.HdSoftParticles.UNIT)
             org.lwjgl.opengl.GL33C.glUseProgram(previous)
         }
+        val maps = org.lwjgl.opengl.GL33C.glGetUniformBlockIndex(program.id, "HdMaterialMaps")
+        if (maps != org.lwjgl.opengl.GL33C.GL_INVALID_INDEX) {
+            org.lwjgl.opengl.GL33C.glUniformBlockBinding(program.id, maps, com.jagex.game.runetek5.graphics.hd.scene.HdMaterialMaps.BINDING)
+        }
+        val mapNames = arrayOf("uHdNormalMaps", "uHdOrmMaps", "uHdEmissiveMaps")
+        for (i in mapNames.indices) {
+            val location = org.lwjgl.opengl.GL33C.glGetUniformLocation(program.id, mapNames[i])
+            if (location >= 0) {
+                val previous = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_CURRENT_PROGRAM)
+                org.lwjgl.opengl.GL33C.glUseProgram(program.id)
+                org.lwjgl.opengl.GL33C.glUniform1i(location, com.jagex.game.runetek5.graphics.hd.scene.HdMaterialMaps.UNIT_NORMAL + i)
+                org.lwjgl.opengl.GL33C.glUseProgram(previous)
+            }
+        }
         val aoMap = org.lwjgl.opengl.GL33C.glGetUniformLocation(program.id, "uHdAoMap")
         if (aoMap >= 0) {
             val previous = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_CURRENT_PROGRAM)

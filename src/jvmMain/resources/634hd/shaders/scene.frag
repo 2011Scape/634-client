@@ -5,6 +5,7 @@
 // the toolkit's size) with a linear and a nearest sampler each; wrap and mipmapping per material.
 
 #include "hd_lib.glsl"
+#include "hd_material.glsl"
 
 in vec4 vColor;
 in vec2 vTexCoord;
@@ -56,10 +57,9 @@ bool alphaTestPasses(float a) {
     return true;
 }
 
-vec4 sampleMaterial(vec4 material, vec4 extra) {
+vec4 sampleMaterial(vec4 material, vec4 extra, vec2 uv) {
     int flags = int(material.w);
     float size = extra.z;
-    vec2 uv = vTexCoord;
     // CLAMP_TO_EDGE on a sampler that repeats: keep the coordinate inside the edge texels' centres
     float edge = (flags & FLAG_LINEAR) != 0 ? 0.5 / size : 0.0;
     float top = (flags & FLAG_LINEAR) != 0 ? 1.0 - 0.5 / size : 1.0 - 0.25 / size;
@@ -95,6 +95,8 @@ vec4 pixelLit() {
 }
 
 void main() {
+    int mapSlot = -1;
+    vec2 mapUv = vTexCoord;
     vec4 material = texelFetch(uMaterials, vMaterial * 2);
     vec4 primary = (vLit != 0 && hdOn(HD_PIXEL_LIGHTING)) ? pixelLit() : vColor;
     if ((int(material.w) & FLAG_UNLIT) == 0) {
@@ -102,7 +104,11 @@ void main() {
     }
     vec4 color = primary;
     if ((int(material.w) & FLAG_TEXTURED) != 0) {
-        vec4 tex = hdColour(sampleMaterial(material, texelFetch(uMaterials, vMaterial * 2 + 1)));
+        vec4 extra = texelFetch(uMaterials, vMaterial * 2 + 1);
+        // the texture's 634HD maps (HD_MATERIALS): extra.w is its slot plus one, 0 without
+        mapSlot = int(extra.w) - 1;
+        mapUv = hdParallaxUv(mapSlot, vTexCoord, vViewPos);
+        vec4 tex = hdColour(sampleMaterial(material, extra, mapUv));
         int op = int(material.z);
         if (op == 1) {
             // REPLACE, REPLACE
@@ -131,6 +137,7 @@ void main() {
     } else if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
         discard;
     }
+    color = hdApplyMaterial(mapSlot, color, mapUv, vViewPos);
     color = hdApplyShadow(color, vViewPos, vEyeNormal);
     color.rgb *= hdAmbientOcclusion(vViewPos, vEyeNormal);
     float depth = gl_FragCoord.z / gl_FragCoord.w;

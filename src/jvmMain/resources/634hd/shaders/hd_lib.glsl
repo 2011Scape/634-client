@@ -17,6 +17,7 @@
 #define HD_FOLIAGE 1024
 #define HD_SOFT_PARTICLES 2048
 #define HD_MIPMAPS 4096
+#define HD_MATERIALS 8192
 #define HD_MAX_LIGHTS 64
 
 layout(std140) uniform HdFrame {

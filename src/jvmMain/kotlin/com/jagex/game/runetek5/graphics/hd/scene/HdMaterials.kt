@@ -183,6 +183,8 @@ class HdMaterials(private val toolkit: HdToolkit) {
         table[at + 2] = metrics.combineMode.toFloat()
         table[at + 3] = flags.toFloat()
         table[at + 6] = array.size.toFloat()
+        // the texture's 634HD material maps: their slot plus one, 0 for none (HdMaterialMaps)
+        table[at + 7] = (toolkit.materialMaps.slotOf(materialId) + 1).toFloat()
         if (metrics.speedU.toInt() != 0 || metrics.speedV.toInt() != 0) {
             animated[animatedCount++] = slot
         }
@@ -292,7 +294,17 @@ class HdMaterials(private val toolkit: HdToolkit) {
     }
 
     /** Before a draw: the scroll offsets of animated materials (as renderTexture sets the texture matrix), and the table. */
+    /** The material maps' version the table's slots were taken from. */
+    private var mapsVersion: Int = -1
+
     fun update(tickMillis: Long) {
+        if (mapsVersion != toolkit.materialMaps.version) {
+            mapsVersion = toolkit.materialMaps.version
+            for (slot in 0 until slotCount) {
+                table[slot * 8 + 7] = (toolkit.materialMaps.slotOf(slotMaterial[slot]) + 1).toFloat()
+            }
+            tableDirty = true
+        }
         if (tableBuffer == 0) {
             tableBuffer = GL33C.glGenBuffers()
             GL33C.glBindBuffer(GL33C.GL_TEXTURE_BUFFER, tableBuffer)

@@ -29,6 +29,7 @@ class HdFrameUniforms {
         const val HD_FOLIAGE: Int = 1024
         const val HD_SOFT_PARTICLES: Int = 2048
         const val HD_MIPMAPS: Int = 4096
+        const val HD_MATERIALS: Int = 8192
 
         // std140 offsets, in bytes
         private const val FLAGS: Int = 0
@@ -77,6 +78,7 @@ class HdFrameUniforms {
         if (HdSettings.foliage) bits = bits or HD_FOLIAGE
         if (HdSettings.softParticles) bits = bits or HD_SOFT_PARTICLES
         if (HdSettings.mipmaps) bits = bits or HD_MIPMAPS
+        if (HdSettings.materials) bits = bits or HD_MATERIALS
         return bits
     }
 

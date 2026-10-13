@@ -8,6 +8,7 @@ import com.jagex.game.runetek5.graphics.hd.gl.CoreGl
 
 import com.jagex.game.runetek5.graphics.hd.scene.HdFeatures
 import com.jagex.game.runetek5.graphics.hd.scene.HdSoftParticles
+import com.jagex.game.runetek5.graphics.hd.scene.HdMaterialMaps
 import com.jagex.game.runetek5.graphics.hd.content.HdContent
 import com.jagex.game.runetek5.Skybox
 
@@ -655,6 +656,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 
 	val hdFeatures: HdFeatures = HdFeatures()
 
+	// 634HD: Phase 5 material maps (materials.json)
+	val materialMaps: HdMaterialMaps = HdMaterialMaps()
+
 	// 634HD: the depth copy for soft particles
 	private val softParticles: HdSoftParticles = HdSoftParticles()
 
@@ -973,6 +977,10 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	}
 
 	fun renderTexture(hasLight: Boolean, materialId: Int, allowStillWater: Boolean) {
+		if (HdToolkit.DEBUG_MATERIALS != null && materialId >= 0 && this.sceneDrawing) {
+			// 634HD debugging (client.test.hdDebug): which textures the 3D view uses, and how often
+			HdToolkit.DEBUG_MATERIALS!![materialId] = (HdToolkit.DEBUG_MATERIALS!![materialId] ?: 0) + 1
+		}
 		if (materialId != this.lastMaterialId || this.renderStillWater != this.stillWaterToggled) {
 			var texture: Hd2DTexture? = null
 			var combineMode: Int = 0
@@ -1001,6 +1009,8 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 				combineMode = textureMetrics.combineMode
 			}
 			this.effectManager.loadEffect(effectParam1.toInt(), hasLight, effectType, effectParam2, allowStillWater)
+			// 634HD: the texture's material maps (client.hd.materials)
+			HdGl.state.hdMapSlot = this.materialMaps.slotOf(materialId)
 			// 634HD: water materials (the water effects) get 634HD's water shading with client.hd.water
 			HdGl.state.hdWater = if (effectType == 2 || effectType == 3 || effectType == 4 || effectType == 5 || effectType == 8 || effectType == 9) 1 else 0
 			if (!this.effectManager.bindTexture(combineMode, texture)) {
@@ -1659,6 +1669,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		if (this.activeOpenglInstance != null) {
 			this.hdPost.release()
 			this.softParticles.release()
+			this.materialMaps.release()
 			this.frameUniforms.release()
 			this.hdFeatures.release()
 			this.sceneRenderer.release()
@@ -3080,6 +3091,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		this.frameUploaded = false
 		this.updateHdScene()
 		this.hdFeatures.beginFrame(this, x, y, width, height)
+		if (HdSettings.materials) {
+			this.materialMaps.prepare(this.hdContent)
+		}
 		if (HdSettings.mipmaps != this.texturesMipmapped || HdSettings.anisotropy != this.texturesAnisotropy) {
 			// world textures are made again with the new filtering as they are next used
 			this.texturesMipmapped = HdSettings.mipmaps
@@ -3127,6 +3141,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	// Ends the 3D view: the target is popped, the view resolved into its texture and drawn over its
 	// place in the frame. The clip is not reset through la(), which would move the picking bounds.
 	override fun endScene() {
+		HdToolkit.printDebugMaterials()
 		this.sceneDrawing = false
 		this.hdFeatures.shadows.recording = false
 		this.updateHdScene()
@@ -3506,6 +3521,19 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	}
 
 	companion object {
+		// 634HD debugging: texture use counts in the 3D view, printed at exit (client.test.hdDebug)
+		@JvmField
+		val DEBUG_MATERIALS: HashMap<Int, Int>? = if (System.getProperty("client.test.hdDebug") != null) HashMap() else null
+
+		private var debugMaterialFrames: Int = 0
+
+		fun printDebugMaterials() {
+			val counts: HashMap<Int, Int> = DEBUG_MATERIALS ?: return
+			if (debugMaterialFrames++ % 300 != 0) return
+			val sorted = counts.entries.sortedByDescending { it.value }
+			println("HDDEBUG textures used: " + sorted.joinToString(" ") { it.key.toString() + ":" + it.value })
+		}
+
 
 		@JvmField
 		val SOUND_EFFECT_MUSIC_ENDED: ClientPacket = ClientPacket(52, 4)
