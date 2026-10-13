@@ -59,8 +59,8 @@ Other `Math` functions are `kotlin.math`'s, which compile to the same `java.lang
 
 ## Native code is frozen
 
-The native libraries (`jaggl`, `jagdx`, `jaclib`, `jagtheora`, `jagex3`) ship as prebuilt binaries
-in the game cache. A native library finds its Java side by name: a JNI symbol encodes the package,
+The native libraries (`jagdx`, `jaclib`, `jagtheora`, `jagex3`, the SSE renderer, and once `jaggl`)
+ship as prebuilt binaries in the game cache. A native library finds its Java side by name: a JNI symbol encodes the package,
 the class and the method, and native code looks fields and methods up by their literal names. A
 rename there breaks at runtime, not at compile time. So never rename, move or change the signature
 of:
@@ -76,3 +76,9 @@ of:
 
 Code that calls these classes can change freely. The `@Original*` and `@Pc` annotations record
 each declaration's place in the 2010 jar; leave them as they are.
+
+`jaggl` and `jaclib`'s memory, stream and hardware classes are an exception on the JVM: they run on
+LWJGL ([RENDERING.md](RENDERING.md#native-classes)), and nothing
+binds to them by name any more. Their names, packages, signatures and `peer` fields are still
+frozen, because the 1289 call sites and the browser's emulation are written against them.
+`jaclib.peer` (`Peer`, `PeerReference`, `IUnknown`) stays JNI, for `jagdx`.

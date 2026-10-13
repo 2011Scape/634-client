@@ -34,9 +34,33 @@ pool), and others such as `a`, `ba`, `na`, `p`, `xa`. They implement `graphics/s
 The `jaggl`, `jagdx` and `jaclib` packages and `jagex3.graphics2.hw.NativeInterface` wrap the
 OpenGL, Direct3D and memory libraries.
 
-These classes are bound by JNI. The native libraries look up their classes, fields and methods by
-name and signature, so they keep their names, packages and signatures. Code may call them freely;
-their declarations stay as they are.
+`jagdx`, `jagex3` and the SSE classes are bound by JNI. The native libraries look up their classes,
+fields and methods by name and signature, so they keep their names, packages and signatures. Code
+may call them freely; their declarations stay as they are.
+
+`jaggl` and `jaclib`'s memory classes are no longer JNI on the JVM: they run on
+[LWJGL](https://www.lwjgl.org) 3, with the signatures of the 2010 classes.
+
+- `jaggl.OpenGL` makes its context through `jaggl/GlContext` and
+  [lwjgl3-awt](https://github.com/LWJGLX/lwjgl3-awt): GLX on Linux (also under Wayland, through
+  XWayland), WGL on Windows, and a legacy 2.1 context on macOS. No version or profile is asked for,
+  so GLX and WGL give the newest compatibility context, which keeps immediate mode, the matrix
+  stack and ARB programs. Each `gl*` function calls lwjgl-opengl.
+- A call that takes an address (`gl*Pointer`, `glDrawElements`, `glBufferDataARBa`) passes it
+  through as it is.
+- A call that takes an array and an offset copies the array through `jaggl/GlScratch`.
+- There are no pbuffers (`arePbuffersAvailable` is false), so the toolkits draw offscreen into
+  framebuffers.
+- `jaclib.memory` (`NativeHeap`, `NativeBuffer`) allocates real native memory through LWJGL's
+  `MemoryUtil`, because the GL driver and `libhw3d` read and write through those addresses.
+- `HardwareInfo` reports nothing.
+- `libjaggl` is never loaded. `libjaclib` is still loaded where the cache has one, only because
+  `libhw3d` (toolkit 5) links against it.
+- Toolkits 0 and 1 need no Jagex native library, so they run wherever LWJGL does (Linux, Windows
+  and macOS, x64 and arm64, and 32-bit Windows).
+- Toolkit 5 still needs `libhw3d`, so it runs only on x86 and x86_64 Linux and Windows, and on
+  Intel Macs.
+- Linux x64 is tested. Windows, macOS and arm64 are untested so far.
 
 ## How a toolkit is chosen
 

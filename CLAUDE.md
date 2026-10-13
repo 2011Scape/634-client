@@ -61,13 +61,19 @@ native software, 5 native OpenGL; the browser has 0, 1 and 2. See the class doc 
   `-Pclient.<name>=…` (or in the URL).
 - `runClient` only forwards properties listed by name in `build.gradle.kts`. A new `client.*`
   property must be added to that list or `-P` silently does nothing.
+- Dependency verification is on (`gradle/verification-metadata.xml`, SHA-256). After adding or
+  bumping a dependency, regenerate it with
+  `./gradlew --write-verification-metadata sha256 build release` and review the diff.
 
-### Native libraries on Linux
+### Native libraries
 
-`run`/`runClient` prepend `~/.jagex_cache_32/runescape` (override `-Pclient.nativeDir=<dir>`) to
-`LD_LIBRARY_PATH`, because `libhw3d.so` links `libjaclib.so` by name. Without it native OpenGL fails
-and the client silently falls back to the software toolkit (looks like safe mode). In an IDE, also
-pass `--add-opens java.base/java.lang=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -Xmx256m`.
+`jaggl` (OpenGL) and `jaclib`'s memory classes run on LWJGL 3 + lwjgl3-awt (natives for Linux,
+Windows and macOS, x64 and arm64, plus Windows x86, in the jar). Toolkits 0 and 1 need no Jagex native library.
+`run`/`runClient` still prepend `~/.jagex_cache_32/runescape` (override `-Pclient.nativeDir=<dir>`)
+to `LD_LIBRARY_PATH`, because `libhw3d.so` (toolkit 5) links `libjaclib.so` by name. Without it,
+toolkit 5 fails and the client silently falls back to the software toolkit (looks like safe mode).
+LWJGL unpacks its natives into `~/.lwjgl/634-client`. In an IDE, also pass
+`--add-opens java.base/java.lang=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -Xmx256m`.
 
 ## Architecture
 
@@ -85,8 +91,10 @@ pass `--add-opens java.base/java.lang=ALL-UNNAMED --enable-native-access=ALL-UNN
   `js5`, `cache`, `network`, `scene`, `graphics`, `toolkit/opengl`, `sound`, `preference`, …).
   Client-wide statics (`mainLogicStep`, `clientCycle`, `activeToolkit`) live in `client/ClientState`;
   other statics sit in the class they serve.
-- **`jaclib`, `jaggl`, `jagdx`, `jagtheora`, `jagex3`**: the Kotlin side of JNI libraries shipped as
-  binaries in the game cache (emulated in the browser for `jaclib` and `jaggl`).
+- **`jaclib`, `jaggl`, `jagdx`, `jagtheora`, `jagex3`**: the Kotlin side of the 2010 native libraries.
+  `jagdx`, `jagtheora`, `jagex3` and `jaclib.peer` are JNI to binaries shipped in the game cache.
+  `jaggl` and the rest of `jaclib` run on LWJGL on the JVM (`jaggl/GlContext`, `GlScratch`), and are
+  emulated in the browser (WebGL 2).
 - **`client/features/`**: our additions. `ClientFeatures` reads all `client.*` switches (server
   protocol `void`/`jagex`, packet-size overrides, fps interpolation of camera/entities, scale, the
   OpenGL AA pipeline). One class per extra (`TileMarkers`, `XpDrops`, `NpcLabels`,
@@ -108,6 +116,8 @@ another — test each (desktop and browser), and after a map reload and a relog.
   `external` (native) functions (or its package), any such function, fields natives read/write
   (`peer`, `nativeid`, `bar`, `width`, `height`, …), root-package classes with 1–2 letter names
   (`a`, `ba`, `oa`, …), or `oa.c(S)`, `oa.WA(S)`, `oa.g()`, `oa.OA()`. Breakage shows only at runtime.
+  `jaggl` and the LWJGL-backed `jaclib` classes are no longer JNI, but their **signatures stay
+  frozen** (call sites and the browser emulation depend on them); their bodies may change.
 - Leave `@Original*` and `@Pc` annotations untouched — they map declarations to the 2010 jar.
 - Every hook into original code gets a comment starting **"Not part of the original client"**
   (grep that phrase to find all modifications).
