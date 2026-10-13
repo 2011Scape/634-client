@@ -55,6 +55,10 @@ layout(std140) uniform HdFrame {
     // x: the debug panel's overlay (0 none, 1 normals, 2 texture ids, 3 lights, 4 shadow map,
     // 5 chunk bounds, 6 occlusion, 7 shadows)
     ivec4 hdDebug;
+    // the region's baked occlusion height map (HD_AO): world to (u, v, depth); x top, y height range,
+    // z 1 once baked
+    mat4 hdAoBakeMatrix;
+    vec4 hdAoBake;
 };
 
 // 1 for a draw that belongs to the 3D view, 0 for the interface and everything else.
@@ -63,8 +67,26 @@ uniform int uHdScene;
 // The sun's shadow map (HD_SHADOWS) on texture unit 16; HdShaders.link points every program here.
 uniform sampler2DShadow uHdShadowMap;
 
-// The occlusion height map (HD_AO) on texture unit 17: depth from above, so smaller is higher.
+// The occlusion height maps (HD_AO): moving models around the player on unit 17, the region's baked
+// static scene on unit 22. Depth from above, so smaller is higher.
 uniform sampler2D uHdAoMap;
+uniform sampler2D uHdAoBake;
+
+// The world y (the game's: smaller is higher) of the highest occluder over world ([x], [z]), from both.
+float hdOccluderY(vec2 xz) {
+    float y = 1.0e9;
+    vec2 uv = (hdAoMatrix * vec4(xz.x, 0.0, xz.y, 1.0)).xy;
+    if (uv.x > 0.0 && uv.x < 1.0 && uv.y > 0.0 && uv.y < 1.0) {
+        float d = texture(uHdAoMap, uv).r;
+        if (d < 1.0) y = hdAoParams.w + d * hdAoParams.x;
+    }
+    if (hdAoBake.z > 0.5) {
+        vec2 bake = (hdAoBakeMatrix * vec4(xz.x, 0.0, xz.y, 1.0)).xy;
+        float d = texture(uHdAoBake, bake).r;
+        if (d < 1.0) y = min(y, hdAoBake.x + d * hdAoBake.y);
+    }
+    return y;
+}
 
 bool hdOn(int feature) {
     return uHdScene != 0 && (hdFlags.x & feature) != 0;
@@ -214,9 +236,6 @@ vec4 hdApplyShadow(vec4 color, vec3 viewPos, vec3 normal) {
 float hdAmbientOcclusion(vec3 viewPos, vec3 normal) {
     if (!hdOn(HD_AO)) return 1.0;
     vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
-    vec3 p = (hdAoMatrix * vec4(world, 1.0)).xyz;
-    if (p.x <= 0.0 || p.x >= 1.0 || p.y <= 0.0 || p.y >= 1.0) return 1.0;
-    float range = hdAoParams.x;
     float normalLength = length(normal);
     vec3 n = normalLength > 0.0001 ? mat3(hdViewToWorld) * (normal / normalLength) : vec3(0.0, -1.0, 0.0);
     float up = -n.y;
@@ -225,7 +244,7 @@ float hdAmbientOcclusion(vec3 viewPos, vec3 normal) {
     float weight = 0.0;
     // straight above: a roof, a canopy
     if (up > 0.5) {
-        float above = (p.z - texture(uHdAoMap, p.xy).r) * range;
+        float above = world.y - hdOccluderY(world.xz);
         occlusion += 2.0 * smoothstep(240.0, 600.0, above);
         weight += 2.0;
     }
@@ -242,7 +261,7 @@ float hdAmbientOcclusion(vec3 viewPos, vec3 normal) {
         for (int r = 0; r < 2; r++) {
             float radius = r == 0 ? 110.0 : 300.0;
             // occluders lower than a tall grass tuft (about 180 units) are left out: grass is not a wall
-            float height = (p.z - texture(uHdAoMap, p.xy + dir * radius * hdAoParams.z).r) * range - 180.0;
+            float height = world.y - hdOccluderY(world.xz + dir * radius) - 180.0;
             sideOcclusion[which] += clamp(height / (radius * 1.2), 0.0, 1.0);
             sideWeight[which] += 1.0;
         }

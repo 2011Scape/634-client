@@ -97,6 +97,9 @@ class HdFeatures {
         }
         if (this.shadows.aoActive) {
             uniforms.setAmbientOcclusion(this.shadows.aoMatrix, this.shadows.aoParams)
+            this.shadows.bake(toolkit.sceneRenderer)
+            this.shadows.bindBaked()
+            uniforms.setAmbientOcclusionBake(this.shadows.aoBakeMatrix, this.shadows.aoBakeParams)
         }
         uniforms.setFog(fog[0], fog[1], fog[2], fog[3], fog[4], fog[5], fog[6])
         uniforms.setSky(sky[0], sky[1], sky[2], sky[3], sky[4], sky[5])

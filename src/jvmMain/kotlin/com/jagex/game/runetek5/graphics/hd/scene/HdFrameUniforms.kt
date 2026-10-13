@@ -51,7 +51,9 @@ class HdFrameUniforms {
         private const val AO_PARAMS: Int = AO_MATRIX + 64
         private const val WATER: Int = AO_PARAMS + 16
         private const val DEBUG: Int = WATER + 16
-        const val SIZE: Int = DEBUG + 16
+        private const val AO_BAKE_MATRIX: Int = DEBUG + 16
+        private const val AO_BAKE_PARAMS: Int = AO_BAKE_MATRIX + 64
+        const val SIZE: Int = AO_BAKE_PARAMS + 16
     }
 
     private var buffer: Int = 0
@@ -118,6 +120,12 @@ class HdFrameUniforms {
     }
 
     fun setLightCount(count: Int) = putInt4(LIGHT_INFO, count, 0, 0, 0)
+
+    /** The region's baked occlusion height map: world to (u, v, depth); top, range, whether baked. */
+    fun setAmbientOcclusionBake(matrix: FloatArray, params: FloatArray) {
+        putMat4(AO_BAKE_MATRIX, matrix)
+        putVec4(AO_BAKE_PARAMS, params[0], params[1], params[2], params[3])
+    }
 
     /** The debug panel's overlay (HdDebugPanel.OVERLAYS), 0 for none. */
     fun setDebug(overlay: Int) = putInt4(DEBUG, overlay, 0, 0, 0)
