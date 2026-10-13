@@ -8,8 +8,18 @@ The RuneScape client from December 2010 (build 634), patched to play on [Void][v
 comes with a launcher that connects to any Void server, OpenGL on every desktop platform, and a set
 of optional quality-of-life extras. It also runs in a web browser.
 
-**[Download the latest release][releases]** · [Quick start](#quick-start) · [Options](#options) ·
-[Platforms](#platforms) · [Linux with Wine](#running-under-wine) · [For developers](#for-developers)
+**[Download the latest release][releases]**
+
+## Contents
+
+- [Quick start](#quick-start)
+- [Features](#features)
+- [Options](#options): [connecting](#connecting), [gameplay](#gameplay), [graphics](#graphics),
+  [developer](#developer)
+- [Platforms](#platforms)
+- [Building from source](#building-from-source)
+- [For developers](#for-developers)
+- [Credits](#credits)
 
 ## Quick start
 
@@ -22,27 +32,23 @@ of optional quality-of-life extras. It also runs in a web browser.
    ```
 
 It connects to [2011Scape](https://2011.rs) (`play.2011.rs`). For your own server, add
-`--address localhost` (see the [Void repository][void] to run one). To check the download, compare
-it with `SHA256SUMS` from the same release.
+`--address localhost`; the [Void repository][void] says how to run one.
 
 ## Features
 
-| | |
-|---|---|
-| **Any Void server** | Choose the host, port and the server's own keys from the launcher. |
-| **OpenGL everywhere** | OpenGL runs on [LWJGL](https://www.lwjgl.org), bundled for Linux, Windows and macOS on x64 and arm64, and 32-bit Windows. |
-| **Smooth and sharp** | Up to 144 frames a second, a window scaled to your screen, and MSAA, SMAA or supersampling in OpenGL. |
-| **Gameplay extras** | Tile markers, experience drops, NPC labels, ground item labels and shift-drop. Each can be turned on or off. |
-| **Further and wider** | Twice the original render distance and a wider mouse-wheel zoom, both on by default. |
-| **Developer tools** | Item, NPC and object ids on right-click menus, coordinates on screen, and a better command console. |
-| **In a browser** | The same game on WebGL 2, through a WebSocket relay ([below](#the-browser-client)). |
+- **Any Void server**: choose the host, port and keys from the launcher.
+- **OpenGL on Linux, Windows and macOS**, through [LWJGL](https://www.lwjgl.org).
+- **Smooth and sharp**: up to 144 fps, a window scaled to your screen, and MSAA or SMAA.
+- **Extras**: tile markers, experience drops, NPC and ground item labels, shift-drop, a longer
+  render distance and a wider zoom.
+- **Developer tools**: ids on right-click menus, coordinates on screen, a better console.
+- **In a browser**: the same game on WebGL 2 ([below](#the-browser-client)).
 
 ## Options
 
-With no options the launcher turns on 144 fps, twice the render distance, the wider zoom, the
-better console, shift-drop, and a scale that suits the screen (1.5 from 1080p, 2 at 4K). Each
-option below overrides its default; the other extras stay off until you turn them on. Most can also
-be toggled in game with the command shown.
+By default the launcher turns on 144 fps, twice the render distance, the wider zoom, the better
+console, shift-drop and a scale that suits the screen. The other extras are off until you turn them
+on; most can also be toggled in game with the command shown.
 
 ```bash
 java -jar runetek5-634-<version>.jar --tile-markers --xp-drops --npc-labels
@@ -94,7 +100,7 @@ are off unless the client is started with `--dev-commands`.
 | `--smaa` | OpenGL: smooth the 3D view's edges with SMAA 1x, with or without MSAA. | `::smaa` |
 | `--render-scale <x>` | OpenGL: draw the 3D view 1.5 or 2 times larger and shrink it (supersampling). | `::renderscale x` |
 
-### For developers
+### Developer
 
 | Option | What it does |
 |---|---|
@@ -105,49 +111,19 @@ are off unless the client is started with `--dev-commands`.
 
 ## Platforms
 
-The game has four graphics modes, chosen in its graphics options. Java (software) runs anywhere
-Java does. OpenGL runs on LWJGL, which the jar carries. Native OpenGL and DirectX use the game's own
-2010 libraries, which exist for x86 and x86_64 only, and DirectX for 32-bit Windows only.
+The game has four graphics modes, chosen in its graphics options.
 
-| Platform | Java | OpenGL | Native OpenGL | DirectX | Tested |
-|---|:-:|:-:|:-:|:-:|---|
-| Linux x64 | ✓ | ✓ | ✓ | | Yes |
-| Linux arm64 | ✓ | ✓ | | | Not yet |
-| Windows x64 (64-bit Java) | ✓ | ✓ | ✓ | | Not yet |
-| Windows, 32-bit Java | ✓ | ✓ | ✓ | ✓ | Under Wine |
-| macOS, Intel | ✓ | ✓ | ✓ | | Not yet |
-| macOS, Apple Silicon | ✓ | ✓ | | | Not yet |
+| Platform | Java | OpenGL | Native OpenGL | DirectX |
+|---|:-:|:-:|:-:|:-:|
+| Linux (x64) | ✓ | ✓ | ✓ | |
+| Linux (arm64) | ✓ | ✓ | | |
+| Windows (64-bit Java) | ✓ | ✓ | ✓ | |
+| Windows (32-bit Java) | ✓ | ✓ | ✓ | ✓ |
+| macOS (Intel) | ✓ | ✓ | ✓ | |
+| macOS (Apple Silicon) | ✓ | ✓ | | |
 
-- **DirectX needs a 32-bit Java on Windows.** [Liberica][liberica] still publishes 32-bit Windows
-  builds of Java 21.
-- **macOS** gives the client OpenGL 2.1; SMAA has a GLSL 1.20 version for it.
-- **Java 26 and later** may not run the client: it is built on the Applet API, which newer JDKs are
-  removing. The launcher says so if your Java lacks it.
-- **On Linux** the launcher puts the native OpenGL library on the library path itself.
-
-## Running under Wine
-
-The Windows build runs on Linux through Wine with a 32-bit Java, which also gives it the DirectX
-mode. Use a prefix of its own:
-
-```bash
-export WINEPREFIX=~/.wine-runetek
-# a 32-bit Java 21, e.g. Liberica's Windows i586 "full" MSI
-wine msiexec /i bellsoft-jre21.0.12.1+1-windows-i586-full.msi /qn
-wine "C:\\Program Files (x86)\\BellSoft\\LibericaJRE-21-Full\\bin\\java.exe" -jar runetek5-634-<version>.jar
-```
-
-For DirectX, install [DXVK](https://github.com/doitsujin/dxvk) into the prefix. Wine's built-in
-Direct3D draws the game without its point lights (candles, fires) and at under half the frame rate;
-DXVK draws it as OpenGL does. Only the 32-bit `d3d9.dll` is needed. A 64-bit (WoW64) prefix keeps
-32-bit libraries in `syswow64`; a 32-bit prefix keeps them in `system32`.
-
-```bash
-cp dxvk-<version>/x32/d3d9.dll "$WINEPREFIX/drive_c/windows/syswow64/"
-wine reg add 'HKCU\Software\Wine\DllOverrides' /v d3d9 /d native,builtin /f
-```
-
-`winetricks dxvk` does the same for all of DXVK's libraries.
+DirectX needs a 32-bit Java ([Liberica][liberica] publishes one for Java 21). Native OpenGL and
+DirectX use the game's own 2010 libraries, which exist only for x86 and x86_64.
 
 ## Building from source
 
