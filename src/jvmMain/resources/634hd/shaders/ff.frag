@@ -31,6 +31,10 @@ in vec3 vArbViewPos;
 uniform int uHdWater;
 // 1 while the ground is drawn (HD_TERRAIN)
 uniform int uHdGround;
+// soft particles (HD_SOFT_PARTICLES): on, the scene's depth so far, the projection's depth terms
+uniform int uHdSoft;
+uniform sampler2D uHdSceneDepth;
+uniform vec4 uHdDepthParams;
 // the primary colour: the vertex colour, or the per-pixel lit one
 vec4 gPrimary;
 in vec3 vTexCoord0;
@@ -221,6 +225,14 @@ void main() {
     }
     if (uHdWater != 0 && hdOn(HD_WATER)) {
         color = hdWater(color, FF_VIEW_POS);
+    }
+    if (uHdSoft != 0 && hdOn(HD_SOFT_PARTICLES)) {
+        // fade out over the last 96 units before the geometry behind: no hard line where it cuts in
+        float sceneZ = texture(uHdSceneDepth, gl_FragCoord.xy * uHdDepthParams.zw).r * 2.0 - 1.0;
+        float fragmentZ = gl_FragCoord.z * 2.0 - 1.0;
+        float sceneEye = uHdDepthParams.y / (sceneZ + uHdDepthParams.x);
+        float fragmentEye = uHdDepthParams.y / (fragmentZ + uHdDepthParams.x);
+        color.a *= clamp((sceneEye - fragmentEye) / 96.0, 0.0, 1.0);
     }
     color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
     color.rgb *= hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);
