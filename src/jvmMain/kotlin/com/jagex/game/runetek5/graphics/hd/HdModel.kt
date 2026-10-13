@@ -182,6 +182,9 @@ class HdModel : Model {
 
 	private var sceneBatchMaterials: IntArray? = null
 
+	/** Per drawn face, its priority group from the face sort (layer, alpha, effect), for the transparent sort. */
+	private var sceneFaceGroups: IntArray? = null
+
 	constructor(glToolkit: HdToolkit?) : super() {
 		this.glToolkit = glToolkit
 		this.vertexBuffer = OpenGlArrayDrawBuffer(null, 5126, 3, 0)
@@ -296,6 +299,12 @@ class HdModel : Model {
 			this.hasAlphaTransition = this.hasAlphaTransition or alphaTransition
 		}
 		ArrayUtils.quicksort(faces, sortKeys)
+		// 634HD retained scene: each drawn face's priority group (layer, alpha, effect), in drawn order
+		val faceGroups: IntArray = IntArray(this.renderedFaceCount)
+		for (j in 0 until this.renderedFaceCount) {
+			faceGroups[j] = (sortKeys[j] ushr 32).toInt()
+		}
+		this.sceneFaceGroups = faceGroups
 		this.verticesZ = mesh.verticesZ
 		this.verticesY = mesh.verticesY
 		this.numVertices = mesh.numVertices
@@ -1850,6 +1859,7 @@ class HdModel : Model {
 		glModel.materialBatchOffsets = this.materialBatchOffsets
 		glModel.sceneBatchOffsets = this.sceneBatchOffsets
 		glModel.sceneBatchMaterials = this.sceneBatchMaterials
+		glModel.sceneFaceGroups = this.sceneFaceGroups
 		glModel.retainedObject = -1
 		glModel.retainedBatches = null
 		if (this.boundsCalculated) {
@@ -2607,8 +2617,15 @@ class HdModel : Model {
 		this.glToolkit.setupMatrixRendering()
 		val retained: BooleanArray? = this.retainedBatches
 		if (retained != null && this.retainedObject >= 0 && this.glToolkit.sceneRetained()) {
-			// 634HD retained scene: the batches it holds draw with it after the opaque entities
-			this.glToolkit.sceneRenderer.markVisible(this.retainedObject, modelMatrix.getColumnMajor(), this.normalsBuffer != null)
+			// 634HD retained scene: the batches it holds draw with it after the opaque entities, or,
+			// for a model with translucent faces, now, in the order the client sorted the entities
+			val scene: HdSceneRenderer = this.glToolkit.sceneRenderer
+			scene.markVisible(this.retainedObject, modelMatrix.getColumnMajor(), this.normalsBuffer != null)
+			if (scene.isAlpha(this.retainedObject)) {
+				RenderStats.category = RenderStats.CATEGORY_MODEL
+				scene.drawAlphaObject(this.retainedObject)
+				RenderStats.category = RenderStats.CATEGORY_OTHER
+			}
 		}
 		this.glToolkit.multiMatrix(modelMatrix)
 		RenderStats.category = RenderStats.CATEGORY_MODEL
@@ -2639,7 +2656,7 @@ class HdModel : Model {
 		val elementBuffer: ElementsBufferGL = elements.openglElementsBuffer ?: return false
 		val positions: OpenGlArrayDrawBuffer = this.vertexBuffer ?: return false
 		val colours: OpenGlArrayDrawBuffer = this.colorsBuffer ?: return false
-		val taken: BooleanArray = scene.appendModel(objectId, this.numNormals, positions, colours, this.normalsBuffer, this.textureCoordinatesBuffer, elementBuffer, this.renderedFaceCount, offsets, materials) ?: return false
+		val taken: BooleanArray = scene.appendModel(objectId, this.numNormals, positions, colours, this.normalsBuffer, this.textureCoordinatesBuffer, elementBuffer, this.renderedFaceCount, offsets, materials, this.sceneFaceGroups) ?: return false
 		this.retainedObject = objectId
 		this.retainedBatches = taken
 		this.releaseUploadedData()

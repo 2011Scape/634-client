@@ -45,6 +45,7 @@ import lang.javaSplit
 import lang.javaTrim
 import ClientCommandProcessor
 import ClientLogout
+import com.jagex.game.runetek5.client.features.RenderStats
 import com.jagex.game.runetek5.graphics.ToolkitType
 import com.jagex.game.runetek5.Minimap
 import com.jagex.game.runetek5.scene.culling.Culling
@@ -758,13 +759,15 @@ object SmokeTest {
 	private fun scenes(player: PlayerEntity) {
 		if (sceneList == null) {
 			val parsed: Array<String> = (if (SCENES == "default") DEFAULT_SCENES else SCENES).javaSplit(";")
-			val list: Array<String?> = arrayOfNulls(parsed.size + 2)
+			val list: Array<String?> = arrayOfNulls(parsed.size + 3)
 			for (i in 0 until parsed.size) {
 				list[i] = parsed[i].javaTrim()
 			}
 			// the first scene again, after a map reload (away and back) and after a relog
 			list[parsed.size] = "reload" + list[0]
 			list[parsed.size + 1] = "relog" + list[0]
+			// then a loc taken out of the scene, as a server's loc packet would (LocAction.replaceLoc)
+			list[parsed.size + 2] = "locchange" + list[0]
 			sceneList = list
 			println("SMOKE scenes: " + parsed.size + " positions, then a map reload and a relog")
 		}
@@ -798,14 +801,17 @@ object SmokeTest {
 		var entry: String = list[sceneIndex]!!
 		val reload: Boolean = entry.startsWith("reload")
 		val relog: Boolean = entry.startsWith("relog")
+		val locChange: Boolean = entry.startsWith("locchange")
 		if (reload) {
 			entry = entry.substring(6)
 		} else if (relog) {
 			entry = entry.substring(5)
+		} else if (locChange) {
+			entry = entry.substring(9)
 		}
 		val colon: Int = entry.indexOf(':')
-		val name: String = entry.substring(0, colon) + (if (reload) "-reload" else if (relog) "-relog" else "")
-		val reference: String = entry.substring(0, colon)
+		val name: String = entry.substring(0, colon) + (if (reload) "-reload" else if (relog) "-relog" else if (locChange) "-locchange" else "")
+		val reference: String = if (locChange) name else entry.substring(0, colon)
 		val values: Array<String> = entry.substring(colon + 1).javaSplit(",")
 		val x: Int = values[0].javaTrim().toInt()
 		val y: Int = values[1].javaTrim().toInt()
@@ -819,6 +825,20 @@ object SmokeTest {
 				sendCommand("tele " + SCENE_HOME[0] + " " + SCENE_HOME[1] + " " + SCENE_HOME[2])
 				sceneFrame = gameFrames
 				sceneStep = 4
+				return
+			}
+			if (locChange) {
+				if (!sceneArrived(player, x, y, level)) {
+					sendCommand("tele " + x + " " + y + " " + level)
+					sceneStep = 1
+					sceneFrame = gameFrames
+					return
+				}
+				locRebuildsBefore = RenderStats.chunkRebuilds
+				locRemoved = removeNearbyLoc(player)
+				println("SMOKE scene " + name + ": removed " + locRemoved)
+				sceneStep = 2
+				sceneFrame = gameFrames
 				return
 			}
 			if (relog) {
@@ -877,7 +897,16 @@ object SmokeTest {
 		if (gameFrames - sceneFrame < SCENE_FRAMES) {
 			return
 		}
-		val result: String = compareScene(name, reference)
+		var result: String = compareScene(name, reference)
+		if (locChange) {
+			val rebuilt: Int = RenderStats.chunkRebuilds - locRebuildsBefore
+			result += ", chunks rebuilt " + rebuilt
+			// on 634HD exactly the changed loc's chunk is built again (Toolkit.sceneChanged)
+			if (GamePreferences.uid!!.toolkit!!.getValue() == ToolkitType.HD && (rebuilt < 1 || rebuilt > 2)) {
+				sceneFailures++
+				result += " (expected 1)"
+			}
+		}
 		sceneSummary += " " + result + ";"
 		println("SMOKE scene " + result)
 		sceneIndex++
@@ -1089,6 +1118,27 @@ object SmokeTest {
 			out += (if (i > 0) "," else "") + args[i]
 		}
 		return out + "]"
+	}
+
+	private var locRebuildsBefore: Int = 0
+
+	private var locRemoved: String = ""
+
+	/** Takes the first static scenery loc within 5 tiles of the player out of the scene; what it took. */
+	private fun removeNearbyLoc(player: PlayerEntity): String {
+		val px: Int = player.movementBaseX[0]
+		val pz: Int = player.movementBaseY[0]
+		for (dz in -5..5) {
+			for (dx in -5..5) {
+				val tile: com.jagex.game.runetek5.scene.tile.Tile = com.jagex.game.runetek5.scene.Scene.getTile(0, px + dx, pz + dz) ?: continue
+				val container: com.jagex.game.runetek5.entity.InteractiveEntityContainer = tile.interactives ?: continue
+				if (container.interactiveObject is com.jagex.game.runetek5.entity.StaticLocation) {
+					com.jagex.game.runetek5.scene.LocAction.replaceLoc(px + dx, 2, -1, -1, 10, pz + dz, 0, 0)
+					return "the scenery at " + (px + dx) + "," + (pz + dz)
+				}
+			}
+		}
+		return "nothing (no scenery nearby)"
 	}
 
 	private fun sceneArrived(player: PlayerEntity, x: Int, y: Int, level: Int): Boolean {

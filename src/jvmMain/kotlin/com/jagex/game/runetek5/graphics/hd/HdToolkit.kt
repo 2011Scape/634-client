@@ -649,6 +649,10 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		this.sceneRenderer.sceneChanged(x, z)
 	}
 
+	override fun transparentEntitiesDone() {
+		this.sceneRenderer.endPass()
+	}
+
 	override fun opaqueEntitiesDone() {
 		if (!this.sceneRenderer.built) {
 			// a toolkit switched to with a scene already built (the scene is not built again)
