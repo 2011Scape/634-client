@@ -147,5 +147,5 @@ void main() {
     if (uFogEnabled) {
         color = hdFog(color, vViewPos, depth, uFogColor, uFogStart, uFogEnd);
     }
-    fragColor = color;
+    fragColor = hdDebugOverlay(color, vViewPos, vEyeNormal, (int(material.w) & FLAG_TEXTURED) != 0 ? 4096 + vMaterial : -1);
 }

@@ -420,6 +420,13 @@ object ClientCommandProcessor {
 					Console.printToConsole("Failed to enter tk5")
 					return
 				}
+				// Not part of the original client: 634HD's debug panel (debug builds, toolkit 6), also on F10.
+				if (string.equals("hdpanel", ignoreCase = true)) {
+					HdSettings.panel = !HdSettings.panel
+					HdSettings.version++
+					Console.printToConsole("634HD debug panel " + (if (HdSettings.panel) "open" else "closed") + " (needs client.debug and toolkit 6)")
+					return
+				}
 				// Not part of the original client: 634HD's feature switches (HdSettings): ::hd lists them,
 				// ::hd <name> <value> sets one.
 				if (string.equals("hd", ignoreCase = true) || string.lowercase().startsWith("hd ")) {

@@ -904,6 +904,9 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
 
     fun isAlpha(objectId: Int): Boolean = objectAlpha[objectId]
 
+    /** The 634 texture id of material slot [slot] (the debug panel's texture overlay). */
+    fun textureOfSlot(slot: Int): Int = materials.textureOfSlot(slot)
+
     /** After a drawTiles pass: forgets what was drawn, and builds or rebuilds chunks for a while. */
     fun endPass() {
         for (i in 0 until frameCount) {

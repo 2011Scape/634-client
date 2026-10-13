@@ -82,6 +82,9 @@ class GlState(val gl: WebGL2RenderingContext) {
 
     // 634HD: the slot of the drawn texture's material maps (HdMaterialMaps), -1 for none
     var hdMapSlot: Int = -1
+
+    // 634HD: the drawn texture's id (the debug panel's texture overlay), -1 for none
+    var hdTexture: Int = -1
     val hdDepthParams: FloatArray = FloatArray(4)
 
     /** The vertex array the emulator draws with (HdGl.createState); other renderers bind it back. */

@@ -294,6 +294,9 @@ class HdMaterials(private val toolkit: HdToolkit) {
     }
 
     /** Before a draw: the scroll offsets of animated materials (as renderTexture sets the texture matrix), and the table. */
+    /** The 634 texture id in [slot], -1 if none (the debug panel's texture overlay). */
+    fun textureOfSlot(slot: Int): Int = if (slot in 0 until slotCount) slotMaterial[slot] else -1
+
     /** The material maps' version the table's slots were taken from. */
     private var mapsVersion: Int = -1
 

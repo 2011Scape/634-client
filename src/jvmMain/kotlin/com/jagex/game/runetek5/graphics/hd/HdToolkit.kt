@@ -656,6 +656,135 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 
 	val hdFeatures: HdFeatures = HdFeatures()
 
+	// 634HD: the debug panel (client.debug builds), its GPU timer and frame clock
+	private var debugPanel: HdDebugPanel? = null
+	private val gpuQueries: IntArray = IntArray(4)
+	private var gpuQueryIndex: Int = 0
+	private var gpuQueryActive: Boolean = false
+	private var panelLastNanos: Long = 0L
+	private var panelFrames: Int = 0
+	private var panelFpsStart: Long = 0L
+	private var panelMouseCanvas: java.awt.Canvas? = null
+
+	// the overlay the debug panel asks for (HdFrameUniforms.setDebug), 0 for none
+	fun debugOverlay(): Int = if (this.debugPanel != null && HdSettings.panel) this.debugPanel!!.overlay else 0
+
+	/**
+	 * 634HD: the debug panel's frame (client.debug builds): opened or closed as HdSettings.panel says,
+	 * F10 bound to it, its numbers filled in. Called at the end of each frame.
+	 */
+	fun debugPanelTick() {
+		if (!HdDebugPanel.enabled) {
+			return
+		}
+		var panel: HdDebugPanel? = this.debugPanel
+		if (panel == null) {
+			panel = HdDebugPanel(this.hdContent)
+			this.debugPanel = panel
+			java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher { e ->
+				if (e.id == java.awt.event.KeyEvent.KEY_PRESSED && e.keyCode == java.awt.event.KeyEvent.VK_F10) {
+					HdSettings.panel = !HdSettings.panel
+					HdSettings.version++
+					true
+				} else {
+					false
+				}
+			}
+		}
+		if (panel.isOpen() != HdSettings.panel && this.panelOpenRequested != HdSettings.panel) {
+			this.panelOpenRequested = HdSettings.panel
+			panel.setOpen(HdSettings.panel)
+		}
+		if (!HdSettings.panel) {
+			return
+		}
+		val canvas: java.awt.Canvas? = this.currentCanvas
+		if (canvas != null && canvas !== this.panelMouseCanvas) {
+			this.panelMouseCanvas = canvas
+			canvas.addMouseMotionListener(object : java.awt.event.MouseMotionAdapter() {
+				override fun mouseMoved(e: java.awt.event.MouseEvent) {
+					panel.data.mouseX = ClientFeatures.unscale(e.x)
+					panel.data.mouseY = ClientFeatures.unscale(e.y)
+				}
+			})
+		}
+		val d: HdDebugPanel.Data = panel.data
+		val now: Long = System.nanoTime()
+		if (this.panelLastNanos != 0L) {
+			d.frameMs = (now - this.panelLastNanos) / 1000000.0f
+		}
+		this.panelLastNanos = now
+		this.panelFrames++
+		if (now - this.panelFpsStart >= 1000000000L) {
+			d.fps = this.panelFrames
+			this.panelFrames = 0
+			this.panelFpsStart = now
+		}
+		// the oldest of the GPU timer queries, if its result is in
+		val oldest: Int = this.gpuQueries[this.gpuQueryIndex]
+		if (oldest != 0 && org.lwjgl.opengl.GL33C.glGetQueryObjecti(oldest, org.lwjgl.opengl.GL33C.GL_QUERY_RESULT_AVAILABLE) != 0) {
+			d.gpuMs = org.lwjgl.opengl.GL33C.glGetQueryObjecti64(oldest, org.lwjgl.opengl.GL33C.GL_QUERY_RESULT) / 1000000.0f
+		}
+		d.drawCalls = RenderStats.lastDrawCalls
+		d.triangles = RenderStats.lastTriangles
+		d.modelDraws = RenderStats.lastCategoryDrawCalls[RenderStats.CATEGORY_MODEL]
+		d.groundDraws = RenderStats.lastCategoryDrawCalls[RenderStats.CATEGORY_GROUND]
+		d.otherDraws = RenderStats.lastCategoryDrawCalls[RenderStats.CATEGORY_OTHER]
+		d.lights = this.hdFeatures.lights.used
+		d.casters = this.hdFeatures.shadows.lastCasters
+		d.regionBuildMs = RenderStats.lastRegionBuildMs
+		d.regionHitchMs = RenderStats.lastRegionUploadMs
+		d.chunkRebuilds = RenderStats.chunkRebuilds
+		d.mapsMb = this.materialMaps.bytes / 1048576L
+		d.environment = this.hdFeatures.environment
+		d.nearestLight = this.hdFeatures.lights.nearest
+		val player = com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate.localPlayer
+		if (player != null) {
+			d.playerTile = ((player.x shr 9) + com.jagex.game.runetek5.MapRegion.sceneBaseX).toString() + ", " + ((player.z shr 9) + com.jagex.game.runetek5.MapRegion.sceneBaseY) + ", level " + player.level
+		}
+		// the texture under the mouse, from the texture ids overlay's colour there
+		if (panel.overlay == 2 && d.mouseX >= 0 && d.mouseY >= 0 && d.mouseX < this.viewportWidth && d.mouseY < this.viewportHeight) {
+			val pixel: IntArray = IntArray(1)
+			HdGl.glReadPixelsi(d.mouseX, this.viewportHeight - d.mouseY - 1, 1, 1, OpenGLConstants.GL_BGRA, this.pixelType, pixel, 0)
+			val p: Int = pixel[0]
+			val red: Int = (p shr 16) and 0xFF
+			val green: Int = (p shr 8) and 0xFF
+			val blue: Int = p and 0xFF
+			if (blue == 255) {
+				val code: Int = red or (green shl 8)
+				val texture: Int = if (code >= 4096) this.sceneRenderer.textureOfSlot(code - 4096) else code
+				val maps: Int = this.materialMaps.slotOf(texture)
+				d.hoveredTexture = "Texture " + texture + (if (code >= 4096) " (retained scene, material slot " + (code - 4096) + ")" else "") + (if (maps >= 0) ", material maps slot " + maps else ", no material maps")
+			} else {
+				d.hoveredTexture = "No texture under the mouse (untextured, or outside the 3D view)"
+			}
+		} else if (panel.overlay != 2) {
+			d.hoveredTexture = "Texture: choose the texture ids overlay"
+		}
+		d.menuTargets = this.menuTargets()
+	}
+
+	private var panelOpenRequested: Boolean = false
+
+	// the mini menu's entries, newest first: what the mouse is over (the debug panel's Inspect tab)
+	private fun menuTargets(): String {
+		val out: StringBuilder = StringBuilder("Mini menu at the mouse:\n")
+		val sentinel = com.jagex.game.runetek5.client.menu.MiniMenu.entryList.sentinel
+		var node = sentinel.next
+		var shown: Int = 0
+		while (node != null && node !== sentinel && shown < 8) {
+			val entry = node as? com.jagex.game.runetek5.client.menu.MiniMenuEntry
+			if (entry != null) {
+				out.append("  ").append(entry.op ?: "").append(' ').append((entry.targetName ?: "").replace(Regex("<[^>]*>"), ""))
+				out.append("  [click ").append(entry.clickType).append(", params ").append(entry.param0).append(",").append(entry.param1)
+				out.append(", id/uid ").append(entry.bitpacked).append("]\n")
+				shown++
+			}
+			node = node.next
+		}
+		return out.toString()
+	}
+
 	// 634HD: Phase 5 material maps (materials.json)
 	val materialMaps: HdMaterialMaps = HdMaterialMaps()
 
@@ -1011,6 +1140,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			this.effectManager.loadEffect(effectParam1.toInt(), hasLight, effectType, effectParam2, allowStillWater)
 			// 634HD: the texture's material maps (client.hd.materials)
 			HdGl.state.hdMapSlot = this.materialMaps.slotOf(materialId)
+			HdGl.state.hdTexture = materialId
 			// 634HD: water materials (the water effects) get 634HD's water shading with client.hd.water
 			HdGl.state.hdWater = if (effectType == 2 || effectType == 3 || effectType == 4 || effectType == 5 || effectType == 8 || effectType == 9) 1 else 0
 			if (!this.effectManager.bindTexture(combineMode, texture)) {
@@ -3086,6 +3216,8 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	// fit, pushed as the target, and the viewport moved so that the view lands at its origin, as the
 	// bloom filter does for its layer. The target's size and the projection stay in the frame's pixels.
 	override fun beginScene(x: Int, y: Int, width: Int, height: Int) {
+		// 634HD: the debug panel reads the last frame, whole, before this one's 3D view starts
+		this.debugPanelTick()
 		// 634HD: the frame's uniforms for the features, and the 3D view's draws marked as such
 		this.sceneDrawing = true
 		this.frameUploaded = false
@@ -3093,6 +3225,14 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		this.hdFeatures.beginFrame(this, x, y, width, height)
 		if (HdSettings.materials) {
 			this.materialMaps.prepare(this.hdContent)
+		}
+		if (this.debugPanel != null && HdSettings.panel && !this.gpuQueryActive) {
+			// the 3D view's GPU time, read a few frames later (the debug panel)
+			if (this.gpuQueries[0] == 0) {
+				org.lwjgl.opengl.GL33C.glGenQueries(this.gpuQueries)
+			}
+			org.lwjgl.opengl.GL33C.glBeginQuery(org.lwjgl.opengl.GL33C.GL_TIME_ELAPSED, this.gpuQueries[this.gpuQueryIndex])
+			this.gpuQueryActive = true
 		}
 		if (HdSettings.mipmaps != this.texturesMipmapped || HdSettings.anisotropy != this.texturesAnisotropy) {
 			// world textures are made again with the new filtering as they are next used
@@ -3142,6 +3282,12 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	// place in the frame. The clip is not reset through la(), which would move the picking bounds.
 	override fun endScene() {
 		HdToolkit.printDebugMaterials()
+		if (this.gpuQueryActive) {
+			HdGl.flushImmediate()
+			org.lwjgl.opengl.GL33C.glEndQuery(org.lwjgl.opengl.GL33C.GL_TIME_ELAPSED)
+			this.gpuQueryActive = false
+			this.gpuQueryIndex = (this.gpuQueryIndex + 1) and 3
+		}
 		this.sceneDrawing = false
 		this.hdFeatures.shadows.recording = false
 		this.updateHdScene()
@@ -3171,8 +3317,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 				view = this.smaaFilter!!.output
 			}
 		}
-		if (HdSettings.postProcessing()) {
+		if (HdSettings.postProcessing() && this.debugOverlay() != 2) {
 			// 634HD: bloom, tonemapping, grading, FXAA (scene/HdPost), into the view's place in the frame
+			// (not with the debug panel's texture ids overlay, whose colours must arrive exact)
 			this.hdPost.compose(CoreGl.textureName(view!!.getId()), this.sceneTarget!!.width, this.sceneTarget!!.height, this.sceneX, this.viewportHeight - this.sceneY - this.sceneHeight, this.sceneWidth, this.sceneHeight, this.frameNumber++)
 			HdGl.glEnable(OpenGLConstants.GL_SCISSOR_TEST)
 			this.defineScissorBox()

@@ -20,10 +20,11 @@ import java.io.File
 
 class HdContent {
 
+    // the debug panel edits these in place, then writes the file (saveLights)
     class LightDef(
         val name: String, val objects: IntArray, val npcs: IntArray, val spotAnimations: IntArray, val projectiles: IntArray,
-        val red: Float, val green: Float, val blue: Float, val radius: Float, val intensity: Float,
-        val offsetX: Float, val offsetY: Float, val offsetZ: Float, val flicker: Int,
+        var red: Float, var green: Float, var blue: Float, var radius: Float, var intensity: Float,
+        var offsetX: Float, var offsetY: Float, var offsetZ: Float, var flicker: Int,
     )
 
     class EnvironmentDef(val name: String, val line: Int) {
@@ -330,6 +331,77 @@ class HdContent {
     }
 
     private fun parseFoliage(o: Json.Obj): FoliageDef = FoliageDef(ids(o["objects"]), num(o["strength"], 1.0f), num(o["frequency"], 1.0f))
+
+    // ---- writing the files back (the debug panel's Save buttons) ----
+
+    private fun hex(c: FloatArray): String = String.format("#%02x%02x%02x", (c[0] * 255 + 0.5f).toInt().coerceIn(0, 255), (c[1] * 255 + 0.5f).toInt().coerceIn(0, 255), (c[2] * 255 + 0.5f).toInt().coerceIn(0, 255))
+
+    private fun num(v: Float): String = if (v == Math.round(v).toFloat()) Math.round(v).toString() else String.format(java.util.Locale.ROOT, "%.3f", v).trimEnd('0')
+
+    private fun ids(a: IntArray): String = a.joinToString(", ", "[", "]")
+
+    /** Writes lights.json from [lights]; returns where, or why it could not. */
+    fun saveLights(): String {
+        val file = writableFile("lights.json") ?: return "no data folder: run with client.debug from the repository, or set client.hd.dataDir"
+        val out = StringBuilder("{\n  \"lights\": [\n")
+        for ((i, l) in lights.withIndex()) {
+            out.append("    {\n      \"name\": \"").append(l.name).append("\",\n")
+            if (l.objects.isNotEmpty()) out.append("      \"objects\": ").append(ids(l.objects)).append(",\n")
+            if (l.npcs.isNotEmpty()) out.append("      \"npcs\": ").append(ids(l.npcs)).append(",\n")
+            if (l.spotAnimations.isNotEmpty()) out.append("      \"spotAnimations\": ").append(ids(l.spotAnimations)).append(",\n")
+            if (l.projectiles.isNotEmpty()) out.append("      \"projectiles\": ").append(ids(l.projectiles)).append(",\n")
+            out.append("      \"colour\": \"").append(hex(floatArrayOf(l.red, l.green, l.blue))).append("\",\n")
+            out.append("      \"radius\": ").append(num(l.radius)).append(",\n")
+            out.append("      \"intensity\": ").append(num(l.intensity)).append(",\n")
+            out.append("      \"offset\": [").append(num(l.offsetX)).append(", ").append(num(l.offsetY)).append(", ").append(num(l.offsetZ)).append("],\n")
+            out.append("      \"flicker\": \"").append(when (l.flicker) { 1 -> "flicker"; 2 -> "pulse"; else -> "none" }).append("\"\n")
+            out.append(if (i == lights.size - 1) "    }\n" else "    },\n")
+        }
+        out.append("  ]\n}\n")
+        file.writeText(out.toString())
+        return "wrote " + file
+    }
+
+    /** Writes environments.json from [environments]; returns where, or why it could not. */
+    fun saveEnvironments(): String {
+        val file = writableFile("environments.json") ?: return "no data folder: run with client.debug from the repository, or set client.hd.dataDir"
+        val out = StringBuilder("{\n  \"environments\": [\n")
+        for ((i, e) in environments.withIndex()) {
+            val fields = ArrayList<String>()
+            fields.add("\"name\": \"" + e.name + "\"")
+            val area = ArrayList<String>()
+            e.regions?.let { area.add("\"regions\": " + ids(it)) }
+            e.bounds?.let { b -> area.add("\"bounds\": " + b.joinToString(", ", "[", "]") { ids(it) }) }
+            e.levels?.let { area.add("\"levels\": " + ids(it)) }
+            if (area.isNotEmpty()) fields.add("\"area\": { " + area.joinToString(", ") + " }")
+            val sun = ArrayList<String>()
+            if (!e.sunPitch.isNaN()) sun.add("\"pitch\": " + num(e.sunPitch))
+            if (!e.sunYaw.isNaN()) sun.add("\"yaw\": " + num(e.sunYaw))
+            e.sunColour?.let { sun.add("\"colour\": \"" + hex(it) + "\"") }
+            if (e.sunIntensity != 1.0f) sun.add("\"intensity\": " + num(e.sunIntensity))
+            if (sun.isNotEmpty()) fields.add("\"sun\": { " + sun.joinToString(", ") + " }")
+            val ambient = ArrayList<String>()
+            e.ambientColour?.let { ambient.add("\"colour\": \"" + hex(it) + "\"") }
+            if (e.ambientIntensity != 1.0f) ambient.add("\"intensity\": " + num(e.ambientIntensity))
+            if (ambient.isNotEmpty()) fields.add("\"ambient\": { " + ambient.joinToString(", ") + " }")
+            val fog = ArrayList<String>()
+            e.fogColour?.let { fog.add("\"colour\": \"" + hex(it) + "\"") }
+            if (!e.fogStart.isNaN()) fog.add("\"start\": " + num(e.fogStart))
+            if (!e.fogEnd.isNaN()) fog.add("\"end\": " + num(e.fogEnd))
+            if (fog.isNotEmpty()) fields.add("\"fog\": { " + fog.joinToString(", ") + " }")
+            val sky = ArrayList<String>()
+            e.skyTop?.let { sky.add("\"top\": \"" + hex(it) + "\"") }
+            e.skyHorizon?.let { sky.add("\"horizon\": \"" + hex(it) + "\"") }
+            if (sky.isNotEmpty()) fields.add("\"sky\": { " + sky.joinToString(", ") + " }")
+            if (e.heightFogDensity != 0.0f) fields.add("\"heightFog\": { \"density\": " + num(e.heightFogDensity) + ", \"top\": " + num(e.heightFogTop) + " }")
+            e.lut?.let { fields.add("\"lut\": \"" + it + "\"") }
+            e.waterTint?.let { fields.add("\"waterTint\": \"" + hex(it) + "\"") }
+            out.append("    {\n      ").append(fields.joinToString(",\n      ")).append(if (i == environments.size - 1) "\n    }\n" else "\n    },\n")
+        }
+        out.append("  ]\n}\n")
+        file.writeText(out.toString())
+        return "wrote " + file
+    }
 
     /** The environment for world tile ([x], [y]) on [level]: the first area holding it, else the default. */
     fun environmentAt(x: Int, y: Int, level: Int): EnvironmentDef? {

@@ -107,6 +107,7 @@ class HdFeatures {
         val lut: String? = this.environment?.lut
         toolkit.hdPost.gradingTexture = if (lut != null && HdSettings.colourGrading) toolkit.hdPost.gradingTable(lut) else 0
         this.lights.prepare(toolkit.hdContent, uniforms, worldToView, seconds)
+        uniforms.setDebug(toolkit.debugOverlay())
     }
 
     /** Picks the environment at the local player and eases the sky and fog values towards it. */

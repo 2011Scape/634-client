@@ -94,3 +94,52 @@ vec4 hdApplyMaterial(int slot, vec4 color, vec2 uv, vec3 viewPos) {
     }
     return vec4(rgb, color.a);
 }
+
+// The debug panel's overlays (hdDebug.x) on a 3D-view fragment. [texture] identifies the texture for
+// the id overlay: the 634 texture id, or 4096 plus the retained scene's material slot, -1 for none;
+// it is written exactly into red and green so the panel can read the id under the mouse.
+vec4 hdDebugOverlay(vec4 color, vec3 viewPos, vec3 normal, int texture) {
+    int mode = hdDebug.x;
+    if (mode == 0 || uHdScene == 0) return color;
+    vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
+    if (mode == 1) {
+        float l = length(normal);
+        vec3 n = l > 0.0001 ? normal / l : vec3(0.0, 0.0, 1.0);
+        return vec4(n * 0.5 + 0.5, 1.0);
+    }
+    if (mode == 2) {
+        if (texture < 0) return vec4(0.0, 0.0, 0.0, 1.0);
+        return vec4(float(texture & 255) / 255.0, float((texture >> 8) & 255) / 255.0, 1.0, 1.0);
+    }
+    if (mode == 3) {
+        // how many lights reach the fragment: blue one, green two or three, red more
+        int count = 0;
+        for (int i = 0; i < hdLightInfo.x; i++) {
+            if (length(hdLightPosition[i].xyz - viewPos) < hdLightPosition[i].w) count++;
+        }
+        vec3 heat = count == 0 ? vec3(0.0) : count == 1 ? vec3(0.0, 0.3, 1.0) : count <= 3 ? vec3(0.0, 1.0, 0.2) : vec3(1.0, 0.1, 0.0);
+        return vec4(mix(color.rgb * 0.4, heat, count == 0 ? 0.0 : 0.6), 1.0);
+    }
+    if (mode == 4) {
+        vec4 p = hdShadowMatrix * vec4(viewPos, 1.0);
+        bool inside = p.x > 0.0 && p.x < 1.0 && p.y > 0.0 && p.y < 1.0;
+        vec2 grid = fract(p.xy * 16.0);
+        float line = (min(grid.x, grid.y) < 0.03) ? 1.0 : 0.0;
+        vec3 tint = inside ? mix(vec3(0.2, 0.9, 0.3), vec3(1.0), line) : vec3(0.9, 0.2, 0.2);
+        return vec4(mix(color.rgb, tint, 0.45) * mix(0.5, 1.0, hdShadow(viewPos)), 1.0);
+    }
+    if (mode == 5) {
+        // 8x8-tile chunk edges (the retained scene's), tile edges faintly
+        vec2 tile = world.xz / 512.0;
+        vec2 chunk = fract(tile / 8.0);
+        vec2 width = fwidth(tile / 8.0) * 1.5;
+        float edge = (chunk.x < width.x || chunk.y < width.y) ? 1.0 : 0.0;
+        vec2 cell = fract(tile);
+        vec2 cellWidth = fwidth(tile);
+        float tileEdge = (cell.x < cellWidth.x || cell.y < cellWidth.y) ? 0.35 : 0.0;
+        return vec4(mix(color.rgb, vec3(1.0, 0.85, 0.0), max(edge, tileEdge)), color.a);
+    }
+    if (mode == 6) return vec4(vec3(hdAmbientOcclusion(viewPos, normal)), 1.0);
+    if (mode == 7) return vec4(vec3(hdShadow(viewPos)), 1.0);
+    return color;
+}

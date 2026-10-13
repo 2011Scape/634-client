@@ -109,7 +109,7 @@ object HdSettings {
 	private val NAMES: Array<String> = arrayOf(
 		"tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting",
 		"shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom",
-		"colourGrading", "interfaceScale", "smoothInterface", "materials",
+		"colourGrading", "interfaceScale", "smoothInterface", "materials", "panel",
 	)
 
 	init {
@@ -164,6 +164,7 @@ object HdSettings {
 			"interfacescale" -> interfaceScale = if (off) 0 else if (number in 2..4) number else return "takes off, 2, 3 or 4"
 			"smoothinterface" -> smoothInterface = flag(on, off) ?: return "takes on or off"
 			"materials" -> materials = flag(on, off) ?: return "takes on or off"
+			"panel" -> panel = flag(on, off) ?: return "takes on or off"
 			"all" -> {
 				// every feature at its usual setting, for a quick look (::hd all on|off)
 				val enable: Boolean = flag(on, off) ?: return "takes on or off"
@@ -203,7 +204,7 @@ object HdSettings {
 		"ambientOcclusion " + onOff(ambientOcclusion) + ", pixelLighting " + onOff(pixelLighting) + ", shadows " + shadows + ", lights " + onOff(lights),
 		"terrainBlend " + onOff(terrainBlend) + ", water " + water + ", foliage " + onOff(foliage) + ", softParticles " + onOff(softParticles),
 		"fxaa " + onOff(fxaa) + ", bloom " + onOff(bloom) + ", colourGrading " + onOff(colourGrading),
-		"interfaceScale " + interfaceScale + ", smoothInterface " + onOff(smoothInterface),
+		"interfaceScale " + interfaceScale + ", smoothInterface " + onOff(smoothInterface) + ", materials " + onOff(materials),
 	)
 
 	private fun onOff(value: Boolean): String = if (value) "on" else "off"

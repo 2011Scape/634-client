@@ -55,6 +55,10 @@ class HdLights {
     private val DEBUG: Boolean = System.getProperty("client.test.hdDebug") != null
     private var debugFrame: Int = 0
 
+    /** The light nearest the player this frame, for the debug panel's editor. */
+    var nearest: HdContent.LightDef? = null
+        private set
+
     /** The lights written this frame, for the debug panel. */
     var used: Int = 0
         private set
@@ -64,6 +68,7 @@ class HdLights {
         used = 0
         if (!HdSettings.lights) {
             uniforms.setLightCount(0)
+            nearest = null
             return
         }
         if (dirty || contentVersion != content.version) {
@@ -145,6 +150,7 @@ class HdLights {
         }
         uniforms.setLightCount(limit)
         used = limit
+        nearest = if (limit > 0) def[0] else null
         if (DEBUG && (debugFrame++ % 50) == 0) {
             println("HDDEBUG lights locs=" + locCount + " candidates=" + count + " used=" + limit + (if (limit > 0) " first=" + def[0]!!.name + " at " + x[0] + "," + y[0] + "," + z[0] + " player " + px + "," + player.y + "," + pz + " eye " + (view[0] * x[0] + view[4] * y[0] + view[8] * z[0] + view[12]) + "," + (view[1] * x[0] + view[5] * y[0] + view[9] * z[0] + view[13]) + "," + (view[2] * x[0] + view[6] * y[0] + view[10] * z[0] + view[14]) else ""))
         }
