@@ -139,3 +139,6 @@ expect val homeCacheOnly: Boolean
  * as on a desktop whose driver has no 3.3 core context.
  */
 expect fun createHdToolkit(multiSamples: Int, canvas: awt.Canvas?, textureSource: com.jagex.game.runetek5.config.material.MaterialProvider?): com.jagex.game.runetek5.graphics.Toolkit
+
+/* Whether 634HD can be offered at all: true on the JVM, false in a browser (createHdToolkit). */
+expect val hdAvailable: Boolean

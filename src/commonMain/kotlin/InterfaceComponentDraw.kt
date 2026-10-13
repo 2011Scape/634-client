@@ -1,4 +1,5 @@
 import com.jagex.game.runetek5.config.rsinterface.MediaType
+import com.jagex.game.runetek5.client.features.HdOptionsButton
 import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.TextureCombineSource
 import com.jagex.game.runetek5.InterfaceRectangles
@@ -331,6 +332,8 @@ object InterfaceComponentDraw {
 									}
 								}
 							} else if (component.type == ComponentType.TEXT) {
+								// Not part of the original client: the 634HD toggle in the Graphics Options title bar.
+								HdOptionsButton.componentDrawn(component.idHash, startX, startY, component.height)
 								@Pc(1130) val font: AbstractFontRenderer? = component.getFontRenderer(ClientState.activeToolkit)
 								if (font != null) {
 									var textColour: Int = component.color
