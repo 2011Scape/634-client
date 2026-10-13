@@ -13,15 +13,15 @@ import org.lwjgl.opengl.awt.GLData
 import org.lwjgl.opengl.awt.PlatformGLCanvas
 import org.lwjgl.opengl.awt.PlatformLinuxGLCanvas
 import org.lwjgl.opengl.awt.PlatformMacOSXGLCanvas
-import org.lwjgl.opengl.awt.PlatformWin32GLCanvas
 import org.lwjgl.system.Configuration
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.Platform
 
 /**
  * Not part of the original client: the GL context behind a [OpenGL], on LWJGL. libjaggl made its
- * context on the canvas's native window; lwjgl3-awt does the same through JAWT, with GLX on Linux,
- * WGL on Windows and an NSOpenGLView (a legacy 2.1 context) on macOS.
+ * context on the canvas's native window; lwjgl3-awt does the same through JAWT, with GLX on Linux
+ * and an NSOpenGLView (a legacy 2.1 context) on macOS. On Windows it is WglCanvas, a WGL context
+ * on the canvas's own device context, which Wine also accepts.
  *
  * One context draws to every surface: the canvas given to [create] and each canvas given to
  * [prepareSurface]. GLX and WGL can make a context current on any window with a compatible pixel
@@ -176,7 +176,7 @@ internal class GlContext private constructor(private val data: GLData, main: Sur
         try {
             when (val platform = current.platform) {
                 is PlatformLinuxGLCanvas -> GLXEXTSwapControl.glXSwapIntervalEXT(platform.display, platform.drawable, interval)
-                is PlatformWin32GLCanvas -> WGLEXTSwapControl.wglSwapIntervalEXT(interval)
+                is WglCanvas -> WGLEXTSwapControl.wglSwapIntervalEXT(interval)
                 is PlatformMacOSXGLCanvas -> MemoryStack.stackPush().use { stack ->
                     CGL.CGLSetParameter(current.context, CGL.kCGLCPSwapInterval, stack.ints(interval))
                 }
@@ -272,7 +272,10 @@ internal class GlContext private constructor(private val data: GLData, main: Sur
             try {
                 platform.lock()
                 try {
-                    if (!platform.makeCurrent(context)) throw AWTException("cannot make the context current")
+                    if (!platform.makeCurrent(context)) {
+                        val detail = if (platform is WglCanvas) " (error " + platform.lastError + ")" else ""
+                        throw AWTException("cannot make the context current" + detail)
+                    }
                     gl.capabilities = GL.createCapabilities()
                     platform.makeCurrent(0L)
                 } finally {
@@ -291,7 +294,7 @@ internal class GlContext private constructor(private val data: GLData, main: Sur
         }
 
         private fun newPlatformCanvas(): PlatformGLCanvas = when (Platform.get()) {
-            Platform.WINDOWS -> PlatformWin32GLCanvas()
+            Platform.WINDOWS -> WglCanvas()
             Platform.MACOSX -> PlatformMacOSXGLCanvas()
             // GLX, as libjaggl used, also under Wayland (through XWayland, where AWT's windows are);
             // lwjgl3-awt would pick EGL there.
