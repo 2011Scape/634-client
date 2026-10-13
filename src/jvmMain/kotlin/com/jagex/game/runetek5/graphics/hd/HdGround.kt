@@ -4,6 +4,8 @@
  */
 package com.jagex.game.runetek5.graphics.hd
 
+import com.jagex.game.runetek5.client.features.RenderStats
+
 import com.jagex.game.runetek5.scene.ground.Ground
 
 import com.jagex.game.runetek5.cache.node.impl.ShortNode
@@ -804,6 +806,15 @@ class HdGround : Ground {
 		if (this.layers == null) {
 			return
 		}
+		RenderStats.category = RenderStats.CATEGORY_GROUND
+		try {
+			this.renderGroundLayers(orthoZoom, radius, belowLowestPlane, x, skipFlags, visibility, z)
+		} finally {
+			RenderStats.category = RenderStats.CATEGORY_OTHER
+		}
+	}
+
+	private fun renderGroundLayers(orthoZoom: Int, radius: Int, belowLowestPlane: Boolean, x: Int, skipFlags: Int, visibility: Array<BooleanArray?>?, z: Int) {
 		val diameter: Int = radius + radius + 1
 		val maxVisibleTiles: Int = diameter * diameter
 		if (this.glToolkit.visibleTileIndices.size < maxVisibleTiles) {
