@@ -101,7 +101,8 @@ float applyOperandAlpha(int op, vec4 c) {
 }
 
 vec4 combineStage(int stage, vec4 texColor, vec4 previous) {
-    vec4 constant = uTexEnvColor[stage];
+    // the stage constant (the water tints) is an sRGB colour like the rest
+    vec4 constant = hdColour(uTexEnvColor[stage]);
     ivec3 srcRgb = uSrcRgb[stage];
     ivec3 opRgb = uOpRgb[stage];
     ivec3 srcAlpha = uSrcAlpha[stage];
@@ -222,25 +223,31 @@ vec4 sampleUnit(int unit) {
     // 3D textures (the animated water normal map) are sampled with the texcoord's full vec3;
     // the animated slice coordinate r arrives through the per-unit texture matrix.
     if (unit == 0) {
-        if (uIs3D[0] != 0) return sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0);
+        if (uIs3D[0] != 0) return hdColour(sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0));
         // 634HD: the ground's texture blended (HD_TERRAIN); the base texture in linear colour too (tonemap)
         if (uHdGround != 0 && hdOn(HD_TERRAIN)) return hdColour(hdTerrainTexture(uTexture0, gUv0, FF_VIEW_POS));
         if (uHdSmooth != 0 && uLogicalScale > 1.0 && uHdScene == 0) return sharpBilinear(uTexture0, gUv0);
         return hdColour(texture(uTexture0, gUv0, hdDetailBias));
     }
+    // the other units' colours are sRGB too (environment maps, the water's wave textures): linear
+    // with HD_LINEAR like the base texture, so they add up as they did in the game's sRGB
     if (unit == 1) {
-        if (uCubeMap[1]) return texture(uTextureCube1, vTexCoord1);
-        if (uIs3D[1] != 0) return sampleLuminanceAlpha3D(uTexture3D1, vTexCoord1);
-        return texture(uTexture1, logicalCentre(vTexCoord1.xy));
+        if (uCubeMap[1]) return hdColour(texture(uTextureCube1, vTexCoord1));
+        if (uIs3D[1] != 0) return hdColour(sampleLuminanceAlpha3D(uTexture3D1, vTexCoord1));
+        return hdColour(texture(uTexture1, logicalCentre(vTexCoord1.xy)));
     }
-    if (uCubeMap[2]) return texture(uTextureCube2, vTexCoord2);
-    if (uIs3D[2] != 0) return sampleLuminanceAlpha3D(uTexture3D2, vTexCoord2);
-    return texture(uTexture2, logicalCentre(vTexCoord2.xy));
+    if (uCubeMap[2]) return hdColour(texture(uTextureCube2, vTexCoord2));
+    if (uIs3D[2] != 0) return hdColour(sampleLuminanceAlpha3D(uTexture3D2, vTexCoord2));
+    return hdColour(texture(uTexture2, logicalCentre(vTexCoord2.xy)));
 }
 
 void main() {
     hdSetDetail(FF_VIEW_POS);
     gPrimary = vColor;
+#ifdef ARB_VERTEX
+    // the ARB vertex programs (the water effects) pass the game's colour through as it is: sRGB
+    gPrimary = hdColour(vColor);
+#endif
 #ifndef ARB_VERTEX
     if (hdOn(HD_PIXEL_LIGHTING) && uLightingEnabled) {
         vec4 lit = hdEnvAmbientLight(uGlobalAmbient);

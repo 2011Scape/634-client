@@ -76,6 +76,11 @@ void main() {
     if (uTonemap != 0) {
         c *= uExposure;
         c = uTonemap == 2 ? agx(c) : aces(c);
+        if (uTonemap == 2) {
+            // AgX desaturates by design; a little saturation back keeps the game's colours
+            float grey = dot(c, vec3(0.2126, 0.7152, 0.0722));
+            c = max(mix(vec3(grey), c, 1.12), vec3(0.0));
+        }
         c = pow(c, vec3(1.0 / 2.2));
     }
     if (uLutOn) {

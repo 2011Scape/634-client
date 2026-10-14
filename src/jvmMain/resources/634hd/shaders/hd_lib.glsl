@@ -190,13 +190,21 @@ vec3 hdSkyColour(vec3 dir) {
     return mix(hdSkyHorizon.rgb, hdSkyTop.rgb, pow(up, 0.4));
 }
 
+// [color] (in the scene's space) fogged by [amount] of the sRGB [fogRgb]. The mix is made in sRGB as
+// the game makes it: in linear light (HD_LINEAR) a half-fogged dark surface would come out much
+// brighter, thick fog (Draynor's sea) turning pale.
+vec3 hdFogMix(vec3 color, vec3 fogRgb, float amount) {
+    if (!hdOn(HD_LINEAR)) return mix(color, fogRgb, amount);
+    return hdToLinear(mix(hdToSrgb(color), fogRgb, amount));
+}
+
 // Fog over a fragment at eye-space [viewPos] ([depth]: its eye depth). [fogColour], [start] and [end]
 // are the draw's fixed-function fog, which is all there is unless HD_FOG (the environment's colour
 // and distances, a smooth curve, height fog) or HD_SKY (the colour of the sky behind the fragment).
 vec4 hdFog(vec4 color, vec3 viewPos, float depth, vec4 fogColour, float start, float end) {
     if (!hdOn(HD_FOG) && !hdOn(HD_SKY) && !hdOn(HD_FADE)) {
         float fogFactor = clamp((end - depth) / (end - start), 0.0, 1.0);
-        return vec4(mix(hdColour(fogColour).rgb, color.rgb, fogFactor), color.a);
+        return vec4(hdFogMix(color.rgb, fogColour.rgb, 1.0 - fogFactor), color.a);
     }
     vec3 fogRgb = fogColour.rgb;
     float amount;
@@ -221,7 +229,7 @@ vec4 hdFog(vec4 color, vec3 viewPos, float depth, vec4 fogColour, float start, f
     if (hdOn(HD_FADE) && hdTime.w > 0.0) {
         amount = max(amount, smoothstep(hdTime.z, hdTime.z + hdTime.w, dist));
     }
-    return vec4(mix(color.rgb, hdColour(vec4(fogRgb, 1.0)).rgb, amount), color.a);
+    return vec4(hdFogMix(color.rgb, fogRgb, amount), color.a);
 }
 
 
