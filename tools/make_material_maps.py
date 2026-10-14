@@ -156,7 +156,11 @@ def make(texture, name, cls, fresh=False):
     rgb = np.asarray(big, dtype=np.float64) / 255.0
     lum = rgb @ np.array([0.299, 0.587, 0.114])
     grain = None
-    if fresh:
+    if fresh == 'realistic':
+        # the realistic mode: the relief is the new art's own
+        rgb = np.asarray(wrap_resize(Image.open(os.path.join(OUT, str(texture), 'albedo.png')).convert('RGB'), Image.BICUBIC), dtype=np.float64) / 255.0
+        lum = rgb @ np.array([0.299, 0.587, 0.114])
+    elif fresh:
         rgb = np.asarray(wrap_resize(Image.open(os.path.join(OUT, str(texture), 'albedo.png')).convert('RGB'), Image.BICUBIC), dtype=np.float64) / 255.0
         fresh_lum = rgb @ np.array([0.299, 0.587, 0.114])
         grain = fresh_lum - blur(fresh_lum, 2)
@@ -165,7 +169,7 @@ def make(texture, name, cls, fresh=False):
     height = np.clip((height - low) / max(high - low, 1e-6), 0.0, 1.0)
     # a /generate height map adds the fine relief: its high frequencies only, over the albedo's own
     # shapes, so the stones and planks stay where the cache texture draws them
-    generated, source = generated_height(texture)
+    generated, source = generated_height(texture) if fresh != 'realistic' else (None, None)
     if generated is not None:
         detail = generated - blur(generated, 8)
         detail /= max(np.abs(detail).max(), 1e-6)

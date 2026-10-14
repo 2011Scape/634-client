@@ -1,3 +1,0 @@
-Derived by tools/make_material_maps.py from the fresh albedo of texture 127 (streaked stone), class stone:
-normal strength 3.20, height blur 1.00, roughness 0.70 +- 0.20 by brightness, specular 0.45, parallax 0.040.
-Height is the albedo luminance at 256x256, blurred and stretched to 2-98%; normals by Sobel; AO from cavities.

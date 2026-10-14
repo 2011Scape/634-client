@@ -6,8 +6,7 @@
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
-      "specular": 0.4,
-      "albedo": "albedo.png"
+      "specular": 0.4
     },
     {
       "texture": 66,
@@ -36,8 +35,7 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.45,
-      "parallax": 0.04,
-      "albedo": "albedo.png"
+      "parallax": 0.04
     },
     {
       "texture": 75,
@@ -45,8 +43,7 @@
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
-      "specular": 0.4,
-      "albedo": "albedo.png"
+      "specular": 0.4
     },
     {
       "texture": 82,
@@ -65,8 +62,7 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.45,
-      "parallax": 0.04,
-      "albedo": "albedo.png"
+      "parallax": 0.04
     },
     {
       "texture": 90,
@@ -122,8 +118,7 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.25,
-      "parallax": 0.03,
-      "albedo": "albedo.png"
+      "parallax": 0.03
     },
     {
       "texture": 110,
@@ -142,8 +137,7 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.35,
-      "parallax": 0.04,
-      "albedo": "albedo.png"
+      "parallax": 0.04
     },
     {
       "texture": 127,
@@ -152,8 +146,7 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.45,
-      "parallax": 0.04,
-      "albedo": "albedo.png"
+      "parallax": 0.04
     },
     {
       "texture": 132,
@@ -170,8 +163,7 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.2,
-      "parallax": 0.02,
-      "albedo": "albedo.png"
+      "parallax": 0.02
     },
     {
       "texture": 154,
@@ -180,8 +172,7 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.2,
-      "parallax": 0.02,
-      "albedo": "albedo.png"
+      "parallax": 0.02
     },
     {
       "texture": 159,
@@ -205,8 +196,7 @@
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
-      "specular": 0.4,
-      "albedo": "albedo.png"
+      "specular": 0.4
     },
     {
       "texture": 181,
@@ -215,8 +205,7 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.25,
-      "parallax": 0.03,
-      "albedo": "albedo.png"
+      "parallax": 0.03
     },
     {
       "texture": 185,
@@ -224,8 +213,7 @@
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
-      "specular": 0.15,
-      "albedo": "albedo.png"
+      "specular": 0.15
     },
     {
       "texture": 202,
@@ -243,8 +231,7 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.2,
-      "parallax": 0.02,
-      "albedo": "albedo.png"
+      "parallax": 0.02
     },
     {
       "texture": 228,
@@ -252,8 +239,7 @@
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
-      "specular": 0.4,
-      "albedo": "albedo.png"
+      "specular": 0.4
     },
     {
       "texture": 254,
@@ -262,8 +248,7 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.2,
-      "parallax": 0.02,
-      "albedo": "albedo.png"
+      "parallax": 0.02
     },
     {
       "texture": 265,
@@ -289,8 +274,7 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.2,
-      "parallax": 0.02,
-      "albedo": "albedo.png"
+      "parallax": 0.02
     },
     {
       "texture": 295,
@@ -299,8 +283,7 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.2,
-      "parallax": 0.02,
-      "albedo": "albedo.png"
+      "parallax": 0.02
     },
     {
       "texture": 309,
