@@ -285,6 +285,11 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   45336, 33877 by face colour), Varrock's boxes and beams as planks, Lumbridge's two untextured
   floor tiles (overlays 51 and 55) as cobbles - all small, so with worldTextures on the default
   scenes stay within their limits against toolkit 1.
+  Material maps: the 11 most used textures of Lumbridge and Varrock that had none (`HDDEBUG textures
+  used` in both areas: ground 90 and 309, stone 127, grass 108 and 185, sand 213, gravel 125, wood
+  75, 387, 163 and 159) got normal, occlusion/roughness and height maps from
+  `tools/make_material_maps.py` (which now keeps the entries it does not make, such as 634HD's own
+  materials); 42 sets in all.
 - **634HD's own materials.** `materials.json` entries from texture 10000 up with an `albedo` file in
   `634hd/materials/<id>/` (`content/HdMaterialProvider` serves them beside the cache's, so every
   path draws them): near-grey detail the face or tile colour tints, made by

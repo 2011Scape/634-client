@@ -49,6 +49,11 @@ TEXTURES = {
     505: ('flagstones', 'brick'), 322: ('stone wall', 'brick'), 202: ('brick pattern', 'brick'),
     63: ('wooden planks', 'wood'), 132: ('bark', 'wood'), 160: ('wood boards', 'wood'),
     228: ('wood grain', 'wood'), 638: ('water', 'water'), 110: ('lava', 'lava'),
+    # Lumbridge and Varrock: the most used of their textures without maps (HDDEBUG textures used)
+    90: ('pebbled ground', 'ground'), 309: ('rocky ground', 'ground'), 127: ('streaked stone', 'stone'),
+    108: ('mossy patches', 'grass'), 185: ('straw grass', 'grass'), 213: ('fine sand', 'sand'),
+    125: ('speckled gravel', 'gravel'), 75: ('wood streaks', 'wood'), 387: ('wood grain fine', 'wood'),
+    163: ('wall boards', 'wood'), 159: ('weathered boards', 'wood'),
 }
 
 
@@ -210,7 +215,13 @@ def main():
         os.makedirs(os.path.join(OUT, str(texture)), exist_ok=True)
         entries.append(make(texture, name, cls))
         print('made', texture, name)
-    with open(os.path.join(ROOT, 'src', 'jvmMain', 'resources', '634hd', 'data', 'materials.json'), 'w') as f:
+    # entries this tool does not make (634HD's own materials, 10000 and up) are kept
+    path = os.path.join(ROOT, 'src', 'jvmMain', 'resources', '634hd', 'data', 'materials.json')
+    made = set(TEXTURES)
+    with open(path) as f:
+        kept = [m for m in json.load(f)['materials'] if m['texture'] not in made]
+    entries += kept
+    with open(path, 'w') as f:
         json.dump({'materials': entries}, f, indent=2)
         f.write('\n')
     return 0
