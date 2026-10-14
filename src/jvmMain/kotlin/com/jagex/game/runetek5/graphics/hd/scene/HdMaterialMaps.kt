@@ -125,13 +125,7 @@ class HdMaterialMaps {
         return true
     }
 
-    private fun readBytes(content: HdContent, texture: Int, name: String): ByteArray? {
-        val folder: File? = content.folder
-        val file: File? = if (folder != null) File(folder, "../materials/$texture/$name") else null
-        if (file != null && file.isFile) return file.readBytes()
-        val stream = HdMaterialMaps::class.java.getResourceAsStream("/634hd/materials/$texture/$name") ?: return null
-        return stream.use { it.readBytes() }
-    }
+    private fun readBytes(content: HdContent, texture: Int, name: String): ByteArray? = content.materialFile(texture, name)
 
     /** client.test.hdDebug: how far the GPU's decoding of layer 0 is from the PNGs it was made from. */
     private fun checkDecode(content: HdContent, texture: Int, files: Array<String?>) {

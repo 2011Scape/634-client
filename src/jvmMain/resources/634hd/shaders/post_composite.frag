@@ -7,6 +7,9 @@ in vec2 vUv;
 uniform sampler2D uScene;
 uniform sampler2D uBloom;
 uniform sampler2D uLut;
+// the area's previous grading table while the new one fades in (uLutMix 0 to 1)
+uniform sampler2D uLutPrevious;
+uniform float uLutMix;
 uniform int uTonemap;
 uniform bool uBloomOn;
 uniform float uBloomStrength;
@@ -36,16 +39,21 @@ vec3 agx(vec3 x) {
     return pow(clamp(x, 0.0, 1.0), vec3(2.2));
 }
 
-vec3 grade(vec3 c) {
+vec3 gradeWith(sampler2D lut, vec3 c) {
     // a size^3 cube laid out as size slices side by side, blue picking the slice
     float size = uLutSize;
     float blue = c.b * (size - 1.0);
     float slice = floor(blue);
     float next = min(slice + 1.0, size - 1.0);
     vec2 uv = vec2((c.r * (size - 1.0) + 0.5) / (size * size), (c.g * (size - 1.0) + 0.5) / size);
-    vec3 a = texture(uLut, uv + vec2(slice / size, 0.0)).rgb;
-    vec3 b = texture(uLut, uv + vec2(next / size, 0.0)).rgb;
+    vec3 a = texture(lut, uv + vec2(slice / size, 0.0)).rgb;
+    vec3 b = texture(lut, uv + vec2(next / size, 0.0)).rgb;
     return mix(a, b, blue - slice);
+}
+
+vec3 grade(vec3 c) {
+    vec3 graded = gradeWith(uLut, c);
+    return uLutMix < 1.0 ? mix(gradeWith(uLutPrevious, c), graded, uLutMix) : graded;
 }
 
 float bayer(vec2 p) {

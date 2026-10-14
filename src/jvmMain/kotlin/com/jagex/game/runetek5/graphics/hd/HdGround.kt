@@ -797,6 +797,27 @@ class HdGround : Ground {
 		this.totalTileVertexCount += colours.size
 	}
 
+	// 634HD: tile overrides (tile_overrides.json) with worldTextures - the tile's untextured faces (or all,
+	// with replace) take the override's material at its scale (scene units per repeat: 512 a tile)
+	override fun hdRetexture(level: Int, x: Int, z: Int, underlayId: Int, overlayId: Int, textures: IntArray?, textureScales: IntArray?) {
+		if (!HdSettings.worldTextures || textures == null || textureScales == null) {
+			return
+		}
+		val override = this.glToolkit.hdContent.tileOverrideFor(x + com.jagex.game.runetek5.MapRegion.sceneBaseX, z + com.jagex.game.runetek5.MapRegion.sceneBaseY, underlayId, overlayId) ?: return
+		if (override.material < 0) {
+			return
+		}
+		val scale: Int = (512.0f * override.scale).toInt()
+		for (i in textures.indices) {
+			if (textures[i] == -1 || override.replace) {
+				textures[i] = override.material
+				if (i < textureScales.size) {
+					textureScales[i] = scale
+				}
+			}
+		}
+	}
+
 	override fun ka(x: Int, z: Int, shadowLevel: Int) {
 		if (shadowLevel > (this.shadowLevels!![x][z].toInt() and 0xFF)) {
 			this.shadowLevels!![x][z] = shadowLevel.toByte()

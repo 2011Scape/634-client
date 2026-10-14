@@ -29,6 +29,7 @@ class HdPost {
         private const val UNIT_A: Int = 8
         private const val UNIT_B: Int = 9
         private const val UNIT_C: Int = 10
+        private const val UNIT_D: Int = 11
         private const val BLOOM_LEVELS: Int = 5
         private const val LUT_SIZE: Int = 16
 
@@ -73,8 +74,26 @@ class HdPost {
     private var resolved: Target? = null
 
     /** Colour-grading table to use (a size^3 cube, LUT_SIZE slices side by side); 0 for the neutral one. */
-    @JvmField
     var gradingTexture: Int = 0
+        private set
+
+    // the table faded from when an area's grading changes, and how far the fade is (0 to 1)
+    private var gradingPrevious: Int = 0
+    private var gradingMix: Float = 1.0f
+    private var gradingLast: Long = 0L
+
+    /** The grading table to draw with ([table], 0 for none): a change fades over about a second. */
+    fun useGrading(table: Int) {
+        val now: Long = System.nanoTime()
+        if (table != gradingTexture) {
+            gradingPrevious = gradingTexture
+            gradingTexture = table
+            gradingMix = 0.0f
+        } else if (gradingMix < 1.0f) {
+            gradingMix = minOf(1.0f, gradingMix + ((now - gradingLast).coerceIn(0L, 100000000L)).toFloat() / 1.0e9f)
+        }
+        gradingLast = now
+    }
 
     @JvmField
     var gradingSize: Int = LUT_SIZE
@@ -208,6 +227,8 @@ class HdPost {
         GL33C.glUniform1i(use(compositeProgram, "uScene"), UNIT_A)
         GL33C.glUniform1i(use(compositeProgram, "uBloom"), UNIT_B)
         GL33C.glUniform1i(use(compositeProgram, "uLut"), UNIT_C)
+        GL33C.glUniform1i(use(compositeProgram, "uLutPrevious"), UNIT_D)
+        GL33C.glUniform1f(use(compositeProgram, "uLutMix"), gradingMix)
         GL33C.glUniform1i(use(compositeProgram, "uTonemap"), HdSettings.tonemap)
         GL33C.glUniform1i(use(compositeProgram, "uBloomOn"), if (bloomTexture != 0) 1 else 0)
         GL33C.glUniform1f(use(compositeProgram, "uBloomStrength"), BLOOM_STRENGTH)
@@ -219,6 +240,7 @@ class HdPost {
         bindTexture(UNIT_A, scene)
         bindTexture(UNIT_B, bloomTexture)
         bindTexture(UNIT_C, if (gradingTexture != 0) gradingTexture else lut)
+        bindTexture(UNIT_D, if (gradingPrevious != 0) gradingPrevious else lut)
         if (HdSettings.fxaa) {
             val intermediate = sized(resolved, width, height, GL33C.GL_RGBA8)
             resolved = intermediate

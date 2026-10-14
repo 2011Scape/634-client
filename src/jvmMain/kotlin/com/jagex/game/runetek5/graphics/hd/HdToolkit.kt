@@ -827,14 +827,35 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		val loc = com.jagex.game.runetek5.config.TypeLists.LOC!!.list(id)
 		out.append("Loc ").append(id).append(" \"").append(loc?.name ?: "?").append("\", shape ").append(shape).append(", rotation ").append(rotation).append(", models")
 		val models: Array<IntArray?>? = loc?.hdModelIds()
+		val colours: java.util.TreeMap<Int, Int> = java.util.TreeMap()
 		if (models != null) {
 			for (group in models) {
 				if (group != null) {
-					for (m in group) out.append(' ').append(m)
+					for (m in group) {
+						out.append(' ').append(m)
+						// the model's face colours (HSL, as model_overrides faceColours takes them) and how many faces
+						val mesh = try { com.jagex.game.runetek5.graphics.model.Mesh.fromResource(loc.locTypeList!!.meshResource, m and 0xFFFF) } catch (ex: Exception) { null }
+						val faces: ShortArray? = mesh?.facesColor
+						if (mesh != null && faces != null) {
+							for (f in 0 until mesh.numFaces) {
+								if (mesh.facesMaterial == null || mesh.facesMaterial!![f].toInt() == -1) {
+									val c: Int = loc.hdRecolour(faces[f].toInt() and 0xFFFF)
+									colours[c] = (colours[c] ?: 0) + 1
+								}
+							}
+						}
+					}
 				}
 			}
 		}
 		out.append('\n')
+		if (colours.isNotEmpty()) {
+			out.append("  untextured face colours:")
+			for ((c, n) in colours.entries.sortedByDescending { it.value }.take(8)) {
+				out.append(' ').append(c).append(" (").append(n).append(')')
+			}
+			out.append('\n')
+		}
 	}
 
 	// 634HD: Phase 5 material maps (materials.json)
@@ -3160,10 +3181,12 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 				if (this.clipLeft != 0 || this.clipTop != 0 || this.clipRight != this.viewportWidth || this.clipBottom != this.viewportHeight) {
 					HdGl.glEnable(OpenGLConstants.GL_SCISSOR_TEST)
 				}
+				this.captureBeforeSwap()
 				this.activeOpenglInstance!!.swapBuffers()
 				HdGl.glBindFramebufferEXT(OpenGLConstants.GL_FRAMEBUFFER, this.defaultFramebuffer())
 				return
 			}
+			this.captureBeforeSwap()
 			this.activeOpenglInstance!!.swapBuffers()
 		} catch (ex: Exception) {
 		}
@@ -3277,7 +3300,24 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	// Starts the 3D view at the given place in the frame: the scene framebuffer is made or remade to
 	// fit, pushed as the target, and the viewport moved so that the view lands at its origin, as the
 	// bloom filter does for its layer. The target's size and the projection stay in the frame's pixels.
+	// the world textures' switch and content the retained scene was built with: a change rebuilds it
+	private var builtWorldTextures: Boolean = false
+	private var builtContentVersion: Int = -1
+
+	private fun rebuildForWorldTextures() {
+		val content: Int = if (HdSettings.worldTextures) this.hdContent.version else -1
+		if (HdSettings.worldTextures != this.builtWorldTextures || content != this.builtContentVersion) {
+			val first: Boolean = this.builtContentVersion == -1 && !this.builtWorldTextures
+			this.builtWorldTextures = HdSettings.worldTextures
+			this.builtContentVersion = content
+			if (!first && this.sceneRenderer.built && Scene.stringStack != null) {
+				this.sceneRenderer.build()
+			}
+		}
+	}
+
 	override fun beginScene(x: Int, y: Int, width: Int, height: Int) {
+		this.rebuildForWorldTextures()
 		// 634HD: the debug panel reads the last frame, whole, before this one's 3D view starts
 		this.debugPanelTick()
 		// 634HD: the streams start fresh storage now rather than in the middle of the frame
@@ -3350,12 +3390,14 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		// a smoke test's request (client.test.inspect): the Inspect tab's text for the mini menu now
 		val inspect: String? = System.getProperty("client.test.inspectNow")
 		if (inspect != null) {
-			// "x,z,uid": a scene tile and a loc uid, described as the Inspect tab describes them
+			// "x,z,uid,uid...": a scene tile and loc uids, described as the Inspect tab describes them
 			System.clearProperty("client.test.inspectNow")
 			val parts: List<String> = inspect.split(",")
 			val out: StringBuilder = StringBuilder()
 			describeTile(out, parts[0].toInt(), parts[1].toInt())
-			describeLoc(out, parts[2].toLong())
+			for (k in 2 until parts.size) {
+				describeLoc(out, parts[k].toLong())
+			}
 			println("SMOKE INSPECT\n" + out)
 		}
 		HdToolkit.printDebugMaterials()
@@ -3700,7 +3742,31 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		HdGl.glTexEnvfv(OpenGLConstants.GL_TEXTURE_ENV, OpenGLConstants.GL_TEXTURE_ENV_COLOR, OpenGlToolkit.BUFFER_4F, 0)
 	}
 
+	// a smoke test's burst (client.test.sceneBurst) reads every frame; after the swap the back buffer is
+	// undefined (it read black, or streaked, now and then), so the frame is copied just before it
+	private val CAPTURE: Boolean = System.getProperty("client.test") != null && (System.getProperty("client.test.sceneBurst")?.toIntOrNull() ?: 0) > 0
+	private var captured: IntArray? = null
+	private var capturedWidth: Int = 0
+	private var capturedHeight: Int = 0
+
+	private fun captureBeforeSwap() {
+		if (!CAPTURE || this.viewportWidth <= 0 || this.viewportHeight <= 0) {
+			return
+		}
+		this.capturedWidth = this.viewportWidth
+		this.capturedHeight = this.viewportHeight
+		this.captured = this.readFrame(0, 0, this.viewportWidth, this.viewportHeight)
+	}
+
 	override fun na(x: Int, y: Int, width: Int, height: Int): IntArray {
+		val copy: IntArray? = this.captured
+		if (copy != null && x == 0 && y == 0 && width == this.capturedWidth && height == this.capturedHeight) {
+			return copy.copyOf()
+		}
+		return this.readFrame(x, y, width, height)
+	}
+
+	private fun readFrame(x: Int, y: Int, width: Int, height: Int): IntArray {
 		val pixels: IntArray = IntArray(width * height)
 		this.beginReadFrame(x, this.viewportHeight - y - height, width, height) // Not part of the original client: see beginReadFrame.
 		HdGl.wideShot(x, this.viewportHeight - y - height, width, height) // Not part of the original client: 634HD debugging (client.test.hdWideShot).
@@ -3794,7 +3860,11 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 
 		@JvmStatic
 		fun create(multiSamples: Int, canvas: Canvas?, textureSource: MaterialProvider?): Toolkit {
-			return HdToolkit(canvas, textureSource, multiSamples)
+			// 634HD's own materials beside the game's (content/HdMaterialProvider)
+			val provider = com.jagex.game.runetek5.graphics.hd.content.HdMaterialProvider(textureSource)
+			val toolkit = HdToolkit(canvas, provider, multiSamples)
+			provider.content = toolkit.hdContent
+			return toolkit
 		}
 	}
 }

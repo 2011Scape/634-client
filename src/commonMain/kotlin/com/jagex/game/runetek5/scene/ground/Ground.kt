@@ -49,6 +49,15 @@ abstract class Ground {
 		this.tileScale = tileScale
 	}
 
+	/**
+	 * Not part of the original client: called by Terrain just before tile ([x], [z]) of [level] is
+	 * added, with its floor ids and its faces' materials and texture scales, which may be changed.
+	 * 634HD's tile overrides (HdGround) put its own materials on tiles the game leaves untextured; the
+	 * other grounds leave them as they are.
+	 */
+	open fun hdRetexture(level: Int, x: Int, z: Int, underlayId: Int, overlayId: Int, textures: IntArray?, textureScales: IntArray?) {
+	}
+
 	@OriginalMember(owner = "client!s", name = "a", descriptor = "(II[I[I[I[I[I[I[I[I[I[I[IIIIZ)V")
 	abstract fun addTile(@OriginalArg(0) x: Int, @OriginalArg(1) z: Int, @OriginalArg(2) offsetsX: IntArray?, @OriginalArg(3) heightOffsets: IntArray?, @OriginalArg(4) offsetsZ: IntArray?, @OriginalArg(5) waterDepths: IntArray?, @OriginalArg(6) faceA: IntArray?, @OriginalArg(7) faceB: IntArray?, @OriginalArg(8) faceC: IntArray?, @OriginalArg(9) colours: IntArray?, @OriginalArg(10) blendedColours: IntArray?, @OriginalArg(11) materialIds: IntArray?, @OriginalArg(12) textureScales: IntArray?, @OriginalArg(13) waterColour: Int, @OriginalArg(14) waterDepth: Int, @OriginalArg(15) waterBias: Int)
 

@@ -79,10 +79,10 @@ vec4 sampleMaterial(vec4 material, vec4 extra, vec2 uv) {
 
 // The colour lit per pixel, as scene.vert lights it per vertex (HD_PIXEL_LIGHTING).
 vec4 pixelLit() {
-    vec4 lit = uGlobalAmbient;
+    vec4 lit = hdEnvAmbientLight(uGlobalAmbient);
     for (int i = 0; i < 2; i++) {
         if (uDirLight[i].w > 0.5) {
-            lit += uDirDiffuse[i] * max(dot(vEyeNormal, normalize(uDirLight[i].xyz)), 0.0);
+            lit += hdEnvDiffuse(uDirDiffuse[i], i) * max(dot(vEyeNormal, normalize(uDirLight[i].xyz)), 0.0);
         }
     }
     int base = vSlot * 17;

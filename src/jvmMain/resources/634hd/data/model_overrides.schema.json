@@ -18,7 +18,10 @@
           "area": { "type": "array", "items": { "type": "integer" }, "minItems": 4, "maxItems": 4 },
           "material": { "type": "integer", "minimum": 0 },
           "wind": { "type": "boolean" },
-          "castShadows": { "type": "boolean" }
+          "castShadows": { "type": "boolean" },
+          "uv": { "enum": ["world", "model"], "description": "how material is mapped on faces the game leaves untextured: box mapping in world space (default; neighbouring objects line up) or in the model's own space" },
+          "replace": { "type": "boolean", "description": "the material replaces the game's own textures too (default: only faces the game leaves untextured)" },
+          "uvScale": { "type": "number", "minimum": 0.05, "maximum": 16, "description": "tiles per repeat of the material (default 1)" }
         }
       }
     }

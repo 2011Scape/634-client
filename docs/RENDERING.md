@@ -187,7 +187,7 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
     draws (`client.test.materialScan` lists the material classes and items using each; a scene's
     eighth value dresses the player, on the client only, and the harness puts the clothes back; the
     player is held in one pose and only the middle third of the view is compared, so the outfits
-    match toolkit 1 to 0-1 per 1000 and have a limit of 10);
+    match toolkit 1 to 0-1 per 1000 and have a limit of 25, room for a passer-by);
   - flicker and pops: `client.test.sceneBurst=N` measures the 3D view's mean brightness every frame
     and fails on a frame-to-frame jump above `client.test.sceneLumaJump` (default 3), saving the two
     frames (`build/smoke/scenes/jump-*`); `client.test.sceneWalk` walks during it
@@ -228,6 +228,8 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
 | `water` | wave normals, Fresnel sky reflection, glint, tint | `hdWater`; `GlState.hdWater` |
 | `terrainBlend` | triplanar on slopes, anti-tiling blend, broad variation on the ground | `hdTerrainTexture`; `GlState.hdGround` |
 | `foliage` | wind sway from `foliage.json`; alpha to coverage with MSAA | `scene.vert`, `scene/HdSceneRenderer` |
+| `worldTextures` | 634HD's own materials on models (`model_overrides.json` `material`) and tiles (`tile_overrides.json`): faces and tiles the game leaves untextured, or all with `replace`; toggling rebuilds the map | `HdSceneRenderer.appendModel`/`overrideUv`, `HdGround.hdRetexture` |
+| `environmentLighting` | the environment's `sun` colour and intensity and `ambient` tint the game's light 0 and ambient light (`hdEnvSun`/`hdEnvAmbient`); `sun.yaw` turns the shadow sun; every field eases between areas, the grading table crossfades | `HdFeatures`, `hdEnvDiffuse`/`hdEnvAmbientLight`, `HdPost.useGrading` |
 | `softParticles` | particles fade into geometry (depth copy) | `scene/HdSoftParticles` |
 | `interfaceScale` (2/3/4) | the window at a whole-number scale, 3D at native resolution | `gl/HdGl.windowScale` |
 | `materials` | Phase 5 normal / ORM / emissive / height maps | `scene/HdMaterialMaps`, `hd_material.glsl` |
@@ -261,7 +263,18 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   `client.debug` from the repository (or `client.hd.dataDir`) the folder is read directly and
   reloaded when a file changes. `client.test.findText=locs:<regex>`, `locmodels:<regex>`, `npcs:` and
   `textures:` list or dump cache data for writing it; `client.test.hdDebug` prints loc ids near the
-  player and texture use.
+  player and texture use. The debug panel's Inspect tab shows the tile under the mouse (position,
+  plane, floor underlay and overlay ids: `Terrain.floorIds`) and each loc (id, shape, rotation, model
+  ids and its untextured face colours as the loc recolours them: what `faceColours` takes);
+  `client.test.inspect=true` prints the same for every loc within `client.test.inspectRadius` tiles.
+- **634HD's own materials.** `materials.json` entries from texture 10000 up with an `albedo` file in
+  `634hd/materials/<id>/` (`content/HdMaterialProvider` serves them beside the cache's, so every
+  path draws them): near-grey detail the face or tile colour tints, made by
+  `tools/make_detail_textures.py` (bark 10001, stone 10002, brick 10003, roof tiles 10004, planks
+  10005, grass 10006, dirt 10007, cobbles 10008; procedural, no third-party art). Most of 634's
+  models and floors are already textured, so overrides mostly replace (`replace: true`) or fill the
+  few untextured faces (match them by `faceColours`). Model overrides map uvs by box projection in
+  world space (`uv`, `uvScale` tiles a repeat); tile overrides take `scale` tiles a repeat.
 - **Materials.** `tools/make_material_maps.py` builds map sets from the cache textures (dumped
   with `client.test.findText=textures:`) into `634hd/materials/<texture>/` with a `recipe.txt` each.
   Fine relief comes from height maps made with `/generate` (nano-banana-2-lite, the cache texture

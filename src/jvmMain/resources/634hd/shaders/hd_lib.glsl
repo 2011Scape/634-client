@@ -18,6 +18,7 @@
 #define HD_SOFT_PARTICLES 2048
 #define HD_MIPMAPS 4096
 #define HD_MATERIALS 8192
+#define HD_ENV_LIGHT 16384
 #define HD_MAX_LIGHTS 64
 
 layout(std140) uniform HdFrame {
@@ -59,6 +60,9 @@ layout(std140) uniform HdFrame {
     // z 1 once baked
     mat4 hdAoBakeMatrix;
     vec4 hdAoBake;
+    // the environment's tints of the sun's (light 0) and the ambient light (HD_ENV_LIGHT)
+    vec4 hdEnvSun;
+    vec4 hdEnvAmbient;
 };
 
 // 1 for a draw that belongs to the 3D view, 0 for the interface and everything else.
@@ -95,6 +99,16 @@ float hdOccluderY(vec2 xz, bool baked, bool moving) {
 
 bool hdOn(int feature) {
     return uHdScene != 0 && (hdFlags.x & feature) != 0;
+}
+
+// The game's ambient light, and light [index]'s diffuse, as the environment tints them (HD_ENV_LIGHT:
+// the sun is light 0); unchanged without it.
+vec4 hdEnvAmbientLight(vec4 ambient) {
+    return hdOn(HD_ENV_LIGHT) ? vec4(ambient.rgb * hdEnvAmbient.rgb, ambient.a) : ambient;
+}
+
+vec4 hdEnvDiffuse(vec4 diffuse, int index) {
+    return (index == 0 && hdOn(HD_ENV_LIGHT)) ? vec4(diffuse.rgb * hdEnvSun.rgb, diffuse.a) : diffuse;
 }
 
 vec3 hdToLinear(vec3 c) {

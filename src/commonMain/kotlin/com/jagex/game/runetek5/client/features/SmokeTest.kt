@@ -524,7 +524,7 @@ object SmokeTest {
 	private val SCENE_HOME: IntArray = intArrayOf(3094, 3107, 0)
 
 	/** Lumbridge courtyard, the camera zoomed onto the player (held in one pose: holdPose). */
-	private const val OUTFIT_VIEW: String = "3222,3218,0,0,1200,450,10"
+	private const val OUTFIT_VIEW: String = "3222,3218,0,0,1200,450,25"
 
 	private val DEFAULT_SCENES: String = "lumbridge:3222,3218,0,0,1400,0;" +
 		"varrock:3212,3428,0,2048,1400,0;" +
@@ -1230,6 +1230,7 @@ object SmokeTest {
 			if (locChange) {
 				if (!sceneArrived(player, x, y, level)) {
 					sendCommand("tele " + x + " " + y + " " + level)
+					locPending = true
 					sceneStep = 1
 					sceneFrame = gameFrames
 					return
@@ -1284,6 +1285,13 @@ object SmokeTest {
 			}
 			sceneStep = 2
 			sceneFrame = gameFrames
+			if (locChange && locPending) {
+				// arrived after a teleport (a walk had taken the player away): the loc goes now
+				locPending = false
+				locRebuildsBefore = RenderStats.chunkRebuilds
+				locRemoved = removeNearbyLoc(player)
+				println("SMOKE scene " + name + ": removed " + locRemoved)
+			}
 			// an eighth value, slot:item pairs separated by '|': the player dressed in them, on this
 			// client only (as client.test.wear); -1 empties a slot
 			if (values.size <= 7 && savedParts != null && player.playerModel != null) {
@@ -1333,22 +1341,27 @@ object SmokeTest {
 			inspected = true
 			val px: Int = player.movementBaseX[0]
 			val pz: Int = player.movementBaseY[0]
-			var found: String = "none"
-			var foundUid: Long = 0L
-			for (dz in -5..5) {
-				for (dx in -5..5) {
+			// every loc within INSPECT_RADIUS tiles: walls, decorations, scenery
+			val uids: StringBuilder = StringBuilder()
+			val seen: HashSet<Long> = HashSet()
+			var count: Int = 0
+			for (dz in -INSPECT_RADIUS..INSPECT_RADIUS) {
+				for (dx in -INSPECT_RADIUS..INSPECT_RADIUS) {
 					val tile: com.jagex.game.runetek5.scene.tile.Tile = com.jagex.game.runetek5.scene.Scene.getTile(0, px + dx, pz + dz) ?: continue
-					val container: com.jagex.game.runetek5.entity.InteractiveEntityContainer = tile.interactives ?: continue
-					val loc: Any? = container.interactiveObject
-					if (found == "none" && loc is com.jagex.game.runetek5.entity.gameobject.GameObject) {
-						val uid: Long = (loc.getId().toLong() shl 32) or ((loc.getShape() and 0x1F).toLong() shl 14) or ((pz + dz).toLong() shl 7) or (px + dx).toLong()
-						foundUid = uid
-						found = "loc " + loc.getId() + " shape " + loc.getShape() + " at " + (px + dx + MapRegion.sceneBaseX) + "," + (pz + dz + MapRegion.sceneBaseY)
+					val locs: Array<Any?> = arrayOf(tile.primaryWall, tile.secondaryWall, tile.primaryWallDecoration, tile.secondaryWallDecoration, tile.groundDecoration, tile.interactives?.interactiveObject)
+					for (loc in locs) {
+						if (loc is com.jagex.game.runetek5.entity.gameobject.GameObject && count < 40) {
+							val uid: Long = (loc.getId().toLong() shl 32) or ((loc.getShape() and 0x1F).toLong() shl 14) or ((pz + dz).toLong() shl 7) or (px + dx).toLong()
+							if (seen.add(loc.getId().toLong() * 64L + loc.getShape())) {
+								uids.append(',').append(uid)
+								count++
+							}
+						}
 					}
 				}
 			}
-			println("SMOKE inspect: player tile " + (px + MapRegion.sceneBaseX) + "," + (pz + MapRegion.sceneBaseY) + ", " + found)
-			lang.setProperty("client.test.inspectNow", px.toString() + "," + pz + "," + foundUid)
+			println("SMOKE inspect: player tile " + (px + MapRegion.sceneBaseX) + "," + (pz + MapRegion.sceneBaseY) + ", " + count + " locs within " + INSPECT_RADIUS + " tiles")
+			lang.setProperty("client.test.inspectNow", px.toString() + "," + pz + uids)
 			return
 		}
 		// client.test.sceneBurst=N: N consecutive frames saved first, to measure flicker between frames
@@ -1592,7 +1605,13 @@ object SmokeTest {
 
 	private var compareCentre: Boolean = false
 
+	/** The loc-change scene teleported first: its loc is taken out on arrival. */
+	private var locPending: Boolean = false
+
 	private val INSPECT: Boolean = lang.getBoolean("client.test.inspect")
+
+	/** client.test.inspectRadius: how far around the player the inspect check lists locs (default 6 tiles). */
+	private val INSPECT_RADIUS: Int = lang.getInteger("client.test.inspectRadius", 6)
 
 	private var inspected: Boolean = false
 

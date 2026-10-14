@@ -240,11 +240,11 @@ void main() {
     gPrimary = vColor;
 #ifndef ARB_VERTEX
     if (hdOn(HD_PIXEL_LIGHTING) && uLightingEnabled) {
-        vec4 lit = uGlobalAmbient;
+        vec4 lit = hdEnvAmbientLight(uGlobalAmbient);
         for (int i = 0; i < 8; i++) {
             if (!uLightEnabled[i]) continue;
             if (uLightPosition[i].w == 0.0) {
-                lit += uLightDiffuse[i] * max(dot(vEyeNormal, normalize(uLightPosition[i].xyz)), 0.0);
+                lit += hdEnvDiffuse(uLightDiffuse[i], i) * max(dot(vEyeNormal, normalize(uLightPosition[i].xyz)), 0.0);
             } else {
                 lit += hdPointLight(vEyeNormal, vViewPos, uLightPosition[i].xyz, uLightAttenuation[i], uLightDiffuse[i].rgb);
             }

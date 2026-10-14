@@ -40,6 +40,12 @@ class HdFeatures {
     private var eased: Boolean = false
     private var lastNanos: Long = 0L
     private val target: FloatArray = FloatArray(13)
+    // eased too: the sun's and ambient light's tints (rgb each, times intensity), the water tint (rgb,
+    // strength) and the shadow sun's pitch and yaw (degrees; NaN: the game's, not eased)
+    private val envLight: FloatArray = floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f)
+    private val water: FloatArray = floatArrayOf(0.11f, 0.24f, 0.3f, 0.2f)
+    private var sunPitch: Float = Float.NaN
+    private var sunYaw: Float = Float.NaN
 
     /** The sun's shadow map (HdSettings.shadows). */
     val shadows: HdShadows = HdShadows()
@@ -83,15 +89,12 @@ class HdFeatures {
         uniforms.setSunColour(diffuse[0], diffuse[1], diffuse[2])
         uniforms.setAmbient(state.globalAmbient[0], state.globalAmbient[1], state.globalAmbient[2])
         this.environment(toolkit.hdContent, state)
-        val tint: FloatArray? = this.environment?.waterTint
-        if (tint != null) {
-            uniforms.setWater(tint[0], tint[1], tint[2], 0.45f)
-        } else {
-            uniforms.setWater(0.11f, 0.24f, 0.3f, 0.2f)
-        }
+        uniforms.setWater(water[0], water[1], water[2], water[3])
+        uniforms.setEnvironmentLight(envLight[0], envLight[1], envLight[2], envLight[3], envLight[4], envLight[5])
         // the sun's shadow map: where it looks from, and the matrix the receivers use
         HdGl.shadows = this.shadows
-        this.shadows.sunPitch = this.environment?.sunPitch ?: Float.NaN
+        this.shadows.sunPitch = sunPitch
+        this.shadows.sunYaw = sunYaw
         this.shadows.beginFrame(viewToWorld, state.lightPosition[0], state.lightEnabled[0] && length > 0.0f)
         if (this.shadows.active) {
             uniforms.setShadowMatrix(this.shadows.shadowMatrix)
@@ -112,7 +115,7 @@ class HdFeatures {
         }
         // the grading table of the environment (HdSettings.colourGrading)
         val lut: String? = this.environment?.lut
-        toolkit.hdPost.gradingTexture = if (lut != null && HdSettings.colourGrading) toolkit.hdPost.gradingTable(lut) else 0
+        toolkit.hdPost.useGrading(if (lut != null && HdSettings.colourGrading) toolkit.hdPost.gradingTable(lut) else 0)
         this.lights.prepare(toolkit.hdContent, uniforms, worldToView, seconds)
         uniforms.setDebug(toolkit.debugOverlay())
     }
@@ -158,6 +161,31 @@ class HdFeatures {
         for (i in 0 until 7) {
             fog[i] += (target[6 + i] - fog[i]) * step
         }
+        // the light's tints, the water and the sun's angles follow the same way
+        val sunColour: FloatArray? = environment?.sunColour
+        val sunIntensity: Float = environment?.sunIntensity ?: 1.0f
+        val ambientColour: FloatArray? = environment?.ambientColour
+        val ambientIntensity: Float = environment?.ambientIntensity ?: 1.0f
+        for (i in 0 until 3) {
+            envLight[i] += ((sunColour?.get(i) ?: 1.0f) * sunIntensity - envLight[i]) * step
+            envLight[3 + i] += ((ambientColour?.get(i) ?: 1.0f) * ambientIntensity - envLight[3 + i]) * step
+        }
+        val tint: FloatArray? = environment?.waterTint
+        val waterTarget: FloatArray = if (tint != null) floatArrayOf(tint[0], tint[1], tint[2], 0.45f) else floatArrayOf(0.11f, 0.24f, 0.3f, 0.2f)
+        for (i in 0 until 4) {
+            water[i] += (waterTarget[i] - water[i]) * step
+        }
+        sunPitch = easeAngle(sunPitch, environment?.sunPitch ?: Float.NaN, step)
+        sunYaw = easeAngle(sunYaw, environment?.sunYaw ?: Float.NaN, step)
+    }
+
+    /** An angle eased towards [target] (degrees, the short way round); NaN on either side switches at once. */
+    private fun easeAngle(current: Float, target: Float, step: Float): Float {
+        if (current.isNaN() || target.isNaN()) return target
+        var delta: Float = (target - current) % 360.0f
+        if (delta > 180.0f) delta -= 360.0f
+        if (delta < -180.0f) delta += 360.0f
+        return current + delta * step
     }
 
     private var easedVersion: Int = -1

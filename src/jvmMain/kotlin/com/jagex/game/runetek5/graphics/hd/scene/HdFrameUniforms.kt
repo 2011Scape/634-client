@@ -30,6 +30,7 @@ class HdFrameUniforms {
         const val HD_SOFT_PARTICLES: Int = 2048
         const val HD_MIPMAPS: Int = 4096
         const val HD_MATERIALS: Int = 8192
+        const val HD_ENV_LIGHT: Int = 16384
 
         // std140 offsets, in bytes
         private const val FLAGS: Int = 0
@@ -53,7 +54,9 @@ class HdFrameUniforms {
         private const val DEBUG: Int = WATER + 16
         private const val AO_BAKE_MATRIX: Int = DEBUG + 16
         private const val AO_BAKE_PARAMS: Int = AO_BAKE_MATRIX + 64
-        const val SIZE: Int = AO_BAKE_PARAMS + 16
+        private const val ENV_SUN: Int = AO_BAKE_PARAMS + 16
+        private const val ENV_AMBIENT: Int = ENV_SUN + 16
+        const val SIZE: Int = ENV_AMBIENT + 16
     }
 
     private var buffer: Int = 0
@@ -82,6 +85,7 @@ class HdFrameUniforms {
         if (HdSettings.softParticles) bits = bits or HD_SOFT_PARTICLES
         if (HdSettings.mipmaps) bits = bits or HD_MIPMAPS
         if (HdSettings.materials) bits = bits or HD_MATERIALS
+        if (HdSettings.environmentLighting) bits = bits or HD_ENV_LIGHT
         return bits
     }
 
@@ -132,6 +136,12 @@ class HdFrameUniforms {
 
     /** Water's tint (HD_WATER): colour, w how strongly it replaces the game's water colour. */
     fun setWater(r: Float, g: Float, b: Float, strength: Float) = putVec4(WATER, r, g, b, strength)
+
+    /** The environment's tints of the sun's and the ambient light (HD_ENV_LIGHT); 1 leaves the game's. */
+    fun setEnvironmentLight(sunR: Float, sunG: Float, sunB: Float, ambientR: Float, ambientG: Float, ambientB: Float) {
+        putVec4(ENV_SUN, sunR, sunG, sunB, 1.0f)
+        putVec4(ENV_AMBIENT, ambientR, ambientG, ambientB, 1.0f)
+    }
 
     /** The occlusion height map (HD_AO): world to (u, v, depth), and range, strength, uv per unit. */
     fun setAmbientOcclusion(matrix: FloatArray, params: FloatArray) {
