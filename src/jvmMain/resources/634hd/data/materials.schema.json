@@ -1,6 +1,6 @@
 {
   "title": "634HD materials",
-  "description": "Extra maps for 634 textures, keyed by texture id. The cache texture stays the albedo; maps live under 634hd/materials/<texture>/. Used with client.hd.materials.",
+  "description": "Extra maps for 634 textures, keyed by texture id. The cache texture stays the albedo; maps live under 634hd/materials/<texture>/. Used with client.hd.materials. Ids from 10000 up are 634HD's own materials: their albedo file is the colour map (HdMaterialProvider), and model and tile overrides use them.",
   "type": "object",
   "required": ["materials"],
   "additionalProperties": false,
@@ -14,6 +14,7 @@
         "properties": {
           "texture": { "type": "integer", "minimum": 0 },
           "name": { "type": "string" },
+          "albedo": { "type": "string", "description": "634HD's own materials only (texture 10000 and up): the colour map, multiplied by the face or tile colour" },
           "normal": { "type": "string" },
           "orm": { "type": "string", "description": "red: ambient occlusion, green: roughness, blue: emissive mask" },
           "height": { "type": "string" },

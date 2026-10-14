@@ -909,6 +909,8 @@ open class Terrain @OriginalMember(owner = "client!sr", name = "<init>", descrip
 								waterScale = Scene.getWaterScale(i, j)
 								waterIntensity = Scene.getWaterIntensity(i, j)
 							}
+							// Not part of the original client: 634HD's tile overrides (Ground.hdRetexture)
+							ground2.hdRetexture(level, i, j, underlayId, overlayId, textures, textureScales)
 							ground2.U(i, j, offsetsX, nextLevelHeightDiffs, offsetsZ, localLevelHeightDiffs, mainColours, blendingColours, textures, textureScales, waterColour, waterScale, waterIntensity, hasShadows)
 							Scene.loadTiles(level, i, j)
 						}
@@ -1399,6 +1401,8 @@ open class Terrain @OriginalMember(owner = "client!sr", name = "<init>", descrip
 							waterScale = Scene.getWaterScale(i, j)
 							waterIntensity = Scene.getWaterIntensity(i, j)
 						}
+						// Not part of the original client: 634HD's tile overrides (Ground.hdRetexture)
+						ground2.hdRetexture(level, i, j, underlayId, overlayId, textures, textureScales)
 						ground2.addTile(i, j, sizesX, nextLevelHeightDiffs, sizesZ, localLevelHeightDiffs, MapLoader.SHAPE_VERTEX_A[overlayShape.toInt()], MapLoader.SHAPE_VERTEX_B[overlayShape.toInt()], MapLoader.SHAPE_VERTEX_C[overlayShape.toInt()], colours, minimapColours, textures, textureScales, waterColour, waterScale, waterIntensity)
 						Scene.loadTiles(level, i, j)
 					}

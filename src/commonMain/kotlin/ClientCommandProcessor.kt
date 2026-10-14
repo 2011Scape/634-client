@@ -456,6 +456,10 @@ object ClientCommandProcessor {
 						return
 					}
 					val error: String? = HdSettings.set(words[1], words[2])
+					if (error == null && words[1].equals("worldTextures", ignoreCase = true)) {
+						// the ground takes 634HD's tile overrides when the map is built
+						MapRebuild.rebuildMap()
+					}
 					if (error == null && words[1].equals("renderDistance", ignoreCase = true)) {
 						// the draw distance applies now, to a map built again; auto keeps the current one
 						if (HdSettings.renderDistance > 0.0) {

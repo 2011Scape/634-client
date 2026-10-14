@@ -58,6 +58,20 @@ class LocType {
 	// Not part of the original client: the model ids, for 634HD's data tools (SmokeTest locmodels:).
 	fun hdModelIds(): Array<IntArray?>? = this.objectModelIds
 
+	/** Not part of the original client: model colour [colour] as this loc recolours it (634HD's Inspect tab). */
+	fun hdRecolour(colour: Int): Int {
+		val sources: ShortArray = this.recolorSrc ?: return colour
+		for (index in sources.indices) {
+			if ((sources[index].toInt() and 0xFFFF) == colour) {
+				if (this.recolorDPalette == null || index >= this.recolorDPalette!!.size) {
+					return this.recolorDst!![index].toInt() and 0xFFFF
+				}
+				return ObjectType.locRecolorPalette!![this.recolorDPalette!![index].toInt() and 0xFF].toInt() and 0xFFFF
+			}
+		}
+		return colour
+	}
+
 	@OriginalMember(owner = "client!iv", name = "R", descriptor = "[S")
 	private var recolorDst: ShortArray? = null
 

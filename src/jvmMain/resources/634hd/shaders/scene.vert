@@ -94,12 +94,12 @@ void main() {
     if (flags.x > 0.5 && !unlit) {
         vec4 viewPos = eyePos;
         vec3 rawEyeNormal = vEyeNormal;
-        vec4 lit = uGlobalAmbient;
+        vec4 lit = hdEnvAmbientLight(uGlobalAmbient);
         for (int i = 0; i < 2; i++) {
             if (uDirLight[i].w > 0.5) {
                 vec3 lightDir = normalize(uDirLight[i].xyz);
                 float diff = max(dot(rawEyeNormal, lightDir), 0.0);
-                lit += vec4(0.0, 0.0, 0.0, 1.0) + uDirDiffuse[i] * diff;
+                lit += vec4(0.0, 0.0, 0.0, 1.0) + hdEnvDiffuse(uDirDiffuse[i], i) * diff;
             }
         }
         int count = int(flags.y);

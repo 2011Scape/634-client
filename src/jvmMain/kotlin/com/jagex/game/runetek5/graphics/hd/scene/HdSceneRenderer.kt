@@ -156,6 +156,10 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     /** Objects a model override keeps from casting shadows or occluding (castShadows false). */
     private var objectNoShadow: BooleanArray = BooleanArray(4096)
     private var buildingNoShadow: Boolean = false
+    /** The model override of the entity being built (HdContent.overrideFor), for its material (worldTextures). */
+    private var buildingOverride: com.jagex.game.runetek5.graphics.hd.content.HdContent.OverrideDef? = null
+    // per vertex of the model being appended: drawn with the override's material (its uvs are made here)
+    private var vertexOverridden: BooleanArray = BooleanArray(1024)
     private var buildingLevel: Int = 0
     private var buildingShape: Int = -1
 
@@ -452,7 +456,9 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             windFor(entities[i]!!)
             buildingLevel = entities[i]!!.level.toInt()
             buildingShape = if (entities[i] is com.jagex.game.runetek5.entity.gameobject.GameObject) (entities[i] as com.jagex.game.runetek5.entity.gameobject.GameObject).getShape() else -1
-            buildingNoShadow = entities[i] is com.jagex.game.runetek5.entity.gameobject.GameObject && toolkit.hdContent.overridesByObject[(entities[i] as com.jagex.game.runetek5.entity.gameobject.GameObject).getId()]?.castShadows == false
+            val entity: Entity = entities[i]!!
+            buildingOverride = if (entity is com.jagex.game.runetek5.entity.gameobject.GameObject) toolkit.hdContent.overrideFor((entity as com.jagex.game.runetek5.entity.gameobject.GameObject).getId(), (entity.x shr 9) + com.jagex.game.runetek5.MapRegion.sceneBaseX, (entity.z shr 9) + com.jagex.game.runetek5.MapRegion.sceneBaseY) else null
+            buildingNoShadow = buildingOverride?.castShadows == false
             capturing = this
             try {
                 val pickable: PickableEntity? = entities[i]!!.render(toolkit)
@@ -840,12 +846,25 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         objectId: Int, vertexCountOfModel: Int,
         positions: OpenGlArrayDrawBuffer, colours: OpenGlArrayDrawBuffer, normals: OpenGlArrayDrawBuffer?, texCoords: OpenGlArrayDrawBuffer?,
         elements: ElementsBufferGL, faceCount: Int, batchOffsets: IntArray, batchMaterials: IntArray, faceGroups: IntArray?,
+        faceColours: ShortArray? = null,
     ): BooleanArray? {
         val batches: Int = batchMaterials.size
         val taken: BooleanArray = BooleanArray(batches)
         val slots: IntArray = IntArray(batches)
+        val overridden: BooleanArray = BooleanArray(batches)
         var any: Boolean = false
+        // worldTextures: the faces the game leaves untextured get the model override's material
+        val override = buildingOverride
+        val overrideSlot: Int = if (HdSettings.worldTextures && override != null && override.material >= 0) materials.slotFor(override.material) else -1
         for (b in 0 until batches) {
+            if (overrideSlot >= 0 && (batchMaterials[b] < 0 || override!!.replace)) {
+                // untextured faces: each gets the material if the override takes its colour (below)
+                slots[b] = 0
+                overridden[b] = true
+                taken[b] = true
+                any = true
+                continue
+            }
             val slot: Int = materials.slotFor(batchMaterials[b])
             slots[b] = slot
             if (slot >= 0) {
@@ -878,6 +897,10 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             vertexSlots = IntArray(vertexCountOfModel)
         }
         java.util.Arrays.fill(vertexSlots, 0, vertexCountOfModel, 0)
+        if (vertexOverridden.size < vertexCountOfModel) {
+            vertexOverridden = BooleanArray(vertexCountOfModel)
+        }
+        java.util.Arrays.fill(vertexOverridden, 0, vertexCountOfModel, false)
         // indices first: they say which material each vertex is drawn with
         ensureIndices(faceCount * 3)
         val base: Int = vertexCount
@@ -899,7 +922,13 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             for (face in batchOffsets[b] until batchOffsets[b + 1]) {
                 for (k in 0 until 3) {
                     val vertex: Int = indexScratch.getShort((face * 3 + k) * 2).toInt() and 0xFFFF
-                    vertexSlots[vertex] = slots[b]
+                    if (overridden[b] && takesColour(override!!, faceColours, face)) {
+                        vertexSlots[vertex] = overrideSlot
+                        vertexOverridden[vertex] = true
+                    } else {
+                        vertexSlots[vertex] = slots[b]
+                        vertexOverridden[vertex] = false
+                    }
                     indices.putInt(indexCount * 4, base + vertex)
                     indexCount++
                     if (centres != null) {
@@ -917,6 +946,11 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         }
         objectFaceGroups[objectId] = groups
         objectFaceCentres[objectId] = centres
+        if (overrideSlot >= 0 && System.getProperty("client.test.hdDebug") != null) {
+            var textured: Int = 0
+            for (v in 0 until vertexCountOfModel) if (vertexOverridden[v]) textured++
+            println("HDDEBUG override \"" + override!!.name + "\": " + textured + " vertices of object " + objectId + " textured")
+        }
         ensureVertices(vertexCountOfModel)
         val positionStride: Int = positionBuffer.getStride()
         val positionOffset: Int = positions.offset.toInt() and 0xFF
@@ -951,6 +985,9 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
                 vertices.putFloat(at + 28, 0.0f)
                 vertices.putFloat(at + 32, 0.0f)
             }
+            if (vertexOverridden[v] && override != null) {
+                overrideUv(at, override)
+            }
             vertices.putShort(at + 36, vertexSlots[v].toShort())
             // ambient occlusion baked per vertex (bakeVertexOcclusion), open sky until the first bake
             vertices.put(at + 38, (-1).toByte())
@@ -959,6 +996,60 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         }
         vertexCount += vertexCountOfModel
         return taken
+    }
+
+    /** Whether [override] takes face [face] by its colour: every face when it lists no colours. */
+    private fun takesColour(override: com.jagex.game.runetek5.graphics.hd.content.HdContent.OverrideDef, faceColours: ShortArray?, face: Int): Boolean {
+        val wanted: IntArray = override.faceColours ?: return true
+        if (wanted.isEmpty()) return true
+        if (faceColours == null || face >= faceColours.size) return false
+        val colour: Int = faceColours[face].toInt() and 0xFFFF
+        for (c in wanted) {
+            if (c == colour) return true
+        }
+        return false
+    }
+
+    /**
+     * The uvs of the vertex at byte [at] (position and normal written) for [override]'s material: box
+     * mapping on the plane the normal faces most, in world space through the capture's model matrix
+     * (neighbouring objects line up) or in the model's own; one repeat every uvScale tiles.
+     */
+    private fun overrideUv(at: Int, override: com.jagex.game.runetek5.graphics.hd.content.HdContent.OverrideDef) {
+        var x: Float = vertices.getFloat(at)
+        var y: Float = vertices.getFloat(at + 4)
+        var z: Float = vertices.getFloat(at + 8)
+        var nx: Float = vertices.getFloat(at + 24)
+        var ny: Float = vertices.getFloat(at + 28)
+        var nz: Float = vertices.getFloat(at + 32)
+        // (a capture without a matrix is placed by its own coordinates: all zeros, model space it is)
+        if (override.uv != "model" && captureMatrices[buildingMatrix * 16 + 15] != 0.0f) {
+            val m: Int = buildingMatrix * 16
+            val c: FloatArray = captureMatrices
+            val wx: Float = c[m] * x + c[m + 4] * y + c[m + 8] * z + c[m + 12]
+            val wy: Float = c[m + 1] * x + c[m + 5] * y + c[m + 9] * z + c[m + 13]
+            val wz: Float = c[m + 2] * x + c[m + 6] * y + c[m + 10] * z + c[m + 14]
+            x = wx; y = wy; z = wz
+            val tx: Float = c[m] * nx + c[m + 4] * ny + c[m + 8] * nz
+            val ty: Float = c[m + 1] * nx + c[m + 5] * ny + c[m + 9] * nz
+            val tz: Float = c[m + 2] * nx + c[m + 6] * ny + c[m + 10] * nz
+            nx = tx; ny = ty; nz = tz
+        }
+        val scale: Float = 1.0f / (512.0f * override.uvScale)
+        val ax: Float = kotlin.math.abs(nx)
+        val ay: Float = kotlin.math.abs(ny)
+        val az: Float = kotlin.math.abs(nz)
+        val u: Float
+        val v: Float
+        if (ay >= ax && ay >= az) {
+            u = x; v = z
+        } else if (ax >= az) {
+            u = z; v = y
+        } else {
+            u = x; v = y
+        }
+        vertices.putFloat(at + 16, u * scale)
+        vertices.putFloat(at + 20, v * scale)
     }
 
     private fun ensureVertices(more: Int) {

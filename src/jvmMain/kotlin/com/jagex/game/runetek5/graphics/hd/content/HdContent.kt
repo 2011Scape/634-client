@@ -66,6 +66,8 @@ class HdContent {
     }
 
     class MaterialDef(val texture: Int, val line: Int) {
+        /** A material of 634HD's own (texture CUSTOM_MATERIALS and up): its colour map, in its folder. */
+        var albedo: String? = null
         var normal: String? = null
         var orm: String? = null
         var height: String? = null
@@ -77,6 +79,18 @@ class HdContent {
         var parallax: Float = 0.04f
     }
 
+    /**
+     * The bytes of [name] in material [texture]'s folder (634hd/materials/<texture>/): from the data
+     * folder's sibling when content comes from a folder, else from the jar.
+     */
+    fun materialFile(texture: Int, name: String): ByteArray? {
+        val folder: File? = this.folder
+        val file: File? = if (folder != null) File(folder, "../materials/$texture/$name") else null
+        if (file != null && file.isFile) return file.readBytes()
+        val stream = HdContent::class.java.getResourceAsStream("/634hd/materials/$texture/$name") ?: return null
+        return stream.use { it.readBytes() }
+    }
+
     class OverrideDef(val name: String) {
         var objects: IntArray? = null
         var models: IntArray? = null
@@ -85,6 +99,65 @@ class HdContent {
         var material: Int = -1
         var wind: Boolean = false
         var castShadows: Boolean = true
+        /** How [material] is mapped on the faces: "world" (box mapping in world space) or "model" (the model's own space). */
+        var uv: String = "world"
+        /** Tiles per repeat of the material. */
+        var uvScale: Float = 1.0f
+        /** The material replaces the game's textures too, not only untextured faces. */
+        var replace: Boolean = false
+    }
+
+    /**
+     * The override for loc [id] at absolute tile ([x], [z]): one listing the loc (and, if it has an
+     * area, covering the tile), else one with only an area covering the tile; null for none.
+     */
+    fun overrideFor(id: Int, x: Int, z: Int): OverrideDef? {
+        val byId: OverrideDef? = overridesByObject[id]
+        if (byId != null && (byId.area == null || inArea(byId.area!!, x, z))) return byId
+        for (o in overrides) {
+            if ((o.objects == null || o.objects!!.isEmpty()) && o.area != null && inArea(o.area!!, x, z)) return o
+        }
+        return null
+    }
+
+    private fun inArea(area: IntArray, x: Int, z: Int): Boolean = area.size >= 4 && x >= area[0] && z >= area[1] && x <= area[2] && z <= area[3]
+
+    /** A tile override (tile_overrides.json): a material for the tiles it matches (worldTextures). */
+    class TileOverrideDef(val name: String) {
+        var underlays: IntArray? = null
+        var overlays: IntArray? = null
+        var area: IntArray? = null
+        var material: Int = -1
+        /** Tiles per repeat of the material. */
+        var scale: Float = 1.0f
+        /** The material replaces the game's own tile textures too, not only untextured tiles. */
+        var replace: Boolean = false
+    }
+
+    /** The first tile override matching absolute tile ([x], [z]) with these floor ids, or null. */
+    fun tileOverrideFor(x: Int, z: Int, underlayId: Int, overlayId: Int): TileOverrideDef? {
+        for (o in tileOverrides) {
+            val area: IntArray? = o.area
+            if (area != null && !inArea(area, x, z)) continue
+            val underlays: IntArray? = o.underlays
+            if (underlays != null && underlays.indexOf(underlayId) < 0) continue
+            val overlays: IntArray? = o.overlays
+            if (overlays != null && overlays.indexOf(overlayId) < 0) continue
+            if (area == null && underlays == null && overlays == null) continue
+            return o
+        }
+        return null
+    }
+
+    private fun parseTileOverride(o: Json.Obj): TileOverrideDef {
+        val d = TileOverrideDef(str(o["name"]) ?: "")
+        o["underlays"]?.let { d.underlays = ids(it) }
+        o["overlays"]?.let { d.overlays = ids(it) }
+        o["area"]?.let { d.area = ids(it) }
+        d.material = (o["material"] as? Json.Num)?.value?.toInt() ?: -1
+        d.scale = num(o["scale"], 1.0f)
+        d.replace = (o["replace"] as? Json.Bool)?.value ?: false
+        return d
     }
 
     class FoliageDef(val objects: IntArray, val strength: Float, val frequency: Float)
@@ -104,6 +177,8 @@ class HdContent {
         private set
     var foliage: Map<Int, FoliageDef> = emptyMap()
         private set
+    var tileOverrides: List<TileOverrideDef> = emptyList()
+        private set
 
     /** Light definitions by kind and id, for the per-frame lookups. */
     val lightsByObject = HashMap<Int, LightDef>()
@@ -122,7 +197,7 @@ class HdContent {
     val warnings = ArrayList<String>()
 
     companion object {
-        val FILES = arrayOf("lights", "environments", "materials", "model_overrides", "foliage")
+        val FILES = arrayOf("lights", "environments", "materials", "model_overrides", "foliage", "tile_overrides")
 
         private fun folder(): File? {
             val configured = System.getProperty("client.hd.dataDir")
@@ -189,6 +264,7 @@ class HdContent {
         val materialList = parseList("materials", "materials", ::parseMaterial)
         materials = materialList.associateBy { it.texture }
         overrides = parseList("model_overrides", "overrides", ::parseOverride)
+        tileOverrides = parseList("tile_overrides", "tiles", ::parseTileOverride)
         foliage = HashMap<Int, FoliageDef>().also { map ->
             for (f in parseList("foliage", "foliage", ::parseFoliage)) for (id in f.objects) map[id] = f
         }
@@ -304,6 +380,7 @@ class HdContent {
 
     private fun parseMaterial(o: Json.Obj): MaterialDef {
         val m = MaterialDef((o["texture"] as Json.Num).value.toInt(), o.line)
+        m.albedo = str(o["albedo"])
         m.normal = str(o["normal"])
         m.orm = str(o["orm"])
         m.height = str(o["height"])
@@ -327,6 +404,9 @@ class HdContent {
         d.material = (o["material"] as? Json.Num)?.value?.toInt() ?: -1
         d.wind = (o["wind"] as? Json.Bool)?.value ?: false
         d.castShadows = (o["castShadows"] as? Json.Bool)?.value ?: true
+        d.uv = str(o["uv"]) ?: "world"
+        d.uvScale = num(o["uvScale"], 1.0f)
+        d.replace = (o["replace"] as? Json.Bool)?.value ?: false
         return d
     }
 

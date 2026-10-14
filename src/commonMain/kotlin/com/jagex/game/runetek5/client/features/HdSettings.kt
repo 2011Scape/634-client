@@ -130,6 +130,14 @@ object HdSettings {
 	@JvmField
 	var cutoutShadows: Boolean = false
 
+	/** World textures: 634HD's own materials on untextured models and tiles (model_overrides, tile_overrides). */
+	@JvmField
+	var worldTextures: Boolean = false
+
+	/** The environment's sun and ambient colours tint the game's lighting (environments.json sun, ambient). */
+	@JvmField
+	var environmentLighting: Boolean = false
+
 	/** Debug panel (debug builds: client.debug), toggled with F10 or ::hdpanel. */
 	@JvmField
 	var panel: Boolean = false
@@ -138,7 +146,7 @@ object HdSettings {
 		"tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting",
 		"shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom",
 		"colourGrading", "interfaceScale", "smoothInterface", "materials", "particles", "panel",
-		"terrainShadows", "cutoutShadows",
+		"terrainShadows", "cutoutShadows", "worldTextures", "environmentLighting",
 	)
 
 	/** The switches a player sets in the 634HD settings panel (HdSettingsPanel) and that are saved. */
@@ -146,7 +154,7 @@ object HdSettings {
 	val SAVED: Array<String> = arrayOf(
 		"tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting",
 		"shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom",
-		"colourGrading", "materials", "particles", "terrainShadows", "cutoutShadows",
+		"colourGrading", "materials", "particles", "terrainShadows", "cutoutShadows", "worldTextures", "environmentLighting",
 	)
 
 	/** Saved too, but not part of the presets: the whole client's draw distance and interface scale. */
@@ -211,6 +219,8 @@ object HdSettings {
 		fade = level >= 3
 		terrainShadows = level >= 3
 		cutoutShadows = level >= 3
+		worldTextures = level >= 3
+		environmentLighting = level >= 2
 		version++
 		return null
 	}
@@ -289,6 +299,8 @@ object HdSettings {
 		"particles" -> onOff(particles)
 		"terrainShadows" -> onOff(terrainShadows)
 		"cutoutShadows" -> onOff(cutoutShadows)
+		"worldTextures" -> onOff(worldTextures)
+		"environmentLighting" -> onOff(environmentLighting)
 		"renderDistance" -> if (renderDistance > 0.0) number(renderDistance) else "auto"
 		"scale" -> if (scale > 0.0) number(scale) else "auto"
 		else -> ""
@@ -407,6 +419,8 @@ object HdSettings {
 			"panel" -> panel = flag(on, off) ?: return "takes on or off"
 			"terrainshadows" -> terrainShadows = flag(on, off) ?: return "takes on or off"
 			"cutoutshadows" -> cutoutShadows = flag(on, off) ?: return "takes on or off"
+			"worldtextures" -> worldTextures = flag(on, off) ?: return "takes on or off"
+			"environmentlighting" -> environmentLighting = flag(on, off) ?: return "takes on or off"
 			"renderdistance" -> {
 				val distance: Double = if (text == "auto") 0.0 else text.toDoubleOrNull() ?: -1.0
 				if (distance != 0.0 && distance != 1.0 && distance != 1.5 && distance != 2.0) return "takes 1, 1.5 or 2"
@@ -441,6 +455,8 @@ object HdSettings {
 				colourGrading = enable
 				terrainShadows = enable
 				cutoutShadows = enable
+				worldTextures = enable
+				environmentLighting = enable
 			}
 			else -> return "unknown setting " + name
 		}
@@ -460,7 +476,7 @@ object HdSettings {
 		"terrainBlend " + onOff(terrainBlend) + ", water " + water + ", foliage " + onOff(foliage) + ", softParticles " + onOff(softParticles),
 		"fxaa " + onOff(fxaa) + ", bloom " + onOff(bloom) + ", colourGrading " + onOff(colourGrading),
 		"interfaceScale " + interfaceScale + ", smoothInterface " + onOff(smoothInterface) + ", materials " + onOff(materials) + ", particles " + onOff(particles),
-		"terrainShadows " + onOff(terrainShadows) + ", cutoutShadows " + onOff(cutoutShadows),
+		"terrainShadows " + onOff(terrainShadows) + ", cutoutShadows " + onOff(cutoutShadows) + ", worldTextures " + onOff(worldTextures) + ", environmentLighting " + onOff(environmentLighting),
 		"renderDistance " + valueOf("renderDistance") + ", scale " + valueOf("scale") + " (from the next start)",
 	)
 

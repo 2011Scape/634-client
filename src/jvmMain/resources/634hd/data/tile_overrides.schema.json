@@ -1,0 +1,64 @@
+{
+  "title": "634HD tile overrides",
+  "description": "With client.hd.worldTextures: a material for the ground tiles each entry matches - by area (absolute [x1, z1, x2, z2]), floor underlay ids and/or overlay ids (the debug panel's Inspect tab shows them); the first match wins. By default only tiles the game leaves untextured change. Materials are materials.json ids, usually 634HD's own (10000 and up).",
+  "type": "object",
+  "required": [
+    "tiles"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "tiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "material"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "area": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "underlays": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            }
+          },
+          "overlays": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            }
+          },
+          "material": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "scale": {
+            "type": "number",
+            "minimum": 0.05,
+            "maximum": 16,
+            "description": "tiles per repeat (default 1)"
+          },
+          "replace": {
+            "type": "boolean",
+            "description": "replace the game's own tile textures too (default: untextured tiles only)"
+          }
+        }
+      }
+    }
+  }
+}

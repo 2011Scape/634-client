@@ -602,6 +602,10 @@ class HdShadows {
     @JvmField
     var sunPitch: Float = Float.NaN
 
+    /** The environment's sun yaw in degrees (environments.json; 0 north, 90 east), NaN for the game's. */
+    @JvmField
+    var sunYaw: Float = Float.NaN
+
     private var debugFrames: Int = 0
     private var debugInactive: Int = 0
 
@@ -694,6 +698,12 @@ class HdShadows {
         // the game's light comes in low, and its shadows would cover whole courtyards: the sun is at
         // least 50 degrees up, or exactly the environment's pitch (environments.json sun.pitch); the
         // game's direction is kept around the compass (the game's y grows downwards, so up is -y)
+        if (!sunYaw.isNaN()) {
+            // the environment's compass direction towards the sun (its pitch is applied below)
+            val radians: Double = Math.toRadians(sunYaw.toDouble())
+            dx = Math.sin(radians).toFloat()
+            dz = Math.cos(radians).toFloat()
+        }
         val pitch: Float = if (sunPitch.isNaN()) maxOf(50.0f, Math.toDegrees(Math.asin((-dy).toDouble().coerceIn(-1.0, 1.0))).toFloat()) else sunPitch
         val up: Float = kotlin.math.sin(Math.toRadians(pitch.toDouble())).toFloat()
         val flat: Float = kotlin.math.sqrt(dx * dx + dz * dz).coerceAtLeast(0.0001f)

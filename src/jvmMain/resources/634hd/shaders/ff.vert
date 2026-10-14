@@ -58,7 +58,7 @@ void main() {
     vec3 eyeNormal = eyeNormalLenSq > 0.0 ? rawEyeNormal * inversesqrt(eyeNormalLenSq) : vec3(0.0);
 
     if (uLightingEnabled) {
-        vec4 lit = uGlobalAmbient;
+        vec4 lit = hdEnvAmbientLight(uGlobalAmbient);
         for (int i = 0; i < MAX_LIGHTS; i++) {
             if (uLightEnabled[i]) {
                 vec3 lightDir;
@@ -73,7 +73,7 @@ void main() {
                     atten = 1.0 / max(k.x + k.y * dist + k.z * dist * dist, 0.0001);
                 }
                 float diff = max(dot(rawEyeNormal, lightDir), 0.0);
-                lit += (uLightAmbient[i] + uLightDiffuse[i] * diff) * atten;
+                lit += (uLightAmbient[i] + hdEnvDiffuse(uLightDiffuse[i], i) * diff) * atten;
             }
         }
         // 634HD: in linear (HDR) colour the lit colour is not clamped; the tonemapper takes it down

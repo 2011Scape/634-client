@@ -200,6 +200,46 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 1.2
+    },
+    {
+      "texture": 10001,
+      "name": "634HD bark (detail, tools/make_detail_textures.py)",
+      "albedo": "albedo.png"
+    },
+    {
+      "texture": 10002,
+      "name": "634HD stone (detail, tools/make_detail_textures.py)",
+      "albedo": "albedo.png"
+    },
+    {
+      "texture": 10003,
+      "name": "634HD brick (detail, tools/make_detail_textures.py)",
+      "albedo": "albedo.png"
+    },
+    {
+      "texture": 10004,
+      "name": "634HD roof tiles (detail, tools/make_detail_textures.py)",
+      "albedo": "albedo.png"
+    },
+    {
+      "texture": 10005,
+      "name": "634HD planks (detail, tools/make_detail_textures.py)",
+      "albedo": "albedo.png"
+    },
+    {
+      "texture": 10006,
+      "name": "634HD grass (detail, tools/make_detail_textures.py)",
+      "albedo": "albedo.png"
+    },
+    {
+      "texture": 10007,
+      "name": "634HD dirt (detail, tools/make_detail_textures.py)",
+      "albedo": "albedo.png"
+    },
+    {
+      "texture": 10008,
+      "name": "634HD cobbles (detail, tools/make_detail_textures.py)",
+      "albedo": "albedo.png"
     }
   ]
 }

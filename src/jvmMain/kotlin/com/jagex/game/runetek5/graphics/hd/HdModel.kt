@@ -2656,7 +2656,7 @@ class HdModel : Model {
 		val elementBuffer: ElementsBufferGL = elements.openglElementsBuffer ?: return false
 		val positions: OpenGlArrayDrawBuffer = this.vertexBuffer ?: return false
 		val colours: OpenGlArrayDrawBuffer = this.colorsBuffer ?: return false
-		val taken: BooleanArray = scene.appendModel(objectId, this.numNormals, positions, colours, this.normalsBuffer, this.textureCoordinatesBuffer, elementBuffer, this.renderedFaceCount, offsets, materials, this.sceneFaceGroups) ?: return false
+		val taken: BooleanArray = scene.appendModel(objectId, this.numNormals, positions, colours, this.normalsBuffer, this.textureCoordinatesBuffer, elementBuffer, this.renderedFaceCount, offsets, materials, this.sceneFaceGroups, this.facesColor) ?: return false
 		this.retainedObject = objectId
 		this.retainedBatches = taken
 		this.releaseUploadedData()
