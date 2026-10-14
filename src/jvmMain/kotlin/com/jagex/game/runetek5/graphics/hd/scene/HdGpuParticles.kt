@@ -27,7 +27,7 @@ class HdGpuParticles {
     private var program: WebGLProgram? = null
     private var vao: Int = 0
     private var buffer: Int = 0
-    private val upload: ByteBuffer = ByteBuffer.allocateDirect(HdLights.MAX_EMITTERS * 5 * 4).order(ByteOrder.nativeOrder())
+    private val upload: ByteBuffer = ByteBuffer.allocateDirect(HdLights.MAX_EMITTERS * HdLights.EMITTER_FLOATS * 4).order(ByteOrder.nativeOrder())
     private val matrix: java.nio.FloatBuffer = org.lwjgl.BufferUtils.createFloatBuffer(16)
 
     /** Particles drawn last frame, for the debug panel. */
@@ -48,16 +48,16 @@ class HdGpuParticles {
             GL33C.glBindBuffer(GL33C.GL_ARRAY_BUFFER, buffer)
             GL33C.glBufferData(GL33C.GL_ARRAY_BUFFER, upload.capacity().toLong(), GL33C.GL_STREAM_DRAW)
             GL33C.glEnableVertexAttribArray(0)
-            GL33C.glVertexAttribPointer(0, 4, GL33C.GL_FLOAT, false, 20, 0L)
+            GL33C.glVertexAttribPointer(0, 4, GL33C.GL_FLOAT, false, HdLights.EMITTER_FLOATS * 4, 0L)
             GL33C.glVertexAttribDivisor(0, PER_EMITTER)
             GL33C.glEnableVertexAttribArray(1)
-            GL33C.glVertexAttribPointer(1, 1, GL33C.GL_FLOAT, false, 20, 16L)
+            GL33C.glVertexAttribPointer(1, 3, GL33C.GL_FLOAT, false, HdLights.EMITTER_FLOATS * 4, 16L)
             GL33C.glVertexAttribDivisor(1, PER_EMITTER)
         }
         val p: WebGLProgram = program!!
         upload.clear()
-        upload.asFloatBuffer().put(lights.emitters, 0, emitters * 5)
-        upload.limit(emitters * 5 * 4)
+        upload.asFloatBuffer().put(lights.emitters, 0, emitters * HdLights.EMITTER_FLOATS)
+        upload.limit(emitters * HdLights.EMITTER_FLOATS * 4)
         GL33C.glBindVertexArray(vao)
         GL33C.glBindBuffer(GL33C.GL_ARRAY_BUFFER, buffer)
         GL33C.glBufferSubData(GL33C.GL_ARRAY_BUFFER, 0L, upload)
