@@ -809,8 +809,8 @@ class HdGround : Ground {
 		}
 		RenderStats.category = RenderStats.CATEGORY_GROUND
 		// 634HD: the ground's draws are marked, for its texture blending (HdSettings.terrainBlend); 2 when
-		// its baked occlusion is bound (HdShadows.bindGroundOcclusion)
-		HdGl.state.hdGround = if (this.glToolkit.hdFeatures.shadows.bindGroundOcclusion(this, 1000000L)) 2 else 1
+		// its baked occlusion is bound, 3 while it has none yet (HdShadows.bindGroundOcclusion)
+		HdGl.state.hdGround = this.glToolkit.hdFeatures.shadows.bindGroundOcclusion(this, 1000000L)
 		try {
 			this.renderGroundLayers(orthoZoom, radius, belowLowestPlane, x, skipFlags, visibility, z)
 		} finally {

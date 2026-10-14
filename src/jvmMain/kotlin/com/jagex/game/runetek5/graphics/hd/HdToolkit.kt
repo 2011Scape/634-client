@@ -831,7 +831,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	}
 
 	override fun sceneBuilt() {
-		this.sceneRenderer.build()
+		this.sceneRenderer.regionBuilt()
 		this.hdFeatures.lights.dirty = true
 	}
 
@@ -857,7 +857,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		if (!this.sceneRenderer.built) {
 			// a toolkit switched to with a scene already built (the scene is not built again)
 			if (Scene.stringStack != null) {
-				this.sceneRenderer.build()
+				this.sceneRenderer.regionBuilt()
 			}
 			return
 		}

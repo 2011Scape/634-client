@@ -142,7 +142,8 @@ void main() {
     color = hdApplyShadow(color, vViewPos, vEyeNormal);
     // the retained scene's occlusion is baked into its vertices once the region is baked; the height
     // maps (moving models, the ground) until then
-    color.rgb *= (hdOn(HD_AO) && hdAoBake.z > 0.5) ? mix(1.0, vOcclusion, hdAoParams.y) : hdAmbientOcclusion(vViewPos, vEyeNormal);
+    hdAppliedOcclusion = (hdOn(HD_AO) && hdAoBake.z > 0.5) ? mix(1.0, vOcclusion, hdAoParams.y) : hdAmbientOcclusion(vViewPos, vEyeNormal);
+    color.rgb *= hdAppliedOcclusion;
     float depth = gl_FragCoord.z / gl_FragCoord.w;
     if (uFogEnabled) {
         color = hdFog(color, vViewPos, depth, uFogColor, uFogStart, uFogEnd);

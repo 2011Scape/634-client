@@ -34,6 +34,8 @@ class HdShadows {
         const val AO_UNIT: Int = 17
         const val AO_BAKE_UNIT: Int = 22
         const val GROUND_AO_UNIT: Int = 25
+        /** How strongly occlusion darkens: 1 - strength in a fully closed spot. */
+        private const val AO_STRENGTH: Float = 0.55f
         /** The ground's baked occlusion: samples per tile side, and the ground levels kept at once. */
         private const val GROUND_SAMPLES: Int = 4
         private const val GROUND_SLOTS: Int = 12
@@ -123,6 +125,7 @@ class HdShadows {
     // change (at most every BAKE_INTERVAL frames while a region builds), not every frame
     private val baked: DepthMap = DepthMap(AO_BAKE_UNIT, false)
     private var bakedVersion: Int = -1
+    private var bakedPlane: Int = -1
     private var framesSinceBake: Int = 1000
     private var bakeProgram: WebGLProgram? = null
     private var bakeDepths: java.nio.FloatBuffer? = null
@@ -144,12 +147,17 @@ class HdShadows {
      * the whole scene, every retained object placed by its captured model matrix.
      */
     fun bake(scene: HdSceneRenderer) {
+        updateFade(scene)
         framesSinceBake++
         groundNanos = 0L
         scene.stepVertexOcclusion(1500000L)
         // once the region is built, and not more than every 2 seconds or so (a bake reads the map back)
-        if (!HdSettings.ambientOcclusion || scene.bakeVersion == bakedVersion || scene.building() || framesSinceBake < 120) return
+        // the player's plane: occluders above it are left out (drawOccludersForBake), so a change of
+        // floor bakes again
+        val plane: Int = PlayerUpdate.localPlayer?.level?.toInt() ?: 0
+        if (!HdSettings.ambientOcclusion || (scene.bakeVersion == bakedVersion && plane == bakedPlane) || scene.building() || framesSinceBake < 120) return
         bakedVersion = scene.bakeVersion
+        bakedPlane = plane
         framesSinceBake = 0
         baked.ensure(BAKE_SIZE)
         ensureBakeProgram()
@@ -192,7 +200,7 @@ class HdShadows {
         val matrix: java.nio.FloatBuffer = org.lwjgl.BufferUtils.createFloatBuffer(16)
         matrix.put(toClip).flip()
         GL33C.glUniformMatrix4fv(GL33C.glGetUniformLocation(program.id, "uWorldToClip"), false, matrix)
-        scene.drawAllForBake(program, 23)
+        scene.drawOccludersForBake(program, 23, plane)
         bakes++
         // and into the retained vertices: the height map read back, each vertex's sky measured once
         GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + AO_BAKE_UNIT)
@@ -246,6 +254,10 @@ class HdShadows {
     private val groundVersion: IntArray = IntArray(GROUND_SLOTS) { -1 }
     private val groundCursor: IntArray = IntArray(GROUND_SLOTS)
     private val groundReady: BooleanArray = BooleanArray(GROUND_SLOTS)
+    // whether the slot's texture holds an earlier bake of its own ground: drawn until the new one is done
+    private val groundHasTexture: BooleanArray = BooleanArray(GROUND_SLOTS)
+    // the last frame a ground drew without occlusion, its first texture not ready yet
+    private var groundWaitFrame: Int = -1
     private val groundUsed: IntArray = IntArray(GROUND_SLOTS)
     private val groundValues: Array<ByteBuffer?> = arrayOfNulls(GROUND_SLOTS)
     private var groundFrame: Int = 0
@@ -253,13 +265,19 @@ class HdShadows {
     private var groundNanos: Long = 0L
 
     /**
-     * Called before [ground] draws: binds its baked occlusion texture on GROUND_AO_UNIT and returns true
-     * once it is complete for the current bake; until then false (the shader measures per pixel). The
-     * grounds compute a little more each frame, for at most [budgetNanos] between them.
+     * Called before [ground] draws, for its uHdGround: 1 without occlusion's switch; 2 with its baked
+     * occlusion texture bound on GROUND_AO_UNIT - the current bake's, or while that is computed the
+     * previous one's, so a new bake never changes the ground's look until it is done; 3 when it has
+     * no texture yet (a region just loaded): no occlusion, which fades in once everything is baked
+     * (aoFade). The grounds compute a little more each frame, for at most [budgetNanos] between them.
      */
-    fun bindGroundOcclusion(ground: com.jagex.game.runetek5.scene.ground.Ground, budgetNanos: Long): Boolean {
+    fun bindGroundOcclusion(ground: com.jagex.game.runetek5.scene.ground.Ground, budgetNanos: Long): Int {
+        if (!HdSettings.ambientOcclusion) return 1
         val depths: java.nio.FloatBuffer? = bakeDepths
-        if (!HdSettings.ambientOcclusion || depths == null || aoBakeParams[2] < 0.5f || ground.tileHeights == null) return false
+        if (depths == null || aoBakeParams[2] < 0.5f || ground.tileHeights == null) {
+            groundWaitFrame = frameCount
+            return 3
+        }
         groundFrame++
         var slot: Int = -1
         for (i in 0 until GROUND_SLOTS) {
@@ -273,12 +291,13 @@ class HdShadows {
             }
             groundOwner[slot] = ground
             groundVersion[slot] = -1
+            groundHasTexture[slot] = false
         }
         groundUsed[slot] = groundFrame
         val width: Int = ground.width * GROUND_SAMPLES
         val length: Int = ground.length * GROUND_SAMPLES
-        if (groundVersion[slot] != bakedVersion) {
-            groundVersion[slot] = bakedVersion
+        if (groundVersion[slot] != bakes) {
+            groundVersion[slot] = bakes
             groundCursor[slot] = 0
             groundReady[slot] = false
             var values: ByteBuffer? = groundValues[slot]
@@ -316,8 +335,16 @@ class HdShadows {
             }
             groundCursor[slot] = cursor
             groundNanos += System.nanoTime() - start
-            if (cursor < total) return false
+            if (cursor < total) {
+                if (!groundHasTexture[slot]) {
+                    groundWaitFrame = frameCount
+                    return 3
+                }
+                bindGroundTexture(slot)
+                return 2
+            }
             groundReady[slot] = true
+            groundHasTexture[slot] = true
             if (groundTexture[slot] == 0) groundTexture[slot] = GL33C.glGenTextures()
             GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + GROUND_AO_UNIT)
             GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, groundTexture[slot])
@@ -335,11 +362,43 @@ class HdShadows {
                 println("HDDEBUG ground occlusion baked: " + width + "x" + length + " (slot " + slot + ")")
             }
         }
+        bindGroundTexture(slot)
+        return 2
+    }
+
+    private fun bindGroundTexture(slot: Int) {
         GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + GROUND_AO_UNIT)
         GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, groundTexture[slot])
         GL33C.glBindSampler(GROUND_AO_UNIT, 0)
         GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + HdGl.state.activeTextureUnit)
-        return true
+    }
+
+    // occlusion fades in after a region load (0 to 1 over about half a second) once the new bake, the
+    // retained vertices and every ground drawn are done: until then the old bake does not fit the new
+    // scene, and new geometry has none; without the fade it would all darken at once
+    private var aoFade: Float = 1.0f
+    private var frameCount: Int = 0
+    private var seenBuilds: Int = -1
+    private var fadeLast: Long = 0L
+
+    /** Advances the fade; [scene]'s region builds restart it. Called once a frame from bake(). */
+    private fun updateFade(scene: HdSceneRenderer) {
+        frameCount++
+        val now: Long = System.nanoTime()
+        val seconds: Float = ((now - fadeLast).coerceIn(0L, 100000000L)).toFloat() / 1.0e9f
+        fadeLast = now
+        if (scene.builds != seenBuilds) {
+            seenBuilds = scene.builds
+            aoFade = 0.0f
+        }
+        val ready: Boolean = bakedVersion == scene.bakeVersion && !scene.building() && !scene.occlusionPending() && groundWaitFrame < frameCount - 1
+        if (ready && aoFade < 1.0f) {
+            aoFade = minOf(1.0f, aoFade + seconds * 2.0f)
+            if (aoFade >= 1.0f && System.getProperty("client.test.hdDebug") != null) {
+                println("HDDEBUG occlusion faded in, frame " + frameCount)
+            }
+        }
+        aoParams[1] = AO_STRENGTH * aoFade
     }
 
     /** Binds the baked map for the frame's receivers (it stays bound between bakes otherwise). */
@@ -374,7 +433,7 @@ class HdShadows {
 
     /** The height map's parameters for the frame block: height range, strength, uv per scene unit. */
     @JvmField
-    val aoParams: FloatArray = floatArrayOf(AO_RANGE, 0.55f, 1.0f / (AO_HALF_EXTENT * 2.0f), 0.0f)
+    val aoParams: FloatArray = floatArrayOf(AO_RANGE, AO_STRENGTH, 1.0f / (AO_HALF_EXTENT * 2.0f), 0.0f)
 
     /** Whether HdGl records the opaque emulated draws as casters now. */
     @JvmField
@@ -393,6 +452,9 @@ class HdShadows {
         val elementType: IntArray = IntArray(MAX_CASTERS)
         val elementOffset: LongArray = LongArray(MAX_CASTERS)
         val modelView: FloatArray = FloatArray(MAX_CASTERS * 16)
+        // drawn at the local player's position: a sun shadow caster, but not an occluder for AO (the
+        // player would otherwise darken the ground under it as it walks)
+        val atPlayer: BooleanArray = BooleanArray(MAX_CASTERS)
         // the buffers' write counts when recorded (HdGl.bufferVersion): a buffer written since holds
         // other data now, and the caster is skipped
         val vertexVersion: IntArray = IntArray(MAX_CASTERS)
@@ -752,6 +814,9 @@ class HdShadows {
                 list.modelView[at + col * 4 + row] = sum
             }
         }
+        // a model placed at the local player's position is the player (its body, worn items, cape)
+        val player = PlayerUpdate.localPlayer
+        list.atPlayer[i] = player != null && kotlin.math.abs(list.modelView[at + 12] - player.x) < 48.0f && kotlin.math.abs(list.modelView[at + 14] - player.z) < 48.0f
     }
 
     /** Draws [list]'s casters from [from] on; their copied indices go up first (all of them, each time). */
@@ -767,6 +832,7 @@ class HdShadows {
             list.indices.position(bytes)
         }
         for (i in from until list.count) {
+            if (map === heights && list.atPlayer[i]) continue
             if (stale(list.vertexBuffer[i], list.vertexVersion[i]) || (list.elementBuffer[i] > 0 && stale(list.elementBuffer[i], list.elementVersion[i]))) {
                 // rewritten since it was drawn (an animated model updated in place): its data is not the caster's
                 staleCasters++
@@ -980,6 +1046,7 @@ class HdShadows {
 
     fun release() {
         for (i in 0 until GROUND_SLOTS) {
+            groundHasTexture[i] = false
             if (groundTexture[i] != 0) GL33C.glDeleteTextures(groundTexture[i])
             groundTexture[i] = 0
             val values: ByteBuffer? = groundValues[i]
