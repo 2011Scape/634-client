@@ -218,6 +218,24 @@ Rules:
 5. Save the prompt and settings next to each asset as `prompt.txt` so it can be regenerated or tweaked later.
 6. Generated assets go through the same folder layout, compression and validation as hand-made ones, and are listed in the pull request with before/after screenshots for human review.
 
+## After the plan (Oct 14, 2026)
+
+Done on `feature/634-HD`, each behind its own switch (off by default; parity with toolkit 1 holds
+with them off), see docs/RENDERING.md "634HD features":
+
+- Ambient occlusion fixed: no darkness indoors (roofs and floors above the player left out of the
+  bake) and no pops while walking (new bakes never change the look until complete; fade-in after a
+  region load; rebuilt chunks shaded at once). The smoke harness measures frame-to-frame brightness
+  in bursts (`client.test.sceneBurst`, `sceneLumaJump`).
+- Shadows: `terrainShadows`, `cutoutShadows`, `castShadows: false` overrides.
+- Content engine: the Inspect tab (tile floor ids, loc ids, models, face colours), 634HD's own
+  materials (ids 10000 and up, `tools/make_detail_textures.py`), `worldTextures` (model and tile
+  overrides), `environmentLighting` (environments' sun and ambient, everything eased between areas).
+- Water and foliage: water per area, `caustics`, `grassDisplacement`.
+- Day and night: `dayNight` (off, realtime, or minutes a day).
+- Content: Lumbridge and Varrock lights and environments, a Lumbridge swamp environment. The cache
+  textures nearly all of their models and floors, so they needed no texture overrides.
+
 ## Testing and acceptance
 
 Every phase ends with the screenshot test passing on the target platforms. Build that harness first, before any Phase 3 rendering work.
