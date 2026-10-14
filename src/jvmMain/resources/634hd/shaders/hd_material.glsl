@@ -145,3 +145,45 @@ vec4 hdDebugOverlay(vec4 color, vec3 viewPos, vec3 normal, int texture) {
     if (mode == 7) return vec4(vec3(hdShadow(viewPos)), 1.0);
     return color;
 }
+
+// The height of 634HD's water waves (any units) at world ([x], [z]): long, slow swells, a tile or
+// more from crest to crest, so the surface moves without going grainy.
+float hdWaveHeight(vec2 p, float t) {
+    return sin(dot(p, vec2(0.0021, 0.0009)) + t * 0.9) * 0.5
+        + sin(dot(p, vec2(-0.0012, 0.0026)) + t * 1.1) * 0.35
+        + sin(dot(p, vec2(0.0043, -0.0031)) + t * 1.7) * 0.15;
+}
+
+// Water (HD_WATER, on a water material): the game's water, kept as the base, gently tinted towards
+// the environment's colour, with slow swells that catch the light a little, a Fresnel reflection of
+// the sky that only shows at grazing angles, and a soft sun glint that fades out at a distance,
+// where it would only sparkle.
+vec4 hdWater(vec4 color, vec3 viewPos) {
+    vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
+    vec3 camera = hdViewToWorld[3].xyz;
+    float t = hdTime.x;
+    float e = 24.0;
+    float h = hdWaveHeight(world.xz, t);
+    float hx = hdWaveHeight(world.xz + vec2(e, 0.0), t) - h;
+    float hz = hdWaveHeight(world.xz + vec2(0.0, e), t) - h;
+    // world up is -y; the slopes give a tilt of a few degrees at most
+    vec3 n = normalize(vec3(-hx * 1.2, -1.0, -hz * 1.2));
+    vec3 view = normalize(world - camera);
+    float cosine = max(dot(-view, n), 0.0);
+    float fresnel = 0.02 + 0.98 * pow(1.0 - cosine, 5.0);
+    vec3 reflected = reflect(view, n);
+    vec3 sky = hdColour(vec4(hdSkyColour(reflected), 1.0)).rgb;
+    vec3 tint = hdColour(vec4(hdWaterTint.rgb, 1.0)).rgb;
+    vec3 base = mix(color.rgb, tint * max(max(color.r, color.g), color.b) * 1.4, hdWaterTint.w * 0.6);
+    vec3 sunWorld = hdSunDirection.w > 0.5 ? normalize(mat3(hdViewToWorld) * hdSunDirection.xyz) : vec3(0.0, -1.0, 0.0);
+    base *= 0.94 + 0.12 * max(dot(n, sunWorld), 0.0);
+    vec3 result = mix(base, sky, clamp(fresnel * 0.6, 0.0, 0.45));
+    if (hdSunDirection.w > 0.5) {
+        // a broad, soft glint, gone where a pixel spans more than a few units of water
+        float footprint = length(fwidth(world));
+        float distanceFade = 1.0 - smoothstep(18.0, 60.0, footprint);
+        float glint = pow(max(dot(reflected, sunWorld), 0.0), 48.0) * hdShadow(viewPos) * distanceFade;
+        result += hdSunColour.rgb * glint * (hdOn(HD_LINEAR) ? 0.8 : 0.25);
+    }
+    return vec4(result, color.a);
+}

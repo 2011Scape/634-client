@@ -186,23 +186,33 @@ highp vec2 logicalCentre(highp vec2 coord) {
     return coord + dFdx(coord) * offset.x + dFdy(coord) * offset.y;
 }
 
-// The ground's texture (HD_TERRAIN) at [uv] for a fragment at eye-space [viewPos]: on steep ground
-// projected from the side (triplanar) instead of stretched; elsewhere a second, rotated and larger
-// sample blended in through a noise mask, so the tile texture does not repeat visibly; and a broad
-// brightness variation. In the texture's own (sRGB) colour.
+// The ground's texture (HD_TERRAIN) at [uv] for a fragment at eye-space [viewPos]. Kept close to
+// the game's look: the texture at its own scale and angle throughout.
+// - Repetition: a second sample of the same texture, shifted by a fraction of a tile, shows through a
+//   soft, large noise mask, so the tile does not repeat in a grid.
+// - A faint, broad brightness variation.
+// - Steep slopes only (over about 55 degrees): projected from the side at the ground's own texture
+//   scale (worked out from the uv and position derivatives), instead of stretched down the slope.
+// In the texture's own (sRGB) colour.
 vec4 hdTerrainTexture(sampler2D tex, vec2 uv, vec3 viewPos) {
     vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
-    vec3 n = normalize(cross(dFdx(world), dFdy(world)));
-    float steep = clamp((1.0 - abs(n.y) - 0.35) * 3.0, 0.0, 1.0);
+    vec3 dx = dFdx(world);
+    vec3 dy = dFdy(world);
+    vec3 n = normalize(cross(dx, dy));
     vec4 base = texture(tex, uv);
-    float mask = smoothstep(0.35, 0.75, hdNoise(world.xz / 1900.0));
-    vec2 rotated = mat2(0.799, -0.602, 0.602, 0.799) * uv * 0.61 + vec2(0.37, 0.71);
-    base = mix(base, texture(tex, rotated), mask * 0.5);
-    if (steep > 0.0) {
-        vec2 side = abs(n.x) > abs(n.z) ? world.zy : world.xy;
-        base = mix(base, texture(tex, side / 512.0), steep);
+    float mask = smoothstep(0.45, 0.75, hdNoise(world.xz / 3072.0 + vec2(5.3, 1.7)));
+    if (mask > 0.0) {
+        base = mix(base, texture(tex, uv + vec2(0.37, 0.61)), mask * 0.45);
     }
-    base.rgb *= 0.9 + 0.2 * hdNoise(world.xz / 5200.0 + vec2(17.0, 3.0));
+    float slope = 1.0 - abs(n.y);
+    float steep = smoothstep(0.42, 0.6, slope);
+    if (steep > 0.0) {
+        // uv per world unit along the ground, as the game maps it on the flat
+        float scale = length(dFdx(uv)) / max(length(dx.xz), 0.0001);
+        vec2 side = abs(n.x) > abs(n.z) ? world.zy : world.xy;
+        base = mix(base, texture(tex, side * scale), steep);
+    }
+    base.rgb *= 0.96 + 0.08 * hdNoise(world.xz / 6144.0 + vec2(17.0, 3.0));
     return base;
 }
 

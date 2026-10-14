@@ -277,43 +277,6 @@ float hdAmbientOcclusion(vec3 viewPos, vec3 normal) {
     return mix(1.0, ao, hdAoParams.y);
 }
 
-// The height of 634HD's water waves (any units) at world ([x], [z]), and its slope by finite difference.
-float hdWaveHeight(vec2 p, float t) {
-    return sin(dot(p, vec2(0.0061, 0.0023)) + t * 1.3) * 0.5
-        + sin(dot(p, vec2(-0.0029, 0.0071)) + t * 1.7) * 0.35
-        + sin(dot(p, vec2(0.0143, -0.0097)) + t * 2.9) * 0.15
-        + sin(dot(p, vec2(-0.0231, -0.0187)) + t * 3.7) * 0.08;
-}
-
-// Water (HD_WATER, on a water material): the game's water colour, tinted towards the environment's,
-// with animated normals, a Fresnel reflection of the sky and the sun's glint (blocked by shadows).
-vec4 hdWater(vec4 color, vec3 viewPos) {
-    vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
-    vec3 camera = hdViewToWorld[3].xyz;
-    float t = hdTime.x;
-    float e = 8.0;
-    float h = hdWaveHeight(world.xz, t);
-    float hx = hdWaveHeight(world.xz + vec2(e, 0.0), t) - h;
-    float hz = hdWaveHeight(world.xz + vec2(0.0, e), t) - h;
-    // world up is -y; the slopes are scaled to a gentle tilt
-    vec3 n = normalize(vec3(-hx * 3.5, -1.0, -hz * 3.5));
-    vec3 view = normalize(world - camera);
-    float cosine = max(dot(-view, n), 0.0);
-    float fresnel = 0.03 + 0.97 * pow(1.0 - cosine, 5.0);
-    vec3 reflected = reflect(view, n);
-    vec3 sky = hdColour(vec4(hdSkyColour(reflected), 1.0)).rgb;
-    vec3 tint = hdColour(vec4(hdWaterTint.rgb, 1.0)).rgb;
-    vec3 base = mix(color.rgb, tint * max(max(color.r, color.g), color.b) * 1.6, hdWaterTint.w);
-    vec3 sunWorld = hdSunDirection.w > 0.5 ? normalize(mat3(hdViewToWorld) * hdSunDirection.xyz) : vec3(0.0, -1.0, 0.0);
-    // the waves catch the light: brighter where they face the sun
-    base *= 0.8 + 0.4 * max(dot(n, sunWorld), 0.0);
-    vec3 result = mix(base, sky, clamp(fresnel * 0.85, 0.0, 0.85));
-    if (hdSunDirection.w > 0.5) {
-        float glint = pow(max(dot(reflected, sunWorld), 0.0), 90.0) * hdShadow(viewPos);
-        result += hdSunColour.rgb * glint * (hdOn(HD_LINEAR) ? 3.0 : 0.8);
-    }
-    return vec4(result, color.a);
-}
 
 // Smooth value noise in 0..1.
 float hdNoise(vec2 p) {
