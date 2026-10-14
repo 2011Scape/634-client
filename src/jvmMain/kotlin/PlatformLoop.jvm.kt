@@ -61,3 +61,20 @@ actual val homeCacheOnly: Boolean = true
 actual fun createHdToolkit(multiSamples: Int, canvas: awt.Canvas?, textureSource: com.jagex.game.runetek5.config.material.MaterialProvider?): com.jagex.game.runetek5.graphics.Toolkit =
     com.jagex.game.runetek5.graphics.hd.HdToolkit.create(multiSamples, canvas, textureSource)
 actual val hdAvailable: Boolean = true
+
+actual fun memoryReport(): String {
+    // after a collection, so the heap and the direct buffers it frees show what is really held
+    System.gc()
+    val runtime = Runtime.getRuntime()
+    val heap = (runtime.totalMemory() - runtime.freeMemory()) shr 20
+    val direct = java.lang.management.ManagementFactory.getPlatformMXBeans(java.lang.management.BufferPoolMXBean::class.java)
+        .firstOrNull { it.name == "direct" }?.memoryUsed?.shr(20) ?: -1L
+    val rss = try {
+        java.io.File("/proc/self/status").readLines().firstOrNull { it.startsWith("VmRSS:") }
+            ?.substringAfter(':')?.trim()?.substringBefore(' ')?.toLong()?.shr(10) ?: -1L
+    } catch (ex: Exception) {
+        -1L
+    }
+    val gpu = com.jagex.game.runetek5.graphics.hd.HdToolkit.freeVideoMemoryMb()
+    return "heap=${heap}MB direct=${direct}MB rss=${rss}MB" + (if (gpu >= 0) " gpuFree=${gpu}MB" else "")
+}

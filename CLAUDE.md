@@ -40,6 +40,9 @@ with a `smoketest` / `smoketest1` account:
 # frame-time benchmark instead of the checks (FEATURES.md); in the browser measure the production
 # bundle: node tools/serve.mjs 8080 build/dist/js/productionExecutable
 ./gradlew runClient -Pclient.test=smoke -Pclient.test.bench=300 [-Pclient.test.benchMode=resizable|fixed]
+# memory soak: tours the scene positions for M minutes (needs an admin account), walking and turning,
+# switching to toolkit 1 and back every few visits; prints heap, direct, resident and free video memory
+./gradlew runClient -Pclient.test=smoke -Pclient.test.toolkit=6 -Pclient.test.soak=120 [-Pclient.test.soakToggle=3]
 # screenshot harness: teleports to fixed positions (needs an admin account), holds the camera, diffs
 # each frame pixel by pixel against scene-<name>-toolkit<id>.png, then a map reload and a relog;
 # captures and diff images go to build/smoke/scenes/

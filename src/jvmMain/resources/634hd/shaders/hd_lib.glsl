@@ -72,15 +72,20 @@ uniform sampler2DShadow uHdShadowMap;
 uniform sampler2D uHdAoMap;
 uniform sampler2D uHdAoBake;
 
-// The world y (the game's: smaller is higher) of the highest occluder over world ([x], [z]), from both.
-float hdOccluderY(vec2 xz) {
+// The ground's baked occlusion (HD_AO), on unit 25: one texel per quarter tile of the ground drawing
+// (HdShadows.bindGroundOcclusion), from the static scene only.
+uniform sampler2D uHdGroundAo;
+
+// The world y (the game's: smaller is higher) of the highest occluder over world ([x], [z]): from the
+// moving models' map, and from the baked static scene too when [baked].
+float hdOccluderY(vec2 xz, bool baked) {
     float y = 1.0e9;
     vec2 uv = (hdAoMatrix * vec4(xz.x, 0.0, xz.y, 1.0)).xy;
     if (uv.x > 0.0 && uv.x < 1.0 && uv.y > 0.0 && uv.y < 1.0) {
         float d = texture(uHdAoMap, uv).r;
         if (d < 1.0) y = hdAoParams.w + d * hdAoParams.x;
     }
-    if (hdAoBake.z > 0.5) {
+    if (baked && hdAoBake.z > 0.5) {
         vec2 bake = (hdAoBakeMatrix * vec4(xz.x, 0.0, xz.y, 1.0)).xy;
         float d = texture(uHdAoBake, bake).r;
         if (d < 1.0) y = min(y, hdAoBake.x + d * hdAoBake.y);
@@ -225,12 +230,10 @@ vec4 hdApplyShadow(vec4 color, vec3 viewPos, vec3 normal) {
     return vec4(color.rgb * (1.0 - 0.42 * facing * (1.0 - lit)), color.a);
 }
 
-// How much of the sky a fragment at eye-space [viewPos] sees (HD_AO), from the height map: the
-// heights around it at two distances in eight directions (only those in front of a wall-like
-// [normal]) and straight above it. 1 in the open.
-float hdAmbientOcclusion(vec3 viewPos, vec3 normal) {
-    if (!hdOn(HD_AO)) return 1.0;
-    vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
+// How much of the sky world point [world] sees, from the height maps (the baked static scene only
+// when [baked]): the heights around it in eight directions (only those in front of a wall-like
+// [normal], eye space) and straight above it. 1 in the open.
+float hdSkyVisibility(vec3 world, vec3 normal, bool baked) {
     float normalLength = length(normal);
     vec3 n = normalLength > 0.0001 ? mat3(hdViewToWorld) * (normal / normalLength) : vec3(0.0, -1.0, 0.0);
     float up = -n.y;
@@ -239,7 +242,7 @@ float hdAmbientOcclusion(vec3 viewPos, vec3 normal) {
     float weight = 0.0;
     // straight above: a roof, a canopy
     if (up > 0.5) {
-        float above = world.y - hdOccluderY(world.xz);
+        float above = world.y - hdOccluderY(world.xz, baked);
         occlusion += 2.0 * smoothstep(240.0, 600.0, above);
         weight += 2.0;
     }
@@ -256,7 +259,7 @@ float hdAmbientOcclusion(vec3 viewPos, vec3 normal) {
         // one distance, about a third of a tile (the static scene's vertices are baked more finely)
         float radius = 180.0;
         // occluders lower than a tall grass tuft (about 180 units) are left out: grass is not a wall
-        float height = world.y - hdOccluderY(world.xz + dir * radius) - 180.0;
+        float height = world.y - hdOccluderY(world.xz + dir * radius, baked) - 180.0;
         sideOcclusion[which] += clamp(height / (radius * 1.2), 0.0, 1.0);
         sideWeight[which] += 1.0;
     }
@@ -267,7 +270,26 @@ float hdAmbientOcclusion(vec3 viewPos, vec3 normal) {
         occlusion += sideOcclusion[0];
         weight += sideWeight[0];
     }
-    float ao = weight > 0.0 ? 1.0 - occlusion / weight : 1.0;
+    return weight > 0.0 ? 1.0 - occlusion / weight : 1.0;
+}
+
+// How much of the sky a fragment at eye-space [viewPos] sees (HD_AO), with the strength applied.
+float hdAmbientOcclusion(vec3 viewPos, vec3 normal) {
+    if (!hdOn(HD_AO)) return 1.0;
+    vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
+    return mix(1.0, hdSkyVisibility(world, normal, true), hdAoParams.y);
+}
+
+// The same for a ground fragment whose baked occlusion is bound (uHdGround 2): the static scene's part
+// read from uHdGroundAo, the moving models' measured per pixel only where their map covers.
+float hdGroundOcclusion(vec3 viewPos, vec3 normal) {
+    if (!hdOn(HD_AO)) return 1.0;
+    vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
+    float ao = texture(uHdGroundAo, world.xz / (vec2(textureSize(uHdGroundAo, 0)) * 128.0)).r;
+    vec2 uv = (hdAoMatrix * vec4(world.x, 0.0, world.z, 1.0)).xy;
+    if (uv.x > -0.02 && uv.x < 1.02 && uv.y > -0.02 && uv.y < 1.02) {
+        ao = min(ao, hdSkyVisibility(world, normal, false));
+    }
     return mix(1.0, ao, hdAoParams.y);
 }
 

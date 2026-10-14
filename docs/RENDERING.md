@@ -195,7 +195,7 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
 | `pixelLighting` | the fixed-function formula per pixel | `ff.frag`, `scene.frag` |
 | `lights` | point lights from `lights.json`, 64 nearest | `scene/HdLights`, `hdPointLights` |
 | `shadows` (1024/2048/4096) | sun shadow map, PCF | `scene/HdShadows`, `hdShadow` |
-| `ambientOcclusion` | baked: the region's static scene into a height map when its chunks change, then into every retained vertex (a few ms a frame); the ground and moving models read the height maps | `scene/HdShadows`, `HdSceneRenderer.bakeVertexOcclusion`, `hdAmbientOcclusion` |
+| `ambientOcclusion` | baked: the region's static scene into a height map when its chunks change, then (a few ms a frame) into every retained vertex and into a texture per ground level, four samples a tile side; a ground pixel reads one texel, and measures the moving models' map itself only near the player; other moving models measure per pixel | `scene/HdShadows` (`bindGroundOcclusion`), `HdSceneRenderer.skyVisibility`, `hdGroundOcclusion`, `hdAmbientOcclusion` |
 | `fog`, `fade`, `sky` | environment fog, dithered fade at the edge, gradient sky and height fog | `scene/HdFeatures`, `hdFog`, `sky.frag` |
 | `water` | wave normals, Fresnel sky reflection, glint, tint | `hdWater`; `GlState.hdWater` |
 | `terrainBlend` | triplanar on slopes, anti-tiling blend, broad variation on the ground | `hdTerrainTexture`; `GlState.hdGround` |
@@ -210,7 +210,8 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   the `HdFrame` uniform block (`scene/HdFrameUniforms`, std140, binding 0). `hd_lib.glsl` holds the
   block and the shared functions; `hd_material.glsl` the fragment-only ones. `HdShaders.link` points
   every program's samplers at their units: shadow map 16, height map 17, soft-particle depth 18,
-  material arrays 19-21 (block `HdMaterialMaps`, binding 1), baked occlusion 22.
+  material arrays 19-21 (block `HdMaterialMaps`, binding 1), baked occlusion 22, the ground's baked
+  occlusion 25.
 - **Shadow casters.** Static: every retained object in the chunks around the player, on screen or
   not, drawn into a cached map (`staticMap`) only when the map's centre moves a four-tile step or
   the region changes, and copied into the sun's map each frame. Moving: every emulated indexed draw

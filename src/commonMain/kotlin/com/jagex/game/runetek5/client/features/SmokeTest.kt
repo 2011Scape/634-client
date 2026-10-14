@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.client.features
 
+import memoryReport
 import com.jagex.game.runetek5.LocType
 import turnElapsedMs
 import com.jagex.game.runetek5.ObjStackEntity
@@ -315,6 +316,30 @@ object SmokeTest {
 	 */
 	private val SCENES: String = lang.getProperty("client.test.scenes", "")
 
+	/**
+	 * client.test.soak=M: a memory soak run instead of the checks, for M minutes. The player visits
+	 * DEFAULT_SCENES' positions in turn (::tele, an admin account), walks a few tiles there while the
+	 * camera turns, for client.test.soakFrames frames (default 600); after every visit a line
+	 * "SMOKE SOAK" gives the time and memoryReport() (heap, direct buffers, resident size, free video
+	 * memory). Every client.test.soakToggle visits (default 3, 0 never) the client switches to
+	 * toolkit 1 and back to client.test.toolkit, as a player toggling 634HD would. It ends at home.
+	 */
+	private val SOAK_MINUTES: Int = lang.getInteger("client.test.soak", 0)
+
+	private val SOAK_FRAMES: Int = lang.getInteger("client.test.soakFrames", 600)
+
+	private val SOAK_TOGGLE: Int = lang.getInteger("client.test.soakToggle", 3)
+
+	private var soakPositions: Array<IntArray>? = null
+
+	private var soakIndex: Int = 0
+
+	private var soakStep: Int = 0
+
+	private var soakFrame: Int = 0
+
+	private var soakVisits: Int = 0
+
 	private val SCENE_FRAMES: Int = lang.getInteger("client.test.sceneFrames", 150)
 
 	/** client.test.sceneBurst: consecutive frames saved per scene before its comparison (flicker checks). */
@@ -578,6 +603,10 @@ object SmokeTest {
 		}
 		if (BENCH > 0) {
 			bench()
+			return
+		}
+		if (SOAK_MINUTES > 0) {
+			soak(player)
 			return
 		}
 		if (SCENES.length > 0) {
@@ -864,6 +893,92 @@ object SmokeTest {
 		}
 		lang.flushOut()
 		lang.halt(0)
+	}
+
+	/** The soak run (client.test.soak), a frame at a time. */
+	private fun soak(player: PlayerEntity) {
+		if (soakPositions == null) {
+			val parsed: Array<String> = DEFAULT_SCENES.javaSplit(";")
+			val positions: Array<IntArray> = Array(parsed.size) { IntArray(3) }
+			for (i in 0 until parsed.size) {
+				val values: Array<String> = parsed[i].substring(parsed[i].indexOf(':') + 1).javaSplit(",")
+				positions[i][0] = values[0].javaTrim().toInt()
+				positions[i][1] = values[1].javaTrim().toInt()
+				positions[i][2] = values[2].javaTrim().toInt()
+			}
+			soakPositions = positions
+			println("SMOKE SOAK start, " + SOAK_MINUTES + " minutes over " + positions.size + " positions: " + memoryReport())
+		}
+		val positions: Array<IntArray> = soakPositions!!
+		if (soakStep == 5) {
+			// done: home, so the other checks' references still match
+			if (sceneArrived(player, SCENE_HOME[0], SCENE_HOME[1], SCENE_HOME[2])) {
+				println("SMOKE PASS soak on toolkit " + GamePreferences.uid!!.toolkit!!.getValue() + " after " + elapsed() + "s, " + soakVisits + " visits: " + memoryReport())
+				lang.flushOut()
+				lang.halt(0)
+			} else if (gameFrames - soakFrame > SCENE_WAIT) {
+				fail("soak: could not return home")
+			}
+			return
+		}
+		if (soakStep == 0) {
+			if (elapsed() >= SOAK_MINUTES * 60L) {
+				sendCommand("tele " + SCENE_HOME[0] + " " + SCENE_HOME[1] + " " + SCENE_HOME[2])
+				soakStep = 5
+				soakFrame = gameFrames
+				return
+			}
+			val at: IntArray = positions[soakIndex]
+			sendCommand("tele " + at[0] + " " + at[1] + " " + at[2])
+			soakStep = 1
+			soakFrame = gameFrames
+			return
+		}
+		val at: IntArray = positions[soakIndex]
+		if (soakStep == 1) {
+			if (sceneArrived(player, at[0], at[1], at[2])) {
+				soakStep = 2
+				soakFrame = gameFrames
+			} else if (gameFrames - soakFrame > SCENE_WAIT) {
+				fail("soak: never arrived at " + at[0] + "," + at[1])
+			}
+			return
+		}
+		if (soakStep == 2) {
+			val held: Int = gameFrames - soakFrame
+			Camera.camAngleY = ((Camera.camAngleY.toInt() + 24) and 0x3fff).toFloat()
+			if (held == 60) {
+				walkFromMenu(player.movementBaseX[0] + 5, player.movementBaseY[0])
+			} else if (held == SOAK_FRAMES / 2) {
+				walkFromMenu(player.movementBaseX[0] - 5, player.movementBaseY[0])
+			}
+			if (held < SOAK_FRAMES) {
+				return
+			}
+			soakVisits++
+			soakIndex = (soakIndex + 1) % positions.size
+			println("SMOKE SOAK t=" + elapsed() + "s visits=" + soakVisits + " " + memoryReport())
+			if (SOAK_TOGGLE > 0 && TOOLKIT >= 0 && soakVisits % SOAK_TOGGLE == 0) {
+				switchToolkit(1)
+				soakStep = 3
+				soakFrame = gameFrames
+				return
+			}
+			soakStep = 0
+			return
+		}
+		if (soakStep == 3 && gameFrames - soakFrame >= 50) {
+			switchToolkit(TOOLKIT)
+			if (GamePreferences.uid!!.toolkit!!.getValue() != TOOLKIT) {
+				fail("soak: toolkit " + TOOLKIT + " did not start again after " + soakVisits + " visits")
+			}
+			soakStep = 4
+			soakFrame = gameFrames
+			return
+		}
+		if (soakStep == 4 && gameFrames - soakFrame >= 50) {
+			soakStep = 0
+		}
 	}
 
 	/**

@@ -276,7 +276,7 @@ void main() {
     }
     if (mapped) color = hdApplyMaterial(uHdMapSlot, color, gUv0, FF_VIEW_POS);
     color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
-    color.rgb *= hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);
+    color.rgb *= uHdGround == 2 ? hdGroundOcclusion(FF_VIEW_POS, FF_NORMAL) : hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);
     float depth = gl_FragCoord.z / gl_FragCoord.w;
     if (uFogEnabled) {
         color = hdFog(color, FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd);

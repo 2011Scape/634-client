@@ -142,3 +142,10 @@ expect fun createHdToolkit(multiSamples: Int, canvas: awt.Canvas?, textureSource
 
 /* Whether 634HD can be offered at all: true on the JVM, false in a browser (createHdToolkit). */
 expect val hdAvailable: Boolean
+
+/*
+ * Not part of the original client: a one-line memory report for the smoke test's soak run
+ * (client.test.soak): heap, direct buffers, the process's resident size and, on 634HD with an NVIDIA
+ * driver, free video memory. Empty in a browser.
+ */
+expect fun memoryReport(): String
