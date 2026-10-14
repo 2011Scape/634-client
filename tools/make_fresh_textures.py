@@ -57,6 +57,8 @@ GAIN = 0.8
 CONTRAST_FLOOR = 1.6
 # the realistic mode: art with a tiling seam above this (make_material_maps.seam) is cross-faded
 SEAM_LIMIT = 1.5
+# painterly art: contrast between these times the game texture's
+PAINTERLY_CONTRAST = (1.0, 1.3)
 EPS = 0.03
 
 # texture id -> (name, material map class, generation it takes its detail from). A texture that is
@@ -141,10 +143,14 @@ def back_project(fresh, game):
 
 
 def generated_hd(texture):
-    """The newest realistic art for [texture] (634hd_hd-<id>; with tools/hd_prompt.txt, or for the
-    textures whose fine detail vanished on screen tools/hd_prompt_bold.txt), or None."""
-    names = sorted(f for f in os.listdir(GENERATED) if f.startswith('634hd_hd-%d_' % texture) and f.endswith(('.png', '.jpg', '.jpeg')))
-    return os.path.join(GENERATED, names[-1]) if names else None
+    """The newest art for [texture]: painterly-realistic (634hd_pt-<id>, tools/pt_prompt.txt) when there
+    is one, else photoreal (634hd_hd-<id>; tools/hd_prompt.txt, or hd_prompt_bold.txt for textures
+    whose fine detail vanished on screen), or None."""
+    for prefix in ('634hd_pt-%d_', '634hd_hd-%d_'):
+        names = sorted(f for f in os.listdir(GENERATED) if f.startswith(prefix % texture) and f.endswith(('.png', '.jpg', '.jpeg')))
+        if names:
+            return os.path.join(GENERATED, names[-1])
+    return None
 
 
 def make_realistic(texture, name, cls, art, path):
@@ -167,13 +173,16 @@ def make_realistic(texture, name, cls, art, path):
     up = lum(np.asarray(wrap_resize(game, SIZE), dtype=np.float64) / 255.0)
     shading = maps.blur(up, broad)
     shading = shading / max(shading.mean(), 1e-6)
-    if texture in GROUND:
+    painterly = os.path.basename(path).startswith('634hd_pt-')
+    if texture in GROUND and not painterly:
         # ground seen from afar: pebble clusters a few texels wide are what survives the distance, so
         # that band is lifted (an unsharp mask at that scale) and the contrast goes to the cap
         flat = flat + GROUND_PUNCH * (flat - maps.blur(flat, SIZE / 48))
     detail = flat - flat.mean()
-    floor = 2.0 if texture in GROUND else CONTRAST_FLOOR
-    contrast = float(np.clip(detail.std(), floor * own.std(), 2.0 * own.std()))
+    # painterly art keeps close to the game texture's contrast: its shapes read by themselves
+    floor = PAINTERLY_CONTRAST[0] if painterly else 2.0 if texture in GROUND else CONTRAST_FLOOR
+    cap = PAINTERLY_CONTRAST[1] if painterly else 2.0
+    contrast = float(np.clip(detail.std(), floor * own.std(), cap * own.std()))
     detail *= contrast / max(detail.std(), 1e-6)
     grey = np.clip((own.mean() + detail) * shading, 0.0, 1.0)
     hue = rgb.reshape(-1, 3).mean(axis=0) / max(own.mean(), 1e-6)
@@ -192,8 +201,8 @@ def make_realistic(texture, name, cls, art, path):
     if os.path.exists(sidecar):
         shutil.copy(sidecar, os.path.join(folder, 'fresh', 'generate.json'))
     with open(os.path.join(folder, 'fresh', 'recipe.txt'), 'w') as f:
-        f.write('Realistic texture %d (%s), by tools/make_fresh_textures.py from ~/Pictures/generations/%s\n' % (texture, name, os.path.basename(path)))
-        f.write('(nano-banana-2 at 2K, tools/hd_prompt.txt, a blurred layout guide of the game texture as the reference;\n')
+        f.write('%s texture %d (%s), by tools/make_fresh_textures.py from ~/Pictures/generations/%s\n' % ('Painterly' if painterly else 'Realistic', texture, name, os.path.basename(path)))
+        f.write('(nano-banana-2 at 2K, tools/pt_prompt.txt or hd_prompt.txt, a blurred layout guide of the game texture as the reference;\n')
         f.write('the prompt is in generate.json). Grey with the game texture\'s hue (%.2f %.2f %.2f), its mean brightness %.2f and broad\n' % (hue[0], hue[1], hue[2], own.mean()))
         f.write('shading; contrast %.3f (game %.3f).%s Tiling seam %.2f.\n' % (contrast, own.std(), ' Shine mask in alpha.' if texture in SHINE_MASKS else '', maps.seam(grey)))
     maps.make(texture, name, cls, fresh='realistic')
@@ -254,7 +263,7 @@ def main():
         if gain is None:
             continue
         by_texture[texture]['albedo'] = 'albedo.png'
-        print('made %d %s (%s x%.2f)' % (texture, name, 'realistic, contrast' if generated_hd(art) else 'fresh, detail', gain))
+        print('made %d %s (%s x%.2f)' % (texture, name, ('painterly' if os.path.basename(generated_hd(art)).startswith('634hd_pt-') else 'realistic') + ', contrast' if generated_hd(art) else 'fresh, detail', gain))
     with open(path, 'w') as f:
         json.dump({'materials': entries}, f, indent=2)
         f.write('\n')

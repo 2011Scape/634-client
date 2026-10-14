@@ -157,7 +157,10 @@ def make(texture, name, cls, fresh=False):
     lum = rgb @ np.array([0.299, 0.587, 0.114])
     grain = None
     if fresh == 'realistic':
-        # the realistic mode: the relief is the new art's own
+        # the realistic mode: the relief is the new art's own, softened (wider blur, half the strength):
+        # at full strength its fine edges light as speckle in game
+        strength *= 0.5
+        soften = max(soften, 2.5)
         rgb = np.asarray(wrap_resize(Image.open(os.path.join(OUT, str(texture), 'albedo.png')).convert('RGB'), Image.BICUBIC), dtype=np.float64) / 255.0
         lum = rgb @ np.array([0.299, 0.587, 0.114])
     elif fresh:
