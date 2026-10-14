@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.client.features
 
+import com.jagex.game.runetek5.SceneDrawer
 import com.jagex.game.runetek5.core.constants.TileFlag
 import com.jagex.game.runetek5.scene.SettingsBits
 import com.jagex.game.runetek5.SceneVisibleTiles
@@ -397,9 +398,27 @@ object SmokeTest {
 				underRoof = ((SettingsBits.tileFunctionMasks!![level]!![tileX]!![tileZ].toInt() and TileFlag.REMOVE_ROOF) + level * 1024).toLong()
 			}
 		}
+		// the roof stamps near the player: whatever hides or shows a roof (the player's tile, the camera,
+		// the roof setting) changes them, and the scene draws roofs by them
+		var stamps: Long = 0L
+		val roofStamps = MapRegion.roofStamps
+		if (player != null && roofStamps != null) {
+			val px: Int = player.x shr 9
+			val pz: Int = player.z shr 9
+			for (level in 0 until roofStamps.size) {
+				val plane = roofStamps[level] ?: continue
+				for (x in kotlin.math.max(0, px - 12)..kotlin.math.min(plane.size - 1, px + 12)) {
+					val row = plane[x] ?: continue
+					for (z in kotlin.math.max(0, pz - 12)..kotlin.math.min(row.size - 1, pz + 12)) {
+						// hidden or not is all that matters: the stamp equal to this frame's roof value
+						stamps = stamps * 31L + (if (row[z].toInt() == 1 || row[z].toInt() == ((SceneDrawer.timesSceneRendered) and 0xFF).toByte().toInt()) 1L else 0L)
+					}
+				}
+			}
+		}
 		// a map rebuild re-centres the scene (and works out what is hidden anew)
 		val base: Long = (MapRegion.sceneBaseX.toLong() shl 40) xor (MapRegion.sceneBaseY.toLong() shl 24)
-		return base xor (underRoof shl 56) xor (MapRegion.roofMinX[0].toLong() shl 48) xor (MapRegion.roofMaxX[0].toLong() shl 32) xor (MapRegion.roofMinZ[0].toLong() shl 16) xor MapRegion.roofMaxZ[0].toLong() xor (MapRegion.visibleBelowDrawheight[0].toLong() shl 20)
+		return stamps xor base xor (underRoof shl 56) xor (MapRegion.roofMinX[0].toLong() shl 48) xor (MapRegion.roofMaxX[0].toLong() shl 32) xor (MapRegion.roofMinZ[0].toLong() shl 16) xor MapRegion.roofMaxZ[0].toLong() xor (MapRegion.visibleBelowDrawheight[0].toLong() shl 20)
 	}
 
 	private var burstMaxJump: Double = 0.0
