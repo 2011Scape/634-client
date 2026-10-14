@@ -825,6 +825,11 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		return this.sceneRenderer.built && !this.stillWaterToggled && this.depthClippingMode != 3
 	}
 
+	// characters draw no flat shadow models while the sun's shadows are on (HdSettings.shadows)
+	override fun castsShadows(): Boolean {
+		return HdSettings.shadows != 0
+	}
+
 	override fun sceneBuilt() {
 		this.sceneRenderer.build()
 		this.hdFeatures.lights.dirty = true

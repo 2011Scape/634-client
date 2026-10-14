@@ -200,7 +200,9 @@ class NPCEntity : PathingEntity() {
 		@Pc(113) val npcType: NPCType? = if (this.npcType!!.alternativeIds == null) this.npcType else this.npcType!!.getMultiNpc(PlayerVarDomain.playerVarProvider)
 		super.transparent = false
 		@Pc(118) var pickableEntity: PickableEntity? = null
-		if (GamePreferences.uid!!.characterShadows!!.getValue() == 1 && npcType!!.shadowed && basType!!.rendersShadow) {
+		// Not part of the original client: no flat shadow model under the NPC when the toolkit casts real
+		// shadows (634HD's sun shadows, Toolkit.castsShadows), or it would have two.
+		if (GamePreferences.uid!!.characterShadows!!.getValue() == 1 && npcType!!.shadowed && basType!!.rendersShadow && !toolkit!!.castsShadows()) {
 			@Pc(145) val seqType: SeqType? = if (super.currentSequence.sequenceId != -1 && super.currentSequence.speed == 0) TypeLists.SEQ!!.list(super.currentSequence.sequenceId) else null
 			@Pc(162) val seqType2: SeqType? = if (super.movingSequence.sequenceId == -1 || super.movingSequence.hasType && seqType != null) null else TypeLists.SEQ!!.list(super.movingSequence.sequenceId)
 			@Pc(212) val model: Model? = PathingEntity.getAnimatedShadowModel(super.modelRotateX, yawRotation, super.models[0], super.modelRotateZ, if (seqType2 == null) super.currentSequence.currentFrameId else super.movingSequence.currentFrameId, this.npcType!!.shadowColorSrc.toInt() and 0xFFFF, this.npcType!!.size, super.modelTranslateY, toolkit, this.npcType!!.shadowAlphaSrc.toInt() and 0xFF, this.npcType!!.shadowColorDst.toInt() and 0xFFFF, this.npcType!!.shadowAlphaDst.toInt() and 0xFF, if (seqType2 == null) seqType else seqType2)

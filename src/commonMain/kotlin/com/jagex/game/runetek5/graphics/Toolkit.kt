@@ -464,6 +464,11 @@ abstract class Toolkit {
 	open fun sceneBuilt() {
 	}
 
+	/** Whether the toolkit casts real shadows now: characters then leave out their flat shadow models. */
+	open fun castsShadows(): Boolean {
+		return false
+	}
+
 	/** A loc was added to, removed from or moved on tile ([x], [z]) of [level] after the build. */
 	open fun sceneChanged(level: Int, x: Int, z: Int) {
 	}
