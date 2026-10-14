@@ -193,8 +193,14 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
     region), `client.test.sceneBurstLoc=N` takes a loc out at frame N, `sceneBurstSave=false` keeps
     only the measurement, `sceneLumaLog` prints every frame's value. The game's own roof hiding (the
     player stepping under or out of a roof, a real jump of 5 to 15) is detected from
-    `MapRegion.roofMin*/roofMax*` and the three frames after it are not measured; a negative
-    `sceneWalkTiles` walks west; after a relog the harness teleports back to the scene;
+    `MapRegion.roofMin*/roofMax*`, the remove-roof flag of the player's tile and the scene base (a map
+    rebuild), and the three frames after a change are not measured; a negative `sceneWalkTiles` walks
+    west; after a relog the harness teleports back to the scene. Long walks still pass through
+    changes of the game's own that are not flickers (toolkit 1 jumps by up to 7 there too), so the
+    occlusion check runs on the occlusion alone: `-Pclient.test.hdOverlay=6` (applied without the
+    debug panel in test runs) draws only the applied occlusion, where roofs and rebuilds barely
+    register. Draynor eastwards, 2000 frames across region borders with AO and shadows on: largest
+    jump 1.3;
   - the regular smoke test against toolkit 1's references;
   - the bench at a position (`-Pclient.test.scenePosition=...`), which prints draw calls by category,
     the region-build hitch and chunk rebuilds (`client/features/RenderStats`).
