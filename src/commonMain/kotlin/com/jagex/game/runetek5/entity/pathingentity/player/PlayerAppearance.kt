@@ -391,6 +391,20 @@ class PlayerAppearance {
 		return model2
 	}
 
+	/** Not part of the original client: a copy of the worn parts, for the smoke test's outfits to put back. */
+	fun copyParts(): IntArray? {
+		return this.appearance?.copyOf()
+	}
+
+	/** Not part of the original client: puts back parts taken with copyParts. */
+	fun restoreParts(parts: IntArray) {
+		val appearance: IntArray = this.appearance ?: return
+		for (i in 0 until kotlin.math.min(parts.size, appearance.size)) {
+			appearance[i] = parts[i]
+		}
+		this.calculateAppearanceHash()
+	}
+
 	@OriginalMember(owner = "client!oo", name = "a", descriptor = "(BIILclient!ub;)V")
 	fun addAppearanceItem(@OriginalArg(1) slot: Int, @OriginalArg(2) objId: Int, @OriginalArg(3) objTypeList: ObjTypeList?) {
 		if (objId == -1) {

@@ -182,6 +182,10 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
     relog and a loc change within the noise of toolkit 1 against itself (40 per 1000; the cow
     field, whose cows wander between runs, has its own limit of 65: toolkit 1 against itself there
     differs by 33 to 57);
+    the list also holds two scenes full of NPCs (Varrock palace guards, Barbarian Village; limit 65)
+    and four close-ups of the player in outfits that between them use every way an item's material
+    draws (`client.test.materialScan` lists the material classes and items using each; a scene's
+    eighth value dresses the player, on the client only, and the harness puts the clothes back);
   - the regular smoke test against toolkit 1's references;
   - the bench at a position (`-Pclient.test.scenePosition=...`), which prints draw calls by category,
     the region-build hitch and chunk rebuilds (`client/features/RenderStats`).

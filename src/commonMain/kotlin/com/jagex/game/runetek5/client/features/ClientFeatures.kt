@@ -42,7 +42,7 @@ object ClientFeatures {
 
 	/** A mouse-wheel zoom wider than the original field of view allows. */
 	@JvmField
-	val ZOOM: Boolean = lang.getBoolean("client.zoom")
+	var ZOOM: Boolean = lang.getBoolean("client.zoom")
 
 	/**
 	 * How much further than the original the scene is drawn and fogged; 1 is the original distance.
