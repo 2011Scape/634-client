@@ -301,7 +301,8 @@ object SmokeTest {
 
 	/**
 	 * client.test.scenes: the screenshot harness, run instead of the checks. "default" takes
-	 * DEFAULT_SCENES; otherwise a list of name:x,y,level,yaw,pitch,zoom[,limit] separated by ';'. For each
+	 * DEFAULT_SCENES; otherwise a list of name:x,y,level,yaw,pitch,zoom[,limit[,outfit]] separated by ';'
+	 * (outfit: slot:item pairs separated by '|', the player dressed in them on arrival). For each
 	 * scene the player is teleported there (::tele, which needs an admin account), the map is built,
 	 * the camera is held at the given yaw (0-16383), pitch (1024-3072) and zoom offset, and after
 	 * client.test.sceneFrames frames (default 150) the frame is saved to build/smoke/scenes/ and
@@ -465,6 +466,9 @@ object SmokeTest {
 	/** Where smoketest starts, and must be left: the other references are taken there. */
 	private val SCENE_HOME: IntArray = intArrayOf(3094, 3107, 0)
 
+	/** Lumbridge courtyard, the camera zoomed onto the player (the limit allows for the idle pose). */
+	private const val OUTFIT_VIEW: String = "3222,3218,0,0,1200,450,60"
+
 	private val DEFAULT_SCENES: String = "lumbridge:3222,3218,0,0,1400,0;" +
 		"varrock:3212,3428,0,2048,1400,0;" +
 		"grand_exchange:3164,3478,0,0,1600,0;" +
@@ -474,7 +478,17 @@ object SmokeTest {
 		"varrock_sewers:3237,9866,0,0,1400,0;" +
 		// the cows wander between runs: toolkit 1 against its own reference differs by 33 to 57
 		"cows:3256,3276,0,4096,1400,0,65;" +
-		"wizards_tower:3109,3162,0,0,1400,0"
+		"wizards_tower:3109,3162,0,0,1400,0;" +
+		// many NPCs: guards in shiny armour, and barbarians around their fires (they wander too)
+		"varrock_palace:3212,3468,0,0,1400,0,65;" +
+		"barbarian_village:3082,3420,0,0,1400,0,65;" +
+		// the player close up in outfits that between them use every way an item's material draws
+		// (client.test.materialScan): shiny metal and its three highlights, reflection, unlit, HDR,
+		// scrolling, cut-out and blended transparency
+		"outfit_metal:" + OUTFIT_VIEW + ",0:4732|1:6570|2:87|3:35|4:1127|5:1201|7:4730;" +
+		"outfit_robes:" + OUTFIT_VIEW + ",0:12866|1:-1|2:15511|3:3053|4:19317|5:-1|7:1079;" +
+		"outfit_khazard:" + OUTFIT_VIEW + ",0:74|1:-1|2:86|3:1285|4:75|5:1201|7:1079;" +
+		"outfit_torch:" + OUTFIT_VIEW + ",0:4732|1:10637|2:15511|3:8987|4:1127|5:-1|7:4730"
 
 	/**
 	 * client.test.findText=word: once in game, prints every interface component whose text holds the
@@ -616,6 +630,10 @@ object SmokeTest {
 			}
 		}
 		if (++gameFrames < FRAMES) {
+			return
+		}
+		if (MATERIAL_SCAN) {
+			materialScan()
 			return
 		}
 		if (BENCH > 0) {
@@ -912,6 +930,80 @@ object SmokeTest {
 		lang.halt(0)
 	}
 
+	/** The material survey (client.test.materialScan), a slice of the items a frame. */
+	private fun materialScan() {
+		val provider = ClientState.activeToolkit!!.materialProvider!!
+		if (scanItem == 0 && scanPasses == 0) {
+			val classes: HashMap<String, Int> = HashMap()
+			for (m in 0 until provider.textureCount()) {
+				val key: String = materialClass(m) ?: continue
+				classes[key] = (classes[key] ?: 0) + 1
+			}
+			println("SMOKE SCAN " + provider.textureCount() + " materials, " + classes.size + " classes:")
+			for (key in classes.keys.sorted()) {
+				println("SMOKE SCAN   " + key + ": " + classes[key] + " materials")
+			}
+		}
+		val objs = TypeLists.OBJ!!
+		val start: Long = lang.currentTimeMillis()
+		if (scanPasses == 0) {
+			while (scanItem < objs.num && lang.currentTimeMillis() - start < 20L) {
+				scanOne(scanItem)
+				scanItem++
+			}
+			if (scanItem < objs.num) {
+				return
+			}
+			scanPasses = 1
+			sceneFrame = gameFrames
+			return
+		}
+		// the models that were not loaded yet, again, until they are (or a while has passed)
+		if (scanPending.size > 0 && gameFrames - sceneFrame < 3000) {
+			val retry: ArrayList<Int> = ArrayList(scanPending)
+			scanPending.clear()
+			for (id in retry) {
+				scanOne(id)
+			}
+			return
+		}
+		println("SMOKE SCAN items not loaded: " + scanPending.size)
+		for (key in scanExamples.keys.sorted()) {
+			println("SMOKE SCAN " + key + " -> " + scanExamples[key]!!.joinToString(", "))
+		}
+		println("SMOKE PASS material scan")
+		lang.flushOut()
+		lang.halt(0)
+	}
+
+	private fun scanOne(id: Int) {
+		val type = TypeLists.OBJ!!.list(id) ?: return
+		if (type.maleEquip1 == -1 || type.certTemplateId != -1) {
+			return
+		}
+		if (!type.isBodyCached(false)) {
+			scanPending.add(id)
+			return
+		}
+		val mesh = type.getBodyMesh(false) ?: return
+		val materials = mesh.facesMaterial ?: return
+		val seen: HashSet<String> = HashSet()
+		for (f in 0 until mesh.numFaces) {
+			val m: Int = materials[f].toInt()
+			if (m < 0) continue
+			val key: String = materialClass(m) ?: continue
+			if (!seen.add(key)) continue
+			val list: ArrayList<String> = scanExamples.getOrPut(key) { ArrayList() }
+			if (list.size < 6) list.add(id.toString() + " " + type.name)
+		}
+	}
+
+	/** A material's drawing class, e.g. "effect1/1 comb0 mode0"; null for a missing one. */
+	private fun materialClass(m: Int): String? {
+		val t = ClientState.activeToolkit!!.materialProvider!!.getMetrics(m) ?: return null
+		return "effect" + t.effectType + "/" + t.effectParam1 + (if (t.effectParam2 != 0) "/" + t.effectParam2 else "") + " combiner" + t.effectCombiner + " mode" + t.combineMode + (if (t.speedU.toInt() != 0 || t.speedV.toInt() != 0) " scroll" else "") + (if (t.hdr) " hdr" else "") + (if (t.alpha.toInt() != 0) " alpha" + t.alpha else "")
+	}
+
 	/** The soak run (client.test.soak), a frame at a time. */
 	private fun soak(player: PlayerEntity) {
 		if (soakPositions == null) {
@@ -1015,6 +1107,9 @@ object SmokeTest {
 			// then a loc taken out of the scene, as a server's loc packet would (LocAction.replaceLoc)
 			list[parsed.size + 2] = "locchange" + list[0]
 			sceneList = list
+			// the zoom extra on: a scene's zoom value (the outfits' close-ups) needs it, and at 0 it
+			// leaves the view as it was
+			ClientFeatures.ZOOM = true
 			println("SMOKE scenes: " + parsed.size + " positions, then a map reload and a relog")
 		}
 		val list: Array<String?> = sceneList!!
@@ -1128,6 +1223,23 @@ object SmokeTest {
 			}
 			sceneStep = 2
 			sceneFrame = gameFrames
+			// an eighth value, slot:item pairs separated by '|': the player dressed in them, on this
+			// client only (as client.test.wear); -1 empties a slot
+			if (values.size <= 7 && savedParts != null && player.playerModel != null) {
+				// a scene without an outfit after one: what the player wore before
+				player.playerModel!!.restoreParts(savedParts!!)
+				savedParts = null
+			}
+			if (values.size > 7 && player.playerModel != null) {
+				if (savedParts == null) {
+					savedParts = player.playerModel!!.copyParts()
+				}
+				val pairs: Array<String> = values[7].javaTrim().javaSplit("\\|")
+				for (pair in pairs) {
+					val colon: Int = pair.indexOf(':')
+					player.playerModel!!.addAppearanceItem(pair.substring(0, colon).javaTrim().toInt(), pair.substring(colon + 1).javaTrim().toInt(), TypeLists.OBJ)
+				}
+			}
 		}
 		// hold the camera where the scene asks, whatever the client's own camera logic does; during a
 		// burst it turns client.test.sceneSpin yaw units a frame (moving-camera flicker checks)
@@ -1318,7 +1430,26 @@ object SmokeTest {
 
 	private val WEAR: String = lang.getProperty("client.test.wear", "")
 
+	/**
+	 * client.test.materialScan=true: instead of the checks, lists the material classes in the cache
+	 * (effect, its parameter, combiner, combine mode, scrolling, HDR, alpha) and, for each, a few
+	 * wearable items whose body models use it: what client.test.wear should dress the player in to
+	 * cover every way a material draws.
+	 */
+	private val MATERIAL_SCAN: Boolean = lang.getBoolean("client.test.materialScan")
+
+	private var scanItem: Int = 0
+
+	private var scanPasses: Int = 0
+
+	private val scanExamples: HashMap<String, ArrayList<String>> = HashMap()
+
+	private val scanPending: ArrayList<Int> = ArrayList()
+
 	private var worn: Boolean = false
+
+	/** What the player wore before the first scene with an outfit. */
+	private var savedParts: IntArray? = null
 
 	private val CHARACTER_SHADOWS: Int = lang.getInteger("client.test.characterShadows", -1)
 
