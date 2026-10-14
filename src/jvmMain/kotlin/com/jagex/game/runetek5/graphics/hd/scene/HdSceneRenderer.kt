@@ -558,6 +558,16 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
      * placed by the model matrix it was captured with, whether the client drew it this frame or not.
      */
     fun drawAllForBake(program: WebGLProgram, unit: Int) {
+        drawRegion(program, unit, 0, 0, CHUNK_GRID - 1, CHUNK_GRID - 1)
+    }
+
+    /**
+     * The retained objects of the chunks from ([minChunkX], [minChunkZ]) to ([maxChunkX],
+     * [maxChunkZ]) with [program] (ao_bake.vert: each object by its captured model matrix), seen this
+     * frame or not: the sun's shadow map draws every static caster near the player this way, so a
+     * building's shadow does not depend on the building being on screen.
+     */
+    fun drawRegion(program: WebGLProgram, unit: Int, minChunkX: Int, minChunkZ: Int, maxChunkX: Int, maxChunkZ: Int) {
         if (objectCount == 0) return
         uploadGeometry()
         if (bakeTexture == 0) {
@@ -583,6 +593,9 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         var draws: Int = 0
         for (chunk in 0 until CHUNKS) {
             if (chunkIndexCount[chunk] == 0) continue
+            val cx: Int = chunk / CHUNK_GRID
+            val cz: Int = chunk % CHUNK_GRID
+            if (cx < minChunkX || cx > maxChunkX || cz < minChunkZ || cz > maxChunkZ) continue
             if (draws == drawCounts.capacity()) break
             drawCounts.put(chunkIndexCount[chunk])
             drawOffsets.put(chunkIndexStart[chunk].toLong() * 4L)
