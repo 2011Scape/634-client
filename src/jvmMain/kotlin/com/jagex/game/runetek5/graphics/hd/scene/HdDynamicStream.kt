@@ -46,6 +46,9 @@ class HdDynamicStream(private val toolkit: HdToolkit, private val target: Int) {
     // the frame keep their data until the shadow map is drawn)
     private var orphanNext: Boolean = false
 
+    /** The ranges written into the current storage: offset to size. */
+    private val written: java.util.TreeMap<Int, Int> = java.util.TreeMap()
+
     /** At the start of a frame (HdToolkit.beginScene). */
     fun startFrame() {
         if (offset > CAPACITY / 2) {
@@ -120,6 +123,9 @@ class HdDynamicStream(private val toolkit: HdToolkit, private val target: Int) {
         }
         val size: Int = range.size
         if (offset + size > CAPACITY || (orphanNext && offset > 0)) {
+            // shadow casters drawn from the old storage keep a copy of their ranges (HdShadows)
+            HdGl.shadows?.beforeStreamOrphan(com.jagex.game.runetek5.graphics.hd.gl.CoreGl.bufferName(handle), written)
+            written.clear()
             // orphan: draws still in flight keep the old storage
             bind(range)
             HdGl.glBufferDataARBub(target, CAPACITY, null, 0, 35040)
@@ -130,6 +136,7 @@ class HdDynamicStream(private val toolkit: HdToolkit, private val target: Int) {
         }
         bind(range)
         HdGl.glBufferSubDataARBub(target, offset, size, range.bytes, 0)
+        written[offset] = size
         range.address = offset.toLong()
         range.written = generation
         offset = (offset + size + ALIGN - 1) / ALIGN * ALIGN
