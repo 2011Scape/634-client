@@ -470,7 +470,9 @@ class PlayerEntity : PathingEntity() {
 		matrix.translate(super.x, super.y - super.groundContouredOffsetY - 20, super.z)
 		@Pc(95) var pickableEntity: PickableEntity? = null
 		super.transparent = false
-		if (GamePreferences.uid!!.characterShadows!!.getValue() == 1) {
+		// Not part of the original client: no flat shadow model under the player when the toolkit casts
+		// real shadows (634HD's sun shadows, Toolkit.castsShadows), or it would have two.
+		if (GamePreferences.uid!!.characterShadows!!.getValue() == 1 && !toolkit!!.castsShadows()) {
 			@Pc(110) val basType: BasType? = this.getBasType()
 			if (basType!!.rendersShadow && (this.playerModel!!.morphism == -1 || TypeLists.NPC!!.list(this.playerModel!!.morphism).shadowed)) {
 				@Pc(144) val seqType: SeqType? = if (super.currentSequence.sequenceId != -1 && super.currentSequence.speed == 0) TypeLists.SEQ!!.list(super.currentSequence.sequenceId) else null

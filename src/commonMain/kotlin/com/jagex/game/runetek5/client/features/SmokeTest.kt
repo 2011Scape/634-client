@@ -585,6 +585,11 @@ object SmokeTest {
 		if (ClientState.mainLogicStep !== MainLogicStep.STEP_GAME_SCREEN || player == null) {
 			return
 		}
+		// client.test.characterShadows=0|1: the Character shadows graphics option for this run (not saved)
+		if (CHARACTER_SHADOWS >= 0 && GamePreferences.uid!!.characterShadows!!.getValue() != CHARACTER_SHADOWS) {
+			GamePreferences.uid!!.setValue(GamePreferences.uid!!.characterShadows, CHARACTER_SHADOWS)
+			println("SMOKE character shadows " + CHARACTER_SHADOWS)
+		}
 		if (TOOLKIT >= 0 && !toolkitSwitched) {
 			toolkitSwitched = true
 			startToolkit = GamePreferences.uid!!.toolkit!!.getValue()
@@ -1299,6 +1304,8 @@ object SmokeTest {
 	private val TOGGLE_ROUNDS: Int = lang.getInteger("client.test.toggleRounds", 1)
 
 	private var visibleTilesBefore: Int = 0
+
+	private val CHARACTER_SHADOWS: Int = lang.getInteger("client.test.characterShadows", -1)
 
 	private var distanceBefore: Double = 0.0
 
