@@ -1,27 +1,27 @@
 {
   "model": "nano-banana-2-lite",
-  "prompt": "Greyscale height map (displacement map) for a seamlessly tiling game texture: stone wall. The reference image is the original 2010 RuneScape texture; follow its layout, scale and shapes exactly (the same stones, planks, cracks or ripples in the same places) so the height map lines up with it. White is raised, black is recessed. Add fine, believable surface relief in the hand-made RuneScape HD style. Square image, flat even lighting, no shading, no shadows, no colour, no text, no border; the left and right edges and the top and bottom edges must continue seamlessly when tiled.",
+  "prompt": "Seamless tileable square albedo texture for a high-definition remaster of a medieval fantasy MMO, in a painterly-realistic style like modern World of Warcraft or the 117HD RuneScape plugin: mossy stone wall with mortar. Real materials with believable shapes and soft volume, but simplified and hand-painted: clean readable forms (stones with clear outlines), gentle colour variation, soft painted shading inside each shape, no photographic noise, no tiny speckle or grain, no harsh contrast. It must read well when small on screen. The reference image is a deliberately blurred layout guide from the old game texture: use it ONLY for scale (how many stones fit across the image) and roughly where the darker and lighter areas are. Neutral, desaturated, mostly grey tones (the game tints it with colour), even overall brightness. Top-down orthographic, flat diffuse lighting, no cast shadows, no specular highlights, no lighting gradient, no vignette, no text, no border; the left and right edges and the top and bottom edges must continue seamlessly when tiled.",
   "refs": [
-    "/home/pixel/Pictures/generations/refs/634hd_tex322.png"
+    "/home/pixel/Pictures/generations/refs/634hd_hd-layout-322.png"
   ],
   "ref_urls": [
-    "https://tempfile.redpandaai.co/kieai/12068753/generate-refs/1791934032258-byjpfjju4zo.png"
+    "https://tempfile.redpandaai.co/kieai/12068753/generate-refs/1792021495027-nv4kmll89z8.png"
   ],
   "params": {
     "aspect_ratio": "1:1",
     "image_urls": [
-      "https://tempfile.redpandaai.co/kieai/12068753/generate-refs/1791934032258-byjpfjju4zo.png"
+      "https://tempfile.redpandaai.co/kieai/12068753/generate-refs/1792021495027-nv4kmll89z8.png"
     ]
   },
-  "taskId": "444a784c47637a268cbe4b096d5336fb",
+  "taskId": "b5f4427fcd266fc2fc9c7d4c9d53a459",
   "creditsConsumed": 4.0,
-  "costTimeMs": 73,
+  "costTimeMs": 22,
   "resultUrls": [
-    "https://tempfile.aiquickdraw.com/vnp/444a784c47637a268cbe4b096d5336fb_0_1791934105.jpeg"
+    "https://tempfile.aiquickdraw.com/vnp/b5f4427fcd266fc2fc9c7d4c9d53a459_0_1792021517.jpeg"
   ],
   "files": [
-    "634hd_height-322_1791934114.jpeg"
+    "634hd_pt-322_1792021520.jpeg"
   ],
-  "created": "2026-10-13T23:28:34+00:00",
+  "created": "2026-10-14T23:45:20+00:00",
   "note": null
 }
