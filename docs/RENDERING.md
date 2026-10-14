@@ -291,7 +291,12 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   75, 387, 163 and 159) got normal, occlusion/roughness and height maps from
   `tools/make_material_maps.py` (which now keeps the entries it does not make, such as 634HD's own
   materials); 42 sets in all.
-- **Fresh textures.** `tools/make_fresh_textures.py`, realistic mode (used for every texture with a
+- **Fresh textures.** The 10 kept textures now use painterly-realistic art (`634hd_pt-<id>`,
+  `tools/pt_prompt.txt`: clean readable shapes with soft painted shading, no photographic speckle, in
+  the 117HD middle ground), fitted with contrast 1.0-1.3 times the game's and no ground sharpening;
+  their `fresh/` relief is softened (wider blur, half the strength), since full-strength relief from
+  the new art lit as speckle. The photoreal art below stays as the fallback.
+  `tools/make_fresh_textures.py`, realistic mode (used for every texture with a
   `634hd_hd-<id>` generation): photoreal art from `/generate` (nano-banana-2 at 2K, prompt
   `tools/hd_prompt.txt`; the reference is the game texture scaled up and blurred, so it sets only scale
   and layout and the art is not a repaint of the old pixels) is the texture itself, fitted to the
