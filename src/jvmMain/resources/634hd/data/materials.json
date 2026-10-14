@@ -36,6 +36,14 @@
       "parallax": 0.04
     },
     {
+      "texture": 75,
+      "name": "wood streaks",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.4
+    },
+    {
       "texture": 82,
       "name": "gravel",
       "normal": "normal.png",
@@ -52,6 +60,15 @@
       "height": "normal.png",
       "specular": 0.45,
       "parallax": 0.04
+    },
+    {
+      "texture": 90,
+      "name": "pebbled ground",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.25,
+      "parallax": 0.03
     },
     {
       "texture": 91,
@@ -81,6 +98,14 @@
       "parallax": 0.04
     },
     {
+      "texture": 108,
+      "name": "mossy patches",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.15
+    },
+    {
       "texture": 110,
       "name": "lava",
       "normal": "normal.png",
@@ -89,6 +114,24 @@
       "specular": 0.6,
       "emissive": "emissive.png",
       "emissiveStrength": 2.5
+    },
+    {
+      "texture": 125,
+      "name": "speckled gravel",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.35,
+      "parallax": 0.04
+    },
+    {
+      "texture": 127,
+      "name": "streaked stone",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.45,
+      "parallax": 0.04
     },
     {
       "texture": 132,
@@ -108,8 +151,24 @@
       "parallax": 0.02
     },
     {
+      "texture": 159,
+      "name": "weathered boards",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.4
+    },
+    {
       "texture": 160,
       "name": "wood boards",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.4
+    },
+    {
+      "texture": 163,
+      "name": "wall boards",
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
@@ -125,6 +184,14 @@
       "parallax": 0.03
     },
     {
+      "texture": 185,
+      "name": "straw grass",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.15
+    },
+    {
       "texture": 202,
       "name": "brick pattern",
       "normal": "normal.png",
@@ -132,6 +199,15 @@
       "height": "normal.png",
       "specular": 0.4,
       "parallax": 0.05
+    },
+    {
+      "texture": 213,
+      "name": "fine sand",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.2,
+      "parallax": 0.02
     },
     {
       "texture": 228,
@@ -159,6 +235,15 @@
       "specular": 0.15
     },
     {
+      "texture": 309,
+      "name": "rocky ground",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.25,
+      "parallax": 0.03
+    },
+    {
       "texture": 322,
       "name": "stone wall",
       "normal": "normal.png",
@@ -166,6 +251,14 @@
       "height": "normal.png",
       "specular": 0.4,
       "parallax": 0.05
+    },
+    {
+      "texture": 387,
+      "name": "wood grain fine",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.4
     },
     {
       "texture": 505,
