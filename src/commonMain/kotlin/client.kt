@@ -412,6 +412,11 @@ class client : GameShell() {
 	override fun onPulse() {
 		// Not part of the original client: the smoke test (client.test=smoke) runs each logic tick.
 		SmokeTest.tick()
+		// Not part of the original client: a smoke check asks for the map to be built again.
+		if (SmokeTest.rebuildMap) {
+			SmokeTest.rebuildMap = false
+			MapRebuild.rebuildMap()
+		}
 		// Not part of the original client: says once in game why 634HD fell back (HdFallback).
 		HdFallback.tick()
 		if (GamePreferences.uid!!.toolkit!!.getValue() != 2) {

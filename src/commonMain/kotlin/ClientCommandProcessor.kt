@@ -456,7 +456,14 @@ object ClientCommandProcessor {
 						return
 					}
 					val error: String? = HdSettings.set(words[1], words[2])
-					Console.printToConsole(if (error == null) "634HD " + words[1] + " " + words[2] else words[1] + ": " + error)
+					if (error == null && words[1].equals("renderDistance", ignoreCase = true)) {
+						// the draw distance applies now, to a map built again; auto keeps the current one
+						if (HdSettings.renderDistance > 0.0) {
+							ClientFeatures.RENDER_DISTANCE = HdSettings.renderDistance
+						}
+						MapRebuild.rebuildMap()
+					}
+					Console.printToConsole(if (error == null) "634HD " + words[1] + " " + words[2] + (if (words[1].equals("scale", ignoreCase = true)) " (from the next start)" else "") else words[1] + ": " + error)
 					return
 				}
 				// Not part of the original client: 634HD (toolkit 6). On failure the client is on whatever

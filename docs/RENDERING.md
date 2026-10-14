@@ -168,9 +168,14 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
   title bar, or `::hdsettings`, opens a window the client draws over the interfaces: presets (Off,
   Low, Medium, High, Ultra; `HdSettings.applyPreset`, also `::hd preset <name>`) and a row per
   switch, each click stepping to its next value. Changes apply at once and are saved to
-  `~/.634hd-settings.txt`, read at the next start unless `client.hd.*` switches are given. The smoke
-  test neither reads nor writes that file; `client.test.findText=open:742` checks the toggle, the
-  Medium preset, the panel's presets, rows and Close.
+  `~/.634hd-settings.txt`, read at the next start unless `client.hd.*` switches are given. Two rows
+  are the whole client's, outside the presets: draw distance (1x, 1.5x, 2x; `ClientFeatures.RENDER_DISTANCE`,
+  live: the map is built again) and interface scale (auto or 1x-3x; `ClientFeatures.SCALE`, from the
+  next start, since the window's layout is made at start). Saved, they win over the launcher's
+  defaults (`LauncherDefaults` marks what it set with `<name>.default`) but not over `--render-distance`
+  or `--scale`; also `::hd renderDistance <n>` and `::hd scale <n>`. The smoke test neither reads nor
+  writes that file; `client.test.findText=open:742` checks the toggle, the Medium preset, the panel's
+  presets, rows (the draw distance's map rebuild too) and Close.
 - **Checks:**
   - the scene harness against toolkit 1's references (`-Pclient.test.toolkit=6
     -Pclient.test.scenes=default -Pclient.test.sceneReferenceToolkit=1`): every scene, the reload, the

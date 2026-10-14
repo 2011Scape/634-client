@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.client.features
 
 import maxTicksPerFrame
+import hdAvailable
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.client.menu.MiniMenuEntry
 import com.jagex.game.runetek5.entity.NPCEntityNode
@@ -43,9 +44,13 @@ object ClientFeatures {
 	@JvmField
 	val ZOOM: Boolean = lang.getBoolean("client.zoom")
 
-	/** How much further than the original the scene is drawn and fogged; 1 is the original distance. */
+	/**
+	 * How much further than the original the scene is drawn and fogged; 1 is the original distance.
+	 * The 634HD settings panel's choice (HdSettings.renderDistance) when client.renderDistance was not
+	 * given or came from the launcher's defaults; the panel changes it live, and the map is built again.
+	 */
 	@JvmField
-	val RENDER_DISTANCE: Double = parseDouble(lang.getProperty("client.renderDistance"), 1.0)
+	var RENDER_DISTANCE: Double = if (hdAvailable && HdSettings.renderDistance > 0.0 && launcherDefault("client.renderDistance")) HdSettings.renderDistance else parseDouble(lang.getProperty("client.renderDistance"), 1.0)
 
 	/** Command history, word editing and server autocomplete in the developer console. */
 	@JvmField
@@ -127,7 +132,10 @@ object ClientFeatures {
 	 * draws the window at that scale directly, the 3D view at the window's resolution.
 	 */
 	@JvmField
-	val SCALE: Double = kotlin.math.max(1.0, parseDouble(lang.getProperty("client.scale"), if (HdSettings.interfaceScale > 1) HdSettings.interfaceScale.toDouble() else 1.0))
+	val SCALE: Double = if (hdAvailable && HdSettings.scale > 0.0 && launcherDefault("client.scale")) HdSettings.scale else kotlin.math.max(1.0, parseDouble(lang.getProperty("client.scale"), if (HdSettings.interfaceScale > 1) HdSettings.interfaceScale.toDouble() else 1.0))
+
+	/** Whether system property [name] is unset, or was set by LauncherDefaults rather than the player. */
+	private fun launcherDefault(name: String): Boolean = lang.getProperty(name) == null || lang.getProperty(name + ".default") != null
 
 	/**
 	 * client.toolkit: the toolkit to start on, by id (0 Java, 1 OpenGL, 2 native software, 3 DirectX,

@@ -77,6 +77,11 @@ object MiniMenuInputTick {
 			// Not part of the original client: a left press on the 634HD toggle (HdOptionsButton) or its
 			// settings panel (HdSettingsPanel) is their own.
 			if (clickType == MouseLog.TYPE_PRESS_LEFT && mouseEvent != null && (HdSettingsPanel.pressed(mouseEvent.getMouseX(), mouseEvent.getMouseY()) || HdOptionsButton.pressed(mouseEvent.getMouseX(), mouseEvent.getMouseY()))) {
+				if (HdSettingsPanel.mapRebuildWanted) {
+					// the panel's draw distance changed: the map is built again at it
+					HdSettingsPanel.mapRebuildWanted = false
+					MapRebuild.rebuildMap()
+				}
 				return
 			}
 			if (clickType == MouseLog.TYPE_PRESS_LEFT && (MiniMenu.menuOpenMode == 1 && MiniMenu.entryCount > 2 || MiniMenu.isTopEntryInterfaceAction())) {
