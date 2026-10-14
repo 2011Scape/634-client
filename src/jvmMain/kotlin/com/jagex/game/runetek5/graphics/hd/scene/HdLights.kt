@@ -27,6 +27,9 @@ class HdLights {
         /** How far from the player a light is considered, in scene units (512 a tile). */
         private const val RANGE: Int = 40 * 512
         private const val MAX_CANDIDATES: Int = 4096
+
+        /** Function mask for the flame lookup's model: keeps its vertices, faces and face colours. */
+        private const val FLAME_MASK: Int = 0x7C000
         const val MAX_EMITTERS: Int = 256
         private const val EMITTER_RANGE: Int = 24 * 512
     }
@@ -38,6 +41,20 @@ class HdLights {
     private val locZ: IntArray = IntArray(MAX_CANDIDATES)
     private val locLevel: IntArray = IntArray(MAX_CANDIDATES)
     private val locDef: Array<HdContent.LightDef?> = arrayOfNulls(MAX_CANDIDATES)
+
+    /** Each loc's flame (HdModel.hdFlamePoint) in world space, for its particles; flameFound false: none. */
+    private val locFlameX: IntArray = IntArray(MAX_CANDIDATES)
+    private val locFlameY: IntArray = IntArray(MAX_CANDIDATES)
+    private val locFlameZ: IntArray = IntArray(MAX_CANDIDATES)
+    private val locFlameFound: BooleanArray = BooleanArray(MAX_CANDIDATES)
+
+    /** Flame points in model space by loc id, shape and rotation (id | shape << 16 | rotation << 22): x, y, z, found. */
+    private val flameCache: HashMap<Int, IntArray> = HashMap()
+
+    /** Each candidate's particle source: its flame where its model has one, else the light. */
+    private val emitX: FloatArray = FloatArray(MAX_CANDIDATES)
+    private val emitY: FloatArray = FloatArray(MAX_CANDIDATES)
+    private val emitZ: FloatArray = FloatArray(MAX_CANDIDATES)
 
     // this frame's candidates
     private var count: Int = 0
@@ -97,7 +114,11 @@ class HdLights {
         count = 0
         for (i in 0 until locCount) {
             if (locLevel[i] != level) continue
-            add(locX[i], locY[i], locZ[i], locDef[i]!!, px, pz, (i * 7919 % 1000).toFloat())
+            if (add(locX[i], locY[i], locZ[i], locDef[i]!!, px, pz, (i * 7919 % 1000).toFloat()) && locFlameFound[i]) {
+                emitX[count - 1] = locFlameX[i].toFloat()
+                emitY[count - 1] = locFlameY[i].toFloat()
+                emitZ[count - 1] = locFlameZ[i].toFloat()
+            }
         }
         if (content.lightsByNpc.isNotEmpty()) {
             val npcs: Int = NPCList.NPC_UPDATE_INDEX
@@ -140,9 +161,9 @@ class HdLights {
                 val light: HdContent.LightDef = def[i]!!
                 if (light.flicker == 0 || emitterCount >= MAX_EMITTERS || distance[i] > EMITTER_RANGE.toFloat() * EMITTER_RANGE) continue
                 val at: Int = emitterCount * 5
-                emitters[at] = x[i]
-                emitters[at + 1] = y[i]
-                emitters[at + 2] = z[i]
+                emitters[at] = emitX[i]
+                emitters[at + 1] = emitY[i]
+                emitters[at + 2] = emitZ[i]
                 emitters[at + 3] = if (light.flicker == 2) 2.0f else 1.0f
                 emitters[at + 4] = minOf(1.0f, light.intensity * light.radius / 4.0f)
                 emitterCount++
@@ -185,11 +206,12 @@ class HdLights {
         }
     }
 
-    private fun add(wx: Int, wy: Int, wz: Int, light: HdContent.LightDef, px: Int, pz: Int, phase: Float) {
-        if (count >= MAX_CANDIDATES) return
+    /** Adds a light candidate; false when it is out of range (or there is no room). */
+    private fun add(wx: Int, wy: Int, wz: Int, light: HdContent.LightDef, px: Int, pz: Int, phase: Float): Boolean {
+        if (count >= MAX_CANDIDATES) return false
         val dx: Int = wx - px
         val dz: Int = wz - pz
-        if (dx > RANGE || dx < -RANGE || dz > RANGE || dz < -RANGE) return
+        if (dx > RANGE || dx < -RANGE || dz > RANGE || dz < -RANGE) return false
         this.x[count] = wx + light.offsetX
         // the game's y grows downwards: the offset's height lifts the light
         this.y[count] = wy - light.offsetY
@@ -197,7 +219,11 @@ class HdLights {
         this.distance[count] = (dx.toFloat() * dx + dz.toFloat() * dz)
         this.def[count] = light
         this.phase[count] = phase
+        this.emitX[count] = this.x[count]
+        this.emitY[count] = this.y[count]
+        this.emitZ[count] = this.z[count]
         count++
+        return true
     }
 
     private fun swap(a: Int, b: Int) {
@@ -238,10 +264,55 @@ class HdLights {
                     locZ[locCount] = entity.z
                     locLevel[locCount] = entity.level.toInt()
                     locDef[locCount] = light
+                    locFlameFound[locCount] = false
+                    if (light.flicker != 0) flame(entity, locCount)
                     locCount++
                 }
             }
             entity = entity.nextEntity
         }
+    }
+
+    /**
+     * Finds loc [index]'s flame for its particles: the loc's model built once per loc id, shape and
+     * rotation (as the game builds it, without the ground's contour) and its flame point
+     * (HdModel.hdFlamePoint), placed where the loc stands (with a wall decoration's offset).
+     */
+    private fun flame(entity: Entity, index: Int) {
+        val loc: GameObject = entity as GameObject
+        val id: Int = loc.getId()
+        val shape: Int = loc.getShape()
+        val rotation: Int = loc.getRotation()
+        val key: Int = (id and 0xFFFF) or ((shape and 0x3F) shl 16) or ((rotation and 0x7) shl 22)
+        var point: IntArray? = flameCache[key]
+        if (point == null) {
+            point = IntArray(4)
+            try {
+                val type = com.jagex.game.runetek5.config.TypeLists.LOC!!.list(id)
+                val toolkit = com.jagex.game.runetek5.client.ClientState.activeToolkit
+                val model = type?.getModelAndShadow(toolkit, null, shape, FLAME_MASK, 0, false, null, 0, 0, rotation)?.model
+                if (model is com.jagex.game.runetek5.graphics.hd.HdModel) {
+                    // candles, torches and braziers burn at the top of their model
+                    val name: String = locDef[index]?.name ?: ""
+                    point[3] = model.hdFlamePoint(point, name == "Candles" || name == "Torches" || name == "Braziers")
+                }
+            } catch (ex: Exception) {
+                if (DEBUG) println("HDDEBUG flame failed " + id + ": " + ex)
+                point[3] = 0
+            }
+            flameCache[key] = point
+            if (DEBUG) println("HDDEBUG flame loc " + id + " shape " + shape + " rotation " + rotation + " way " + point[3] + " at " + point[0] + "," + point[1] + "," + point[2])
+        }
+        if (point[3] == 0) return
+        var ox: Int = 0
+        var oz: Int = 0
+        if (entity is com.jagex.game.runetek5.entity.WallDecor) {
+            ox = entity.offsetX.toInt()
+            oz = entity.offsetZ.toInt()
+        }
+        locFlameX[index] = entity.x + ox + point[0]
+        locFlameY[index] = entity.y + point[1]
+        locFlameZ[index] = entity.z + oz + point[2]
+        locFlameFound[index] = true
     }
 }
