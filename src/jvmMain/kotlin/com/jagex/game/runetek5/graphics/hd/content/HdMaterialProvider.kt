@@ -93,15 +93,38 @@ class HdMaterialProvider(private val game: MaterialProvider?) : MaterialProvider
      */
     private fun replaced(materialId: Int, width: Int, height: Int, original: IntArray?, size: Int, flipped: Boolean): IntArray? {
         if (original == null) return null
-        val fresh: IntArray = pixels(materialId, width, height) ?: return original
-        val mask: FloatArray = mask(original, size, width)
+        val fresh: IntArray = pixels(materialId, width, height, true) ?: return original
+        val relative: Boolean = image(materialId)?.colorModel?.hasAlpha() == true
+        val mask: FloatArray = if (relative) relativeMask(original, size, fresh) else mask(original, size, width)
         val out = IntArray(width * height)
         for (y in 0 until height) {
             for (x in 0 until width) {
                 val from: Int = if (flipped) y * width + (width - 1 - x) else y * width + x
-                val a: Int = (mask[y * width + x] + 0.5f).toInt().coerceIn(0, 255)
+                val a: Int = (mask[if (relative) from else y * width + x] + 0.5f).toInt().coerceIn(0, 255)
                 out[y * width + x] = (a shl 24) or (fresh[from] and 0xFFFFFF)
             }
+        }
+        return out
+    }
+
+    /**
+     * A mask that follows the new art: an albedo with alpha (tools/make_fresh_textures.py writes one
+     * for effect 1's shine mask) holds a pattern about 128, 40 a standard deviation; it is scaled to
+     * the game's own mask ([pixels], [size] square): the same mean and spread, the new art's shapes.
+     */
+    private fun relativeMask(pixels: IntArray, size: Int, fresh: IntArray): FloatArray {
+        var sum = 0.0
+        var squares = 0.0
+        for (i in 0 until size * size) {
+            val a: Int = pixels[i] ushr 24
+            sum += a
+            squares += a.toDouble() * a
+        }
+        val mean: Double = sum / (size * size)
+        val spread: Double = Math.sqrt(Math.max(0.0, squares / (size * size) - mean * mean))
+        val out = FloatArray(fresh.size)
+        for (i in fresh.indices) {
+            out[i] = (mean + ((fresh[i] ushr 24) - 128) * spread / 40.0).toFloat()
         }
         return out
     }
@@ -169,16 +192,22 @@ class HdMaterialProvider(private val game: MaterialProvider?) : MaterialProvider
     override fun textureCount(): Int = game?.textureCount() ?: 0
 
     /** The albedo scaled to [width] x [height], as opaque ARGB. */
-    private fun pixels(id: Int, width: Int, height: Int): IntArray? {
+    private fun pixels(id: Int, width: Int, height: Int): IntArray? = pixels(id, width, height, false)
+
+    /** The albedo scaled to [width] x [height] as ARGB, with its own alpha when [keepAlpha], else opaque. */
+    private fun pixels(id: Int, width: Int, height: Int, keepAlpha: Boolean): IntArray? {
         val source: java.awt.image.BufferedImage = image(id) ?: return null
         val scaled = java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_ARGB)
         val graphics = scaled.createGraphics()
         graphics.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+        graphics.composite = java.awt.AlphaComposite.Src
         graphics.drawImage(source, 0, 0, width, height, null)
         graphics.dispose()
         val out = IntArray(width * height)
         scaled.getRGB(0, 0, width, height, out, 0, width)
-        for (i in out.indices) out[i] = out[i] or -0x1000000
+        if (!keepAlpha || !source.colorModel.hasAlpha()) {
+            for (i in out.indices) out[i] = out[i] or -0x1000000
+        }
         return out
     }
 }

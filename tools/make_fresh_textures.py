@@ -53,37 +53,34 @@ OUT = os.path.join(ROOT, 'src', 'jvmMain', 'resources', '634hd', 'materials')
 GENERATED = os.path.expanduser('~/Pictures/generations')
 SIZE = 256
 GAIN = 0.8
+# the realistic mode: contrast at least this times the game texture's (fine detail has to survive distance)
+CONTRAST_FLOOR = 1.6
+# the realistic mode: art with a tiling seam above this (make_material_maps.seam) is cross-faded
+SEAM_LIMIT = 1.5
 EPS = 0.03
 
 # texture id -> (name, material map class, generation it takes its detail from). A texture that is
 # another one with a gradient laid over it (90 is 91 darkened towards the bottom) shares its art.
+# effect 1 textures: their alpha is a shine mask, which must follow the new art in the realistic mode
+SHINE_MASKS = {90, 91, 109}
+
+# ground textures, which are mostly seen from afar (make_realistic lifts their mid-scale contrast)
+GROUND = {66, 70, 82, 90, 91, 96, 109, 125, 154, 181, 213, 309}
+GROUND_PUNCH = 1.0
+
 TEXTURES = {
     # Lumbridge and Varrock's most used textures (HDDEBUG textures used, the texture-id overlay), less
     # the blank ones, decals, water and lava, and those never seen on screen to check them by (159, 322,
-    # 387: their texels were hidden or on NPC clothing in every view tried)
-    63: ('wooden planks', 'wood', 63),
+    # 387: their texels were hidden or on NPC clothing in every view tried), and 63 and 83 (only on small
+    # objects, clothing and the fountain's rim, where realistic art made no visible gain); and, in the
+    # realistic pass, every texture that did not look clearly sharper in game side by side (sand, straw,
+    # plaster, fine gravel, wood grain) or was too small on screen to judge
     66: ('loose rock and stone chips', 'gravel', 66),
     70: ('packed dirt', 'ground', 70),
-    72: ('rough rock', 'stone', 72),
-    75: ('weathered wood streaks', 'wood', 75),
     82: ('gravel', 'gravel', 82),
-    83: ('rough rock face', 'stone', 83),
     90: ('pebbled ground, shaded', 'ground', 91),
     91: ('gravel path', 'gravel', 91),
     96: ('pebbles', 'gravel', 96),
-    109: ('pebbled ground, shaded', 'ground', 91),
-    125: ('speckled gravel', 'gravel', 125),
-    127: ('streaked stone', 'stone', 127),
-    140: ('mottled plaster, shaded', 'sand', 254),
-    154: ('sand', 'sand', 154),
-    163: ('vertical wooden wall boards', 'wood', 163),
-    181: ('rocky ground with pebbles', 'ground', 181),
-    185: ('straw and dry grass', 'grass', 185),
-    213: ('fine sand', 'sand', 213),
-    228: ('wood grain', 'wood', 228),
-    254: ('mottled plaster', 'sand', 254),
-    294: ('rough plaster', 'sand', 294),
-    295: ('rough plaster, shaded', 'sand', 294),
     309: ('rocky ground', 'ground', 96),
     505: ('flagstones', 'brick', 505),
 }
@@ -141,7 +138,69 @@ def back_project(fresh, game):
     return fresh
 
 
+def generated_hd(texture):
+    """The newest realistic art for [texture] (634hd_hd-<id>), or None."""
+    names = sorted(f for f in os.listdir(GENERATED) if f.startswith('634hd_hd-%d_' % texture) and f.endswith(('.png', '.jpg', '.jpeg')))
+    return os.path.join(GENERATED, names[-1]) if names else None
+
+
+def make_realistic(texture, name, cls, art, path):
+    """The realistic mode: the generated art itself is the texture (a 634hd_hd-<id> generation, made
+    with tools/hd_prompt.txt and a blurred layout guide from the game texture), fitted to the game:
+    grey, with the hue of the game texture's mean colour so the face tints still colour it; its own
+    broad light and dark flattened and the game texture's laid over it (90's darker bottom); the
+    game texture's mean brightness; its own contrast, kept between CONTRAST_FLOOR and twice the game's."""
+    game = Image.open(os.path.join(SOURCE, '%d.png' % texture)).convert('RGB')
+    rgb = np.asarray(game, dtype=np.float64) / 255.0
+    own = lum(rgb)
+    image = Image.open(path).convert('L')
+    art_lum = np.asarray(image.resize((SIZE, SIZE), Image.LANCZOS), dtype=np.float64) / 255.0
+    # art that tiles by itself is used whole (a cross-fade would ghost its stones); art with a seam is
+    # cross-faded along each axis (loose materials: dirt, sand, plaster, straw, where it does not show)
+    if maps.seam(art_lum) > SEAM_LIMIT:
+        art_lum = tiling_detail(art_lum - art_lum.mean()) + art_lum.mean()
+    broad = SIZE / 8
+    flat = art_lum / np.maximum(maps.blur(art_lum, broad), 1e-3) * art_lum.mean()
+    up = lum(np.asarray(wrap_resize(game, SIZE), dtype=np.float64) / 255.0)
+    shading = maps.blur(up, broad)
+    shading = shading / max(shading.mean(), 1e-6)
+    if texture in GROUND:
+        # ground seen from afar: pebble clusters a few texels wide are what survives the distance, so
+        # that band is lifted (an unsharp mask at that scale) and the contrast goes to the cap
+        flat = flat + GROUND_PUNCH * (flat - maps.blur(flat, SIZE / 48))
+    detail = flat - flat.mean()
+    floor = 2.0 if texture in GROUND else CONTRAST_FLOOR
+    contrast = float(np.clip(detail.std(), floor * own.std(), 2.0 * own.std()))
+    detail *= contrast / max(detail.std(), 1e-6)
+    grey = np.clip((own.mean() + detail) * shading, 0.0, 1.0)
+    hue = rgb.reshape(-1, 3).mean(axis=0) / max(own.mean(), 1e-6)
+    fresh = np.clip(grey[..., None] * hue[None, None, :], 0.0, 1.0)
+    pixels = (fresh * 255 + 0.5).astype(np.uint8)
+    folder = os.path.join(OUT, str(texture))
+    os.makedirs(os.path.join(folder, 'fresh'), exist_ok=True)
+    if texture in SHINE_MASKS:
+        # effect 1: the game's alpha is a shine mask; the new art's pattern goes in alpha about 128, 40 a
+        # standard deviation, and HdMaterialProvider scales it to the game mask's mean and spread
+        relative = np.clip(128 + (grey - grey.mean()) / max(grey.std(), 1e-6) * 40, 0, 255).astype(np.uint8)
+        Image.fromarray(np.dstack([pixels, relative]), 'RGBA').save(os.path.join(folder, 'albedo.png'), optimize=True)
+    else:
+        Image.fromarray(pixels, 'RGB').save(os.path.join(folder, 'albedo.png'), optimize=True)
+    sidecar = os.path.splitext(path)[0] + '.json'
+    if os.path.exists(sidecar):
+        shutil.copy(sidecar, os.path.join(folder, 'fresh', 'generate.json'))
+    with open(os.path.join(folder, 'fresh', 'recipe.txt'), 'w') as f:
+        f.write('Realistic texture %d (%s), by tools/make_fresh_textures.py from ~/Pictures/generations/%s\n' % (texture, name, os.path.basename(path)))
+        f.write('(nano-banana-2 at 2K, tools/hd_prompt.txt, a blurred layout guide of the game texture as the reference;\n')
+        f.write('the prompt is in generate.json). Grey with the game texture\'s hue (%.2f %.2f %.2f), its mean brightness %.2f and broad\n' % (hue[0], hue[1], hue[2], own.mean()))
+        f.write('shading; contrast %.3f (game %.3f).%s Tiling seam %.2f.\n' % (contrast, own.std(), ' Shine mask in alpha.' if texture in SHINE_MASKS else '', maps.seam(grey)))
+    maps.make(texture, name, cls, fresh='realistic')
+    return contrast / max(own.std(), 1e-6)
+
+
 def make(texture, name, cls, art):
+    realistic = generated_hd(art)
+    if realistic is not None:
+        return make_realistic(texture, name, cls, art, realistic)
     path = generated(art)
     if path is None:
         print('no generation for %d (634hd_fresh-%d_*): skipped' % (texture, art))
@@ -192,7 +251,7 @@ def main():
         if gain is None:
             continue
         by_texture[texture]['albedo'] = 'albedo.png'
-        print('made %d %s (detail x%.2f)' % (texture, name, gain))
+        print('made %d %s (%s x%.2f)' % (texture, name, 'realistic, contrast' if generated_hd(art) else 'fresh, detail', gain))
     with open(path, 'w') as f:
         json.dump({'materials': entries}, f, indent=2)
         f.write('\n')
