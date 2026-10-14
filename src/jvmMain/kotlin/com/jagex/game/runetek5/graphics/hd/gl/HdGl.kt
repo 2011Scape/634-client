@@ -108,8 +108,11 @@ object HdGl {
     }
 
     /** Makes an R8/RG8 texture read back as the legacy format did; resets it for any other format. */
-    private fun applySwizzle(target: Int, internalFormat: Int) {
-        if (target != CoreGl.TEXTURE_2D && target != GL_TEXTURE_3D) return
+    private fun applySwizzle(face: Int, internalFormat: Int) {
+        // a cube map's faces share the texture's swizzle, set on the cube map target (the specular
+        // maps of shiny metal are GL_ALPHA cube maps: without it their alpha reads 1, all highlight)
+        val target = if (face >= GL33C.GL_TEXTURE_CUBE_MAP_POSITIVE_X && face <= GL33C.GL_TEXTURE_CUBE_MAP_NEGATIVE_Z) GL33C.GL_TEXTURE_CUBE_MAP else face
+        if (target != CoreGl.TEXTURE_2D && target != GL_TEXTURE_3D && target != GL33C.GL_TEXTURE_CUBE_MAP) return
         val r = GL33C.GL_RED
         val g = GL33C.GL_GREEN
         val one = GL33C.GL_ONE
