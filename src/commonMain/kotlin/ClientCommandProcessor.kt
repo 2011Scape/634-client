@@ -1,5 +1,6 @@
 import com.jagex.game.runetek5.client.features.GroundItemLabels
 import com.jagex.game.runetek5.client.features.HdSettings
+import com.jagex.game.runetek5.client.features.HdSettingsPanel
 import com.jagex.game.runetek5.client.features.HdFallback
 import com.jagex.game.runetek5.graphics.ToolkitType
 import com.jagex.game.runetek5.client.features.NpcLabels
@@ -418,6 +419,21 @@ object ClientCommandProcessor {
 						return
 					}
 					Console.printToConsole("Failed to enter tk5")
+					return
+				}
+				// Not part of the original client: 634HD's settings panel (HdSettingsPanel), also from Graphics Options.
+				if (string.equals("hdsettings", ignoreCase = true)) {
+					HdSettingsPanel.toggleOpen()
+					Console.printToConsole("634HD settings " + (if (HdSettingsPanel.open) "open" else "closed"))
+					return
+				}
+				// ::hd preset <off|low|medium|high|ultra> (see HdSettings.applyPreset)
+				if (string.lowercase().startsWith("hd preset ")) {
+					val error: String? = HdSettings.applyPreset(string.substring(10).javaTrim())
+					if (error == null) {
+						HdSettings.save()
+					}
+					Console.printToConsole(error ?: "634HD preset " + string.substring(10).javaTrim())
 					return
 				}
 				// Not part of the original client: 634HD's debug panel (debug builds, toolkit 6), also on F10.

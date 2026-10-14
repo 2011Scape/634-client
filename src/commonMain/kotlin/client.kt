@@ -27,6 +27,7 @@ import com.jagex.game.runetek5.PathFinder
 import com.jagex.game.runetek5.UnloadedLocCount
 import com.jagex.game.runetek5.camera.CameraMode
 import com.jagex.game.runetek5.client.input.mouse.MouseRecord
+import com.jagex.game.runetek5.client.features.HdSettingsPanel
 import com.jagex.game.runetek5.preference.GamePreferences
 import com.jagex.game.runetek5.config.rsinterface.Component
 import com.jagex.game.runetek5.client.GameShell
@@ -973,6 +974,8 @@ class client : GameShell() {
 				componentIndex++
 			}
 		}
+		// Not part of the original client: 634HD's settings panel, over the interfaces (HdSettingsPanel).
+		HdSettingsPanel.draw(ClientState.activeToolkit, MouseRecord.mouseRecorder?.getMouseX() ?: -1, MouseRecord.mouseRecorder?.getMouseY() ?: -1)
 		if (Console.isOpen()) {
 			Console.renderConsole(ClientState.activeToolkit)
 		}

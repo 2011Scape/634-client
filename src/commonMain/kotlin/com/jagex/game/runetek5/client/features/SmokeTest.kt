@@ -959,7 +959,37 @@ object SmokeTest {
 			if (GamePreferences.uid!!.toolkit!!.getValue() != ToolkitType.HD) {
 				fail("the 634HD toggle left the client on toolkit " + GamePreferences.uid!!.toolkit!!.getValue())
 			}
+			// turned on with nothing saved: the Medium preset
+			if (HdSettings.currentPreset() != "medium") {
+				fail("turning 634HD on gave the settings " + HdSettings.currentPreset() + ", not the medium preset")
+			}
 			checkImage("-open-hd", "build/smoke/open-" + id + "-hd.png")
+			// the settings panel: opened from its button, a preset and a row clicked, then closed
+			if (!HdOptionsButton.pressed(HdOptionsButton.buttonX + 8, HdOptionsButton.y + 8) || !HdSettingsPanel.open) {
+				fail("the 634HD settings button did not open the panel")
+			}
+			openStep = 3
+			openFrame = gameFrames
+			return
+		}
+		if (openStep == 3) {
+			checkImage("-open-hd-settings", "build/smoke/open-" + id + "-hd-settings.png")
+			if (!HdSettingsPanel.clickPreset("high") || HdSettings.currentPreset() != "high") {
+				fail("the High preset did not apply: " + HdSettings.currentPreset())
+			}
+			val before: String = HdSettings.valueOf("bloom")
+			if (!HdSettingsPanel.clickRow("bloom") || HdSettings.valueOf("bloom") == before) {
+				fail("a click on the bloom row did not change it")
+			}
+			openStep = 4
+			openFrame = gameFrames
+			return
+		}
+		if (openStep == 4) {
+			checkImage("-open-hd-settings-high", "build/smoke/open-" + id + "-hd-settings-high.png")
+			if (!HdSettingsPanel.clickClose() || HdSettingsPanel.open) {
+				fail("Close did not close the 634HD settings panel")
+			}
 			if (!HdOptionsButton.pressed(HdOptionsButton.x + 8, HdOptionsButton.y + 8)) {
 				fail("the 634HD toggle did not take the second press")
 			}
@@ -970,7 +1000,7 @@ object SmokeTest {
 		if (GamePreferences.uid!!.toolkit!!.getValue() != openToolkit) {
 			fail("turning 634HD off left the client on toolkit " + GamePreferences.uid!!.toolkit!!.getValue() + ", not " + openToolkit)
 		}
-		println("SMOKE PASS 634HD toggle in the Graphics Options: " + openToolkit + " to 6 and back")
+		println("SMOKE PASS 634HD toggle in the Graphics Options: " + openToolkit + " to 6 (medium preset) and back; settings panel: presets, rows, close")
 		lang.flushOut()
 		lang.halt(0)
 	}

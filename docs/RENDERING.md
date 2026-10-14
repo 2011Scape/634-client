@@ -162,7 +162,15 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
   the chat box. `client.test.hdFail=context|extension` forces it.
 - **Selection.** `client.toolkit` / `--toolkit`, `::tk6`, and `client/features/HdOptionsButton`, a
   toggle the client draws in the Graphics Options title bar (the screen is a cache script that knows
-  toolkits 0 to 5 only).
+  toolkits 0 to 5 only). Turning it on for the first time, with nothing saved, applies the Medium
+  preset.
+- **Settings panel** (`client/features/HdSettingsPanel`): the "Settings" button at the right of that
+  title bar, or `::hdsettings`, opens a window the client draws over the interfaces: presets (Off,
+  Low, Medium, High, Ultra; `HdSettings.applyPreset`, also `::hd preset <name>`) and a row per
+  switch, each click stepping to its next value. Changes apply at once and are saved to
+  `~/.634hd-settings.txt`, read at the next start unless `client.hd.*` switches are given. The smoke
+  test neither reads nor writes that file; `client.test.findText=open:742` checks the toggle, the
+  Medium preset, the panel's presets, rows and Close.
 - **Checks:**
   - the scene harness against toolkit 1's references (`-Pclient.test.toolkit=6
     -Pclient.test.scenes=default -Pclient.test.sceneReferenceToolkit=1`): every scene, the reload, the
