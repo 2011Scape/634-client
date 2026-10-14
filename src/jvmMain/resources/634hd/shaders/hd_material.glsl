@@ -46,7 +46,7 @@ vec2 hdParallaxUv(int slot, vec2 uv, vec3 viewPos) {
     mat3 tbn = hdTangentFrame(viewPos, uv);
     vec3 view = normalize(-viewPos) * tbn;
     float layer = hdMapA[slot].x;
-    float depth = hdMapA[slot].w;
+    float depth = hdMapA[slot].w * hdDetail;
     vec2 step = view.xy / max(view.z, 0.25) * depth / 6.0;
     vec2 p = uv;
     float current = 0.0;
@@ -70,11 +70,12 @@ vec4 hdApplyMaterial(int slot, vec4 color, vec2 uv, vec3 viewPos) {
     vec3 n = face;
     if (hdMapB[slot].x > 0.5) {
         // x and y from the map (BC5 keeps two channels), z rebuilt
-        vec2 xy = texture(uHdNormalMaps, vec3(uv, layer)).xy * 2.0 - 1.0;
+        vec2 xy = (texture(uHdNormalMaps, vec3(uv, layer)).xy * 2.0 - 1.0) * hdDetail;
         vec3 mapped = vec3(xy, sqrt(max(1.0 - dot(xy, xy), 0.0)));
         n = normalize(tbn * mapped);
     }
     vec4 orm = hdMapB[slot].y > 0.5 ? texture(uHdOrmMaps, vec3(uv, layer)) : vec4(1.0, 0.7, 0.0, 1.0);
+    orm.r = mix(1.0, orm.r, hdDetail);
     vec3 sun = hdSunDirection.w > 0.5 ? hdSunDirection.xyz : vec3(0.0, 1.0, 0.0);
     float ambient = max(dot(hdAmbientColour.rgb, vec3(0.333)), 0.05);
     float sunLight = max(dot(hdSunColour.rgb, vec3(0.333)), 0.0);
@@ -159,12 +160,12 @@ vec4 hdLightModel(int slot, vec4 color, vec2 uv, vec3 viewPos, vec3 normal) {
             vec3 t = normalize(frame[0] - n0 * dot(frame[0], n0));
             vec3 b = normalize(frame[1] - n0 * dot(frame[1], n0) - t * dot(frame[1], t));
             if (dot(cross(t, b), n0) < 0.0) b = -b;
-            vec2 xy = texture(uHdNormalMaps, vec3(uv, layer)).xy * 2.0 - 1.0;
+            vec2 xy = (texture(uHdNormalMaps, vec3(uv, layer)).xy * 2.0 - 1.0) * hdDetail;
             n = normalize(mat3(t, b, n0) * vec3(xy, sqrt(max(1.0 - dot(xy, xy), 0.0))));
         }
         if (hdMapB[slot].y > 0.5) {
             vec4 orm = texture(uHdOrmMaps, vec3(uv, layer));
-            occlusion = mix(1.0, orm.r, 0.7);
+            occlusion = mix(1.0, orm.r, 0.7 * hdDetail);
             roughness = orm.g;
         }
         strength = hdMapA[slot].y;

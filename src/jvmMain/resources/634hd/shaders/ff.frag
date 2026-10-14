@@ -201,10 +201,10 @@ vec4 hdTerrainTexture(sampler2D tex, vec2 uv, vec3 viewPos) {
     vec3 dx = dFdx(world);
     vec3 dy = dFdy(world);
     vec3 n = normalize(cross(dx, dy));
-    vec4 base = texture(tex, uv);
+    vec4 base = texture(tex, uv, hdDetailBias);
     float mask = smoothstep(0.45, 0.75, hdNoise(world.xz / 3072.0 + vec2(5.3, 1.7)));
     if (mask > 0.0) {
-        base = mix(base, texture(tex, uv + vec2(0.37, 0.61)), mask * 0.45);
+        base = mix(base, texture(tex, uv + vec2(0.37, 0.61), hdDetailBias), mask * 0.45);
     }
     float slope = 1.0 - abs(n.y);
     float steep = smoothstep(0.42, 0.6, slope);
@@ -212,7 +212,7 @@ vec4 hdTerrainTexture(sampler2D tex, vec2 uv, vec3 viewPos) {
         // uv per world unit along the ground, as the game maps it on the flat
         float scale = length(dFdx(uv)) / max(length(dx.xz), 0.0001);
         vec2 side = abs(n.x) > abs(n.z) ? world.zy : world.xy;
-        base = mix(base, texture(tex, side * scale), steep);
+        base = mix(base, texture(tex, side * scale, hdDetailBias), steep);
     }
     base.rgb *= 0.96 + 0.08 * hdNoise(world.xz / 6144.0 + vec2(17.0, 3.0));
     return base;
@@ -226,7 +226,7 @@ vec4 sampleUnit(int unit) {
         // 634HD: the ground's texture blended (HD_TERRAIN); the base texture in linear colour too (tonemap)
         if (uHdGround != 0 && hdOn(HD_TERRAIN)) return hdColour(hdTerrainTexture(uTexture0, gUv0, FF_VIEW_POS));
         if (uHdSmooth != 0 && uLogicalScale > 1.0 && uHdScene == 0) return sharpBilinear(uTexture0, gUv0);
-        return hdColour(texture(uTexture0, gUv0));
+        return hdColour(texture(uTexture0, gUv0, hdDetailBias));
     }
     if (unit == 1) {
         if (uCubeMap[1]) return texture(uTextureCube1, vTexCoord1);
@@ -239,6 +239,7 @@ vec4 sampleUnit(int unit) {
 }
 
 void main() {
+    hdSetDetail(FF_VIEW_POS);
     gPrimary = vColor;
 #ifndef ARB_VERTEX
     if (hdOn(HD_PIXEL_LIGHTING) && uLightingEnabled) {
