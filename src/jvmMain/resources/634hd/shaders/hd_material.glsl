@@ -117,6 +117,24 @@ vec3 hdModelLight(vec3 normal, vec3 up, float occlusion, float sun) {
     return fill * occlusion + direct;
 }
 
+// The point lights' highlights (HD_LIGHTS) on a surface with [normal] at [viewPos]: Phong, [gloss] wide,
+// each light's colour times its falloff.
+vec3 hdPointHighlights(vec3 viewPos, vec3 normal, float gloss) {
+    vec3 sum = vec3(0.0);
+    if (!hdOn(HD_LIGHTS)) return sum;
+    vec3 view = normalize(-viewPos);
+    for (int i = 0; i < hdLightInfo.x; i++) {
+        vec3 toLight = hdLightPosition[i].xyz - viewPos;
+        float dist = length(toLight);
+        float radius = hdLightPosition[i].w;
+        if (dist >= radius) continue;
+        float falloff = 1.0 - dist / radius;
+        vec3 reflected = reflect(-toLight / max(dist, 0.0001), normal);
+        sum += hdLightColour[i].rgb * falloff * falloff * pow(max(dot(view, reflected), 0.0), gloss);
+    }
+    return sum;
+}
+
 // [color] (the game's colour, lit as the game lights it) relit by the lighting model: the game's light
 // is taken as the model's light on the smooth [normal] in full sun, and replaced, per colour channel,
 // by the model's light on the material's mapped normal with the shadow, the occlusion map and a
@@ -161,11 +179,19 @@ vec4 hdLightModel(int slot, vec4 color, vec2 uv, vec3 viewPos, vec3 normal) {
     // keeps its overall brightness
     vec3 ratio = clamp(light / max(reference, vec3(0.05)) * 1.08, vec3(0.2), vec3(2.2));
     vec3 rgb = color.rgb * ratio;
-    if (strength > 0.0 && hdSunDirection.w > 0.5) {
+    // point lights: the game added them on the smooth normal (hdAddPointLights); the difference on the
+    // mapped normal is added here, so the relief catches torchlight too
+    if (hdOn(HD_LIGHTS) && hdLightInfo.x > 0 && mapped) {
+        rgb += color.rgb * (hdPointLights(viewPos, n) - hdPointLights(viewPos, n0)) * 0.5;
+    }
+    float gloss = mix(80.0, 4.0, roughness);
+    if (strength > 0.0) {
         vec3 view = normalize(-viewPos);
-        vec3 reflected = reflect(-hdSunDirection.xyz, n);
-        float gloss = mix(80.0, 4.0, roughness);
-        rgb += hdSunColour.rgb * pow(max(dot(view, reflected), 0.0), gloss) * (1.0 - roughness) * strength * sun;
+        if (hdSunDirection.w > 0.5) {
+            vec3 reflected = reflect(-hdSunDirection.xyz, n);
+            rgb += hdSunColour.rgb * pow(max(dot(view, reflected), 0.0), gloss) * (1.0 - roughness) * strength * sun;
+        }
+        rgb += hdPointHighlights(viewPos, n, gloss) * (1.0 - roughness) * strength * 0.6;
     }
     if (mapped && hdMapB[slot].z > 0.5) {
         vec4 orm = texture(uHdOrmMaps, vec3(uv, layer));
