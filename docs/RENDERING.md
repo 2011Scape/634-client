@@ -217,7 +217,7 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
 
 | Switch | What it does | Where |
 | --- | --- | --- |
-| `tonemap` (aces, agx), `dither` | linear colour, half-float view, filmic tonemap | `scene/HdPost`, `post_composite.frag` |
+| `tonemap` (aces, agx), `dither` | linear colour, half-float view, filmic tonemap. Exposure 1.15 (ACES) and 1.25 (AgX, with a little saturation back): the view keeps the game's brightness with deeper shadows and softer highlights. In linear mode every sRGB input is converted - the base texture, the other texture stages (environment maps, the water's wave textures), the stage constant (water tints), the ARB water programs' vertex colours - and fog is mixed in sRGB as the game mixes it (in linear light thick fog turned dark water pale, Draynor's sea) | `scene/HdPost`, `post_composite.frag`, `ff.frag`, `hdFogMix` |
 | `bloom`, `fxaa`, `colourGrading` | post chain; a 16³ LUT per environment (`luts/`, `tools/make_luts.py`) | `scene/HdPost` |
 | `mipmaps`, `anisotropy` | full mip chains for every world texture, anisotropic samplers | `HdTextureCache`, `scene/HdMaterials` |
 | `pixelLighting` | the fixed-function formula per pixel | `ff.frag`, `scene.frag` |
