@@ -129,13 +129,7 @@ class HdShadows {
         bakedVersion = scene.bakeVersion
         framesSinceBake = 0
         baked.ensure(BAKE_SIZE)
-        if (bakeProgram == null) {
-            val vs = HdShaders.compile(GL33C.GL_VERTEX_SHADER, HdShaders.source("ao_bake.vert"), "ao_bake.vert")
-            val fs = HdShaders.compile(GL33C.GL_FRAGMENT_SHADER, HdShaders.source("shadow.frag"), "shadow.frag")
-            bakeProgram = HdShaders.link(vs, fs, "ao_bake")
-            GL33C.glDeleteShader(vs.id)
-            GL33C.glDeleteShader(fs.id)
-        }
+        ensureBakeProgram()
         val w: Float = BAKE_EXTENT
         val toUvd: FloatArray = floatArrayOf(
             1.0f / w, 0.0f, 0.0f, 0.0f,
@@ -206,6 +200,20 @@ class HdShadows {
         GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + state.activeTextureUnit)
         state.invalidateProgramCache()
     }
+
+    private fun ensureBakeProgram() {
+        if (bakeProgram == null) {
+            val vs = HdShaders.compile(GL33C.GL_VERTEX_SHADER, HdShaders.source("ao_bake.vert"), "ao_bake.vert")
+            val fs = HdShaders.compile(GL33C.GL_FRAGMENT_SHADER, HdShaders.source("shadow.frag"), "shadow.frag")
+            bakeProgram = HdShaders.link(vs, fs, "ao_bake")
+            GL33C.glDeleteShader(vs.id)
+            GL33C.glDeleteShader(fs.id)
+        }
+    }
+
+    // the chunk the sun's map is centred on (the player's)
+    private var sunChunkX: Int = 0
+    private var sunChunkZ: Int = 0
 
     /** Binds the baked map for the frame's receivers (it stays bound between bakes otherwise). */
     fun bindBaked() {
@@ -300,6 +308,10 @@ class HdShadows {
      * direction, from its eye-space [sunEye] and [viewToWorld]) and the shadow matrix for the frame
      * block. Recording of casters starts.
      */
+    /** The environment's sun pitch in degrees (environments.json), NaN for the game's, at least 50. */
+    @JvmField
+    var sunPitch: Float = Float.NaN
+
     fun beginFrame(viewToWorld: FloatArray, sunEye: FloatArray, sunPresent: Boolean) {
         casters.count = 0
         casters.indices.clear()
@@ -353,6 +365,8 @@ class HdShadows {
     }
 
     private fun beginSun(cx: Float, cy: Float, cz: Float, viewToWorld: FloatArray, sunEye: FloatArray) {
+        sunChunkX = (cx.toInt() shr 9) shr 3
+        sunChunkZ = (cz.toInt() shr 9) shr 3
         // the direction towards the sun in world space
         var dx: Float = viewToWorld[0] * sunEye[0] + viewToWorld[4] * sunEye[1] + viewToWorld[8] * sunEye[2]
         var dy: Float = viewToWorld[1] * sunEye[0] + viewToWorld[5] * sunEye[1] + viewToWorld[9] * sunEye[2]
@@ -362,15 +376,16 @@ class HdShadows {
         dx /= length
         dy /= length
         dz /= length
-        // a sun at the horizon would stretch shadows across the map: keep it at least 25 degrees up
-        // (the game's y grows downwards, so up is -y)
-        if (-dy < 0.42f) {
-            val flat: Float = kotlin.math.sqrt(dx * dx + dz * dz).coerceAtLeast(0.0001f)
-            val scale: Float = kotlin.math.sqrt(1.0f - 0.42f * 0.42f) / flat
-            dx *= scale
-            dz *= scale
-            dy = -0.42f
-        }
+        // the game's light comes in low, and its shadows would cover whole courtyards: the sun is at
+        // least 50 degrees up, or exactly the environment's pitch (environments.json sun.pitch); the
+        // game's direction is kept around the compass (the game's y grows downwards, so up is -y)
+        val pitch: Float = if (sunPitch.isNaN()) maxOf(50.0f, Math.toDegrees(Math.asin((-dy).toDouble().coerceIn(-1.0, 1.0))).toFloat()) else sunPitch
+        val up: Float = kotlin.math.sin(Math.toRadians(pitch.toDouble())).toFloat()
+        val flat: Float = kotlin.math.sqrt(dx * dx + dz * dz).coerceAtLeast(0.0001f)
+        val scale: Float = kotlin.math.sqrt(1.0f - up * up) / flat
+        dx *= scale
+        dz *= scale
+        dy = -up
         sun.ensure(HdSettings.shadows)
         val size: Int = sun.size
         // the light's view: looking from the sun towards the player, y up as close to the world's as can be
@@ -558,14 +573,17 @@ class HdShadows {
             GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + map.unit)
             GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, 0)
 
-            if (map === sun) {
-                // the height map of moving models only: the static scene is in the baked one
-                val program: WebGLProgram = sceneProgram!!
+            if (map === sun && first) {
+                // every static caster near the player, on screen or not, placed by its captured model
+                // matrix (once a frame; the height map of moving models has no static scene: it is baked)
+                ensureBakeProgram()
+                val program: WebGLProgram = bakeProgram!!
                 GL33C.glUseProgram(program.id)
                 map.viewToClipBuffer.clear()
-                map.viewToClipBuffer.put(map.viewToClip).flip()
-                GL33C.glUniformMatrix4fv(uSceneMatrix, false, map.viewToClipBuffer)
-                scene.drawShadowCasters(program)
+                map.viewToClipBuffer.put(map.worldToClip).flip()
+                GL33C.glUniformMatrix4fv(GL33C.glGetUniformLocation(program.id, "uWorldToClip"), false, map.viewToClipBuffer)
+                val reach: Int = ((HALF_EXTENT / 512.0f).toInt() + 6) / 8 + 1
+                scene.drawRegion(program, 23, sunChunkX - reach, sunChunkZ - reach, sunChunkX + reach, sunChunkZ + reach)
             }
 
             GL33C.glUseProgram(dynamicProgram!!.id)
@@ -578,7 +596,7 @@ class HdShadows {
             }
             uploaded = true
         }
-        lastCasters = casters.count - drawnCasters + previous.count + scene.lastShadowObjects
+        lastCasters = casters.count - drawnCasters + previous.count
         drawnCasters = casters.count
 
         GL33C.glDisable(GL33C.GL_POLYGON_OFFSET_FILL)

@@ -317,6 +317,15 @@ object SmokeTest {
 
 	private val SCENE_FRAMES: Int = lang.getInteger("client.test.sceneFrames", 150)
 
+	/** client.test.sceneBurst: consecutive frames saved per scene before its comparison (flicker checks). */
+	private val SCENE_BURST: Int = lang.getInteger("client.test.sceneBurst", 0)
+
+	private var burstIndex: Int = 0
+
+	private val SCENE_SPIN: Int = lang.getInteger("client.test.sceneSpin", 0)
+
+	private var burstFrame: Int = -1
+
 	private val SCENE_REFERENCE_TOOLKIT: Int = lang.getInteger("client.test.sceneReferenceToolkit", -1)
 
 	private val SCENE_PIXEL_TOLERANCE: Int = lang.getInteger("client.test.scenePixelTolerance", 24)
@@ -889,8 +898,9 @@ object SmokeTest {
 			sceneStep = 2
 			sceneFrame = gameFrames
 		}
-		// hold the camera where the scene asks, whatever the client's own camera logic does
-		Camera.camAngleY = yaw.toFloat()
+		// hold the camera where the scene asks, whatever the client's own camera logic does; during a
+		// burst it turns client.test.sceneSpin yaw units a frame (moving-camera flicker checks)
+		Camera.camAngleY = (yaw + burstIndex * SCENE_SPIN).toFloat()
 		Camera.camAngleX = pitch.toFloat()
 		Camera.cameraYawVelocity = 0.0f
 		Camera.cameraPitchVelocity = 0.0f
@@ -905,6 +915,16 @@ object SmokeTest {
 		if (gameFrames - sceneFrame < SCENE_FRAMES) {
 			return
 		}
+		// client.test.sceneBurst=N: N consecutive frames saved first, to measure flicker between frames
+		if (burstIndex < SCENE_BURST) {
+			if (burstFrame != gameFrames) {
+				burstFrame = gameFrames
+				saveFrame("build/smoke/scenes/burst-" + name + "-" + burstIndex + ".png")
+				burstIndex++
+			}
+			return
+		}
+		burstIndex = 0
 		var result: String = compareScene(name, reference)
 		if (locChange) {
 			val rebuilt: Int = RenderStats.chunkRebuilds - locRebuildsBefore
@@ -1289,6 +1309,22 @@ object SmokeTest {
 	 * Saves the frame as scene-<name>-toolkit<id>.png and compares it with the reference pixel by
 	 * pixel, saving a diff image beside it when any pixel differs. Returns a summary.
 	 */
+	private fun saveFrame(path: String) {
+		val toolkit: Toolkit = ClientState.activeToolkit!!
+		val size: IntArray = IntArray(2)
+		toolkit.accumulateViewportDimensions(size)
+		val pixels: IntArray = toolkit.na(0, 0, size[0], size[1])!!
+		val shot: BufferedImage = BufferedImage(size[0], size[1], awt.image.BUFFERED_IMAGE_TYPE_INT_RGB)
+		shot.setRGB(0, 0, size[0], size[1], pixels, 0, size[0])
+		val file: File = File(path)
+		try {
+			file.getParentFile()!!.mkdirs()
+			writePng(shot, file)
+		} catch (ex: Exception) {
+			fail("cannot save " + file + ": " + ex)
+		}
+	}
+
 	private fun compareScene(name: String, referenceName: String): String {
 		val toolkit: Toolkit = ClientState.activeToolkit!!
 		val size: IntArray = IntArray(2)

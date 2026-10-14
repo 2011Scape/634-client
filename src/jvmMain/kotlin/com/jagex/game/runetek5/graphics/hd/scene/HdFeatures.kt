@@ -91,6 +91,7 @@ class HdFeatures {
         }
         // the sun's shadow map: where it looks from, and the matrix the receivers use
         HdGl.shadows = this.shadows
+        this.shadows.sunPitch = this.environment?.sunPitch ?: Float.NaN
         this.shadows.beginFrame(viewToWorld, state.lightPosition[0], state.lightEnabled[0] && length > 0.0f)
         if (this.shadows.active) {
             uniforms.setShadowMatrix(this.shadows.shadowMatrix)
