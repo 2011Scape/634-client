@@ -324,6 +324,103 @@ object SmokeTest {
 
 	private val SCENE_SPIN: Int = lang.getInteger("client.test.sceneSpin", 0)
 
+	/**
+	 * client.test.hdCycle=true (toolkit 6, scenes mode): at the first scene, the frame with every
+	 * 634HD switch off is taken, then each switch is set to its highest value while playing, held,
+	 * saved (build/smoke/scenes/cycle-<name>-on.png) and set off again; the frame after must match the
+	 * first one within the scene's limit. Catches a switch that only works from the start, or that
+	 * leaves something behind. The "all" line does every switch at once.
+	 */
+	private val HD_CYCLE: Boolean = lang.getBoolean("client.test.hdCycle")
+
+	private val CYCLE_SWITCHES: Array<String> = arrayOf(
+		"tonemap=aces", "dither=on", "anisotropy=16", "mipmaps=on", "fog=on", "fade=on", "ambientOcclusion=on",
+		"pixelLighting=on", "shadows=4096", "lights=on", "terrainBlend=on", "water=1", "foliage=on", "sky=on",
+		"softParticles=on", "fxaa=on", "bloom=on", "colourGrading=on", "materials=on", "particles=on", "preset=ultra",
+	)
+
+	private var cycleDone: Boolean = false
+
+	private var cycleIndex: Int = -1
+
+	private var cycleFrame: Int = 0
+
+	private var cycleBaseline: IntArray? = null
+
+	private var cycleWorst: Int = 0
+
+	private const val CYCLE_FRAMES: Int = 40
+
+	/** One frame of the switch cycle (client.test.hdCycle). */
+	private fun cycleStep() {
+		if (gameFrames - cycleFrame < CYCLE_FRAMES) {
+			return
+		}
+		cycleFrame = gameFrames
+		val toolkit: Toolkit = ClientState.activeToolkit!!
+		val size: IntArray = IntArray(2)
+		toolkit.accumulateViewportDimensions(size)
+		if (cycleIndex < 0) {
+			cycleBaseline = toolkit.na(0, 0, size[0], size[1])
+			println("SMOKE cycle: baseline taken, " + CYCLE_SWITCHES.size + " switches to cycle")
+			cycleIndex = 0
+			cycleState = 0
+			return
+		}
+		val entry: String = CYCLE_SWITCHES[cycleIndex]
+		val at: Int = entry.indexOf('=')
+		val switch: String = entry.substring(0, at)
+		if (cycleState == 0) {
+			// on
+			val error: String? = if (switch == "preset") HdSettings.applyPreset(entry.substring(at + 1)) else HdSettings.set(switch, entry.substring(at + 1))
+			if (error != null) {
+				fail("cycle: " + entry + ": " + error)
+			}
+			cycleState = 1
+			return
+		}
+		if (cycleState == 1) {
+			// held: saved, then off again (dither's default is on)
+			saveFrame("build/smoke/scenes/cycle-" + switch + "-on.png")
+			if (switch == "preset") {
+				HdSettings.applyPreset("off")
+			} else if (switch == "dither") {
+				HdSettings.set(switch, "on")
+			} else {
+				HdSettings.set(switch, "off")
+			}
+			cycleState = 2
+			return
+		}
+		// off again: the frame must be back to the baseline
+		val pixels: IntArray = toolkit.na(0, 0, size[0], size[1])!!
+		val base: IntArray = cycleBaseline!!
+		var different: Int = 0
+		for (i in pixels.indices) {
+			val a: Int = pixels[i]
+			val b: Int = base[i]
+			if (kotlin.math.abs((a shr 16 and 0xFF) - (b shr 16 and 0xFF)) > SCENE_PIXEL_TOLERANCE || kotlin.math.abs((a shr 8 and 0xFF) - (b shr 8 and 0xFF)) > SCENE_PIXEL_TOLERANCE || kotlin.math.abs((a and 0xFF) - (b and 0xFF)) > SCENE_PIXEL_TOLERANCE) {
+				different++
+			}
+		}
+		val perMille: Int = (different.toLong() * 1000L / pixels.size.toLong()).toInt()
+		if (perMille > cycleWorst) cycleWorst = perMille
+		val ok: Boolean = perMille <= sceneLimit
+		println("SMOKE cycle " + entry + ": on and off again, " + perMille + "/1000 from the baseline" + (if (ok) "" else " LEFT SOMETHING BEHIND"))
+		if (!ok) {
+			sceneFailures++
+			saveFrame("build/smoke/scenes/cycle-" + switch + "-after.png")
+		}
+		cycleState = 0
+		cycleIndex++
+		if (cycleIndex >= CYCLE_SWITCHES.size) {
+			cycleDone = true
+			println("SMOKE cycle done: worst " + cycleWorst + "/1000")
+		}
+	}
+
+	private var cycleState: Int = 0
+
 	private var burstFrame: Int = -1
 
 	private val SCENE_REFERENCE_TOOLKIT: Int = lang.getInteger("client.test.sceneReferenceToolkit", -1)
@@ -925,6 +1022,11 @@ object SmokeTest {
 			return
 		}
 		burstIndex = 0
+		// client.test.hdCycle: on the first scene, every 634HD switch turned on and off again live
+		if (HD_CYCLE && sceneIndex == 0 && !cycleDone) {
+			cycleStep()
+			return
+		}
 		var result: String = compareScene(name, reference)
 		if (locChange) {
 			val rebuilt: Int = RenderStats.chunkRebuilds - locRebuildsBefore

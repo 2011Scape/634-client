@@ -107,6 +107,9 @@ class HdFeatures {
         // locs fade over the last three tiles before the fog closes (HD_FADE)
         val fadeEnd: Float = if (HdSettings.fog) fog[4] else state.fogEnd
         uniforms.setTime(seconds, 1.0f, fadeEnd - 1536.0f, 1536.0f)
+        if (System.getProperty("client.test.hdDebug") != null && (debugFrame++ % 120) == 0) {
+            println("HDDEBUG fog game " + state.fogStart + ".." + state.fogEnd + " eased " + fog[3] + ".." + fog[4] + " fade from " + (fadeEnd - 1536.0f) + " env " + this.environment?.name)
+        }
         // the grading table of the environment (HdSettings.colourGrading)
         val lut: String? = this.environment?.lut
         toolkit.hdPost.gradingTexture = if (lut != null && HdSettings.colourGrading) toolkit.hdPost.gradingTable(lut) else 0
@@ -158,6 +161,8 @@ class HdFeatures {
     }
 
     private var easedVersion: Int = -1
+
+    private var debugFrame: Int = 0
 
     fun release() {
         shadows.release()
