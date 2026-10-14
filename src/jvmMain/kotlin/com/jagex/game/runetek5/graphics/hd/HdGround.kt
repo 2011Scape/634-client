@@ -800,6 +800,15 @@ class HdGround : Ground {
 	// 634HD: tile overrides (tile_overrides.json) with worldTextures - the tile's untextured faces (or all,
 	// with replace) take the override's material at its scale (scene units per repeat: 512 a tile)
 	override fun hdRetexture(level: Int, x: Int, z: Int, underlayId: Int, overlayId: Int, textures: IntArray?, textureScales: IntArray?) {
+		if (TALLY != null && textures != null && level == 0) {
+			// client.test.hdFloorTally: the floor ids whose faces the game leaves untextured, and how many
+			var untextured: Int = 0
+			for (t in textures) if (t == -1) untextured++
+			if (untextured > 0) {
+				val key: Int = (underlayId shl 8) or overlayId
+				TALLY[key] = (TALLY[key] ?: 0) + untextured
+			}
+		}
 		if (!HdSettings.worldTextures || textures == null || textureScales == null) {
 			return
 		}
@@ -925,6 +934,20 @@ class HdGround : Ground {
 	}
 
 	companion object {
+		@JvmField
+		val TALLY: HashMap<Int, Int>? = if (System.getProperty("client.test.hdFloorTally") != null) HashMap() else null
+
+		/** The tally so far, most untextured faces first (underlay/overlay: faces). */
+		@JvmStatic
+		fun tallyReport(): String {
+			val tally: HashMap<Int, Int> = TALLY ?: return ""
+			val out: StringBuilder = StringBuilder()
+			for ((key, faces) in tally.entries.sortedByDescending { it.value }.take(16)) {
+				out.append("  underlay ").append(key shr 8).append(", overlay ").append(key and 0xFF).append(": ").append(faces).append(" untextured faces\n")
+			}
+			return out.toString()
+		}
+
 		@JvmField
 		val minimapMatrix: FloatArray = FloatArray(16)
 	}

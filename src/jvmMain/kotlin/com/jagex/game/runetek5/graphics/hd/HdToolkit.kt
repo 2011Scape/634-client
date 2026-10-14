@@ -825,7 +825,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		val shape: Int = (uid.toInt() shr 14) and 0x1F
 		val rotation: Int = (uid.toInt() shr 20) and 0x3
 		val loc = com.jagex.game.runetek5.config.TypeLists.LOC!!.list(id)
-		out.append("Loc ").append(id).append(" \"").append(loc?.name ?: "?").append("\", shape ").append(shape).append(", rotation ").append(rotation).append(", models")
+		val tileX: Int = (uid.toInt() and 0x7F) + com.jagex.game.runetek5.MapRegion.sceneBaseX
+		val tileZ: Int = ((uid.toInt() shr 7) and 0x7F) + com.jagex.game.runetek5.MapRegion.sceneBaseY
+		out.append("Loc ").append(id).append(" \"").append(loc?.name ?: "?").append("\" at ").append(tileX).append(",").append(tileZ).append(", shape ").append(shape).append(", rotation ").append(rotation).append(", models")
 		val models: Array<IntArray?>? = loc?.hdModelIds()
 		val colours: java.util.TreeMap<Int, Int> = java.util.TreeMap()
 		if (models != null) {
@@ -3401,6 +3403,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 				describeLoc(out, parts[k].toLong())
 			}
 			println("SMOKE INSPECT\n" + out)
+			if (HdGround.TALLY != null) {
+				println("SMOKE FLOORS untextured in this region (plane 0):\n" + HdGround.tallyReport())
+			}
 		}
 		HdToolkit.printDebugMaterials()
 		// 634HD: GPU particles over the finished 3D view, before it is resolved and post-processed

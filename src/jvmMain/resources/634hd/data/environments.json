@@ -8,6 +8,43 @@
       }
     },
     {
+      "name": "Lumbridge swamp",
+      "area": {
+        "regions": [
+          12593,
+          12849
+        ]
+      },
+      "sky": {
+        "top": "#6f8a92",
+        "horizon": "#b7c4bc"
+      },
+      "sun": {
+        "colour": "#f2f0d8",
+        "intensity": 0.9
+      },
+      "ambient": {
+        "colour": "#e6efe2",
+        "intensity": 0.95
+      },
+      "heightFog": {
+        "density": 0.18,
+        "top": -200
+      },
+      "water": {
+        "tint": "#3e5a3c",
+        "strength": 0.6,
+        "waves": 0.35,
+        "speed": 0.5,
+        "size": 1.4,
+        "glint": 0.5
+      },
+      "lut": "swamp.png",
+      "fog": {
+        "colour": "#9fb0a2"
+      }
+    },
+    {
       "name": "Lumbridge",
       "area": {
         "regions": [
@@ -24,7 +61,18 @@
         "colour": "#fff3e0",
         "intensity": 1.0
       },
-      "lut": "neutral_warm.png"
+      "lut": "neutral_warm.png",
+      "ambient": {
+        "colour": "#fff6ec",
+        "intensity": 1.0
+      },
+      "water": {
+        "tint": "#4a7fa8",
+        "strength": 0.4,
+        "waves": 0.8,
+        "speed": 0.8,
+        "glint": 1.0
+      }
     },
     {
       "name": "Varrock",
@@ -40,7 +88,22 @@
         "top": "#6487bf",
         "horizon": "#c6ced8"
       },
-      "lut": "neutral_warm.png"
+      "lut": "neutral_warm.png",
+      "sun": {
+        "colour": "#fff7ee",
+        "intensity": 1.0
+      },
+      "ambient": {
+        "colour": "#eef2f8",
+        "intensity": 1.0
+      },
+      "water": {
+        "tint": "#5585a8",
+        "strength": 0.35,
+        "waves": 0.6,
+        "speed": 1.0,
+        "glint": 1.2
+      }
     },
     {
       "name": "Draynor",

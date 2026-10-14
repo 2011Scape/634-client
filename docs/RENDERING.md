@@ -270,6 +270,16 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   plane, floor underlay and overlay ids: `Terrain.floorIds`) and each loc (id, shape, rotation, model
   ids and its untextured face colours as the loc recolours them: what `faceColours` takes);
   `client.test.inspect=true` prints the same for every loc within `client.test.inspectRadius` tiles.
+- **Content by area** (Lumbridge, then Varrock). Lights: every cooking range that burns (`Cooking
+  range` and `(lit)`, not `(empty)`/`(with logs)`), cooking pots over fires, ovens, fireboxes, fire
+  pits, furnaces, elven lamps and mushroom torches joined `lights.json` (found with
+  `client.test.findText=locs:<regex>` against what it had). Environments: Lumbridge (warm sun and
+  ambient, a calm river), Varrock (cooler city light), and a new Lumbridge swamp (regions 12593 and
+  12849: hazier sky, a soft mist, murky green, slow water, the swamp grade). Foliage: the courtyard's
+  grass tufts bend and sway. Textures: `client.test.hdFloorTally` counts the floor faces each region
+  leaves untextured (Lumbridge 24, Varrock 12: the cache textures nearly every floor) and the Inspect
+  lists show the few untextured loc faces, so these areas need no texture overrides; the engine is
+  there for areas that do.
 - **634HD's own materials.** `materials.json` entries from texture 10000 up with an `albedo` file in
   `634hd/materials/<id>/` (`content/HdMaterialProvider` serves them beside the cache's, so every
   path draws them): near-grey detail the face or tile colour tints, made by
