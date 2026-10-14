@@ -172,7 +172,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.2,
-      "parallax": 0.02
+      "parallax": 0.02,
+      "albedo": "albedo.png"
     },
     {
       "texture": 159,
@@ -205,7 +206,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.25,
-      "parallax": 0.03
+      "parallax": 0.03,
+      "albedo": "albedo.png"
     },
     {
       "texture": 185,
