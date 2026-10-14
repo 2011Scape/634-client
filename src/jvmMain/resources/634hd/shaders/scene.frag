@@ -144,8 +144,12 @@ void main() {
     } else if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
         discard;
     }
-    color = hdApplyMaterial(mapSlot, color, mapUv, vViewPos);
-    color = hdApplyShadow(color, vViewPos, vEyeNormal);
+    if (hdOn(HD_LIGHTING_MODEL) && (int(material.w) & FLAG_UNLIT) == 0) {
+        color = hdLightModel(mapSlot, color, mapUv, vViewPos, vEyeNormal);
+    } else {
+        color = hdApplyMaterial(mapSlot, color, mapUv, vViewPos);
+        color = hdApplyShadow(color, vViewPos, vEyeNormal);
+    }
     // the retained scene's occlusion is baked into its vertices once the region is baked; the height
     // maps (moving models, the ground) until then
     hdAppliedOcclusion = (hdOn(HD_AO) && hdAoBake.z > 0.5) ? mix(1.0, vOcclusion, hdAoParams.y) : hdAmbientOcclusion(vViewPos, vEyeNormal);
