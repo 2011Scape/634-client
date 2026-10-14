@@ -523,8 +523,8 @@ object SmokeTest {
 	/** Where smoketest starts, and must be left: the other references are taken there. */
 	private val SCENE_HOME: IntArray = intArrayOf(3094, 3107, 0)
 
-	/** Lumbridge courtyard, the camera zoomed onto the player (the limit allows for the idle pose). */
-	private const val OUTFIT_VIEW: String = "3222,3218,0,0,1200,450,60"
+	/** Lumbridge courtyard, the camera zoomed onto the player (held in one pose: holdPose). */
+	private const val OUTFIT_VIEW: String = "3222,3218,0,0,1200,450,10"
 
 	private val DEFAULT_SCENES: String = "lumbridge:3222,3218,0,0,1400,0;" +
 		"varrock:3212,3428,0,2048,1400,0;" +
@@ -545,8 +545,7 @@ object SmokeTest {
 		"outfit_metal:" + OUTFIT_VIEW + ",0:4732|1:6570|2:87|3:35|4:1127|5:1201|7:4730;" +
 		"outfit_robes:" + OUTFIT_VIEW + ",0:12866|1:-1|2:15511|3:3053|4:19317|5:-1|7:1079;" +
 		"outfit_khazard:" + OUTFIT_VIEW + ",0:74|1:-1|2:86|3:1285|4:75|5:1201|7:1079;" +
-		// the torch's flame animates: toolkit 1 against itself differs by up to 51 here
-		"outfit_torch:3222,3218,0,0,1200,450,75,0:4732|1:10637|2:15511|3:8987|4:1127|5:-1|7:4730"
+		"outfit_torch:" + OUTFIT_VIEW + ",0:4732|1:10637|2:15511|3:8987|4:1127|5:-1|7:4730"
 
 	/**
 	 * client.test.findText=word: once in game, prints every interface component whose text holds the
@@ -1305,6 +1304,14 @@ object SmokeTest {
 		}
 		// hold the camera where the scene asks, whatever the client's own camera logic does; during a
 		// burst it turns client.test.sceneSpin yaw units a frame (moving-camera flicker checks)
+		if (values.size > 7) {
+			// an outfit's close-up: the player held in the first frame of its animation, so both toolkits
+			// capture the same pose (the idle sway alone differs by more than a material's change)
+			player.movingSequence.currentFrameId = 0
+			player.movingSequence.nextFrameId = 0
+			player.movingSequence.currentFrameDuration = 0
+			holdPose(player.currentSequence)
+		}
 		Camera.camAngleY = (yaw + burstIndex * SCENE_SPIN).toFloat()
 		Camera.camAngleX = pitch.toFloat()
 		Camera.cameraYawVelocity = 0.0f
@@ -1407,7 +1414,11 @@ object SmokeTest {
 			cycleStep()
 			return
 		}
+		// an outfit's close-up compares only the middle third of the view, where the player stands:
+		// passers-by at the edges are not the outfit
+		compareCentre = values.size > 7
 		var result: String = compareScene(name, reference)
+		compareCentre = false
 		if (locChange) {
 			val rebuilt: Int = RenderStats.chunkRebuilds - locRebuildsBefore
 			result += ", chunks rebuilt " + rebuilt
@@ -1578,6 +1589,8 @@ object SmokeTest {
 	private val scanPending: ArrayList<Int> = ArrayList()
 
 	private var worn: Boolean = false
+
+	private var compareCentre: Boolean = false
 
 	private val INSPECT: Boolean = lang.getBoolean("client.test.inspect")
 
@@ -1870,6 +1883,12 @@ object SmokeTest {
 		return "nothing (no scenery nearby)"
 	}
 
+	private fun holdPose(sequence: com.jagex.game.runetek5.config.sequence.PathingEntitySequence) {
+		sequence.currentFrameId = 0
+		sequence.nextFrameId = 0
+		sequence.currentFrameDuration = 0
+	}
+
 	private fun sceneArrived(player: PlayerEntity, x: Int, y: Int, level: Int): Boolean {
 		return player.movementBaseX[0] + MapRegion.sceneBaseX == x && player.movementBaseY[0] + MapRegion.sceneBaseY == y && PlayerUpdate.currentLevel == level
 	}
@@ -1988,9 +2007,15 @@ object SmokeTest {
 		}
 		val diff: IntArray = IntArray(width * height)
 		var different: Int = 0
+		var compared: Int = 0
 		for (y in 0 until height) {
 			for (x in 0 until width) {
 				val a: Int = pixels[y * width + x]
+				if (compareCentre && (x < width / 3 || x >= width * 2 / 3 || y >= height * 4 / 5)) {
+					diff[y * width + x] = 0
+					continue
+				}
+				compared++
 				val b: Int = expected.getRGB(x, y)
 				val dr: Int = kotlin.math.abs((a shr 16 and 0xFF) - (b shr 16 and 0xFF))
 				val dg: Int = kotlin.math.abs((a shr 8 and 0xFF) - (b shr 8 and 0xFF))
@@ -2003,7 +2028,7 @@ object SmokeTest {
 				}
 			}
 		}
-		val perMille: Int = (different.toLong() * 1000L / (width * height).toLong()).toInt()
+		val perMille: Int = (different.toLong() * 1000L / kotlin.math.max(compared, 1).toLong()).toInt()
 		if (different > 0) {
 			val diffImage: BufferedImage = BufferedImage(width, height, awt.image.BUFFERED_IMAGE_TYPE_INT_RGB)
 			diffImage.setRGB(0, 0, width, height, diff, 0, width)
