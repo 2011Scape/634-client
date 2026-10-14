@@ -150,6 +150,24 @@ vec4 hdDebugOverlay(vec4 color, vec3 viewPos, vec3 normal, int texture) {
     return color;
 }
 
+// Caustics (HD_CAUSTICS): the bright, shifting web the water's surface focuses onto the ground under
+// it, at world ([x], [z]): two layers of warped waves, sharpened into lines; 0 to about 1.
+float hdCaustics(vec2 p, float t) {
+    vec2 q = p * 0.0042;
+    float total = 0.0;
+    for (int i = 0; i < 2; i++) {
+        float s = float(i) * 1.37 + 1.0;
+        // each layer turned (about 37 degrees) and warped by its own waves, so no grid shows
+        float angle = float(i) * 0.65;
+        vec2 r = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * q * s;
+        vec2 w = r + vec2(sin(r.y * 1.3 + t * 0.7 * s), cos(r.x * 1.1 - t * 0.6 * s)) * 1.1;
+        w += vec2(sin(w.y * 2.7 + t * 0.4), cos(w.x * 2.3 - t * 0.5)) * 0.35;
+        float a = sin(w.x * 2.1 + t * 0.9) * sin(w.y * 2.4 - t * 0.8);
+        total += pow(1.0 - abs(a), 7.0);
+    }
+    return total * 0.5;
+}
+
 // The height of 634HD's water waves (any units) at world ([x], [z]): long, slow swells, a tile or
 // more from crest to crest, so the surface moves without going grainy.
 float hdWaveHeight(vec2 p, float t) {
@@ -165,13 +183,15 @@ float hdWaveHeight(vec2 p, float t) {
 vec4 hdWater(vec4 color, vec3 viewPos) {
     vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
     vec3 camera = hdViewToWorld[3].xyz;
-    float t = hdTime.x;
+    // the area's water (environments.json water): wave height, speed and size
+    float t = hdTime.x * hdWaterParams.y;
+    vec2 p = world.xz / max(hdWaterParams.w, 0.25);
     float e = 24.0;
-    float h = hdWaveHeight(world.xz, t);
-    float hx = hdWaveHeight(world.xz + vec2(e, 0.0), t) - h;
-    float hz = hdWaveHeight(world.xz + vec2(0.0, e), t) - h;
+    float h = hdWaveHeight(p, t);
+    float hx = hdWaveHeight(p + vec2(e, 0.0), t) - h;
+    float hz = hdWaveHeight(p + vec2(0.0, e), t) - h;
     // world up is -y; the slopes give a tilt of a few degrees at most
-    vec3 n = normalize(vec3(-hx * 1.2, -1.0, -hz * 1.2));
+    vec3 n = normalize(vec3(-hx * 1.2 * hdWaterParams.x, -1.0, -hz * 1.2 * hdWaterParams.x));
     vec3 view = normalize(world - camera);
     float cosine = max(dot(-view, n), 0.0);
     float fresnel = 0.02 + 0.98 * pow(1.0 - cosine, 5.0);
@@ -187,7 +207,7 @@ vec4 hdWater(vec4 color, vec3 viewPos) {
         float footprint = length(fwidth(world));
         float distanceFade = 1.0 - smoothstep(18.0, 60.0, footprint);
         float glint = pow(max(dot(reflected, sunWorld), 0.0), 48.0) * hdShadow(viewPos) * distanceFade;
-        result += hdSunColour.rgb * glint * (hdOn(HD_LINEAR) ? 0.8 : 0.25);
+        result += hdSunColour.rgb * glint * hdWaterParams.z * (hdOn(HD_LINEAR) ? 0.8 : 0.25);
     }
     return vec4(result, color.a);
 }

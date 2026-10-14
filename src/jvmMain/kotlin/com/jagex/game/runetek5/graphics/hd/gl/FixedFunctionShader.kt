@@ -112,6 +112,8 @@ class FfFragmentUniformLocations(gl: WebGL2RenderingContext, program: WebGLProgr
     val hdWater: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdWater")
     // 634HD: whether the ground is being drawn (HD_TERRAIN)
     val hdGround: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdGround")
+    // 634HD: whether the game's underwater pass is drawing (the riverbed: caustics, HD_CAUSTICS)
+    val hdUnderwater: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdUnderwater")
     // 634HD: soft particles - on, and the projection's depth terms (HD_SOFT_PARTICLES)
     val hdSoft: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdSoft")
     // 634HD: the slot of the texture's material maps (HD_MATERIALS)
@@ -163,6 +165,7 @@ fun uploadFfFragmentUniforms(gl: WebGL2RenderingContext, state: GlState, L: FfFr
     setInt(gl, L, L.hdScene, SI_HD_SCENE, state.hdScene)
     setInt(gl, L, L.hdWater, SI_HD_WATER, state.hdWater)
     setInt(gl, L, L.hdGround, SI_HD_GROUND, state.hdGround)
+    setInt(gl, L, L.hdUnderwater, SI_HD_UNDERWATER, state.hdUnderwater)
     setInt(gl, L, L.hdSoft, SI_HD_SOFT, state.hdSoft)
     setInt(gl, L, L.hdMapSlot, SI_HD_MAP_SLOT, state.hdMapSlot)
     setInt(gl, L, L.hdTexture, SI_HD_TEXTURE, state.hdTexture)
@@ -257,7 +260,8 @@ private const val SI_HD_SOFT = SI_ALPHA_TEST + 6
 private const val SI_HD_MAP_SLOT = SI_ALPHA_TEST + 7
 private const val SI_HD_TEXTURE = SI_ALPHA_TEST + 8
 private const val SI_HD_SMOOTH = SI_ALPHA_TEST + 9
-internal const val FF_SHADOW_INTS = SI_ALPHA_TEST + 10
+private const val SI_HD_UNDERWATER = SI_ALPHA_TEST + 10
+internal const val FF_SHADOW_INTS = SI_ALPHA_TEST + 11
 
 private const val SF_TEX_ENV_COLOR = 0
 private const val SF_ENV_SCALE = 4

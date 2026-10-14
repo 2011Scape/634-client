@@ -44,6 +44,8 @@ class HdFeatures {
     // strength) and the shadow sun's pitch and yaw (degrees; NaN: the game's, not eased)
     private val envLight: FloatArray = floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f)
     private val water: FloatArray = floatArrayOf(0.11f, 0.24f, 0.3f, 0.2f)
+    // the area's waves' height, speed, glint and size
+    private val waterParams: FloatArray = floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f)
     private var sunPitch: Float = Float.NaN
     private var sunYaw: Float = Float.NaN
 
@@ -90,6 +92,8 @@ class HdFeatures {
         uniforms.setAmbient(state.globalAmbient[0], state.globalAmbient[1], state.globalAmbient[2])
         this.environment(toolkit.hdContent, state)
         uniforms.setWater(water[0], water[1], water[2], water[3])
+        uniforms.setWaterParams(waterParams[0], waterParams[1], waterParams[2], waterParams[3])
+        uniforms.setActors(actors, if (HdSettings.grassDisplacement) findActors() else 0)
         uniforms.setEnvironmentLight(envLight[0], envLight[1], envLight[2], envLight[3], envLight[4], envLight[5])
         // the sun's shadow map: where it looks from, and the matrix the receivers use
         HdGl.shadows = this.shadows
@@ -171,12 +175,38 @@ class HdFeatures {
             envLight[3 + i] += ((ambientColour?.get(i) ?: 1.0f) * ambientIntensity - envLight[3 + i]) * step
         }
         val tint: FloatArray? = environment?.waterTint
-        val waterTarget: FloatArray = if (tint != null) floatArrayOf(tint[0], tint[1], tint[2], 0.45f) else floatArrayOf(0.11f, 0.24f, 0.3f, 0.2f)
+        val strength: Float = environment?.waterStrength ?: Float.NaN
+        val waterTarget: FloatArray = if (tint != null) floatArrayOf(tint[0], tint[1], tint[2], if (strength.isNaN()) 0.45f else strength) else floatArrayOf(0.11f, 0.24f, 0.3f, if (strength.isNaN()) 0.2f else strength)
+        val paramsTarget: FloatArray = floatArrayOf(environment?.waterWaves ?: 1.0f, environment?.waterSpeed ?: 1.0f, environment?.waterGlint ?: 1.0f, environment?.waterSize ?: 1.0f)
         for (i in 0 until 4) {
             water[i] += (waterTarget[i] - water[i]) * step
+            waterParams[i] += (paramsTarget[i] - waterParams[i]) * step
         }
         sunPitch = easeAngle(sunPitch, environment?.sunPitch ?: Float.NaN, step)
         sunYaw = easeAngle(sunYaw, environment?.sunYaw ?: Float.NaN, step)
+    }
+
+    // the characters grass bends away from: the local player, then the nearest NPCs (world x, z)
+    private val actors: FloatArray = FloatArray(HdFrameUniforms.MAX_ACTORS * 2)
+
+    private fun findActors(): Int {
+        val player = PlayerUpdate.localPlayer ?: return 0
+        var count: Int = 0
+        actors[0] = player.x.toFloat()
+        actors[1] = player.z.toFloat()
+        count++
+        val npcs: Int = com.jagex.game.runetek5.NPCList.NPC_UPDATE_INDEX
+        val ids: IntArray = com.jagex.game.runetek5.NPCList.NPC_UPDATE_INDICES
+        for (i in 0 until npcs) {
+            if (count >= HdFrameUniforms.MAX_ACTORS) break
+            val node = com.jagex.game.runetek5.NPCList.NPC_MAP.get(ids[i].toLong()) as com.jagex.game.runetek5.entity.NPCEntityNode? ?: continue
+            val npc = node.npc ?: continue
+            if (Math.abs(npc.x - player.x) > 10 * 512 || Math.abs(npc.z - player.z) > 10 * 512) continue
+            actors[count * 2] = npc.x.toFloat()
+            actors[count * 2 + 1] = npc.z.toFloat()
+            count++
+        }
+        return count
     }
 
     /** An angle eased towards [target] (degrees, the short way round); NaN on either side switches at once. */

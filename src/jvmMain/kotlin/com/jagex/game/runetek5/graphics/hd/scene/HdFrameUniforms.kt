@@ -31,6 +31,9 @@ class HdFrameUniforms {
         const val HD_MIPMAPS: Int = 4096
         const val HD_MATERIALS: Int = 8192
         const val HD_ENV_LIGHT: Int = 16384
+        const val HD_CAUSTICS: Int = 32768
+        const val HD_GRASS: Int = 65536
+        const val MAX_ACTORS: Int = 8
 
         // std140 offsets, in bytes
         private const val FLAGS: Int = 0
@@ -56,7 +59,10 @@ class HdFrameUniforms {
         private const val AO_BAKE_PARAMS: Int = AO_BAKE_MATRIX + 64
         private const val ENV_SUN: Int = AO_BAKE_PARAMS + 16
         private const val ENV_AMBIENT: Int = ENV_SUN + 16
-        const val SIZE: Int = ENV_AMBIENT + 16
+        private const val WATER_PARAMS: Int = ENV_AMBIENT + 16
+        private const val ACTOR_INFO: Int = WATER_PARAMS + 16
+        private const val ACTORS: Int = ACTOR_INFO + 16
+        const val SIZE: Int = ACTORS + MAX_ACTORS * 16
     }
 
     private var buffer: Int = 0
@@ -86,6 +92,8 @@ class HdFrameUniforms {
         if (HdSettings.mipmaps) bits = bits or HD_MIPMAPS
         if (HdSettings.materials) bits = bits or HD_MATERIALS
         if (HdSettings.environmentLighting) bits = bits or HD_ENV_LIGHT
+        if (HdSettings.caustics) bits = bits or HD_CAUSTICS
+        if (HdSettings.grassDisplacement) bits = bits or HD_GRASS
         return bits
     }
 
@@ -136,6 +144,17 @@ class HdFrameUniforms {
 
     /** Water's tint (HD_WATER): colour, w how strongly it replaces the game's water colour. */
     fun setWater(r: Float, g: Float, b: Float, strength: Float) = putVec4(WATER, r, g, b, strength)
+
+    /** The characters grass bends away from (HD_GRASS): world x, z each; [count] of them. */
+    fun setActors(positions: FloatArray, count: Int) {
+        putVec4(ACTOR_INFO, count.toFloat(), 0.0f, 0.0f, 0.0f)
+        for (i in 0 until MAX_ACTORS) {
+            putVec4(ACTORS + i * 16, positions[i * 2], positions[i * 2 + 1], 0.0f, 0.0f)
+        }
+    }
+
+    /** The area's water: waves' height, speed, glint and size (1 each by default). */
+    fun setWaterParams(waves: Float, speed: Float, glint: Float, size: Float) = putVec4(WATER_PARAMS, waves, speed, glint, size)
 
     /** The environment's tints of the sun's and the ambient light (HD_ENV_LIGHT); 1 leaves the game's. */
     fun setEnvironmentLight(sunR: Float, sunG: Float, sunB: Float, ambientR: Float, ambientG: Float, ambientB: Float) {
