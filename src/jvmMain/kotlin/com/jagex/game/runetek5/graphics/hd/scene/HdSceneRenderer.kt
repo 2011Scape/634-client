@@ -150,6 +150,16 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     /** Objects from the scene's transparent static list: drawn on their own, sorted, in the client's order. */
     private var objectAlpha: BooleanArray = BooleanArray(4096)
 
+    /** Each object's plane (Entity.level) and loc shape (GameObject.getShape, -1 for none): the occlusion bake leaves out roofs and the floors above the player. */
+    private var objectLevel: ByteArray = ByteArray(4096)
+    private var objectShape: ByteArray = ByteArray(4096)
+    private var buildingLevel: Int = 0
+    private var buildingShape: Int = -1
+
+    // the occlusion bake's draw list (one range per run of objects that pass its filter), grown as needed
+    private var filteredCounts = MemoryUtil.memAllocInt(1024)
+    private var filteredOffsets: PointerBuffer = MemoryUtil.memAllocPointer(1024)
+
     private var objectIndexStart: IntArray = IntArray(4096)
 
     private var objectIndexCount: IntArray = IntArray(4096)
@@ -289,6 +299,21 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
      * the player first, so a region load does not stall a frame. Until its chunk is built an entity
      * draws the emulated way.
      */
+    /** Region builds so far (regionBuilt): occlusion fades in again after each (HdShadows). */
+    var builds: Int = 0
+        private set
+
+    /** Builds the scene for a region just loaded (or one found on a toolkit switch). */
+    fun regionBuilt() {
+        builds++
+        // a new region: the last bake does not fit it
+        lastHeights = null
+        build()
+    }
+
+    /** Whether the retained vertices' occlusion is still being baked (a few objects a frame). */
+    fun occlusionPending(): Boolean = bakeHeights != null
+
     fun build() {
         clear()
         queueList(Scene.stringStack, -1)
@@ -393,6 +418,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     /** Captures [count] entities' models and appends their geometry as [chunk]'s index range. */
     private fun buildChunk(chunk: Int, entities: Array<Entity?>, count: Int) {
         val firstIndex: Int = indexCount
+        val firstObject: Int = objectCount
         buildEntities(chunk, entities, count, false)
         chunkIndexStart[chunk] = firstIndex
         chunkIndexCount[chunk] = indexCount - firstIndex
@@ -400,6 +426,16 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         buildEntities(chunk, entities, count, true)
         // the transparent objects follow the opaque ones: tree canopies and the like cast shadows too
         chunkCasterCount[chunk] = indexCount - firstIndex
+        val heights: java.nio.FloatBuffer? = lastHeights
+        if (heights != null) {
+            // a chunk rebuilt in a region already baked: its objects shaded now, from that bake
+            val m: FloatArray = FloatArray(16)
+            for (objectId in firstObject until objectCount) {
+                if (objectModels[objectId] != null) {
+                    bakeObjectOcclusion(objectId, heights, bakeSize, bakeSize / bakeExtent, bakeTop, bakeRange, m)
+                }
+            }
+        }
         bakeVersion++
     }
 
@@ -411,6 +447,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             }
             captureCount = 0
             windFor(entities[i]!!)
+            buildingLevel = entities[i]!!.level.toInt()
+            buildingShape = if (entities[i] is com.jagex.game.runetek5.entity.gameobject.GameObject) (entities[i] as com.jagex.game.runetek5.entity.gameobject.GameObject).getShape() else -1
             capturing = this
             try {
                 val pickable: PickableEntity? = entities[i]!!.render(toolkit)
@@ -488,6 +526,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     fun bakeVertexOcclusion(heights: java.nio.FloatBuffer, size: Int, top: Float, range: Float, extent: Float) {
         // started here, done a few milliseconds a frame (stepVertexOcclusion), so a bake is no hitch
         bakeHeights = heights
+        lastHeights = heights
         bakeSize = size
         bakeTop = top
         bakeRange = range
@@ -505,6 +544,40 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     private var bakeNanos: Long = 0L
 
     /** Bakes the next objects' vertex occlusion for up to [budgetNanos]; the vertices go up when all are done. */
+    /** Bakes object [objectId]'s vertices' occlusion from [heights] (see bakeVertexOcclusion); [m] is scratch. */
+    private fun bakeObjectOcclusion(objectId: Int, heights: java.nio.FloatBuffer, size: Int, scale: Float, top: Float, range: Float, m: FloatArray) {
+        System.arraycopy(objectMatrices, objectId * 16, m, 0, 16)
+        val first: Int = objectVertexStart[objectId]
+        val count: Int = objectVertexCount[objectId]
+        for (v in first until first + count) {
+            val at: Int = v * VERTEX_BYTES
+            val lx: Float = vertices.getFloat(at)
+            val ly: Float = vertices.getFloat(at + 4)
+            val lz: Float = vertices.getFloat(at + 8)
+            val x: Float = m[0] * lx + m[4] * ly + m[8] * lz + m[12]
+            val y: Float = m[1] * lx + m[5] * ly + m[9] * lz + m[13]
+            val z: Float = m[2] * lx + m[6] * ly + m[10] * lz + m[14]
+            val nlx: Float = vertices.getFloat(at + 24)
+            val nly: Float = vertices.getFloat(at + 28)
+            val nlz: Float = vertices.getFloat(at + 32)
+            var nx: Float = m[0] * nlx + m[4] * nly + m[8] * nlz
+            var ny: Float = m[1] * nlx + m[5] * nly + m[9] * nlz
+            var nz: Float = m[2] * nlx + m[6] * nly + m[10] * nlz
+            val nl: Float = kotlin.math.sqrt(nx * nx + ny * ny + nz * nz)
+            if (nl > 0.0001f) {
+                nx /= nl; ny /= nl; nz /= nl
+            } else {
+                nx = 0.0f; ny = -1.0f; nz = 0.0f
+            }
+            val ao: Float = skyVisibility(heights, size, scale, top, range, x, y, z, nx, ny, nz)
+            vertices.put(at + 38, (ao * 255.0f + 0.5f).toInt().coerceIn(0, 255).toByte())
+        }
+    }
+
+    // the last bake's height map, kept for objects built later in the same region (rebuilt chunks get
+    // their occlusion at once instead of starting unshaded and darkening at the next bake)
+    private var lastHeights: java.nio.FloatBuffer? = null
+
     fun stepVertexOcclusion(budgetNanos: Long) {
         val heights: java.nio.FloatBuffer = bakeHeights ?: return
         val size: Int = bakeSize
@@ -520,32 +593,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             }
             val objectId: Int = bakeCursor++
             if (objectModels[objectId] == null) continue
-            System.arraycopy(objectMatrices, objectId * 16, m, 0, 16)
-            val first: Int = objectVertexStart[objectId]
-            val count: Int = objectVertexCount[objectId]
-            for (v in first until first + count) {
-                val at: Int = v * VERTEX_BYTES
-                val lx: Float = vertices.getFloat(at)
-                val ly: Float = vertices.getFloat(at + 4)
-                val lz: Float = vertices.getFloat(at + 8)
-                val x: Float = m[0] * lx + m[4] * ly + m[8] * lz + m[12]
-                val y: Float = m[1] * lx + m[5] * ly + m[9] * lz + m[13]
-                val z: Float = m[2] * lx + m[6] * ly + m[10] * lz + m[14]
-                val nlx: Float = vertices.getFloat(at + 24)
-                val nly: Float = vertices.getFloat(at + 28)
-                val nlz: Float = vertices.getFloat(at + 32)
-                var nx: Float = m[0] * nlx + m[4] * nly + m[8] * nlz
-                var ny: Float = m[1] * nlx + m[5] * nly + m[9] * nlz
-                var nz: Float = m[2] * nlx + m[6] * nly + m[10] * nlz
-                val nl: Float = kotlin.math.sqrt(nx * nx + ny * ny + nz * nz)
-                if (nl > 0.0001f) {
-                    nx /= nl; ny /= nl; nz /= nl
-                } else {
-                    nx = 0.0f; ny = -1.0f; nz = 0.0f
-                }
-                val ao: Float = skyVisibility(heights, size, scale, top, range, x, y, z, nx, ny, nz)
-                vertices.put(at + 38, (ao * 255.0f + 0.5f).toInt().coerceIn(0, 255).toByte())
-            }
+            bakeObjectOcclusion(objectId, heights, size, scale, top, range, m)
         }
         // every vertex goes up again (the buffer keeps its size)
         uploadedVertices = 0
@@ -582,6 +630,60 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     fun drawAllForBake(program: WebGLProgram, unit: Int) {
         drawRegion(program, unit, 0, 0, CHUNK_GRID - 1, CHUNK_GRID - 1)
     }
+
+    /**
+     * The occlusion bake's occluders: every retained object on plane [maxLevel] or below, roofs
+     * (shapes 12 to 21) left out. Indoors the game hides the roof and the floors above; seen from
+     * above they would cover every room, and AO would darken the whole interior.
+     */
+    fun drawOccludersForBake(program: WebGLProgram, unit: Int, maxLevel: Int) {
+        if (objectCount == 0) return
+        // the object matrices' texture and the geometry, as drawRegion leaves them
+        drawRegion(program, unit, -1, -1, -1, -1)
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + unit)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_BUFFER, bakeTexture)
+        var draws: Int = 0
+        var triangles: Int = 0
+        var runStart: Int = -1
+        var runEnd: Int = -1
+        for (i in 0 until objectCount) {
+            val keep: Boolean = objectModels[i] != null && objectLevel[i] <= maxLevel && !isRoof(objectShape[i].toInt())
+            if (keep && objectIndexCount[i] > 0) {
+                if (runStart >= 0 && objectIndexStart[i] == runEnd) {
+                    runEnd += objectIndexCount[i]
+                    continue
+                }
+                if (runStart >= 0) {
+                    draws = addFilteredRange(draws, runStart, runEnd)
+                    triangles += (runEnd - runStart) / 3
+                }
+                runStart = objectIndexStart[i]
+                runEnd = runStart + objectIndexCount[i]
+            }
+        }
+        if (runStart >= 0) {
+            draws = addFilteredRange(draws, runStart, runEnd)
+            triangles += (runEnd - runStart) / 3
+        }
+        if (draws > 0) {
+            filteredCounts.position(0).limit(draws)
+            filteredOffsets.position(0).limit(draws)
+            CoreGl.multiDrawElements(GL33C.GL_TRIANGLES, filteredCounts, GL33C.GL_UNSIGNED_INT, filteredOffsets, triangles)
+        }
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_BUFFER, 0)
+    }
+
+    private fun addFilteredRange(draws: Int, start: Int, end: Int): Int {
+        if (draws == filteredCounts.capacity()) {
+            filteredCounts = MemoryUtil.memRealloc(filteredCounts, draws * 2)
+            filteredOffsets = MemoryUtil.memRealloc(filteredOffsets, draws * 2)
+        }
+        filteredCounts.limit(filteredCounts.capacity()).put(draws, end - start)
+        filteredOffsets.limit(filteredOffsets.capacity()).put(draws, start.toLong() * 4L)
+        return draws + 1
+    }
+
+    private fun isRoof(shape: Int): Boolean = shape >= 12 && shape <= 21
 
     /**
      * The retained objects of the chunks from ([minChunkX], [minChunkZ]) to ([maxChunkX],
@@ -638,6 +740,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             objectModels = objectModels.copyOf(size)
             objectChunk = objectChunk.copyOf(size)
             objectAlpha = objectAlpha.copyOf(size)
+            objectLevel = objectLevel.copyOf(size)
+            objectShape = objectShape.copyOf(size)
             objectIndexStart = objectIndexStart.copyOf(size)
             objectIndexCount = objectIndexCount.copyOf(size)
             objectFaceGroups = objectFaceGroups.copyOf(size)
@@ -659,6 +763,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         objectModels[objectId] = model
         objectChunk[objectId] = chunk
         objectAlpha[objectId] = buildingAlpha
+        objectLevel[objectId] = buildingLevel.toByte()
+        objectShape[objectId] = buildingShape.toByte()
         objectWind[objectId] = buildingWind
         if ((objectId + 1) * 16 > objectMatrices.size) {
             objectMatrices = objectMatrices.copyOf(objectMatrices.size * 2)
@@ -1531,6 +1637,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         MemoryUtil.memFree(indices)
         MemoryUtil.memFree(drawCounts)
         MemoryUtil.memFree(drawOffsets)
+        MemoryUtil.memFree(filteredCounts)
+        MemoryUtil.memFree(filteredOffsets)
         if (bakeBuffer != 0) GL33C.glDeleteBuffers(bakeBuffer)
         if (bakeTexture != 0) GL33C.glDeleteTextures(bakeTexture)
         materials.release()

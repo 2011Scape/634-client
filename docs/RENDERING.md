@@ -186,6 +186,13 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
     and four close-ups of the player in outfits that between them use every way an item's material
     draws (`client.test.materialScan` lists the material classes and items using each; a scene's
     eighth value dresses the player, on the client only, and the harness puts the clothes back);
+  - flicker and pops: `client.test.sceneBurst=N` measures the 3D view's mean brightness every frame
+    and fails on a frame-to-frame jump above `client.test.sceneLumaJump` (default 3), saving the two
+    frames (`build/smoke/scenes/jump-*`); `client.test.sceneWalk` walks during it
+    (`sceneWalkTiles` at a time, again every `sceneWalkEvery` frames: far enough to load a new
+    region), `client.test.sceneBurstLoc=N` takes a loc out at frame N, `sceneBurstSave=false` keeps
+    only the measurement, `sceneLumaLog` prints every frame's value. The game's own roof hiding (the
+    player stepping under or out of a roof) is a real jump of 5 to 15;
   - the regular smoke test against toolkit 1's references;
   - the bench at a position (`-Pclient.test.scenePosition=...`), which prints draw calls by category,
     the region-build hitch and chunk rebuilds (`client/features/RenderStats`).
@@ -204,7 +211,7 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
 | `pixelLighting` | the fixed-function formula per pixel | `ff.frag`, `scene.frag` |
 | `lights` | point lights from `lights.json`, 64 nearest | `scene/HdLights`, `hdPointLights` |
 | `shadows` (1024/2048/4096) | sun shadow map, PCF | `scene/HdShadows`, `hdShadow` |
-| `ambientOcclusion` | baked: the region's static scene into a height map when its chunks change, then (a few ms a frame) into every retained vertex and into a texture per ground level, four samples a tile side; a ground pixel reads one texel, and measures the moving models' map itself only near the player; other moving models measure per pixel | `scene/HdShadows` (`bindGroundOcclusion`), `HdSceneRenderer.skyVisibility`, `hdGroundOcclusion`, `hdAmbientOcclusion` |
+| `ambientOcclusion` | baked: the region's static scene into a height map when its chunks change or the player changes floor - roofs and the floors above the player left out, as the game hides them indoors - then (a few ms a frame) into every retained vertex and into a texture per ground level, four samples a tile side; a ground pixel reads one texel, and measures the moving models' map (the player left out; walls only, never cover overhead) itself only near the player; other moving models measure per pixel. A new bake never changes the look before it is complete (a ground keeps its previous texture; a rebuilt chunk is shaded at once from the last bake); after a region load occlusion fades in once everything is baked | `scene/HdShadows` (`bindGroundOcclusion`), `HdSceneRenderer.skyVisibility`, `hdGroundOcclusion`, `hdAmbientOcclusion` |
 | `fog`, `fade`, `sky` | environment fog, dithered fade at the edge, gradient sky and height fog | `scene/HdFeatures`, `hdFog`, `sky.frag` |
 | `water` | wave normals, Fresnel sky reflection, glint, tint | `hdWater`; `GlState.hdWater` |
 | `terrainBlend` | triplanar on slopes, anti-tiling blend, broad variation on the ground | `hdTerrainTexture`; `GlState.hdGround` |

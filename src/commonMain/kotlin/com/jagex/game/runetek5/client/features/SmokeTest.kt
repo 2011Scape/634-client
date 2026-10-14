@@ -349,6 +349,36 @@ object SmokeTest {
 
 	private var burstIndex: Int = 0
 
+	private val SCENE_WALK_TILES: Int = lang.getInteger("client.test.sceneWalkTiles", 6)
+
+	private val SCENE_WALK_EVERY: Int = lang.getInteger("client.test.sceneWalkEvery", 1000000)
+
+	private val SCENE_BURST_LOC: Int = lang.getInteger("client.test.sceneBurstLoc", 0)
+
+	/** client.test.sceneBurstSave=false: a burst only measured, its frames not written (long walks). */
+	private val SCENE_BURST_SAVE: Boolean = lang.getProperty("client.test.sceneBurstSave", "true") != "false"
+
+	/** client.test.sceneLumaJump: the largest frame-to-frame change in mean brightness (0-255) a burst may have. */
+	private val SCENE_LUMA_JUMP: Double = (lang.getProperty("client.test.sceneLumaJump", "3.0").toDoubleOrNull() ?: 3.0)
+
+	private var burstLuma: Double = 0.0
+
+	private val SCENE_LUMA_LOG: Boolean = lang.getBoolean("client.test.sceneLumaLog")
+
+	private var burstPixels: IntArray? = null
+
+	private var burstPrevious: IntArray? = null
+
+	private var burstWidth: Int = 0
+
+	private var burstHeight: Int = 0
+
+	private var burstSaved: Int = 0
+
+	private var burstMaxJump: Double = 0.0
+
+	private var burstMaxJumpAt: Int = 0
+
 	private val SCENE_SPIN: Int = lang.getInteger("client.test.sceneSpin", 0)
 
 	private val SCENE_WALK: Boolean = lang.getBoolean("client.test.sceneWalk")
@@ -488,7 +518,8 @@ object SmokeTest {
 		"outfit_metal:" + OUTFIT_VIEW + ",0:4732|1:6570|2:87|3:35|4:1127|5:1201|7:4730;" +
 		"outfit_robes:" + OUTFIT_VIEW + ",0:12866|1:-1|2:15511|3:3053|4:19317|5:-1|7:1079;" +
 		"outfit_khazard:" + OUTFIT_VIEW + ",0:74|1:-1|2:86|3:1285|4:75|5:1201|7:1079;" +
-		"outfit_torch:" + OUTFIT_VIEW + ",0:4732|1:10637|2:15511|3:8987|4:1127|5:-1|7:4730"
+		// the torch's flame animates: toolkit 1 against itself differs by up to 51 here
+		"outfit_torch:3222,3218,0,0,1200,450,75,0:4732|1:10637|2:15511|3:8987|4:1127|5:-1|7:4730"
 
 	/**
 	 * client.test.findText=word: once in game, prints every interface component whose text holds the
@@ -1261,15 +1292,48 @@ object SmokeTest {
 		// client.test.sceneBurst=N: N consecutive frames saved first, to measure flicker between frames
 		if (burstIndex < SCENE_BURST) {
 			if (burstFrame != gameFrames) {
-				if (burstIndex == 0 && SCENE_WALK) {
-					// client.test.sceneWalk: the player walks six tiles east during the burst
-					walkFromMenu(player.movementBaseX[0] + 6, player.movementBaseY[0])
+				if (SCENE_WALK && burstIndex % SCENE_WALK_EVERY == 0) {
+					// client.test.sceneWalk: the player walks east during the burst, client.test.sceneWalkTiles
+					// (default 6) at a time, again every client.test.sceneWalkEvery frames: far enough, it
+					// crosses into a map region the client builds anew
+					walkFromMenu(player.movementBaseX[0] + SCENE_WALK_TILES, player.movementBaseY[0])
+				}
+				if (SCENE_BURST_LOC > 0 && burstIndex == SCENE_BURST_LOC) {
+					// client.test.sceneBurstLoc=N: a nearby loc taken out at the burst's Nth frame (the scene
+					// changes, and 634HD bakes its occlusion again while the player walks)
+					println("SMOKE scene " + name + ": removed " + removeNearbyLoc(player) + " at burst frame " + burstIndex)
 				}
 				burstFrame = gameFrames
-				saveFrame("build/smoke/scenes/burst-" + name + "-" + burstIndex + ".png")
+				val luma: Double = burstFrame(if (SCENE_BURST_SAVE) "build/smoke/scenes/burst-" + name + "-" + burstIndex + ".png" else null)
+				if (burstIndex > 0) {
+					val jump: Double = kotlin.math.abs(luma - burstLuma)
+					if (jump > burstMaxJump) {
+						burstMaxJump = jump
+						burstMaxJumpAt = burstIndex
+					}
+					if (jump > SCENE_LUMA_JUMP && burstSaved < 4) {
+						// the frames either side of the jump, to see what it was
+						burstSaved++
+						savePixels(burstPrevious!!, burstWidth, burstHeight, "build/smoke/scenes/jump-" + name + "-" + (burstIndex - 1) + ".png")
+						savePixels(burstPixels!!, burstWidth, burstHeight, "build/smoke/scenes/jump-" + name + "-" + burstIndex + ".png")
+					}
+				}
+				if (SCENE_LUMA_LOG) {
+					println("SMOKE LUMA " + name + " " + burstIndex + " " + format(luma) + " step " + ClientState.mainLogicStep)
+				}
+				burstLuma = luma
 				burstIndex++
 			}
 			return
+		}
+		if (SCENE_BURST > 0) {
+			// the largest change in the 3D view's brightness from one frame to the next: a darkness pop or
+			// a flash shows as a jump well above the few tenths walking and turning make
+			println("SMOKE scene " + name + ": burst of " + SCENE_BURST + ", largest brightness jump " + format(burstMaxJump) + " at frame " + burstMaxJumpAt)
+			if (burstMaxJump > SCENE_LUMA_JUMP) {
+				fail("scene " + name + ": the brightness jumped by " + format(burstMaxJump) + " at burst frame " + burstMaxJumpAt + " (limit " + SCENE_LUMA_JUMP + ")")
+			}
+			burstMaxJump = 0.0
 		}
 		burstIndex = 0
 		// client.test.hdCycle: on the first scene, every 634HD switch turned on and off again live
@@ -1743,6 +1807,58 @@ object SmokeTest {
 	 * Saves the frame as scene-<name>-toolkit<id>.png and compares it with the reference pixel by
 	 * pixel, saving a diff image beside it when any pixel differs. Returns a summary.
 	 */
+	/** One burst frame: its 3D view's mean brightness (interface edges left out), saved to [path] if given. */
+	private fun burstFrame(path: String?): Double {
+		val toolkit: Toolkit = ClientState.activeToolkit!!
+		val size: IntArray = IntArray(2)
+		toolkit.accumulateViewportDimensions(size)
+		val pixels: IntArray = toolkit.na(0, 0, size[0], size[1])!!
+		burstPrevious = burstPixels
+		burstPixels = pixels
+		burstWidth = size[0]
+		burstHeight = size[1]
+		if (path != null) {
+			val shot: BufferedImage = BufferedImage(size[0], size[1], awt.image.BUFFERED_IMAGE_TYPE_INT_RGB)
+			shot.setRGB(0, 0, size[0], size[1], pixels, 0, size[0])
+			try {
+				val file: File = File(path)
+				file.getParentFile()!!.mkdirs()
+				writePng(shot, file)
+			} catch (ex: Exception) {
+				fail("cannot save " + path + ": " + ex)
+			}
+		}
+		// the 3D view without the minimap and the side panel (right), the chat box (bottom) and the top line
+		val right: Int = size[0] - 260
+		val bottom: Int = size[1] - 170
+		var sum: Long = 0L
+		var count: Int = 0
+		var y: Int = 40
+		while (y < bottom) {
+			var x: Int = 0
+			while (x < right) {
+				val rgb: Int = pixels[y * size[0] + x]
+				sum += (((rgb shr 16) and 0xFF) * 299 + ((rgb shr 8) and 0xFF) * 587 + (rgb and 0xFF) * 114).toLong()
+				count++
+				x += 2
+			}
+			y += 2
+		}
+		return if (count == 0) 0.0 else sum.toDouble() / count.toDouble() / 1000.0
+	}
+
+	private fun savePixels(pixels: IntArray, width: Int, height: Int, path: String) {
+		val shot: BufferedImage = BufferedImage(width, height, awt.image.BUFFERED_IMAGE_TYPE_INT_RGB)
+		shot.setRGB(0, 0, width, height, pixels, 0, width)
+		try {
+			val file: File = File(path)
+			file.getParentFile()!!.mkdirs()
+			writePng(shot, file)
+		} catch (ex: Exception) {
+			fail("cannot save " + path + ": " + ex)
+		}
+	}
+
 	private fun saveFrame(path: String) {
 		val toolkit: Toolkit = ClientState.activeToolkit!!
 		val size: IntArray = IntArray(2)

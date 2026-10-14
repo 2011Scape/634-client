@@ -276,7 +276,8 @@ void main() {
     }
     if (mapped) color = hdApplyMaterial(uHdMapSlot, color, gUv0, FF_VIEW_POS);
     color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
-    color.rgb *= uHdGround == 2 ? hdGroundOcclusion(FF_VIEW_POS, FF_NORMAL) : hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);
+    hdAppliedOcclusion = uHdGround == 3 ? 1.0 : uHdGround == 2 ? hdGroundOcclusion(FF_VIEW_POS, FF_NORMAL) : hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);
+    color.rgb *= hdAppliedOcclusion;
     float depth = gl_FragCoord.z / gl_FragCoord.w;
     if (uFogEnabled) {
         color = hdFog(color, FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd);

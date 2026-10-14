@@ -100,6 +100,10 @@ vec4 hdApplyMaterial(int slot, vec4 color, vec2 uv, vec3 viewPos) {
 // The debug panel's overlays (hdDebug.x) on a 3D-view fragment. [texture] identifies the texture for
 // the id overlay: the 634 texture id, or 4096 plus the retained scene's material slot, -1 for none;
 // it is written exactly into red and green so the panel can read the id under the mouse.
+// The occlusion the fragment was given (set by scene.frag and ff.frag before the overlay), for the
+// occlusion overlay: baked into the vertex, read from the ground's texture, or measured per pixel.
+float hdAppliedOcclusion = 1.0;
+
 vec4 hdDebugOverlay(vec4 color, vec3 viewPos, vec3 normal, int texture) {
     int mode = hdDebug.x;
     if (mode == 0 || uHdScene == 0) return color;
@@ -141,7 +145,7 @@ vec4 hdDebugOverlay(vec4 color, vec3 viewPos, vec3 normal, int texture) {
         float tileEdge = (cell.x < cellWidth.x || cell.y < cellWidth.y) ? 0.35 : 0.0;
         return vec4(mix(color.rgb, vec3(1.0, 0.85, 0.0), max(edge, tileEdge)), color.a);
     }
-    if (mode == 6) return vec4(vec3(hdAmbientOcclusion(viewPos, normal)), 1.0);
+    if (mode == 6) return vec4(vec3(hdAppliedOcclusion), 1.0);
     if (mode == 7) return vec4(vec3(hdShadow(viewPos)), 1.0);
     return color;
 }
