@@ -668,7 +668,10 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	private var panelMouseCanvas: java.awt.Canvas? = null
 
 	// the overlay the debug panel asks for (HdFrameUniforms.setDebug), 0 for none
-	fun debugOverlay(): Int = if (this.debugPanel != null && HdSettings.panel) this.debugPanel!!.overlay else 0
+	// (a test run's client.test.hdOverlay applies without the panel: the walk checks measure occlusion alone)
+	fun debugOverlay(): Int = if (this.debugPanel != null && HdSettings.panel) this.debugPanel!!.overlay else TEST_OVERLAY
+
+	private val TEST_OVERLAY: Int = if (System.getProperty("client.test") != null) System.getProperty("client.test.hdOverlay")?.toIntOrNull() ?: 0 else 0
 
 	/**
 	 * 634HD: the debug panel's frame (client.debug builds): opened or closed as HdSettings.panel says,

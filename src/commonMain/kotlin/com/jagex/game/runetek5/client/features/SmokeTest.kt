@@ -1,5 +1,7 @@
 package com.jagex.game.runetek5.client.features
 
+import com.jagex.game.runetek5.core.constants.TileFlag
+import com.jagex.game.runetek5.scene.SettingsBits
 import com.jagex.game.runetek5.SceneVisibleTiles
 import memoryReport
 import com.jagex.game.runetek5.LocType
@@ -379,9 +381,25 @@ object SmokeTest {
 
 	private var burstRoofFrame: Int = -1
 
-	/** The area whose roofs the game hides now, packed (it changes as the player steps under a roof). */
+	/**
+	 * What the game hides or rebuilds, packed: the area whose roofs are hidden, the player's remove-roof
+	 * tile and plane, the scene's base (a map rebuild). A change is a real jump, not a flicker.
+	 */
 	private fun roofSignature(): Long {
-		return (MapRegion.roofMinX[0].toLong() shl 48) xor (MapRegion.roofMaxX[0].toLong() shl 32) xor (MapRegion.roofMinZ[0].toLong() shl 16) xor MapRegion.roofMaxZ[0].toLong() xor (MapRegion.visibleBelowDrawheight[0].toLong() shl 20)
+		// the roofs over the player's tile go when it stands on a remove-roof tile (the default roof setting)
+		val player: PlayerEntity? = PlayerUpdate.localPlayer
+		var underRoof: Long = 0L
+		if (player != null && SettingsBits.tileFunctionMasks != null) {
+			val level: Int = player.level.toInt()
+			val tileX: Int = player.x shr 9
+			val tileZ: Int = player.z shr 9
+			if (tileX >= 0 && tileZ >= 0 && tileX < MapRegion.sceneSizeX && tileZ < MapRegion.sceneSizeY) {
+				underRoof = ((SettingsBits.tileFunctionMasks!![level]!![tileX]!![tileZ].toInt() and TileFlag.REMOVE_ROOF) + level * 1024).toLong()
+			}
+		}
+		// a map rebuild re-centres the scene (and works out what is hidden anew)
+		val base: Long = (MapRegion.sceneBaseX.toLong() shl 40) xor (MapRegion.sceneBaseY.toLong() shl 24)
+		return base xor (underRoof shl 56) xor (MapRegion.roofMinX[0].toLong() shl 48) xor (MapRegion.roofMaxX[0].toLong() shl 32) xor (MapRegion.roofMinZ[0].toLong() shl 16) xor MapRegion.roofMaxZ[0].toLong() xor (MapRegion.visibleBelowDrawheight[0].toLong() shl 20)
 	}
 
 	private var burstMaxJump: Double = 0.0
@@ -1323,7 +1341,7 @@ object SmokeTest {
 				val roofs: Long = roofSignature()
 				if (burstIndex > 0 && roofs != burstRoofs) {
 					burstRoofFrame = burstIndex
-					println("SMOKE scene " + name + ": roofs hidden or shown at burst frame " + burstIndex + " (the next 3 frames not measured)")
+					println("SMOKE scene " + name + ": roofs hidden or shown, or the map rebuilt, at burst frame " + burstIndex + " (the next 3 frames not measured)")
 				}
 				burstRoofs = roofs
 				// the scene shows the change a frame or two after the tick that made it
