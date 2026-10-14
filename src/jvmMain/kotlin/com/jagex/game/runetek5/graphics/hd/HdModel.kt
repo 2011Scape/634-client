@@ -4217,85 +4217,79 @@ class HdModel : Model {
 	}
 
 	/**
-	 * 634HD: where this model's flame is, in model space, into [out] (x, y, z; the game's y grows down),
-	 * for the GPU particles' emitters (HdLights): the centre of its flame sprites (billboards), else of
-	 * the game's own particle-emitter triangles, else of its faces drawn with the fire texture (110),
-	 * else of its bright orange and yellow faces, else, with [allowTop], its top. 0 when none of them
-	 * applies; else 1 to 5 for the way it was found.
+	 * 634HD: where this model's flame is and how big, in model space, into [out]: x, y, z of its centre
+	 * (the game's y grows down), then its width and its height, for the GPU particles and lights
+	 * (HdLights). The flame is its flame sprites (billboards), else the game's own particle-emitter
+	 * triangles, else the faces drawn with the fire texture (110), else bright orange and yellow faces,
+	 * else, with [allowTop], the top twentieth of the model. 0 when none of them applies; else 1 to 5
+	 * for the way it was found.
 	 */
 	fun hdFlamePoint(out: IntArray, allowTop: Boolean): Int {
 		val x: IntArray = this.verticesX ?: return 0
 		val y: IntArray = this.verticesY ?: return 0
 		val z: IntArray = this.verticesZ ?: return 0
-		var sx: Long = 0
-		var sy: Long = 0
-		var sz: Long = 0
+		val picked: IntArray = IntArray(maxOf(this.numVertices, 1))
 		var n: Int = 0
 		val billboards: Array<GlBillboardFace?>? = this.billboardFaces
 		if (billboards != null) {
 			for (face in billboards) {
-				if (face == null) continue
-				sx += (x[face.vertexA] + x[face.vertexB] + x[face.vertexC]).toLong()
-				sy += (y[face.vertexA] + y[face.vertexB] + y[face.vertexC]).toLong()
-				sz += (z[face.vertexA] + z[face.vertexB] + z[face.vertexC]).toLong()
-				n += 3
+				if (face == null || n + 3 > picked.size) continue
+				picked[n++] = face.vertexA
+				picked[n++] = face.vertexB
+				picked[n++] = face.vertexC
 			}
-			if (n > 0) return flameOut(out, sx, sy, sz, n, 1)
+			if (n > 0) return flameOut(out, x, y, z, picked, n, 1)
 		}
 		val emitters: Array<EmissiveTriangle?>? = this.emissiveTriangles
 		if (emitters != null) {
 			for (t in emitters) {
-				if (t == null) continue
-				sx += (x[t.faceA] + x[t.faceB] + x[t.vertexC]).toLong()
-				sy += (y[t.faceA] + y[t.faceB] + y[t.vertexC]).toLong()
-				sz += (z[t.faceA] + z[t.faceB] + z[t.vertexC]).toLong()
-				n += 3
+				if (t == null || n + 3 > picked.size) continue
+				picked[n++] = t.faceA
+				picked[n++] = t.faceB
+				picked[n++] = t.vertexC
 			}
-			if (n > 0) return flameOut(out, sx, sy, sz, n, 2)
+			if (n > 0) return flameOut(out, x, y, z, picked, n, 2)
 		}
-		val a: ShortArray = this.facesA ?: return 0
-		val b: ShortArray = this.facesB ?: return 0
-		val c: ShortArray = this.facesC ?: return 0
-		val colours: ShortArray = this.facesColor ?: return 0
-		// faces index the render vertices (a vertex per normal); back to the model's own vertices
-		val starts: IntArray = this.triangles ?: return 0
-		val slots: ShortArray = this.vertexNormalIndices ?: return 0
-		val meshOf: IntArray = IntArray(this.numNormals) { -1 }
-		for (vertex in 0 until minOf(this.numVertices, starts.size - 1)) {
-			for (slot in starts[vertex] until minOf(starts[vertex + 1], slots.size)) {
-				val render: Int = slots[slot] - 1
-				if (render >= 0 && render < meshOf.size) meshOf[render] = vertex
+		val a: ShortArray? = this.facesA
+		val b: ShortArray? = this.facesB
+		val c: ShortArray? = this.facesC
+		val colours: ShortArray? = this.facesColor
+		val starts: IntArray? = this.triangles
+		val slots: ShortArray? = this.vertexNormalIndices
+		if (a != null && b != null && c != null && colours != null && starts != null && slots != null) {
+			// faces index the render vertices (a vertex per normal); back to the model's own vertices
+			val meshOf: IntArray = IntArray(this.numNormals) { -1 }
+			for (vertex in 0 until minOf(this.numVertices, starts.size - 1)) {
+				for (slot in starts[vertex] until minOf(starts[vertex + 1], slots.size)) {
+					val render: Int = slots[slot] - 1
+					if (render >= 0 && render < meshOf.size) meshOf[render] = vertex
+				}
 			}
-		}
-		val materials: ShortArray? = this.facesMaterial
-		// first the faces drawn with the game's fire texture (110), then, without any, bright orange and
-		// yellow faces
-		for (pass in 0 until 2) {
-		for (f in 0 until this.numFaces) {
-			if (pass == 0) {
-				if (materials == null || materials[f].toInt() != 110) continue
-			} else {
-				val colour: Int = colours[f].toInt() and 0xFFFF
-				val hue: Int = (colour shr 10) and 0x3F
-				val saturation: Int = (colour shr 7) and 0x7
-				val lightness: Int = colour and 0x7F
-				// the game's HSL: hue 3 to 11 is orange to yellow
-				if (hue < 3 || hue > 11 || saturation < 4 || lightness < 70) continue
+			val materials: ShortArray? = this.facesMaterial
+			// first the faces drawn with the game's fire texture (110), then bright orange and yellow ones
+			for (pass in 0 until 2) {
+				for (f in 0 until this.numFaces) {
+					if (pass == 0) {
+						if (materials == null || materials[f].toInt() != 110) continue
+					} else {
+						val colour: Int = colours[f].toInt() and 0xFFFF
+						val hue: Int = (colour shr 10) and 0x3F
+						val saturation: Int = (colour shr 7) and 0x7
+						val lightness: Int = colour and 0x7F
+						// the game's HSL: hue 3 to 11 is orange to yellow
+						if (hue < 3 || hue > 11 || saturation < 4 || lightness < 70) continue
+					}
+					val ra: Int = a[f].toInt() and 0xFFFF
+					val rb: Int = b[f].toInt() and 0xFFFF
+					val rc: Int = c[f].toInt() and 0xFFFF
+					if (ra >= meshOf.size || rb >= meshOf.size || rc >= meshOf.size) continue
+					if (meshOf[ra] < 0 || meshOf[rb] < 0 || meshOf[rc] < 0 || n + 3 > picked.size) continue
+					picked[n++] = meshOf[ra]
+					picked[n++] = meshOf[rb]
+					picked[n++] = meshOf[rc]
+				}
+				if (n > 0) return flameOut(out, x, y, z, picked, n, 3 + pass)
 			}
-			val ra: Int = a[f].toInt() and 0xFFFF
-			val rb: Int = b[f].toInt() and 0xFFFF
-			val rc: Int = c[f].toInt() and 0xFFFF
-			if (ra >= meshOf.size || rb >= meshOf.size || rc >= meshOf.size) continue
-			val va: Int = meshOf[ra]
-			val vb: Int = meshOf[rb]
-			val vc: Int = meshOf[rc]
-			if (va < 0 || vb < 0 || vc < 0) continue
-			sx += (x[va] + x[vb] + x[vc]).toLong()
-			sy += (y[va] + y[vb] + y[vc]).toLong()
-			sz += (z[va] + z[vb] + z[vc]).toLong()
-			n += 3
-		}
-		if (n > 0) return flameOut(out, sx, sy, sz, n, 3 + pass)
 		}
 		if (!allowTop) return 0
 		// last: the top of the model (candles, torches and braziers burn there), its highest twentieth
@@ -4308,23 +4302,38 @@ class HdModel : Model {
 		if (top == Int.MAX_VALUE) return 0
 		val limit: Int = top + maxOf(8, (bottom - top) / 20)
 		for (v in 0 until this.numVertices) {
-			if (y[v] > limit) continue
-			sx += x[v].toLong()
-			sy += y[v].toLong()
-			sz += z[v].toLong()
-			n++
+			if (y[v] <= limit) picked[n++] = v
 		}
-		if (n > 0) return flameOut(out, sx, sy, sz, n, 5)
+		if (n > 0) return flameOut(out, x, y, z, picked, n, 5)
 		return 0
 	}
 
-	private fun flameOut(out: IntArray, sx: Long, sy: Long, sz: Long, n: Int, way: Int): Int {
+	private fun flameOut(out: IntArray, x: IntArray, y: IntArray, z: IntArray, picked: IntArray, n: Int, way: Int): Int {
+		var sx: Long = 0
+		var sy: Long = 0
+		var sz: Long = 0
+		var minX: Int = Int.MAX_VALUE
+		var maxX: Int = Int.MIN_VALUE
+		var minY: Int = Int.MAX_VALUE
+		var maxY: Int = Int.MIN_VALUE
+		var minZ: Int = Int.MAX_VALUE
+		var maxZ: Int = Int.MIN_VALUE
+		for (i in 0 until n) {
+			val v: Int = picked[i]
+			sx += x[v].toLong()
+			sy += y[v].toLong()
+			sz += z[v].toLong()
+			minX = minOf(minX, x[v]); maxX = maxOf(maxX, x[v])
+			minY = minOf(minY, y[v]); maxY = maxOf(maxY, y[v])
+			minZ = minOf(minZ, z[v]); maxZ = maxOf(maxZ, z[v])
+		}
 		out[0] = (sx / n).toInt()
 		out[1] = (sy / n).toInt()
 		out[2] = (sz / n).toInt()
+		out[3] = way
+		out[4] = maxOf(maxX - minX, maxZ - minZ)
+		out[5] = maxY - minY
 		return way
 	}
-
-
 
 }
