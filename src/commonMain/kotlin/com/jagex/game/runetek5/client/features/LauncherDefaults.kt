@@ -39,6 +39,8 @@ object LauncherDefaults {
 	private fun setDefault(name: String, value: String) {
 		if (lang.getProperty(name) == null) {
 			lang.setProperty(name, value)
+			// marked, so a choice saved in the 634HD settings panel can still win (ClientFeatures)
+			lang.setProperty(name + ".default", "true")
 		}
 	}
 }

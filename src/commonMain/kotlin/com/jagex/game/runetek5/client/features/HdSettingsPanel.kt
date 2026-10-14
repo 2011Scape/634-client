@@ -22,6 +22,10 @@ object HdSettingsPanel {
 	@JvmField
 	var open: Boolean = false
 
+	/** Set when the draw distance changed: the root-package caller builds the map again (MapRebuild). */
+	@JvmField
+	var mapRebuildWanted: Boolean = false
+
 	private const val WIDTH: Int = 300
 
 	private const val ROW: Int = 15
@@ -32,20 +36,20 @@ object HdSettingsPanel {
 	private val ROWS: Array<String> = arrayOf(
 		"tonemap", "shadows", "lights", "pixelLighting", "ambientOcclusion", "materials", "sky", "fog",
 		"fade", "water", "terrainBlend", "foliage", "particles", "softParticles", "bloom", "fxaa",
-		"colourGrading", "mipmaps", "anisotropy",
+		"colourGrading", "mipmaps", "anisotropy", "renderDistance", "scale",
 	)
 
 	private val LABELS: Array<String> = arrayOf(
 		"HDR tonemapping", "Shadows", "Point lights", "Per-pixel lighting", "Ambient occlusion",
 		"Material maps", "Sky", "Fog", "Fade-in at distance", "Water", "Ground blending", "Foliage sway",
 		"Embers and sparks", "Soft particles", "Bloom", "FXAA", "Colour grading", "Mipmaps",
-		"Anisotropic filtering",
+		"Anisotropic filtering", "Draw distance", "Interface scale (next start)",
 	)
 
 	private val CHOICES: Array<Array<String>> = arrayOf(
 		arrayOf("off", "aces", "agx"), arrayOf("0", "1024", "2048", "4096"), ONOFF, ONOFF, ONOFF,
 		ONOFF, ONOFF, ONOFF, ONOFF, arrayOf("0", "1"), ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF,
-		ONOFF, arrayOf("0", "2", "4", "8", "16"),
+		ONOFF, arrayOf("0", "2", "4", "8", "16"), arrayOf("1", "1.5", "2"), arrayOf("auto", "1", "1.5", "2", "2.5", "3"),
 	)
 
 	private val ONOFF: Array<String>
@@ -99,7 +103,7 @@ object HdSettingsPanel {
 			if (inside(mouseX, mouseY, left + 4, y, WIDTH - 8, ROW)) {
 				toolkit.aa(left + 4, y, WIDTH - 8, ROW, -0xc5cfd8, 1)
 			}
-			val value: String = HdSettings.valueOf(ROWS[i])
+			val value: String = current(ROWS[i])
 			val on: Boolean = value != "off" && value != "0"
 			font.drawString(LABELS[i], -0x3300, y + 11, left + 10, -0x1000000)
 			font.renderRightAligned(shown(ROWS[i], value), y + 11, if (on) -0xff0100 else -0x7f7f80, left + WIDTH - 10, -0x1000000)
@@ -135,7 +139,7 @@ object HdSettingsPanel {
 		for (i in ROWS.indices) {
 			if (inside(mouseX, mouseY, left + 4, y, WIDTH - 8, ROW)) {
 				val choices: Array<String> = CHOICES[i]
-				val value: String = HdSettings.valueOf(ROWS[i])
+				val value: String = current(ROWS[i])
 				var next: Int = 0
 				for (c in choices.indices) {
 					if (choices[c] == value) {
@@ -143,6 +147,11 @@ object HdSettingsPanel {
 					}
 				}
 				HdSettings.set(ROWS[i], choices[next])
+				if (ROWS[i] == "renderDistance") {
+					// live: the scene is built again at the new distance
+					ClientFeatures.RENDER_DISTANCE = HdSettings.renderDistance
+					mapRebuildWanted = true
+				}
 				HdSettings.save()
 				return true
 			}
@@ -180,7 +189,12 @@ object HdSettingsPanel {
 	@JvmStatic
 	fun clickClose(): Boolean = pressed(left + WIDTH / 2, top + height - 12)
 
+	/** A row's value now: the draw distance in use (not only the saved one), else the setting. */
+	private fun current(name: String): String = if (name == "renderDistance") HdSettings.number(ClientFeatures.RENDER_DISTANCE) else HdSettings.valueOf(name)
+
 	private fun shown(name: String, value: String): String = when (name) {
+		"renderDistance" -> value + "x"
+		"scale" -> if (value == "auto") "Auto (now " + HdSettings.number(ClientFeatures.SCALE) + "x)" else value + "x"
 		"tonemap" -> if (value == "aces") "ACES" else if (value == "agx") "AgX" else "Off"
 		"shadows" -> if (value == "0") "Off" else value
 		"anisotropy" -> if (value == "0") "Off" else value + "x"

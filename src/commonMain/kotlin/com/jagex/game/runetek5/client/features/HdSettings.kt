@@ -106,6 +106,22 @@ object HdSettings {
 	@JvmField
 	var materials: Boolean = false
 
+	/**
+	 * The draw distance chosen in the settings panel (ClientFeatures.RENDER_DISTANCE: 1, 1.5 or 2), 0
+	 * when none was chosen. Saved; used at start when client.renderDistance was not given, or only
+	 * by the launcher's defaults.
+	 */
+	@JvmField
+	var renderDistance: Double = 0.0
+
+	/**
+	 * The interface scale chosen in the settings panel for the next start (ClientFeatures.SCALE: 1
+	 * to 3), 0 for the launcher's own (by the screen). Saved; used at start when client.scale was not
+	 * given, or only by the launcher's defaults.
+	 */
+	@JvmField
+	var scale: Double = 0.0
+
 	/** Debug panel (debug builds: client.debug), toggled with F10 or ::hdpanel. */
 	@JvmField
 	var panel: Boolean = false
@@ -123,6 +139,10 @@ object HdSettings {
 		"shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom",
 		"colourGrading", "materials", "particles",
 	)
+
+	/** Saved too, but not part of the presets: the whole client's draw distance and interface scale. */
+	@JvmField
+	val CLIENT_SAVED: Array<String> = arrayOf("renderDistance", "scale")
 
 	/** The presets, lowest first; "off" is the game as OpenGL draws it. */
 	@JvmField
@@ -256,8 +276,14 @@ object HdSettings {
 		"colourGrading" -> onOff(colourGrading)
 		"materials" -> onOff(materials)
 		"particles" -> onOff(particles)
+		"renderDistance" -> if (renderDistance > 0.0) number(renderDistance) else "auto"
+		"scale" -> if (scale > 0.0) number(scale) else "auto"
 		else -> ""
 	}
+
+	/** [value] as the settings write it: 2 for 2.0, 1.5 for 1.5. */
+	@JvmStatic
+	fun number(value: Double): String = if (value == kotlin.math.floor(value)) value.toInt().toString() else value.toString()
 
 	/**
 	 * Where the player's choices are kept: one name=value a line, in the home folder. Not under the
@@ -278,6 +304,9 @@ object HdSettings {
 		try {
 			val out: StringBuilder = StringBuilder("# 634HD settings, written by the client (HdSettingsPanel)\n")
 			for (name in SAVED) {
+				out.append(name).append('=').append(valueOf(name)).append('\n')
+			}
+			for (name in CLIENT_SAVED) {
 				out.append(name).append('=').append(valueOf(name)).append('\n')
 			}
 			val stream: io.FileOutputStream = io.FileOutputStream(file)
@@ -363,6 +392,16 @@ object HdSettings {
 			"materials" -> materials = flag(on, off) ?: return "takes on or off"
 			"particles" -> particles = flag(on, off) ?: return "takes on or off"
 			"panel" -> panel = flag(on, off) ?: return "takes on or off"
+			"renderdistance" -> {
+				val distance: Double = if (text == "auto") 0.0 else text.toDoubleOrNull() ?: -1.0
+				if (distance != 0.0 && distance != 1.0 && distance != 1.5 && distance != 2.0) return "takes 1, 1.5 or 2"
+				renderDistance = distance
+			}
+			"scale" -> {
+				val wanted: Double = if (text == "auto") 0.0 else text.toDoubleOrNull() ?: -1.0
+				if (wanted != 0.0 && (wanted < 1.0 || wanted > 3.0 || wanted * 2.0 != kotlin.math.floor(wanted * 2.0))) return "takes auto, 1, 1.5, 2, 2.5 or 3"
+				scale = wanted
+			}
 			"all" -> {
 				// every feature at its usual setting, for a quick look (::hd all on|off)
 				val enable: Boolean = flag(on, off) ?: return "takes on or off"
@@ -404,6 +443,7 @@ object HdSettings {
 		"terrainBlend " + onOff(terrainBlend) + ", water " + water + ", foliage " + onOff(foliage) + ", softParticles " + onOff(softParticles),
 		"fxaa " + onOff(fxaa) + ", bloom " + onOff(bloom) + ", colourGrading " + onOff(colourGrading),
 		"interfaceScale " + interfaceScale + ", smoothInterface " + onOff(smoothInterface) + ", materials " + onOff(materials) + ", particles " + onOff(particles),
+		"renderDistance " + valueOf("renderDistance") + ", scale " + valueOf("scale") + " (from the next start)",
 	)
 
 	private fun onOff(value: Boolean): String = if (value) "on" else "off"

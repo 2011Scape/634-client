@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.client.features
 
+import com.jagex.game.runetek5.SceneVisibleTiles
 import memoryReport
 import com.jagex.game.runetek5.LocType
 import turnElapsedMs
@@ -1238,11 +1239,28 @@ object SmokeTest {
 			if (!HdSettingsPanel.clickRow("bloom") || HdSettings.valueOf("bloom") == before) {
 				fail("a click on the bloom row did not change it")
 			}
+			// the draw distance row: live, the map built again further out (checked in the next step)
+			visibleTilesBefore = SceneVisibleTiles.visibleTiles
+			val distance: Double = ClientFeatures.RENDER_DISTANCE
+			if (!HdSettingsPanel.clickRow("renderDistance") || ClientFeatures.RENDER_DISTANCE == distance || !HdSettingsPanel.mapRebuildWanted) {
+				fail("a click on the draw distance row did not change it (" + distance + " to " + ClientFeatures.RENDER_DISTANCE + ")")
+			}
+			// the panel's own press goes through the game tick, which builds the map; here it is asked directly
+			HdSettingsPanel.mapRebuildWanted = false
+			rebuildMap = true
+			val scale: String = HdSettings.valueOf("scale")
+			if (!HdSettingsPanel.clickRow("scale") || HdSettings.valueOf("scale") == scale) {
+				fail("a click on the interface scale row did not change it")
+			}
 			openStep = 4
 			openFrame = gameFrames
 			return
 		}
 		if (openStep == 4) {
+			if (SceneVisibleTiles.visibleTiles <= visibleTilesBefore) {
+				fail("the map was not built again further out: " + visibleTilesBefore + " visible tiles, now " + SceneVisibleTiles.visibleTiles)
+			}
+			println("SMOKE draw distance " + ClientFeatures.RENDER_DISTANCE + ": " + visibleTilesBefore + " to " + SceneVisibleTiles.visibleTiles + " visible tiles")
 			checkImage("-open-hd-settings-high", "build/smoke/open-" + id + "-hd-settings-high.png")
 			if (!HdSettingsPanel.clickClose() || HdSettingsPanel.open) {
 				fail("Close did not close the 634HD settings panel")
@@ -1276,6 +1294,12 @@ object SmokeTest {
 	private var openStep: Int = 0
 
 	private val TOGGLE_ROUNDS: Int = lang.getInteger("client.test.toggleRounds", 1)
+
+	private var visibleTilesBefore: Int = 0
+
+	/** Set by a check that wants the map built again (MapRebuild, a root-package class: the hook does it). */
+	@JvmField
+	var rebuildMap: Boolean = false
 
 	private var toggleRound: Int = 1
 
