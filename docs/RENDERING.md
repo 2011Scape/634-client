@@ -185,7 +185,9 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
     the list also holds two scenes full of NPCs (Varrock palace guards, Barbarian Village; limit 65)
     and four close-ups of the player in outfits that between them use every way an item's material
     draws (`client.test.materialScan` lists the material classes and items using each; a scene's
-    eighth value dresses the player, on the client only, and the harness puts the clothes back);
+    eighth value dresses the player, on the client only, and the harness puts the clothes back; the
+    player is held in one pose and only the middle third of the view is compared, so the outfits
+    match toolkit 1 to 0-1 per 1000 and have a limit of 10);
   - flicker and pops: `client.test.sceneBurst=N` measures the 3D view's mean brightness every frame
     and fails on a frame-to-frame jump above `client.test.sceneLumaJump` (default 3), saving the two
     frames (`build/smoke/scenes/jump-*`); `client.test.sceneWalk` walks during it
