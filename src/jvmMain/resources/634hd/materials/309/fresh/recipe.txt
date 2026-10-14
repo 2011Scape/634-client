@@ -1,0 +1,3 @@
+Derived by tools/make_material_maps.py from the fresh albedo of texture 309 (rocky ground), class ground:
+normal strength 2.20, height blur 1.00, roughness 0.85 +- 0.10 by brightness, specular 0.25, parallax 0.030.
+Height is the albedo luminance at 256x256, blurred and stretched to 2-98%; normals by Sobel; AO from cavities.

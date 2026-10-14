@@ -6,7 +6,8 @@
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
-      "specular": 0.4
+      "specular": 0.4,
+      "albedo": "albedo.png"
     },
     {
       "texture": 66,
@@ -15,7 +16,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.35,
-      "parallax": 0.04
+      "parallax": 0.04,
+      "albedo": "albedo.png"
     },
     {
       "texture": 70,
@@ -24,7 +26,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.25,
-      "parallax": 0.03
+      "parallax": 0.03,
+      "albedo": "albedo.png"
     },
     {
       "texture": 72,
@@ -33,7 +36,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.45,
-      "parallax": 0.04
+      "parallax": 0.04,
+      "albedo": "albedo.png"
     },
     {
       "texture": 75,
@@ -41,7 +45,8 @@
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
-      "specular": 0.4
+      "specular": 0.4,
+      "albedo": "albedo.png"
     },
     {
       "texture": 82,
@@ -50,7 +55,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.35,
-      "parallax": 0.04
+      "parallax": 0.04,
+      "albedo": "albedo.png"
     },
     {
       "texture": 83,
@@ -59,7 +65,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.45,
-      "parallax": 0.04
+      "parallax": 0.04,
+      "albedo": "albedo.png"
     },
     {
       "texture": 90,
@@ -68,7 +75,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.25,
-      "parallax": 0.03
+      "parallax": 0.03,
+      "albedo": "albedo.png"
     },
     {
       "texture": 91,
@@ -77,7 +85,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.35,
-      "parallax": 0.04
+      "parallax": 0.04,
+      "albedo": "albedo.png"
     },
     {
       "texture": 96,
@@ -86,7 +95,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.35,
-      "parallax": 0.04
+      "parallax": 0.04,
+      "albedo": "albedo.png"
     },
     {
       "texture": 105,
@@ -106,6 +116,16 @@
       "specular": 0.15
     },
     {
+      "texture": 109,
+      "name": "pebbled ground, shaded",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.25,
+      "parallax": 0.03,
+      "albedo": "albedo.png"
+    },
+    {
       "texture": 110,
       "name": "lava",
       "normal": "normal.png",
@@ -122,7 +142,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.35,
-      "parallax": 0.04
+      "parallax": 0.04,
+      "albedo": "albedo.png"
     },
     {
       "texture": 127,
@@ -131,7 +152,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.45,
-      "parallax": 0.04
+      "parallax": 0.04,
+      "albedo": "albedo.png"
     },
     {
       "texture": 132,
@@ -142,13 +164,24 @@
       "specular": 0.4
     },
     {
+      "texture": 140,
+      "name": "mottled plaster, shaded",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.2,
+      "parallax": 0.02,
+      "albedo": "albedo.png"
+    },
+    {
       "texture": 154,
       "name": "sand",
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.2,
-      "parallax": 0.02
+      "parallax": 0.02,
+      "albedo": "albedo.png"
     },
     {
       "texture": 159,
@@ -156,7 +189,8 @@
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
-      "specular": 0.4
+      "specular": 0.4,
+      "albedo": "albedo.png"
     },
     {
       "texture": 160,
@@ -172,7 +206,8 @@
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
-      "specular": 0.4
+      "specular": 0.4,
+      "albedo": "albedo.png"
     },
     {
       "texture": 181,
@@ -181,7 +216,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.25,
-      "parallax": 0.03
+      "parallax": 0.03,
+      "albedo": "albedo.png"
     },
     {
       "texture": 185,
@@ -189,7 +225,8 @@
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
-      "specular": 0.15
+      "specular": 0.15,
+      "albedo": "albedo.png"
     },
     {
       "texture": 202,
@@ -207,7 +244,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.2,
-      "parallax": 0.02
+      "parallax": 0.02,
+      "albedo": "albedo.png"
     },
     {
       "texture": 228,
@@ -215,7 +253,18 @@
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
-      "specular": 0.4
+      "specular": 0.4,
+      "albedo": "albedo.png"
+    },
+    {
+      "texture": 254,
+      "name": "mottled plaster",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.2,
+      "parallax": 0.02,
+      "albedo": "albedo.png"
     },
     {
       "texture": 265,
@@ -235,13 +284,34 @@
       "specular": 0.15
     },
     {
+      "texture": 294,
+      "name": "rough plaster",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.2,
+      "parallax": 0.02,
+      "albedo": "albedo.png"
+    },
+    {
+      "texture": 295,
+      "name": "rough plaster, shaded",
+      "normal": "normal.png",
+      "orm": "orm.png",
+      "height": "normal.png",
+      "specular": 0.2,
+      "parallax": 0.02,
+      "albedo": "albedo.png"
+    },
+    {
       "texture": 309,
       "name": "rocky ground",
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.25,
-      "parallax": 0.03
+      "parallax": 0.03,
+      "albedo": "albedo.png"
     },
     {
       "texture": 322,
@@ -250,7 +320,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.4,
-      "parallax": 0.05
+      "parallax": 0.05,
+      "albedo": "albedo.png"
     },
     {
       "texture": 387,
@@ -258,7 +329,8 @@
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
-      "specular": 0.4
+      "specular": 0.4,
+      "albedo": "albedo.png"
     },
     {
       "texture": 505,
@@ -267,7 +339,8 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.4,
-      "parallax": 0.05
+      "parallax": 0.05,
+      "albedo": "albedo.png"
     },
     {
       "texture": 510,

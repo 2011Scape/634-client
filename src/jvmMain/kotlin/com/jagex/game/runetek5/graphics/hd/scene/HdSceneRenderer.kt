@@ -637,6 +637,11 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
      * Every chunk of the retained scene with [program] (ao_bake.vert), which is in use: each object
      * placed by the model matrix it was captured with, whether the client drew it this frame or not.
      */
+    /** The textures changed (fresh textures on or off): the material slots are made again. */
+    fun resetMaterials() {
+        materials.reset()
+    }
+
     /** Binds the material arrays and table to their units (for the sun's cut-out casters). */
     fun bindMaterials() {
         materials.bind()
@@ -1667,6 +1672,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         GL33C.glUniform1i(GL33C.glGetUniformLocation(id, "uSmallNearest"), HdMaterials.UNIT_SMALL_NEAREST)
         GL33C.glUniform1i(GL33C.glGetUniformLocation(id, "uLargeLinear"), HdMaterials.UNIT_LARGE_LINEAR)
         GL33C.glUniform1i(GL33C.glGetUniformLocation(id, "uLargeNearest"), HdMaterials.UNIT_LARGE_NEAREST)
+        GL33C.glUniform1i(GL33C.glGetUniformLocation(id, "uFineLinear"), HdMaterials.UNIT_FINE_LINEAR)
+        GL33C.glUniform1i(GL33C.glGetUniformLocation(id, "uFineNearest"), HdMaterials.UNIT_FINE_NEAREST)
         uHdScene = GL33C.glGetUniformLocation(id, "uHdScene")
         uGlobalAmbient = GL33C.glGetUniformLocation(id, "uGlobalAmbient")
         uDirLight0 = GL33C.glGetUniformLocation(id, "uDirLight[0]")

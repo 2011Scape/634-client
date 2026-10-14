@@ -29,6 +29,9 @@ uniform sampler2DArray uSmallLinear;
 uniform sampler2DArray uSmallNearest;
 uniform sampler2DArray uLargeLinear;
 uniform sampler2DArray uLargeNearest;
+// fresh textures, 256x256 (HdMaterials.fine): the table's array index 2
+uniform sampler2DArray uFineLinear;
+uniform sampler2DArray uFineNearest;
 
 uniform bool uAlphaTestEnabled;
 uniform int uAlphaFunc;
@@ -68,11 +71,14 @@ vec4 sampleMaterial(vec4 material, vec4 extra, vec2 uv) {
     if ((flags & FLAG_REPEAT_T) == 0) uv.y = clamp(uv.y, edge, top);
     vec3 coord = vec3(uv, material.x);
     bool large = material.y > 0.5;
+    bool fine = material.y > 1.5;
     bool linear = (flags & FLAG_LINEAR) != 0;
     if ((flags & FLAG_MIPMAP) != 0 || hdOn(HD_MIPMAPS)) {
+        if (fine) return linear ? texture(uFineLinear, coord) : texture(uFineNearest, coord);
         if (large) return linear ? texture(uLargeLinear, coord) : texture(uLargeNearest, coord);
         return linear ? texture(uSmallLinear, coord) : texture(uSmallNearest, coord);
     }
+    if (fine) return linear ? textureLod(uFineLinear, coord, 0.0) : textureLod(uFineNearest, coord, 0.0);
     if (large) return linear ? textureLod(uLargeLinear, coord, 0.0) : textureLod(uLargeNearest, coord, 0.0);
     return linear ? textureLod(uSmallLinear, coord, 0.0) : textureLod(uSmallNearest, coord, 0.0);
 }

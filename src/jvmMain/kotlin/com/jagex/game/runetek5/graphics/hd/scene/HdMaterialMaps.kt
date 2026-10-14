@@ -17,6 +17,7 @@
 package com.jagex.game.runetek5.graphics.hd.scene
 
 import com.jagex.game.runetek5.graphics.hd.content.HdContent
+import com.jagex.game.runetek5.graphics.hd.content.HdMaterialProvider
 import com.jagex.game.runetek5.graphics.hd.gl.HdGl
 import java.io.File
 import java.nio.ByteBuffer
@@ -40,6 +41,9 @@ class HdMaterialMaps {
     private var buffer: Int = 0
     private var loadedVersion: Int = -1
 
+    /** Whether the loaded maps are the fresh textures' (HdSettings.textureReplacements). */
+    private var loadedFresh: Boolean = false
+
     /** Texture id to slot, -1 for none. */
     private var slots: IntArray = IntArray(0)
 
@@ -57,8 +61,10 @@ class HdMaterialMaps {
 
     /** Loads the maps when materials.json changed, and binds the arrays and table for the frame. */
     fun prepare(content: HdContent) {
-        if (loadedVersion != content.version) {
+        val fresh: Boolean = com.jagex.game.runetek5.client.features.HdSettings.textureReplacements
+        if (loadedVersion != content.version || loadedFresh != fresh) {
             loadedVersion = content.version
+            loadedFresh = fresh
             load(content)
         }
         if (buffer == 0) return
@@ -193,6 +199,12 @@ class HdMaterialMaps {
         for ((slot, m) in materials.withIndex()) {
             slots[m.texture] = slot
             val files: Array<String?> = arrayOf(m.normal, m.orm, m.emissive)
+            if (loadedFresh && m.albedo != null && m.texture < HdMaterialProvider.CUSTOM_MATERIALS) {
+                // a fresh texture's maps were made from its new art (tools/make_fresh_textures.py)
+                for (type in 0 until 3) {
+                    if (files[type] != null && content.materialFile(m.texture, "fresh/" + files[type]) != null) files[type] = "fresh/" + files[type]
+                }
+            }
             val has: BooleanArray = BooleanArray(3)
             for (type in 0 until 3) {
                 GL33C.glBindTexture(GL33C.GL_TEXTURE_2D_ARRAY, arrays[type])

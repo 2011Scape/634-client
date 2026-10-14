@@ -238,6 +238,7 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
 | `softParticles` | particles fade into geometry (depth copy) | `scene/HdSoftParticles` |
 | `interfaceScale` (2/3/4) | the window at a whole-number scale, 3D at native resolution | `gl/HdGl.windowScale` |
 | `materials` | Phase 5 normal / ORM / emissive / height maps | `scene/HdMaterialMaps`, `hd_material.glsl` |
+| `textureReplacements` (on in High and Ultra) | fresh textures: a game texture whose `materials.json` entry names an `albedo` draws at 256x256 with that art (its colour; the alpha is the game's own, made at its own size and scaled with back-projection, so cut-outs, effects and scrolling stay), with the `fresh/` material maps beside it; toggling remakes every world texture and the retained scene | `content/HdMaterialProvider.fresh`/`replaced`, `HdTextureCache` (the 256 size), `HdMaterials` (a third array, units 28 and 29), `HdMaterialMaps` (`fresh/`) |
 | `particles` | GPU particles: embers over fires and torches, sparks over lava, one instanced draw | `scene/HdGpuParticles`, `particles.vert` |
 | `smoothInterface` | the scaled interface sampled with smoothstep bilinear | `ff.frag` `sharpBilinear` |
 
@@ -290,6 +291,21 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   75, 387, 163 and 159) got normal, occlusion/roughness and height maps from
   `tools/make_material_maps.py` (which now keeps the entries it does not make, such as 634HD's own
   materials); 42 sets in all.
+- **Fresh textures.** `tools/make_fresh_textures.py` makes them for the most used textures of
+  Lumbridge and Varrock (27; found with `HDDEBUG textures used` and the texture-id overlay, less blank
+  ones, decals, water and lava). The art is generated with `/generate` (nano-banana-2-lite; the game
+  texture at 512x512 as the reference, the prompt in `tools/fresh_prompt.txt`; output and sidecar in
+  `~/Pictures/generations/634hd_fresh-<id>_*`, the sidecar copied to `fresh/generate.json`). It never
+  replaces the game's look: the game texture, scaled to 256, is the base, and only the generation's
+  detail finer than a game texel is laid over it, at 0.8 times the game texture's own finest contrast;
+  then the result is corrected (back-projection) until its mipmap at the game's size is the game
+  texture. At the usual zoom the GPU samples that level, so a fresh texture reads as the game's (same
+  colour, brightness, scale and shapes: Varrock's street, texture 505, measured within a few percent
+  of local contrast); up close the finer levels show the new grain instead of a blur. A texture that
+  is another with a gradient over it shares its art (90 and 109 take 91's, 309 takes 96's, 159 163's,
+  140 254's, 295 294's). The `fresh/` maps keep the cache texture's relief and add the fresh grain
+  (`make_material_maps.make(fresh=True)`). Effect 1 textures (91, 90: the wet-cobble specular masked
+  by alpha) depend on the game's alpha at its own size, which is why the alpha is not regenerated.
 - **634HD's own materials.** `materials.json` entries from texture 10000 up with an `albedo` file in
   `634hd/materials/<id>/` (`content/HdMaterialProvider` serves them beside the cache's, so every
   path draws them): near-grey detail the face or tile colour tints, made by

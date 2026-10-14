@@ -254,6 +254,7 @@ class HdShadows {
             GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uMaterials"), HdMaterials.UNIT_MATERIALS)
             GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uSmallLinear"), HdMaterials.UNIT_SMALL_LINEAR)
             GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uLargeLinear"), HdMaterials.UNIT_LARGE_LINEAR)
+            GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uFineLinear"), HdMaterials.UNIT_FINE_LINEAR)
             cutoutProgram = program
         }
         return program

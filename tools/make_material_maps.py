@@ -54,6 +54,9 @@ TEXTURES = {
     108: ('mossy patches', 'grass'), 185: ('straw grass', 'grass'), 213: ('fine sand', 'sand'),
     125: ('speckled gravel', 'gravel'), 75: ('wood streaks', 'wood'), 387: ('wood grain fine', 'wood'),
     163: ('wall boards', 'wood'), 159: ('weathered boards', 'wood'),
+    # for the fresh textures (tools/make_fresh_textures.py): more of the two areas' most used ones
+    254: ('mottled plaster', 'sand'), 140: ('mottled plaster, shaded', 'sand'), 294: ('rough plaster', 'sand'),
+    295: ('rough plaster, shaded', 'sand'), 109: ('pebbled ground, shaded', 'ground'),
 }
 
 
@@ -75,6 +78,9 @@ def blur(a, radius):
 
 
 GENERATED = os.path.expanduser('~/Pictures/generations')
+
+# how much of a fresh albedo's fine grain goes into its relief (make, fresh=True)
+FRESH_RELIEF = 1.5
 
 
 def wrap_resize(image, mode):
@@ -138,12 +144,22 @@ def seam(a):
     return across / max(inside, 1e-6)
 
 
-def make(texture, name, cls):
+def make(texture, name, cls, fresh=False):
+    """The maps for [texture]; [fresh]: with its fresh albedo (tools/make_fresh_textures.py), into
+    materials/<id>/fresh/, which 634HD loads instead while client.hd.textureReplacements is on."""
     strength, soften, rough_base, rough_var, specular, parallax = CLASSES[cls]
+    out = os.path.join(OUT, str(texture), 'fresh') if fresh else os.path.join(OUT, str(texture))
+    # the relief is the cache texture's in both sets, so the shapes read the same; a fresh set adds the
+    # fresh albedo's grain (finer than a game texel) as a little extra relief, and takes its colour
     albedo = Image.open(os.path.join(SOURCE, '%d.png' % texture)).convert('RGB')
     big = wrap_resize(albedo, Image.BICUBIC)
     rgb = np.asarray(big, dtype=np.float64) / 255.0
     lum = rgb @ np.array([0.299, 0.587, 0.114])
+    grain = None
+    if fresh:
+        rgb = np.asarray(wrap_resize(Image.open(os.path.join(OUT, str(texture), 'albedo.png')).convert('RGB'), Image.BICUBIC), dtype=np.float64) / 255.0
+        fresh_lum = rgb @ np.array([0.299, 0.587, 0.114])
+        grain = fresh_lum - blur(fresh_lum, 2)
     height = blur(lum, soften)
     low, high = np.percentile(height, 2), np.percentile(height, 98)
     height = np.clip((height - low) / max(high - low, 1e-6), 0.0, 1.0)
@@ -162,6 +178,8 @@ def make(texture, name, cls):
             height = make_tiling(height)
         # and the edges made to meet exactly (a low-frequency ramp, invisible inside the tile)
         height = np.clip(fix_edges(height), 0.0, 1.0)
+    if grain is not None:
+        height = np.clip(height + grain * FRESH_RELIEF, 0.0, 1.0)
     # normals from the height field's slopes (Sobel, wrapping); y up in the texture is -v
     dx = (np.roll(height, -1, 1) - np.roll(height, 1, 1)) * 2 + (np.roll(np.roll(height, -1, 1), 1, 0) - np.roll(np.roll(height, 1, 1), 1, 0)) + (np.roll(np.roll(height, -1, 1), -1, 0) - np.roll(np.roll(height, 1, 1), -1, 0))
     dy = (np.roll(height, -1, 0) - np.roll(height, 1, 0)) * 2 + (np.roll(np.roll(height, -1, 0), 1, 1) - np.roll(np.roll(height, 1, 0), 1, 1)) + (np.roll(np.roll(height, -1, 0), -1, 1) - np.roll(np.roll(height, 1, 0), -1, 1))
@@ -169,7 +187,7 @@ def make(texture, name, cls):
     length = np.sqrt(nx * nx + ny * ny + nz * nz)
     normal = np.stack([nx / length, ny / length, nz / length], axis=-1) * 0.5 + 0.5
     normal_rgba = np.concatenate([normal, height[..., None]], axis=-1)
-    Image.fromarray((normal_rgba * 255 + 0.5).astype(np.uint8), 'RGBA').save(os.path.join(OUT, str(texture), 'normal.png'))
+    Image.fromarray((normal_rgba * 255 + 0.5).astype(np.uint8), 'RGBA').save(os.path.join(out, 'normal.png'))
     # occlusion: how far a point sits below its surroundings
     cavity = np.clip((blur(height, 6) - height) * 2.5, 0.0, 1.0)
     ao = 1.0 - cavity * 0.8
@@ -180,21 +198,21 @@ def make(texture, name, cls):
     else:
         mask = np.zeros_like(height)
     orm = np.stack([ao, rough, mask], axis=-1)
-    Image.fromarray((orm * 255 + 0.5).astype(np.uint8), 'RGB').save(os.path.join(OUT, str(texture), 'orm.png'))
+    Image.fromarray((orm * 255 + 0.5).astype(np.uint8), 'RGB').save(os.path.join(out, 'orm.png'))
     emissive = rgb * mask[..., None] * 1.2
-    Image.fromarray((np.clip(emissive, 0, 1) * 255 + 0.5).astype(np.uint8), 'RGB').save(os.path.join(OUT, str(texture), 'emissive.png'))
+    Image.fromarray((np.clip(emissive, 0, 1) * 255 + 0.5).astype(np.uint8), 'RGB').save(os.path.join(out, 'emissive.png'))
     if generated is not None:
         name_, prompt, sidecar = source
-        with open(os.path.join(OUT, str(texture), 'prompt.txt'), 'w') as f:
+        with open(os.path.join(out, 'prompt.txt'), 'w') as f:
             f.write('Height detail generated with /generate (nano-banana-2-lite, Kie.ai), reference: the cache texture %d.\n' % texture)
             f.write('Output: ~/Pictures/generations/%s (sidecar beside it).\n\nPrompt:\n%s\n' % (name_, prompt or '(see sidecar)'))
             f.write('\nUsed as: high-pass (minus a 8-texel blur) over the albedo-derived height, made tileable by a half-offset cross-fade.\n')
             f.write('Tiling seam (jump across the wrap / jump inside): %.2f\n' % seam(height))
         if sidecar:
             import shutil
-            shutil.copy(sidecar, os.path.join(OUT, str(texture), 'generate.json'))
-    with open(os.path.join(OUT, str(texture), 'recipe.txt'), 'w') as f:
-        f.write('Derived by tools/make_material_maps.py from cache texture %d (%s), class %s:\n' % (texture, name, cls))
+            shutil.copy(sidecar, os.path.join(out, 'generate.json'))
+    with open(os.path.join(out, 'recipe.txt'), 'w') as f:
+        f.write('Derived by tools/make_material_maps.py from %s %d (%s), class %s:\n' % ('the fresh albedo of texture' if fresh else 'cache texture', texture, name, cls))
         f.write('normal strength %.2f, height blur %.2f, roughness %.2f +- %.2f by brightness, specular %.2f, parallax %.3f.\n' % (strength, soften, rough_base, rough_var, specular, parallax))
         f.write('Height is the albedo luminance at %dx%d, blurred and stretched to 2-98%%; normals by Sobel; AO from cavities.\n' % (SIZE, SIZE))
     entry = {'texture': texture, 'name': name, 'normal': 'normal.png', 'orm': 'orm.png', 'height': 'normal.png', 'specular': specular}
@@ -219,7 +237,14 @@ def main():
     path = os.path.join(ROOT, 'src', 'jvmMain', 'resources', '634hd', 'data', 'materials.json')
     made = set(TEXTURES)
     with open(path) as f:
-        kept = [m for m in json.load(f)['materials'] if m['texture'] not in made]
+        old = json.load(f)['materials']
+    kept = [m for m in old if m['texture'] not in made]
+    # a fresh texture's albedo (tools/make_fresh_textures.py) stays on its entry
+    for m in old:
+        if m['texture'] in made and 'albedo' in m:
+            for e in entries:
+                if e['texture'] == m['texture']:
+                    e['albedo'] = m['albedo']
     entries += kept
     with open(path, 'w') as f:
         json.dump({'materials': entries}, f, indent=2)
