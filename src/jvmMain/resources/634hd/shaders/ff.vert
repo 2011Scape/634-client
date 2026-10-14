@@ -64,7 +64,7 @@ void main() {
                 vec3 lightDir;
                 float atten = 1.0;
                 if (uLightPosition[i].w == 0.0) {
-                    lightDir = normalize(uLightPosition[i].xyz);
+                    lightDir = normalize(hdLightDirection(uLightPosition[i].xyz, i));
                 } else {
                     vec3 toLight = uLightPosition[i].xyz - viewPos.xyz;
                     float dist = length(toLight);

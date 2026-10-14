@@ -62,7 +62,9 @@ class HdFrameUniforms {
         private const val WATER_PARAMS: Int = ENV_AMBIENT + 16
         private const val ACTOR_INFO: Int = WATER_PARAMS + 16
         private const val ACTORS: Int = ACTOR_INFO + 16
-        const val SIZE: Int = ACTORS + MAX_ACTORS * 16
+        private const val DAY_NIGHT: Int = ACTORS + MAX_ACTORS * 16
+        private const val MOON: Int = DAY_NIGHT + 16
+        const val SIZE: Int = MOON + 16
     }
 
     private var buffer: Int = 0
@@ -91,7 +93,7 @@ class HdFrameUniforms {
         if (HdSettings.softParticles) bits = bits or HD_SOFT_PARTICLES
         if (HdSettings.mipmaps) bits = bits or HD_MIPMAPS
         if (HdSettings.materials) bits = bits or HD_MATERIALS
-        if (HdSettings.environmentLighting) bits = bits or HD_ENV_LIGHT
+        if (HdSettings.environmentLighting || HdSettings.dayNight != 0) bits = bits or HD_ENV_LIGHT
         if (HdSettings.caustics) bits = bits or HD_CAUSTICS
         if (HdSettings.grassDisplacement) bits = bits or HD_GRASS
         return bits
@@ -144,6 +146,12 @@ class HdFrameUniforms {
 
     /** Water's tint (HD_WATER): colour, w how strongly it replaces the game's water colour. */
     fun setWater(r: Float, g: Float, b: Float, strength: Float) = putVec4(WATER, r, g, b, strength)
+
+    /** Day and night: the sun's or moon's eye-space direction replacing light 0 ([on]), the moon's world direction and the night (0 to 1). */
+    fun setDayNight(x: Float, y: Float, z: Float, on: Boolean, moonX: Float, moonY: Float, moonZ: Float, night: Float) {
+        putVec4(DAY_NIGHT, x, y, z, if (on) 1.0f else 0.0f)
+        putVec4(MOON, moonX, moonY, moonZ, night)
+    }
 
     /** The characters grass bends away from (HD_GRASS): world x, z each; [count] of them. */
     fun setActors(positions: FloatArray, count: Int) {

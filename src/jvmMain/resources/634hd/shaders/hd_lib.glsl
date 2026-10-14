@@ -71,6 +71,11 @@ layout(std140) uniform HdFrame {
     // the characters grass bends away from (HD_GRASS): x how many; their world x, z
     vec4 hdActorInfo;
     vec4 hdActors[HD_MAX_ACTORS];
+    // day and night (HdSettings.dayNight): the sun's or moon's eye-space direction, w 1 when it
+    // replaces the game's light 0 (light 1, the game's opposite fill, follows it)
+    vec4 hdDayNight;
+    // the moon's world direction (xyz) and the night: w 0 by day, 1 at night (stars, the moon's disc)
+    vec4 hdMoon;
 };
 
 // 1 for a draw that belongs to the 3D view, 0 for the interface and everything else.
@@ -107,6 +112,15 @@ float hdOccluderY(vec2 xz, bool baked, bool moving) {
 
 bool hdOn(int feature) {
     return uHdScene != 0 && (hdFlags.x & feature) != 0;
+}
+
+// Light [index]'s eye-space direction [dir]: the time of day's sun or moon instead of the game's (light
+// 0, and light 1 opposite it) with day and night on; unchanged without.
+vec3 hdLightDirection(vec3 dir, int index) {
+    if (uHdScene != 0 && hdDayNight.w > 0.5 && index < 2) {
+        return index == 0 ? hdDayNight.xyz : -hdDayNight.xyz;
+    }
+    return dir;
 }
 
 // The game's ambient light, and light [index]'s diffuse, as the environment tints them (HD_ENV_LIGHT:

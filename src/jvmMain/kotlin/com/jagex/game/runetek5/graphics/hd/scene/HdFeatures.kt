@@ -94,11 +94,21 @@ class HdFeatures {
         uniforms.setWater(water[0], water[1], water[2], water[3])
         uniforms.setWaterParams(waterParams[0], waterParams[1], waterParams[2], waterParams[3])
         uniforms.setActors(actors, if (HdSettings.grassDisplacement) findActors() else 0)
-        uniforms.setEnvironmentLight(envLight[0], envLight[1], envLight[2], envLight[3], envLight[4], envLight[5])
+        // day and night: the sun or moon replaces the game's light; its colour and the ambient tint the
+        // environment's, and the shadow sun follows it
+        val time: Boolean = HdSettings.dayNight != 0 && dayNight(worldToView)
+        val area: Boolean = HdSettings.environmentLighting
+        uniforms.setEnvironmentLight(
+            (if (area) envLight[0] else 1.0f) * (if (time) dayLight[0] else 1.0f), (if (area) envLight[1] else 1.0f) * (if (time) dayLight[1] else 1.0f), (if (area) envLight[2] else 1.0f) * (if (time) dayLight[2] else 1.0f),
+            (if (area) envLight[3] else 1.0f) * (if (time) dayLight[3] else 1.0f), (if (area) envLight[4] else 1.0f) * (if (time) dayLight[4] else 1.0f), (if (area) envLight[5] else 1.0f) * (if (time) dayLight[5] else 1.0f))
+        uniforms.setDayNight(lightEye[0], lightEye[1], lightEye[2], time, moonWorld[0], moonWorld[1], moonWorld[2], if (time) nightness else 0.0f)
+        if (time) {
+            uniforms.setSun(lightEye[0], lightEye[1], lightEye[2], true)
+        }
         // the sun's shadow map: where it looks from, and the matrix the receivers use
         HdGl.shadows = this.shadows
-        this.shadows.sunPitch = sunPitch
-        this.shadows.sunYaw = sunYaw
+        this.shadows.sunPitch = if (time) lightPitch else sunPitch
+        this.shadows.sunYaw = if (time) lightYaw else sunYaw
         this.shadows.beginFrame(viewToWorld, state.lightPosition[0], state.lightEnabled[0] && length > 0.0f)
         if (this.shadows.active) {
             uniforms.setShadowMatrix(this.shadows.shadowMatrix)
@@ -154,6 +164,21 @@ class HdFeatures {
         target[10] = if (end.isNaN()) state.fogEnd else end * 512.0f
         target[11] = environment?.heightFogDensity ?: 0.0f
         target[12] = environment?.heightFogTop ?: 0.0f
+        if (HdSettings.dayNight != 0) {
+            // day and night: the sky and fog darken to a night blue, and warm near sunrise and sunset
+            val night: Float = nightness
+            val dusk: Float = 1.0f - smooth(0.0f, 14.0f, kotlin.math.abs(sunElevationNow))
+            val nightColours: FloatArray = floatArrayOf(0.02f, 0.03f, 0.07f, 0.05f, 0.07f, 0.13f, 0.04f, 0.05f, 0.1f)
+            for (i in 0 until 9) {
+                target[i] += (nightColours[i] - target[i]) * night
+            }
+            // the horizon and fog take an orange glow at dusk
+            val glow: FloatArray = floatArrayOf(0.95f, 0.55f, 0.32f)
+            for (i in 0 until 3) {
+                target[3 + i] += (glow[i] - target[3 + i]) * dusk * 0.45f
+                target[6 + i] += (glow[i] - target[6 + i]) * dusk * 0.3f
+            }
+        }
         val now: Long = System.nanoTime()
         val step: Float = if (!eased || content.version != easedVersion) 1.0f else 1.0f - kotlin.math.exp(-((now - lastNanos) / 1.0e9f) / 0.4f)
         easedVersion = content.version
@@ -207,6 +232,78 @@ class HdFeatures {
             count++
         }
         return count
+    }
+
+    // day and night (HdSettings.dayNight), worked out each frame: the light's tint (rgb) and the
+    // ambient tint (rgb); the light's eye-space direction; the moon's world direction; how much night
+    private val dayLight: FloatArray = FloatArray(6)
+    private val lightEye: FloatArray = FloatArray(3)
+    private val moonWorld: FloatArray = FloatArray(3)
+    private var nightness: Float = 0.0f
+    private var sunElevationNow: Float = 45.0f
+    private var lightPitch: Float = Float.NaN
+    private var lightYaw: Float = Float.NaN
+
+    /**
+     * The time of day (the clock, or a cycle of HdSettings.dayNight minutes, 0 at midnight) and from
+     * it the sun (up to 70 degrees at noon, rising in the east) or, while the sun is down, the moon
+     * across the sky from it; their colours (warm near the horizon, a faint blue moonlight), the
+     * ambient light (down to 0.45 at night), the night for the sky and fog. True when worked out.
+     */
+    private fun dayNight(worldToView: FloatArray): Boolean {
+        // a smoke test can fix the time (client.test.timeOfDay: 0 midnight, 0.5 noon)
+        val forced: Double? = if (System.getProperty("client.test") != null) System.getProperty("client.test.timeOfDay")?.toDoubleOrNull() else null
+        val day: Double = if (forced != null) forced else if (HdSettings.dayNight < 0) {
+            val now = java.time.LocalTime.now()
+            now.toSecondOfDay() / 86400.0
+        } else {
+            (System.currentTimeMillis() % (HdSettings.dayNight * 60000L)).toDouble() / (HdSettings.dayNight * 60000.0)
+        }
+        val sunElevation: Double = 70.0 * Math.sin(2.0 * Math.PI * (day - 0.25))
+        val sunYaw: Double = (90.0 + 360.0 * day) % 360.0
+        // the sun by day, the moon by night (opposite it), switched while both are on the horizon
+        val sunUp: Boolean = sunElevation > -2.0
+        val elevation: Double = if (sunUp) Math.max(sunElevation, 4.0) else Math.max(-sunElevation, 4.0)
+        val yaw: Double = if (sunUp) sunYaw else (sunYaw + 180.0) % 360.0
+        val e: Double = Math.toRadians(elevation)
+        val a: Double = Math.toRadians(yaw)
+        // towards the light, world space (the game's y grows downwards)
+        val wx: Float = (Math.cos(e) * Math.sin(a)).toFloat()
+        val wy: Float = (-Math.sin(e)).toFloat()
+        val wz: Float = (Math.cos(e) * Math.cos(a)).toFloat()
+        lightEye[0] = worldToView[0] * wx + worldToView[4] * wy + worldToView[8] * wz
+        lightEye[1] = worldToView[1] * wx + worldToView[5] * wy + worldToView[9] * wz
+        lightEye[2] = worldToView[2] * wx + worldToView[6] * wy + worldToView[10] * wz
+        val length: Float = kotlin.math.sqrt(lightEye[0] * lightEye[0] + lightEye[1] * lightEye[1] + lightEye[2] * lightEye[2]).coerceAtLeast(0.0001f)
+        for (i in 0 until 3) lightEye[i] /= length
+        lightPitch = elevation.toFloat()
+        lightYaw = yaw.toFloat()
+        val moonE: Double = Math.toRadians(-sunElevation)
+        val moonA: Double = Math.toRadians((sunYaw + 180.0) % 360.0)
+        moonWorld[0] = (Math.cos(moonE) * Math.sin(moonA)).toFloat()
+        moonWorld[1] = (-Math.sin(moonE)).toFloat()
+        moonWorld[2] = (Math.cos(moonE) * Math.cos(moonA)).toFloat()
+        val s: Float = sunElevation.toFloat()
+        sunElevationNow = s
+        // the sun's colour: warm low down, white high; its strength fades out below the horizon
+        val high: Float = smooth(2.0f, 30.0f, s)
+        val sunStrength: Float = smooth(-4.0f, 8.0f, s)
+        val moonStrength: Float = 0.32f * smooth(2.0f, -8.0f, s)
+        dayLight[0] = (1.0f * high + 1.0f * (1.0f - high)) * sunStrength + 0.55f * moonStrength
+        dayLight[1] = (1.0f * high + 0.62f * (1.0f - high)) * sunStrength + 0.62f * moonStrength
+        dayLight[2] = (1.0f * high + 0.38f * (1.0f - high)) * sunStrength + 0.85f * moonStrength
+        val ambient: Float = 0.45f + 0.55f * smooth(-10.0f, 15.0f, s)
+        dayLight[3] = ambient * (0.85f + 0.15f * high)
+        dayLight[4] = ambient * (0.88f + 0.12f * high)
+        dayLight[5] = ambient
+        nightness = smooth(4.0f, -12.0f, s)
+        return true
+    }
+
+    /** 0 below [from], 1 above [to] (or the other way round when [to] is below [from]), smooth between. */
+    private fun smooth(from: Float, to: Float, x: Float): Float {
+        val t: Float = ((x - from) / (to - from)).coerceIn(0.0f, 1.0f)
+        return t * t * (3.0f - 2.0f * t)
     }
 
     /** An angle eased towards [target] (degrees, the short way round); NaN on either side switches at once. */

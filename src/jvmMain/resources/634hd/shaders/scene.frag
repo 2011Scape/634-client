@@ -82,7 +82,7 @@ vec4 pixelLit() {
     vec4 lit = hdEnvAmbientLight(uGlobalAmbient);
     for (int i = 0; i < 2; i++) {
         if (uDirLight[i].w > 0.5) {
-            lit += hdEnvDiffuse(uDirDiffuse[i], i) * max(dot(vEyeNormal, normalize(uDirLight[i].xyz)), 0.0);
+            lit += hdEnvDiffuse(uDirDiffuse[i], i) * max(dot(vEyeNormal, normalize(hdLightDirection(uDirLight[i].xyz, i))), 0.0);
         }
     }
     int base = vSlot * 17;
