@@ -122,6 +122,14 @@ object HdSettings {
 	@JvmField
 	var scale: Double = 0.0
 
+	/** The terrain casts sun shadows too (hills, cliffs), with the sun's shadows (shadows). */
+	@JvmField
+	var terrainShadows: Boolean = false
+
+	/** Cut-out shadows: leaves, fences and grilles cast the shape of their texture, not a solid block. */
+	@JvmField
+	var cutoutShadows: Boolean = false
+
 	/** Debug panel (debug builds: client.debug), toggled with F10 or ::hdpanel. */
 	@JvmField
 	var panel: Boolean = false
@@ -130,6 +138,7 @@ object HdSettings {
 		"tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting",
 		"shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom",
 		"colourGrading", "interfaceScale", "smoothInterface", "materials", "particles", "panel",
+		"terrainShadows", "cutoutShadows",
 	)
 
 	/** The switches a player sets in the 634HD settings panel (HdSettingsPanel) and that are saved. */
@@ -137,7 +146,7 @@ object HdSettings {
 	val SAVED: Array<String> = arrayOf(
 		"tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting",
 		"shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom",
-		"colourGrading", "materials", "particles",
+		"colourGrading", "materials", "particles", "terrainShadows", "cutoutShadows",
 	)
 
 	/** Saved too, but not part of the presets: the whole client's draw distance and interface scale. */
@@ -200,6 +209,8 @@ object HdSettings {
 		softParticles = level >= 3
 		particles = level >= 3
 		fade = level >= 3
+		terrainShadows = level >= 3
+		cutoutShadows = level >= 3
 		version++
 		return null
 	}
@@ -276,6 +287,8 @@ object HdSettings {
 		"colourGrading" -> onOff(colourGrading)
 		"materials" -> onOff(materials)
 		"particles" -> onOff(particles)
+		"terrainShadows" -> onOff(terrainShadows)
+		"cutoutShadows" -> onOff(cutoutShadows)
 		"renderDistance" -> if (renderDistance > 0.0) number(renderDistance) else "auto"
 		"scale" -> if (scale > 0.0) number(scale) else "auto"
 		else -> ""
@@ -392,6 +405,8 @@ object HdSettings {
 			"materials" -> materials = flag(on, off) ?: return "takes on or off"
 			"particles" -> particles = flag(on, off) ?: return "takes on or off"
 			"panel" -> panel = flag(on, off) ?: return "takes on or off"
+			"terrainshadows" -> terrainShadows = flag(on, off) ?: return "takes on or off"
+			"cutoutshadows" -> cutoutShadows = flag(on, off) ?: return "takes on or off"
 			"renderdistance" -> {
 				val distance: Double = if (text == "auto") 0.0 else text.toDoubleOrNull() ?: -1.0
 				if (distance != 0.0 && distance != 1.0 && distance != 1.5 && distance != 2.0) return "takes 1, 1.5 or 2"
@@ -424,6 +439,8 @@ object HdSettings {
 				fxaa = enable
 				bloom = enable
 				colourGrading = enable
+				terrainShadows = enable
+				cutoutShadows = enable
 			}
 			else -> return "unknown setting " + name
 		}
@@ -443,6 +460,7 @@ object HdSettings {
 		"terrainBlend " + onOff(terrainBlend) + ", water " + water + ", foliage " + onOff(foliage) + ", softParticles " + onOff(softParticles),
 		"fxaa " + onOff(fxaa) + ", bloom " + onOff(bloom) + ", colourGrading " + onOff(colourGrading),
 		"interfaceScale " + interfaceScale + ", smoothInterface " + onOff(smoothInterface) + ", materials " + onOff(materials) + ", particles " + onOff(particles),
+		"terrainShadows " + onOff(terrainShadows) + ", cutoutShadows " + onOff(cutoutShadows),
 		"renderDistance " + valueOf("renderDistance") + ", scale " + valueOf("scale") + " (from the next start)",
 	)
 

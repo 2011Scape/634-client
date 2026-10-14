@@ -192,7 +192,9 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
     (`sceneWalkTiles` at a time, again every `sceneWalkEvery` frames: far enough to load a new
     region), `client.test.sceneBurstLoc=N` takes a loc out at frame N, `sceneBurstSave=false` keeps
     only the measurement, `sceneLumaLog` prints every frame's value. The game's own roof hiding (the
-    player stepping under or out of a roof) is a real jump of 5 to 15;
+    player stepping under or out of a roof, a real jump of 5 to 15) is detected from
+    `MapRegion.roofMin*/roofMax*` and the three frames after it are not measured; a negative
+    `sceneWalkTiles` walks west; after a relog the harness teleports back to the scene;
   - the regular smoke test against toolkit 1's references;
   - the bench at a position (`-Pclient.test.scenePosition=...`), which prints draw calls by category,
     the region-build hitch and chunk rebuilds (`client/features/RenderStats`).
@@ -211,6 +213,8 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
 | `pixelLighting` | the fixed-function formula per pixel | `ff.frag`, `scene.frag` |
 | `lights` | point lights from `lights.json`, 64 nearest | `scene/HdLights`, `hdPointLights` |
 | `shadows` (1024/2048/4096) | sun shadow map, PCF | `scene/HdShadows`, `hdShadow` |
+| `terrainShadows` | plane 0's tile-corner heights as a caster mesh in the cached static map, drawn 96 units low so flat ground does not shade itself (with a low sun hills shade what is behind them) | `HdShadows.ensureTerrain`/`drawTerrain` |
+| `cutoutShadows` | static casters drawn with their textures: texels (or faces) under half opaque cast nothing, so leaves, wheat and fences cast their shape | `caster_cutout.vert`/`.frag` |
 | `ambientOcclusion` | baked: the region's static scene into a height map when its chunks change or the player changes floor - roofs and the floors above the player left out, as the game hides them indoors - then (a few ms a frame) into every retained vertex and into a texture per ground level, four samples a tile side; a ground pixel reads one texel, and measures the moving models' map (the player left out; walls only, never cover overhead) itself only near the player; other moving models measure per pixel. A new bake never changes the look before it is complete (a ground keeps its previous texture; a rebuilt chunk is shaded at once from the last bake); after a region load occlusion fades in once everything is baked | `scene/HdShadows` (`bindGroundOcclusion`), `HdSceneRenderer.skyVisibility`, `hdGroundOcclusion`, `hdAmbientOcclusion` |
 | `fog`, `fade`, `sky` | environment fog, dithered fade at the edge, gradient sky and height fog | `scene/HdFeatures`, `hdFog`, `sky.frag` |
 | `water` | wave normals, Fresnel sky reflection, glint, tint | `hdWater`; `GlState.hdWater` |
@@ -228,6 +232,8 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   every program's samplers at their units: shadow map 16, height map 17, soft-particle depth 18,
   material arrays 19-21 (block `HdMaterialMaps`, binding 1), baked occlusion 22, the ground's baked
   occlusion 25.
+- **`castShadows: false`** in `model_overrides.json` keeps an object (by loc id) out of the sun's
+  static map and the occlusion bake: its matrix in the casters' buffer is zero.
 - **Shadow casters.** Static: every retained object in the chunks around the player, opaque or with
   transparent parts (tree canopies), on screen or not, drawn into a cached map (`staticMap`) only when the map's centre moves a four-tile step or
   the region changes, and copied into the sun's map each frame. Moving: every emulated indexed draw

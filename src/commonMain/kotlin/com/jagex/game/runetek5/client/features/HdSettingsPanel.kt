@@ -34,20 +34,20 @@ object HdSettingsPanel {
 
 	/** The rows: switch, label, and the values a click steps through. */
 	private val ROWS: Array<String> = arrayOf(
-		"tonemap", "shadows", "lights", "pixelLighting", "ambientOcclusion", "materials", "sky", "fog",
+		"tonemap", "shadows", "terrainShadows", "cutoutShadows", "lights", "pixelLighting", "ambientOcclusion", "materials", "sky", "fog",
 		"fade", "water", "terrainBlend", "foliage", "particles", "softParticles", "bloom", "fxaa",
 		"colourGrading", "mipmaps", "anisotropy", "renderDistance", "scale",
 	)
 
 	private val LABELS: Array<String> = arrayOf(
-		"HDR tonemapping", "Shadows", "Point lights", "Per-pixel lighting", "Ambient occlusion",
+		"HDR tonemapping", "Shadows", "Terrain shadows", "Cut-out shadows", "Point lights", "Per-pixel lighting", "Ambient occlusion",
 		"Material maps", "Sky", "Fog", "Fade-in at distance", "Water", "Ground blending", "Foliage sway",
 		"Embers and sparks", "Soft particles", "Bloom", "FXAA", "Colour grading", "Mipmaps",
 		"Anisotropic filtering", "Draw distance", "Interface scale (next start)",
 	)
 
 	private val CHOICES: Array<Array<String>> = arrayOf(
-		arrayOf("off", "aces", "agx"), arrayOf("0", "1024", "2048", "4096"), ONOFF, ONOFF, ONOFF,
+		arrayOf("off", "aces", "agx"), arrayOf("0", "1024", "2048", "4096"), ONOFF, ONOFF, ONOFF, ONOFF, ONOFF,
 		ONOFF, ONOFF, ONOFF, ONOFF, arrayOf("0", "1"), ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF,
 		ONOFF, arrayOf("0", "2", "4", "8", "16"), arrayOf("1", "1.5", "2"), arrayOf("auto", "1", "1.5", "2", "2.5", "3"),
 	)
