@@ -66,21 +66,23 @@ SHINE_MASKS = {90, 91, 109}
 
 # ground textures, which are mostly seen from afar (make_realistic lifts their mid-scale contrast)
 GROUND = {66, 70, 82, 90, 91, 96, 109, 125, 154, 181, 213, 309}
-GROUND_PUNCH = 1.0
+GROUND_PUNCH = 2.0
 
 TEXTURES = {
     # Lumbridge and Varrock's most used textures (HDDEBUG textures used, the texture-id overlay), less
     # the blank ones, decals, water and lava, and those never seen on screen to check them by (159, 322,
     # 387: their texels were hidden or on NPC clothing in every view tried), and 63 and 83 (only on small
     # objects, clothing and the fountain's rim, where realistic art made no visible gain); and, in the
-    # realistic pass, every texture that did not look clearly sharper in game side by side (sand, straw,
-    # plaster, fine gravel, wood grain) or was too small on screen to judge
+    # realistic pass, those too small on screen to judge: 72, 75, 109, 127, 163, and 125, 140, 185, 213,
+    # 228, 254, 294, 295, 0-3% of their best views (clothing, reeds, hidden faces) even with bold art
     66: ('loose rock and stone chips', 'gravel', 66),
     70: ('packed dirt', 'ground', 70),
     82: ('gravel', 'gravel', 82),
     90: ('pebbled ground, shaded', 'ground', 91),
     91: ('gravel path', 'gravel', 91),
     96: ('pebbles', 'gravel', 96),
+    154: ('sand', 'sand', 154),
+    181: ('rocky ground with pebbles', 'ground', 181),
     309: ('rocky ground', 'ground', 96),
     505: ('flagstones', 'brick', 505),
 }
@@ -139,7 +141,8 @@ def back_project(fresh, game):
 
 
 def generated_hd(texture):
-    """The newest realistic art for [texture] (634hd_hd-<id>), or None."""
+    """The newest realistic art for [texture] (634hd_hd-<id>; with tools/hd_prompt.txt, or for the
+    textures whose fine detail vanished on screen tools/hd_prompt_bold.txt), or None."""
     names = sorted(f for f in os.listdir(GENERATED) if f.startswith('634hd_hd-%d_' % texture) and f.endswith(('.png', '.jpg', '.jpeg')))
     return os.path.join(GENERATED, names[-1]) if names else None
 

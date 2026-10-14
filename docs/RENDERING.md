@@ -302,11 +302,12 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   whole; art with a seam over 1.5 is cross-faded along each axis. Effect 1 textures (90, 91) get the
   art's pattern in alpha, which `HdMaterialProvider` scales to the game mask's mean and spread, so the
   wet shine follows the new stones. The `fresh/` material maps take their relief from the new art.
-  Kept: the 8 that looked clearly sharper and more realistic in game, side by side with the original
+  Kept: the 10 that looked clearly sharper and more realistic in game, side by side with the original
   at the same camera with 16x anisotropic filtering - Varrock's street 505, its stone 70, 96, 309 and
-  house walls 82, Lumbridge's dirt and paths 66, 91, 90. Dropped after that check: sand, straw,
-  plaster, fine gravel and wood grain (no visible gain at their size on screen), and textures too
-  small on screen to judge. Nano-banana-2 seam repairs (the art shifted by half, the centre cross
+  house walls 82, Lumbridge's dirt and paths 66, 91, 90, sand 154 and rocky ground 181. Where fine
+  photo detail vanished at its size on screen the art was made again with `tools/hd_prompt_bold.txt`
+  (bold mid-scale shapes: ripples, distinct stones); dropped: the textures under about 3% of every
+  view tried (clothing, reeds, hidden faces), too small to judge. Nano-banana-2 seam repairs (the art shifted by half, the centre cross
   inpainted) worked twice in eleven tries, so they are not used. An earlier detail-only mode (the
   game texture with generated grain under one texel) still runs for any listed texture without
   realistic art.
