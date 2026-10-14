@@ -46,6 +46,12 @@ class HdContent {
         var heightFogTop: Float = 0.0f
         var lut: String? = null
         var waterTint: FloatArray? = null
+        /** water: how much of the game's water colour the tint replaces (NaN: 0.45), waves' height, speed, size, glint */
+        var waterStrength: Float = Float.NaN
+        var waterWaves: Float = 1.0f
+        var waterSpeed: Float = 1.0f
+        var waterSize: Float = 1.0f
+        var waterGlint: Float = 1.0f
 
         fun contains(x: Int, y: Int, level: Int): Boolean {
             val levels = this.levels
@@ -375,6 +381,14 @@ class HdContent {
         }
         e.lut = str(o["lut"])
         e.waterTint = col(o["waterTint"])
+        (o["water"] as? Json.Obj)?.let { w ->
+            col(w["tint"])?.let { e.waterTint = it }
+            e.waterStrength = num(w["strength"], Float.NaN)
+            e.waterWaves = num(w["waves"], 1.0f)
+            e.waterSpeed = num(w["speed"], 1.0f)
+            e.waterSize = num(w["size"], 1.0f)
+            e.waterGlint = num(w["glint"], 1.0f)
+        }
         return e
     }
 

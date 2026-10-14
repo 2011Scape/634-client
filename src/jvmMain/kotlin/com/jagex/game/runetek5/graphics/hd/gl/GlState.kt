@@ -75,6 +75,8 @@ class GlState(val gl: WebGL2RenderingContext) {
 
     // 634HD: 1 while HdGround draws the ground, for HD_TERRAIN
     var hdGround: Int = 0
+    // 634HD: 1 while the game's underwater pass draws (HdToolkit.ra .. pa): the riverbed, for caustics
+    var hdUnderwater: Int = 0
 
     // 634HD: 1 while particles are drawn soft (HD_SOFT_PARTICLES), with the projection's depth
     // terms (P[2][2], P[3][2]) and 1/width, 1/height of the depth copy

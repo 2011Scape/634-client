@@ -19,6 +19,9 @@
 #define HD_MIPMAPS 4096
 #define HD_MATERIALS 8192
 #define HD_ENV_LIGHT 16384
+#define HD_CAUSTICS 32768
+#define HD_GRASS 65536
+#define HD_MAX_ACTORS 8
 #define HD_MAX_LIGHTS 64
 
 layout(std140) uniform HdFrame {
@@ -63,6 +66,11 @@ layout(std140) uniform HdFrame {
     // the environment's tints of the sun's (light 0) and the ambient light (HD_ENV_LIGHT)
     vec4 hdEnvSun;
     vec4 hdEnvAmbient;
+    // the area's water (HD_WATER): x waves' height, y speed, z glint, w wave size (1 each by default)
+    vec4 hdWaterParams;
+    // the characters grass bends away from (HD_GRASS): x how many; their world x, z
+    vec4 hdActorInfo;
+    vec4 hdActors[HD_MAX_ACTORS];
 };
 
 // 1 for a draw that belongs to the 3D view, 0 for the interface and everything else.

@@ -2420,6 +2420,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		this.waterFogColour = fogColour
 		this.stillWaterToggled = true
 		this.waterIntensity = intensity
+		HdGl.state.hdUnderwater = 1
 	}
 
 	private fun updateDepthRange() {
@@ -2998,6 +2999,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 
 	override fun pa() {
 		this.stillWaterToggled = false
+		HdGl.state.hdUnderwater = 0
 	}
 
 	override fun r(x1: Int, y1: Int, z1: Int, x2: Int, y2: Int, z2: Int, projectionDepth: Int): Int {

@@ -78,6 +78,27 @@ void main() {
         float sway = sin(t) * 0.7 + sin(t * 2.3 + 1.7) * 0.3;
         position.xz += vec2(0.8, 0.45) * sway * height * 0.08 * flags.z * hdTime.y;
     }
+    if (hdOn(HD_GRASS) && flags.z >= 0.7 && hdActorInfo.x > 0.0) {
+        // grass and plants (wind strength 0.7 and up) bend away from characters walking through:
+        // pushed in world space, more the higher the vertex and the nearer the character
+        float height = max(-aPosition.y, 0.0);
+        vec3 world = (hdViewToWorld * (mv * position)).xyz;
+        vec2 push = vec2(0.0);
+        for (int i = 0; i < HD_MAX_ACTORS; i++) {
+            if (float(i) >= hdActorInfo.x) break;
+            vec2 away = world.xz - hdActors[i].xy;
+            float distance = length(away);
+            if (distance < 220.0 && distance > 1.0) {
+                float near = 1.0 - distance / 220.0;
+                push += away / distance * near * near * min(height, 260.0) * 0.55;
+            }
+        }
+        if (push.x != 0.0 || push.y != 0.0) {
+            // world offset to the model's own space (the eye's rotation, then the model's)
+            vec3 eyeOffset = mat3(inverse(hdViewToWorld)) * vec3(push.x, 0.0, push.y);
+            position.xyz += inverse(mat3(mv)) * eyeOffset;
+        }
+    }
     gl_Position = mvp * position;
 
     vec4 material = texelFetch(uMaterials, vMaterial * 2);

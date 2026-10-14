@@ -2,76 +2,190 @@
   "title": "634HD environments",
   "description": "Per-area lighting and atmosphere for 634HD's features. The first environment whose area holds the player applies; one without an area is the default. Blended over a short distance when the player crosses into another.",
   "type": "object",
-  "required": ["environments"],
+  "required": [
+    "environments"
+  ],
   "additionalProperties": false,
   "properties": {
     "environments": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "additionalProperties": false,
         "properties": {
-          "name": { "type": "string" },
+          "name": {
+            "type": "string"
+          },
           "area": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "regions": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 65535 } },
-              "bounds": { "type": "array", "items": { "type": "array", "items": { "type": "integer" }, "minItems": 4, "maxItems": 4, "description": "x1, y1, x2, y2 in world tiles" } },
-              "levels": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 3 } }
+              "regions": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 65535
+                }
+              },
+              "bounds": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  },
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "description": "x1, y1, x2, y2 in world tiles"
+                }
+              },
+              "levels": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                }
+              }
             }
           },
           "sun": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "pitch": { "type": "number", "minimum": 0, "maximum": 90 },
-              "yaw": { "type": "number", "minimum": -360, "maximum": 360 },
-              "colour": { "$ref": "#/$defs/colour" },
-              "intensity": { "type": "number", "minimum": 0, "maximum": 8 }
+              "pitch": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 90
+              },
+              "yaw": {
+                "type": "number",
+                "minimum": -360,
+                "maximum": 360
+              },
+              "colour": {
+                "$ref": "#/$defs/colour"
+              },
+              "intensity": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 8
+              }
             }
           },
           "ambient": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "colour": { "$ref": "#/$defs/colour" },
-              "intensity": { "type": "number", "minimum": 0, "maximum": 8 }
+              "colour": {
+                "$ref": "#/$defs/colour"
+              },
+              "intensity": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 8
+              }
             }
           },
           "fog": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "colour": { "$ref": "#/$defs/colour" },
-              "start": { "type": "number", "minimum": 0, "description": "tiles from the camera" },
-              "end": { "type": "number", "minimum": 0 }
+              "colour": {
+                "$ref": "#/$defs/colour"
+              },
+              "start": {
+                "type": "number",
+                "minimum": 0,
+                "description": "tiles from the camera"
+              },
+              "end": {
+                "type": "number",
+                "minimum": 0
+              }
             }
           },
           "sky": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "top": { "$ref": "#/$defs/colour" },
-              "horizon": { "$ref": "#/$defs/colour" }
+              "top": {
+                "$ref": "#/$defs/colour"
+              },
+              "horizon": {
+                "$ref": "#/$defs/colour"
+              }
             }
           },
           "heightFog": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "density": { "type": "number", "minimum": 0, "maximum": 1 },
-              "top": { "type": "number", "description": "height above sea level, in scene units" }
+              "density": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "top": {
+                "type": "number",
+                "description": "height above sea level, in scene units"
+              }
             }
           },
-          "lut": { "type": "string", "description": "a 256x16 colour grading strip under 634hd/luts" },
-          "waterTint": { "$ref": "#/$defs/colour" }
+          "lut": {
+            "type": "string",
+            "description": "a 256x16 colour grading strip under 634hd/luts"
+          },
+          "waterTint": {
+            "$ref": "#/$defs/colour"
+          },
+          "water": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "the area's water (with client.hd.water): its tint and how strongly it replaces the game's water colour, the waves' height, speed and size, and the sun's glint; each 1 is the default",
+            "properties": {
+              "tint": {
+                "$ref": "#/$defs/colour"
+              },
+              "strength": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "waves": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 4
+              },
+              "speed": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 4
+              },
+              "size": {
+                "type": "number",
+                "minimum": 0.25,
+                "maximum": 4
+              },
+              "glint": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 4
+              }
+            }
+          }
         }
       }
     }
   },
   "$defs": {
-    "colour": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+    "colour": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    }
   }
 }

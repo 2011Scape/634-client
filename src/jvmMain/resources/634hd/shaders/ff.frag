@@ -32,6 +32,8 @@ in vec3 vArbViewPos;
 uniform int uHdWater;
 // 1 while the ground is drawn (HD_TERRAIN)
 uniform int uHdGround;
+// 1 while the game's underwater pass draws (the riverbed): caustics there (HD_CAUSTICS)
+uniform int uHdUnderwater;
 // the slot of the texture's 634HD maps (HD_MATERIALS), -1 without
 uniform int uHdMapSlot;
 // the 634 texture id of unit 0 (the debug panel's texture overlay), -1 for none
@@ -275,6 +277,11 @@ void main() {
         color.a *= clamp((sceneEye - fragmentEye) / 96.0, 0.0, 1.0);
     }
     if (mapped) color = hdApplyMaterial(uHdMapSlot, color, gUv0, FF_VIEW_POS);
+    if (uHdUnderwater != 0 && hdOn(HD_CAUSTICS)) {
+        vec3 world = (hdViewToWorld * vec4(FF_VIEW_POS, 1.0)).xyz;
+        float light = hdCaustics(world.xz, hdTime.x * hdWaterParams.y);
+        color.rgb += color.rgb * light * 0.55 * (hdSunDirection.w > 0.5 ? 1.0 : 0.4);
+    }
     color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
     hdAppliedOcclusion = uHdGround == 3 ? 1.0 : uHdGround == 2 ? hdGroundOcclusion(FF_VIEW_POS, FF_NORMAL) : hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);
     color.rgb *= hdAppliedOcclusion;
