@@ -333,7 +333,9 @@ object InterfaceComponentDraw {
 								}
 							} else if (component.type == ComponentType.TEXT) {
 								// Not part of the original client: the 634HD toggle in the Graphics Options title bar.
-								HdOptionsButton.componentDrawn(component.idHash, startX, startY, component.height)
+								HdOptionsButton.mouseX = MouseRecord.mouseRecorder?.getMouseX() ?: -1
+								HdOptionsButton.mouseY = MouseRecord.mouseRecorder?.getMouseY() ?: -1
+								HdOptionsButton.componentDrawn(component.idHash, startX, startY, component.width, component.height)
 								@Pc(1130) val font: AbstractFontRenderer? = component.getFontRenderer(ClientState.activeToolkit)
 								if (font != null) {
 									var textColour: Int = component.color

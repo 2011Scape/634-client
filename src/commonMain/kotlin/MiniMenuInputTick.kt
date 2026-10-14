@@ -14,6 +14,7 @@ import com.jagex.game.runetek5.client.event.keyboard.SimpleKeyboardMonitorConsta
 import com.jagex.game.runetek5.client.event.mouse.MouseLog
 import com.jagex.game.runetek5.client.features.ClientFeatures
 import com.jagex.game.runetek5.client.features.HdOptionsButton
+import com.jagex.game.runetek5.client.features.HdSettingsPanel
 import com.jagex.game.runetek5.graphics.font.FontMetrics
 import com.jagex.game.runetek5.graphics.ifcomponent.InterfaceComponentRenderer
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecorder
@@ -73,8 +74,9 @@ object MiniMenuInputTick {
 			clickType = mouseEvent.getClickType()
 		}
 		if (!MiniMenu.isOpen) {
-			// Not part of the original client: a left press on the 634HD toggle (HdOptionsButton) is its own.
-			if (clickType == MouseLog.TYPE_PRESS_LEFT && mouseEvent != null && HdOptionsButton.pressed(mouseEvent.getMouseX(), mouseEvent.getMouseY())) {
+			// Not part of the original client: a left press on the 634HD toggle (HdOptionsButton) or its
+			// settings panel (HdSettingsPanel) is their own.
+			if (clickType == MouseLog.TYPE_PRESS_LEFT && mouseEvent != null && (HdSettingsPanel.pressed(mouseEvent.getMouseX(), mouseEvent.getMouseY()) || HdOptionsButton.pressed(mouseEvent.getMouseX(), mouseEvent.getMouseY()))) {
 				return
 			}
 			if (clickType == MouseLog.TYPE_PRESS_LEFT && (MiniMenu.menuOpenMode == 1 && MiniMenu.entryCount > 2 || MiniMenu.isTopEntryInterfaceAction())) {

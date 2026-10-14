@@ -116,17 +116,210 @@ object HdSettings {
 		"colourGrading", "interfaceScale", "smoothInterface", "materials", "particles", "panel",
 	)
 
+	/** The switches a player sets in the 634HD settings panel (HdSettingsPanel) and that are saved. */
+	@JvmField
+	val SAVED: Array<String> = arrayOf(
+		"tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting",
+		"shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom",
+		"colourGrading", "materials", "particles",
+	)
+
+	/** The presets, lowest first; "off" is the game as OpenGL draws it. */
+	@JvmField
+	val PRESETS: Array<String> = arrayOf("off", "low", "medium", "high", "ultra")
+
+	/** Whether the settings came from the saved file or the command line (else the defaults, all off). */
+	@JvmField
+	var configured: Boolean = false
+
 	init {
+		var given: Boolean = false
 		for (name in NAMES) {
 			val value: String? = lang.getProperty("client.hd." + name)
 			if (value != null) {
+				given = true
 				val error: String? = set(name, value)
 				if (error != null) {
 					lang.printlnErr("client.hd." + name + ": " + error)
 				}
 			}
 		}
+		// the command line wins; without it, what the player chose last time
+		if (given) {
+			configured = true
+		} else if (load()) {
+			configured = true
+		}
 		version = 0
+	}
+
+	/** Sets every saved switch to the preset [name] (one of PRESETS); null when it worked. */
+	@JvmStatic
+	fun applyPreset(name: String): String? {
+		val level: Int = indexOf(PRESETS, name.lowercase())
+		if (level < 0) {
+			return "presets are off, low, medium, high and ultra"
+		}
+		tonemap = if (level >= 2) 1 else 0
+		dither = true
+		mipmaps = level >= 1
+		anisotropy = if (level >= 3) 16 else if (level >= 1) 4 else 0
+		fxaa = level >= 1
+		fog = level >= 1
+		sky = level >= 2
+		pixelLighting = level >= 2
+		lights = level >= 2
+		water = if (level >= 2) 1 else 0
+		foliage = level >= 2
+		terrainBlend = level >= 2
+		colourGrading = level >= 2
+		shadows = if (level >= 4) 4096 else if (level >= 3) 2048 else if (level >= 2) 1024 else 0
+		ambientOcclusion = level >= 3
+		bloom = level >= 3
+		materials = level >= 3
+		softParticles = level >= 3
+		particles = level >= 3
+		fade = level >= 3
+		version++
+		return null
+	}
+
+	/** The preset the switches match now, or null when they have been changed one by one. */
+	@JvmStatic
+	fun currentPreset(): String? {
+		val saved: Array<String> = values()
+		for (preset in PRESETS) {
+			applyPreset(preset)
+			val same: Boolean = sameValues(saved, values())
+			restore(saved)
+			if (same) {
+				return preset
+			}
+		}
+		return null
+	}
+
+	private fun indexOf(array: Array<String>, value: String): Int {
+		for (i in array.indices) {
+			if (array[i] == value) {
+				return i
+			}
+		}
+		return -1
+	}
+
+	/** The saved switches' values, as set() takes them. */
+	@JvmStatic
+	fun values(): Array<String> {
+		val out: Array<String> = arrayOfNulls<String>(SAVED.size) as Array<String>
+		for (i in SAVED.indices) {
+			out[i] = valueOf(SAVED[i])
+		}
+		return out
+	}
+
+	private fun sameValues(a: Array<String>, b: Array<String>): Boolean {
+		for (i in a.indices) {
+			if (a[i] != b[i]) {
+				return false
+			}
+		}
+		return true
+	}
+
+	private fun restore(values: Array<String>) {
+		for (i in SAVED.indices) {
+			set(SAVED[i], values[i])
+		}
+	}
+
+	/** One saved switch's value, as set() takes it. */
+	@JvmStatic
+	fun valueOf(name: String): String = when (name) {
+		"tonemap" -> if (tonemap == 1) "aces" else if (tonemap == 2) "agx" else "off"
+		"anisotropy" -> anisotropy.toString()
+		"shadows" -> shadows.toString()
+		"water" -> water.toString()
+		"dither" -> onOff(dither)
+		"mipmaps" -> onOff(mipmaps)
+		"fog" -> onOff(fog)
+		"fade" -> onOff(fade)
+		"ambientOcclusion" -> onOff(ambientOcclusion)
+		"pixelLighting" -> onOff(pixelLighting)
+		"lights" -> onOff(lights)
+		"terrainBlend" -> onOff(terrainBlend)
+		"foliage" -> onOff(foliage)
+		"sky" -> onOff(sky)
+		"softParticles" -> onOff(softParticles)
+		"fxaa" -> onOff(fxaa)
+		"bloom" -> onOff(bloom)
+		"colourGrading" -> onOff(colourGrading)
+		"materials" -> onOff(materials)
+		"particles" -> onOff(particles)
+		else -> ""
+	}
+
+	/**
+	 * Where the player's choices are kept: one name=value a line, in the home folder. Not under the
+	 * smoke test (client.test), whose runs must neither read nor change it.
+	 */
+	private fun file(): io.File? {
+		if (lang.getProperty("client.test") != null) {
+			return null
+		}
+		val home: String = lang.getProperty("user.home") ?: return null
+		return io.File(home + "/.634hd-settings.txt")
+	}
+
+	/** Saves the switches the panel sets; false if the file cannot be written. */
+	@JvmStatic
+	fun save(): Boolean {
+		val file: io.File = file() ?: return false
+		try {
+			val out: StringBuilder = StringBuilder("# 634HD settings, written by the client (HdSettingsPanel)\n")
+			for (name in SAVED) {
+				out.append(name).append('=').append(valueOf(name)).append('\n')
+			}
+			val stream: io.FileOutputStream = io.FileOutputStream(file)
+			try {
+				stream.write(out.toString().encodeToByteArray())
+			} finally {
+				stream.close()
+			}
+			configured = true
+			return true
+		} catch (ex: Exception) {
+			lang.printlnErr("634HD: cannot save the settings: " + ex)
+			return false
+		}
+	}
+
+	/** Loads the saved switches; false when there is no file. */
+	@JvmStatic
+	fun load(): Boolean {
+		val file: io.File = file() ?: return false
+		try {
+			if (!file.exists()) {
+				return false
+			}
+			val reader: io.BufferedReader = io.BufferedReader(io.InputStreamReader(io.FileInputStream(file)))
+			try {
+				while (true) {
+					val line: String = reader.readLine() ?: break
+					val at: Int = line.indexOf('=')
+					if (at <= 0 || line.startsWith("#")) {
+						continue
+					}
+					set(line.substring(0, at).trim(), line.substring(at + 1).trim())
+				}
+			} finally {
+				reader.close()
+			}
+			return true
+		} catch (ex: Exception) {
+			lang.printlnErr("634HD: cannot read the settings: " + ex)
+			return false
+		}
 	}
 
 	/** Whether the 3D view needs its own framebuffer for these settings (post-processing). */
