@@ -112,8 +112,8 @@ Done when: 634HD matches the existing OpenGL toolkit in the screenshot test set,
 
 ## Phase 4: Rendering features
 
-**Status (Oct 13, 2026): done on Linux x64 (RTX 5070); see docs/RENDERING.md "634HD features". All on, Varrock at 1920x1006 with 4x MSAA: 305 fps,
-447 draw calls, 26 ms worst region frame. Iris Xe, RTX 3060, Windows and macOS not measured.**
+**Status (Oct 13, 2026): done on Linux x64 (RTX 5070); see docs/RENDERING.md "634HD features". Every switch on, Varrock at 1920x1006 with 4x MSAA and 2x
+draw distance: 212 fps (off: 308), 476 draw calls, region hitches 10-20 ms; Grand Exchange 310 fps. Iris Xe, RTX 3060, Windows and macOS not measured.**
 
 Build these in order, one pull request each. Every feature gets a toggle or quality level in settings and must not change behaviour when disabled.
 

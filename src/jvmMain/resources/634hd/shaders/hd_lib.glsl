@@ -253,13 +253,12 @@ float hdAmbientOcclusion(vec3 viewPos, vec3 normal) {
         float facing = dot(dir, side);
         int which = (up < 0.5 && facing < 0.0) ? 1 : 0;
         if (up < 0.5 && abs(facing) < 0.1) continue;
-        for (int r = 0; r < 2; r++) {
-            float radius = r == 0 ? 110.0 : 300.0;
-            // occluders lower than a tall grass tuft (about 180 units) are left out: grass is not a wall
-            float height = world.y - hdOccluderY(world.xz + dir * radius) - 180.0;
-            sideOcclusion[which] += clamp(height / (radius * 1.2), 0.0, 1.0);
-            sideWeight[which] += 1.0;
-        }
+        // one distance, about a third of a tile (the static scene's vertices are baked more finely)
+        float radius = 180.0;
+        // occluders lower than a tall grass tuft (about 180 units) are left out: grass is not a wall
+        float height = world.y - hdOccluderY(world.xz + dir * radius) - 180.0;
+        sideOcclusion[which] += clamp(height / (radius * 1.2), 0.0, 1.0);
+        sideWeight[which] += 1.0;
     }
     if (up < 0.5 && sideWeight[1] > 0.0 && (sideWeight[0] == 0.0 || sideOcclusion[1] / sideWeight[1] < sideOcclusion[0] / sideWeight[0])) {
         occlusion += sideOcclusion[1];

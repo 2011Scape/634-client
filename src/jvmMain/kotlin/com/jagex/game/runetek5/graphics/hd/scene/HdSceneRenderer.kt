@@ -132,11 +132,13 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
 
     // ---- geometry, mirrored on the CPU so the buffers can grow ----
 
-    private var vertices: ByteBuffer = ByteBuffer.allocateDirect(1 shl 22).order(ByteOrder.nativeOrder())
+    // the CPU copies of the scene's geometry, off the Java heap and freed by release() (they grow to
+    // tens of megabytes; left to the garbage collector, a few toolkit switches ran out of direct memory)
+    private var vertices: ByteBuffer = MemoryUtil.memAlloc(1 shl 22)
 
     private var vertexCount: Int = 0
 
-    private var indices: ByteBuffer = ByteBuffer.allocateDirect(1 shl 22).order(ByteOrder.nativeOrder())
+    private var indices: ByteBuffer = MemoryUtil.memAlloc(1 shl 22)
 
     private var indexCount: Int = 0
 
@@ -307,7 +309,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         }
         if (queueHead == queueTail) {
             RenderStats.lastRegionBuildMs = (regionBuildNanos / 1000000L).toInt()
-            readBuffers.clear()
+            clearReadBuffers()
         }
     }
 
@@ -546,6 +548,9 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     var lastVertexBakeMs: Int = 0
         private set
 
+    /** Whether chunks are still waiting to be built (a region loading, or rebuilds pending). */
+    fun building(): Boolean = queueHead != queueTail || dirtyCount > 0
+
     /** Bumped whenever chunks are built or rebuilt: the occlusion bake is out of date. */
     var bakeVersion: Int = 0
         private set
@@ -667,7 +672,10 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             return known
         }
         val size: Int = bufferSize(name)
-        val data: ByteBuffer = ByteBuffer.allocateDirect(maxOf(size, bytes)).order(ByteOrder.nativeOrder())
+        if (known != null) {
+            MemoryUtil.memFree(known)
+        }
+        val data: ByteBuffer = MemoryUtil.memAlloc(maxOf(size, bytes))
         CoreGl.readBuffer(name, 0L, minOf(size, data.capacity()), data)
         readBuffers[name] = data
         return data
@@ -818,11 +826,9 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         if (needed > vertices.capacity()) {
             var size: Int = vertices.capacity() * 2
             while (size < needed) size *= 2
-            val grown: ByteBuffer = ByteBuffer.allocateDirect(size).order(ByteOrder.nativeOrder())
             vertices.clear()
-            vertices.limit(vertexCount * VERTEX_BYTES)
-            grown.put(vertices)
-            vertices = grown
+            vertices = MemoryUtil.memRealloc(vertices, size)
+            vertices.clear()
         }
     }
 
@@ -831,11 +837,9 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         if (needed > indices.capacity()) {
             var size: Int = indices.capacity() * 2
             while (size < needed) size *= 2
-            val grown: ByteBuffer = ByteBuffer.allocateDirect(size).order(ByteOrder.nativeOrder())
             indices.clear()
-            indices.limit(indexCount * 4)
-            grown.put(indices)
-            indices = grown
+            indices = MemoryUtil.memRealloc(indices, size)
+            indices.clear()
         }
     }
 
@@ -874,7 +878,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         }
         queueHead = 0
         queueTail = 0
-        readBuffers.clear()
+        clearReadBuffers()
         built = false
     }
 
@@ -1487,8 +1491,29 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         GL33C.glBindBuffer(GL33C.GL_TEXTURE_BUFFER, 0)
     }
 
+    private var released: Boolean = false
+
+    /** Frees the read-back copies of the region's model buffers. */
+    private fun clearReadBuffers() {
+        for (data in readBuffers.values) {
+            MemoryUtil.memFree(data)
+        }
+        readBuffers.clear()
+    }
+
     fun release() {
+        if (released) {
+            return
+        }
+        released = true
         clear()
+        clearReadBuffers()
+        MemoryUtil.memFree(vertices)
+        MemoryUtil.memFree(indices)
+        MemoryUtil.memFree(drawCounts)
+        MemoryUtil.memFree(drawOffsets)
+        if (bakeBuffer != 0) GL33C.glDeleteBuffers(bakeBuffer)
+        if (bakeTexture != 0) GL33C.glDeleteTextures(bakeTexture)
         materials.release()
         val created: WebGLProgram? = program
         if (created != null) {

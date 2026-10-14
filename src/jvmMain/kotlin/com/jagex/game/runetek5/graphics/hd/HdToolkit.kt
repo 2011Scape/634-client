@@ -3224,6 +3224,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	override fun beginScene(x: Int, y: Int, width: Int, height: Int) {
 		// 634HD: the debug panel reads the last frame, whole, before this one's 3D view starts
 		this.debugPanelTick()
+		// 634HD: the streams start fresh storage now rather than in the middle of the frame
+		this.vertexStream.startFrame()
+		this.elementStream.startFrame()
 		this.particlesDrawn = false
 		// 634HD: the frame's uniforms for the features, and the 3D view's draws marked as such
 		this.sceneDrawing = true

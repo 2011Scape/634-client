@@ -47,6 +47,9 @@ class HdShadows {
         /** How far towards the sun the light's eye sits, and the depth range beyond. */
         private const val DISTANCE: Float = 40000.0f
         private const val MAX_CASTERS: Int = 4096
+        /** Each caster list's GPU copy of its draws' vertices, and the most one draw may copy. */
+        private const val COPY_CAPACITY: Long = 16L * 1024L * 1024L
+        private const val MAX_COPY: Long = 512L * 1024L
     }
 
     /** A depth map drawn from a matrix: the sun's, or the height map from above. */
@@ -96,6 +99,16 @@ class HdShadows {
     }
 
     private val sun: DepthMap = DepthMap(UNIT, true)
+
+    // the static casters' part of the sun's map, kept between frames (its own texture unit is unused:
+    // it is only ever copied from)
+    private val staticMap: DepthMap = DepthMap(24, false)
+    private var staticKey: Long = 0L
+    private var staticWanted: Long = 1L
+    private var staticVersion: Int = -1
+    private var staticRedraws: Int = 0
+    private var readFramebuffer0: Int = 0
+    private val colourMask: ByteBuffer = ByteBuffer.allocateDirect(4)
     private val heights: DepthMap = DepthMap(AO_UNIT, false)
 
     // the region's baked occlusion height map: all retained objects, drawn when the region's chunks
@@ -124,8 +137,9 @@ class HdShadows {
      */
     fun bake(scene: HdSceneRenderer) {
         framesSinceBake++
-        scene.stepVertexOcclusion(4000000L)
-        if (!HdSettings.ambientOcclusion || scene.bakeVersion == bakedVersion || framesSinceBake < 20) return
+        scene.stepVertexOcclusion(1500000L)
+        // once the region is built, and not more than every 2 seconds or so (a bake reads the map back)
+        if (!HdSettings.ambientOcclusion || scene.bakeVersion == bakedVersion || scene.building() || framesSinceBake < 120) return
         bakedVersion = scene.bakeVersion
         framesSinceBake = 0
         baked.ensure(BAKE_SIZE)
@@ -266,9 +280,18 @@ class HdShadows {
         val elementType: IntArray = IntArray(MAX_CASTERS)
         val elementOffset: LongArray = LongArray(MAX_CASTERS)
         val modelView: FloatArray = FloatArray(MAX_CASTERS * 16)
+        // the buffers' write counts when recorded (HdGl.bufferVersion): a buffer written since holds
+        // other data now, and the caster is skipped
+        val vertexVersion: IntArray = IntArray(MAX_CASTERS)
+        val offsetBase: LongArray = LongArray(MAX_CASTERS)
+        val elementVersion: IntArray = IntArray(MAX_CASTERS)
         // indices that were in client memory, copied here (elementBuffer -1, elementOffset into it)
-        var indices: ByteBuffer = ByteBuffer.allocateDirect(1 shl 20).order(java.nio.ByteOrder.nativeOrder())
+        var indices: ByteBuffer = org.lwjgl.system.MemoryUtil.memAlloc(1 shl 20)
         var indexBuffer: Int = 0
+        // vertex data copied on the GPU when the caster was drawn (its own buffer may be rewritten
+        // later in the frame by the next model sharing it)
+        var copyBuffer: Int = 0
+        var copyUsed: Long = 0L
     }
 
     // the opaque entities of this frame; the translucent ones (drawn after the map is made: players
@@ -277,6 +300,9 @@ class HdShadows {
     private var late: Casters = Casters()
     private var previous: Casters = Casters()
     private var lateMode: Boolean = false
+
+    // the stream's orphan count when the late casters began to be recorded
+    private var lateOrphans: Int = 0
 
     /** Whether this frame's map was started (cleared) by an earlier pass. */
     private var rendered: Boolean = false
@@ -312,15 +338,37 @@ class HdShadows {
     @JvmField
     var sunPitch: Float = Float.NaN
 
+    private var debugFrames: Int = 0
+    private var debugInactive: Int = 0
+
     fun beginFrame(viewToWorld: FloatArray, sunEye: FloatArray, sunPresent: Boolean) {
+        if (System.getProperty("client.test.hdDebug") != null && HdSettings.shadows != 0) {
+            debugFrames++
+            if (!sunPresent) debugInactive++
+            if (debugFrames % 200 == 0) println("HDDEBUG shadow frames " + debugFrames + ", without a sun " + debugInactive)
+        }
         casters.count = 0
+        casters.copyUsed = 0L
         casters.indices.clear()
         rendered = false
         drawnCasters = 0
         val swap: Casters = previous
         previous = late
         late = swap
+        // last frame's translucent casters drew from the stream; if it was orphaned since, their
+        // ranges hold something else now, and they are dropped (a frame without their shadows)
+        if (HdDynamicStream.orphans != lateOrphans) {
+            previous.count = 0
+        }
+        // the references: only last frame's late casters carry over (they are drawn this frame)
+        referencedBy.clear()
+        for (i in 0 until previous.count) {
+            reference(previous.vertexBuffer[i], previous, i)
+            if (previous.elementBuffer[i] > 0) reference(previous.elementBuffer[i], previous, i)
+        }
+        lateOrphans = HdDynamicStream.orphans
         late.count = 0
+        late.copyUsed = 0L
         late.indices.clear()
         lateMode = false
         sun.active = false
@@ -364,7 +412,12 @@ class HdShadows {
         heights.active = true
     }
 
-    private fun beginSun(cx: Float, cy: Float, cz: Float, viewToWorld: FloatArray, sunEye: FloatArray) {
+    private fun beginSun(playerX: Float, playerY: Float, playerZ: Float, viewToWorld: FloatArray, sunEye: FloatArray) {
+        // the map's centre moves in steps of four tiles, not with every step the player takes, so the
+        // static casters drawn into it stay valid (and are drawn again only at a step: staticMap)
+        val cx: Float = kotlin.math.floor(playerX / 2048.0f) * 2048.0f + 1024.0f
+        val cz: Float = kotlin.math.floor(playerZ / 2048.0f) * 2048.0f + 1024.0f
+        val cy: Float = kotlin.math.floor(playerY / 1024.0f) * 1024.0f
         sunChunkX = (cx.toInt() shr 9) shr 3
         sunChunkZ = (cz.toInt() shr 9) shr 3
         // the direction towards the sun in world space
@@ -387,6 +440,7 @@ class HdShadows {
         dz *= scale
         dy = -up
         sun.ensure(HdSettings.shadows)
+        staticWanted = (cx.toLong() shl 40) xor (cz.toLong() shl 20) xor cy.toLong() xor (Math.round(dx * 1000.0f).toLong() shl 52) xor (Math.round(dy * 1000.0f).toLong() shl 44) xor (Math.round(dz * 1000.0f).toLong() shl 36) xor sun.size.toLong()
         val size: Int = sun.size
         // the light's view: looking from the sun towards the player, y up as close to the world's as can be
         val view: FloatArray = lookAt(cx + dx * DISTANCE, cy + dy * DISTANCE, cz + dz * DISTANCE, cx, cy, cz)
@@ -441,18 +495,76 @@ class HdShadows {
         val list: Casters = if (lateMode) late else casters
         if (list.count >= MAX_CASTERS || vertexBuffer == 0) return
         if (list.indices.remaining() < bytes) {
-            val grown: ByteBuffer = ByteBuffer.allocateDirect(maxOf(list.indices.capacity() * 2, list.indices.position() + bytes)).order(java.nio.ByteOrder.nativeOrder())
-            list.indices.flip()
-            grown.put(list.indices)
-            list.indices = grown
+            val used: Int = list.indices.position()
+            list.indices.clear()
+            list.indices = org.lwjgl.system.MemoryUtil.memRealloc(list.indices, maxOf(list.indices.capacity() * 2, used + bytes))
+            list.indices.position(used)
         }
         val at: Int = list.indices.position()
         list.indices.put(org.lwjgl.system.MemoryUtil.memByteBuffer(address, bytes))
         record(vertexBuffer, size, type, stride, offset, -1, count, elementType, at.toLong(), modelView)
     }
 
+    // copy on write: the casters (list, index) drawn from each buffer, this frame and last frame's late
+    // ones; when HdGl is about to write a buffer, those casters' data is copied out first
+    private val referencedBy = HashMap<Int, ArrayList<Any>>()
+
+    private fun reference(buffer: Int, list: Casters, index: Int) {
+        if (HdDynamicStream.handles.contains(buffer)) return
+        var users: ArrayList<Any>? = referencedBy[buffer]
+        if (users == null) {
+            users = ArrayList()
+            referencedBy[buffer] = users
+        }
+        users.add(list)
+        users.add(index)
+    }
+
+    /** Called by HdGl before it writes GL buffer [buffer]: casters drawn from it get their own copy. */
+    fun beforeWrite(buffer: Int) {
+        val users: ArrayList<Any> = referencedBy.remove(buffer) ?: return
+        GL33C.glBindBuffer(GL33C.GL_COPY_READ_BUFFER, buffer)
+        val bufferBytes: Long = GL33C.glGetBufferParameteri(GL33C.GL_COPY_READ_BUFFER, GL33C.GL_BUFFER_SIZE).toLong()
+        var k: Int = 0
+        while (k < users.size) {
+            val list: Casters = users[k] as Casters
+            val i: Int = users[k + 1] as Int
+            k += 2
+            if (i >= list.count) continue
+            if (list.copyBuffer == 0) {
+                list.copyBuffer = GL33C.glGenBuffers()
+                GL33C.glBindBuffer(GL33C.GL_COPY_WRITE_BUFFER, list.copyBuffer)
+                GL33C.glBufferData(GL33C.GL_COPY_WRITE_BUFFER, COPY_CAPACITY, GL33C.GL_STREAM_COPY)
+            }
+            GL33C.glBindBuffer(GL33C.GL_COPY_WRITE_BUFFER, list.copyBuffer)
+            if (list.vertexBuffer[i] == buffer) {
+                val bytes: Long = bufferBytes - list.offset[i]
+                val at: Long = (list.copyUsed + 255L) and 255L.inv()
+                if (bytes > 0L && bytes <= MAX_COPY && at + bytes <= COPY_CAPACITY) {
+                    GL33C.glCopyBufferSubData(GL33C.GL_COPY_READ_BUFFER, GL33C.GL_COPY_WRITE_BUFFER, list.offset[i], at, bytes)
+                    list.copyUsed = at + bytes
+                    list.vertexBuffer[i] = list.copyBuffer
+                    list.offset[i] = at
+                    list.vertexVersion[i] = 0
+                }
+            }
+            if (list.elementBuffer[i] == buffer) {
+                val bytes: Long = list.elements[i].toLong() * (if (list.elementType[i] == GL33C.GL_UNSIGNED_BYTE) 1L else if (list.elementType[i] == GL33C.GL_UNSIGNED_SHORT) 2L else 4L)
+                val at: Long = (list.copyUsed + 255L) and 255L.inv()
+                if (bytes <= MAX_COPY && at + bytes <= COPY_CAPACITY) {
+                    GL33C.glCopyBufferSubData(GL33C.GL_COPY_READ_BUFFER, GL33C.GL_COPY_WRITE_BUFFER, list.elementOffset[i], at, bytes)
+                    list.copyUsed = at + bytes
+                    list.elementBuffer[i] = list.copyBuffer
+                    list.elementOffset[i] = at
+                    list.elementVersion[i] = 0
+                }
+            }
+        }
+    }
+
     /** Called by HdGl for an indexed triangle draw while [recording]. */
     fun record(vertexBuffer: Int, size: Int, type: Int, stride: Int, offset: Long, elementBuffer: Int, count: Int, elementType: Int, elementOffset: Long, modelView: FloatArray) {
+        if (PARTS.contains("norecord")) return
         val list: Casters = if (lateMode) late else casters
         if (list.count >= MAX_CASTERS || vertexBuffer == 0 || elementBuffer == 0) return
         val i: Int = list.count++
@@ -465,6 +577,11 @@ class HdShadows {
         list.elements[i] = count
         list.elementType[i] = elementType
         list.elementOffset[i] = elementOffset
+        list.vertexVersion[i] = HdGl.bufferVersion(vertexBuffer)
+        list.elementVersion[i] = if (elementBuffer > 0) HdGl.bufferVersion(elementBuffer) else 0
+        // nothing is copied now: only if a buffer it uses is about to be written (beforeWrite)
+        reference(vertexBuffer, list, i)
+        if (elementBuffer > 0) reference(elementBuffer, list, i)
         // kept as model-to-world, so last frame's casters stay put when the camera moves
         val at: Int = i * 16
         for (col in 0 until 4) {
@@ -491,6 +608,18 @@ class HdShadows {
             list.indices.position(bytes)
         }
         for (i in from until list.count) {
+            if (stale(list.vertexBuffer[i], list.vertexVersion[i]) || (list.elementBuffer[i] > 0 && stale(list.elementBuffer[i], list.elementVersion[i]))) {
+                // rewritten since it was drawn (an animated model updated in place): its data is not the caster's
+                staleCasters++
+                if (System.getProperty("client.test.hdDebug") != null && staleCasters % 5000 == 1) {
+                    GL33C.glBindBuffer(GL33C.GL_COPY_READ_BUFFER, list.vertexBuffer[i])
+                    val vs = GL33C.glGetBufferParameteri(GL33C.GL_COPY_READ_BUFFER, GL33C.GL_BUFFER_SIZE)
+                    GL33C.glBindBuffer(GL33C.GL_COPY_READ_BUFFER, Math.max(0, list.elementBuffer[i]))
+                    val es = if (list.elementBuffer[i] > 0) GL33C.glGetBufferParameteri(GL33C.GL_COPY_READ_BUFFER, GL33C.GL_BUFFER_SIZE) else -1
+                    println("HDDEBUG stale caster: vertex buffer " + list.vertexBuffer[i] + " (" + vs + " bytes, offset " + list.offset[i] + ", versions " + list.vertexVersion[i] + "->" + HdGl.bufferVersion(list.vertexBuffer[i]) + "), elements " + list.elementBuffer[i] + " (" + es + " bytes, " + list.elementVersion[i] + "->" + (if (list.elementBuffer[i] > 0) HdGl.bufferVersion(list.elementBuffer[i]) else 0) + ")")
+                }
+                continue
+            }
             for (k in 0 until 16) matrix[k] = list.modelView[i * 16 + k]
             val m: FloatArray = Mat4.multiply(map.worldToClip, matrix)
             matrixBuffer.clear()
@@ -500,6 +629,49 @@ class HdShadows {
             GL33C.glVertexAttribPointer(0, list.size[i], list.type[i], false, list.stride[i], list.offset[i])
             GL33C.glBindBuffer(GL33C.GL_ELEMENT_ARRAY_BUFFER, if (list.elementBuffer[i] == -1) list.indexBuffer else list.elementBuffer[i])
             GL33C.glDrawElements(GL33C.GL_TRIANGLES, list.elements[i], list.elementType[i], list.elementOffset[i])
+        }
+    }
+
+    // debugging: which casters go into the maps (client.test.hdShadowParts=static,now,late)
+    private val PARTS: String = System.getProperty("client.test.hdShadowParts") ?: "static,now,late"
+
+    /** Whether [buffer] was written since [version]; stream buffers only append, and are never stale within a frame. */
+    private fun stale(buffer: Int, version: Int): Boolean = !HdDynamicStream.handles.contains(buffer) && HdGl.bufferVersion(buffer) != version
+
+    /** Casters skipped because their buffers were rewritten after they were drawn (debugging). */
+    private var staleCasters: Int = 0
+
+    private var checks: Int = 0
+    private var anomalies: Int = 0
+
+    /** Debugging: the sun map's depth over the player against where the player is; logs a map that covers everything. */
+    private fun checkMap(first: Boolean) {
+        val player = PlayerUpdate.localPlayer ?: return
+        val m: FloatArray = sun.worldToClip
+        val x: Float = player.x.toFloat()
+        val y: Float = player.y.toFloat() - 600.0f
+        val z: Float = player.z.toFloat()
+        val cx: Float = m[0] * x + m[4] * y + m[8] * z + m[12]
+        val cy: Float = m[1] * x + m[5] * y + m[9] * z + m[13]
+        val cz: Float = m[2] * x + m[6] * y + m[10] * z + m[14]
+        val px: Int = ((cx * 0.5f + 0.5f) * sun.size).toInt()
+        val py: Int = ((cy * 0.5f + 0.5f) * sun.size).toInt()
+        val expected: Float = cz * 0.5f + 0.5f
+        val previousRead: Int = GL33C.glGetInteger(GL33C.GL_READ_FRAMEBUFFER_BINDING)
+        GL33C.glBindFramebuffer(GL33C.GL_READ_FRAMEBUFFER, sun.framebuffer)
+        val depth = FloatArray(1)
+        GL33C.glReadPixels(px.coerceIn(0, sun.size - 1), py.coerceIn(0, sun.size - 1), 1, 1, GL33C.GL_DEPTH_COMPONENT, GL33C.GL_FLOAT, depth)
+        GL33C.glBindFramebuffer(GL33C.GL_READ_FRAMEBUFFER, previousRead)
+        checks++
+        if (depth[0] < expected - 0.05f) {
+            anomalies++
+            println("HDDEBUG shadow map anomaly " + anomalies + "/" + checks + ": depth over the player " + depth[0] + ", player at " + expected + ", first pass " + first + ", casters now " + casters.count + " (drawn " + drawnCasters + "), late " + previous.count)
+            for (i in 0 until previous.count) {
+                val o: Int = i * 16
+                println("HDDEBUG   late #" + i + " at " + previous.modelView[o + 12] + "," + previous.modelView[o + 13] + "," + previous.modelView[o + 14] + " elements " + previous.elements[i] + " buffer " + previous.vertexBuffer[i] + " offset " + previous.offset[i] + " indices " + previous.elementBuffer[i])
+            }
+        } else if (checks % 300 == 0) {
+            println("HDDEBUG shadow map checks " + checks + ", anomalies " + anomalies + ", stale casters skipped " + staleCasters)
         }
     }
 
@@ -537,6 +709,7 @@ class HdShadows {
         }
         HdGl.flushImmediate()
         val drawFramebuffer: Int = GL33C.glGetInteger(GL33C.GL_DRAW_FRAMEBUFFER_BINDING)
+        readFramebuffer0 = GL33C.glGetInteger(GL33C.GL_READ_FRAMEBUFFER_BINDING)
         val viewport = IntArray(4)
         GL33C.glGetIntegerv(GL33C.GL_VIEWPORT, viewport)
         val scissor: Boolean = GL33C.glIsEnabled(GL33C.GL_SCISSOR_TEST)
@@ -545,7 +718,6 @@ class HdShadows {
         val depthTest: Boolean = GL33C.glIsEnabled(GL33C.GL_DEPTH_TEST)
         val depthMask: Boolean = GL33C.glGetBoolean(GL33C.GL_DEPTH_WRITEMASK)
         val depthFunc: Int = GL33C.glGetInteger(GL33C.GL_DEPTH_FUNC)
-        val colourMask = ByteBuffer.allocateDirect(4)
         GL33C.glGetBooleanv(GL33C.GL_COLOR_WRITEMASK, colourMask)
         val elementBinding: Int = GL33C.glGetInteger(GL33C.GL_ELEMENT_ARRAY_BUFFER_BINDING)
         GL33C.glDisable(GL33C.GL_SCISSOR_TEST)
@@ -573,30 +745,46 @@ class HdShadows {
             GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + map.unit)
             GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, 0)
 
-            if (map === sun && first) {
+            if (map === sun && first && PARTS.contains("static")) {
                 // every static caster near the player, on screen or not, placed by its captured model
-                // matrix (once a frame; the height map of moving models has no static scene: it is baked)
-                ensureBakeProgram()
-                val program: WebGLProgram = bakeProgram!!
-                GL33C.glUseProgram(program.id)
-                map.viewToClipBuffer.clear()
-                map.viewToClipBuffer.put(map.worldToClip).flip()
-                GL33C.glUniformMatrix4fv(GL33C.glGetUniformLocation(program.id, "uWorldToClip"), false, map.viewToClipBuffer)
-                val reach: Int = ((HALF_EXTENT / 512.0f).toInt() + 6) / 8 + 1
-                scene.drawRegion(program, 23, sunChunkX - reach, sunChunkZ - reach, sunChunkX + reach, sunChunkZ + reach)
+                // matrix: drawn into staticMap when the map moves or the scene changes, and copied in
+                // from there every frame (the height map of moving models has no static scene: it is baked)
+                staticMap.ensure(sun.size)
+                if (staticKey != staticWanted || staticVersion != scene.bakeVersion) {
+                    staticKey = staticWanted
+                    staticVersion = scene.bakeVersion
+                    GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, staticMap.framebuffer)
+                    GL33C.glClear(GL33C.GL_DEPTH_BUFFER_BIT)
+                    ensureBakeProgram()
+                    val program: WebGLProgram = bakeProgram!!
+                    GL33C.glUseProgram(program.id)
+                    map.viewToClipBuffer.clear()
+                    map.viewToClipBuffer.put(map.worldToClip).flip()
+                    GL33C.glUniformMatrix4fv(GL33C.glGetUniformLocation(program.id, "uWorldToClip"), false, map.viewToClipBuffer)
+                    val reach: Int = ((HALF_EXTENT / 512.0f).toInt() + 6) / 8 + 1
+                    scene.drawRegion(program, 23, sunChunkX - reach, sunChunkZ - reach, sunChunkX + reach, sunChunkZ + reach)
+                    staticRedraws++
+                }
+                GL33C.glBindFramebuffer(GL33C.GL_READ_FRAMEBUFFER, staticMap.framebuffer)
+                GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, sun.framebuffer)
+                GL33C.glBlitFramebuffer(0, 0, sun.size, sun.size, 0, 0, sun.size, sun.size, GL33C.GL_DEPTH_BUFFER_BIT, GL33C.GL_NEAREST)
+                GL33C.glBindFramebuffer(GL33C.GL_READ_FRAMEBUFFER, readFramebuffer0)
             }
 
             GL33C.glUseProgram(dynamicProgram!!.id)
             GL33C.glBindVertexArray(vao)
             GL33C.glEnableVertexAttribArray(0)
-            drawCasters(casters, drawnCasters, map, !uploaded)
-            if (first) {
+            if (PARTS.contains("now")) drawCasters(casters, drawnCasters, map, !uploaded)
+            if (first && PARTS.contains("late")) {
                 // last frame's translucent casters (kept in world space): a frame behind
                 drawCasters(previous, 0, map, !uploaded)
             }
             uploaded = true
         }
         lastCasters = casters.count - drawnCasters + previous.count
+        if (System.getProperty("client.test.hdDebug") != null && sun.active) {
+            checkMap(first)
+        }
         drawnCasters = casters.count
 
         GL33C.glDisable(GL33C.GL_POLYGON_OFFSET_FILL)
@@ -628,6 +816,8 @@ class HdShadows {
 
     fun release() {
         sun.release()
+        staticMap.release()
+        staticVersion = -1
         heights.release()
         baked.release()
         bakedVersion = -1
@@ -641,6 +831,10 @@ class HdShadows {
         for (list in arrayOf(casters, late, previous)) {
             if (list.indexBuffer != 0) GL33C.glDeleteBuffers(list.indexBuffer)
             list.indexBuffer = 0
+            if (list.copyBuffer != 0) GL33C.glDeleteBuffers(list.copyBuffer)
+            list.copyBuffer = 0
+            if (list.indices.capacity() > 0) org.lwjgl.system.MemoryUtil.memFree(list.indices)
+            list.indices = ByteBuffer.allocate(0)
         }
         sceneProgram = null
         dynamicProgram = null

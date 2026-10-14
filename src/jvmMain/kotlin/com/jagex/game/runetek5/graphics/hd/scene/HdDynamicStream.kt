@@ -22,6 +22,15 @@ import com.jagex.game.runetek5.graphics.hd.gl.HdGl
 class HdDynamicStream(private val toolkit: HdToolkit, private val target: Int) {
 
     companion object {
+        /** The GL names of the stream buffers: append-only, so their write counts mean nothing (HdShadows). */
+        @JvmStatic
+        val handles: HashSet<Int> = HashSet()
+
+        /** Bumped whenever any stream buffer is orphaned: ranges written before are gone (HdShadows). */
+        @JvmStatic
+        var orphans: Int = 0
+            private set
+
         private const val CAPACITY: Int = 16 * 1024 * 1024
         private const val ALIGN: Int = 64
         const val ARRAY: Int = 34962
@@ -31,6 +40,18 @@ class HdDynamicStream(private val toolkit: HdToolkit, private val target: Int) {
     private var handle: Int = 0
 
     private var offset: Int = 0
+
+    // set at the start of a frame once the buffer is half full: the next write starts fresh storage,
+    // so the buffer is never orphaned in the middle of a frame (shadow casters recorded earlier in
+    // the frame keep their data until the shadow map is drawn)
+    private var orphanNext: Boolean = false
+
+    /** At the start of a frame (HdToolkit.beginScene). */
+    fun startFrame() {
+        if (offset > CAPACITY / 2) {
+            orphanNext = true
+        }
+    }
 
     /** Bumped each time the buffer is orphaned: a range written in an earlier generation is stale. */
     private var generation: Int = 0
@@ -93,16 +114,19 @@ class HdDynamicStream(private val toolkit: HdToolkit, private val target: Int) {
             val ids: IntArray = IntArray(1)
             HdGl.glGenBuffersARB(1, ids, 0)
             handle = ids[0]
+            handles.add(com.jagex.game.runetek5.graphics.hd.gl.CoreGl.bufferName(handle))
             bind(range)
             HdGl.glBufferDataARBub(target, CAPACITY, null, 0, 35040)
         }
         val size: Int = range.size
-        if (offset + size > CAPACITY) {
+        if (offset + size > CAPACITY || (orphanNext && offset > 0)) {
             // orphan: draws still in flight keep the old storage
             bind(range)
             HdGl.glBufferDataARBub(target, CAPACITY, null, 0, 35040)
             offset = 0
             generation++
+            orphans++
+            orphanNext = false
         }
         bind(range)
         HdGl.glBufferSubDataARBub(target, offset, size, range.bytes, 0)

@@ -211,9 +211,18 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   block and the shared functions; `hd_material.glsl` the fragment-only ones. `HdShaders.link` points
   every program's samplers at their units: shadow map 16, height map 17, soft-particle depth 18,
   material arrays 19-21 (block `HdMaterialMaps`, binding 1), baked occlusion 22.
-- **Shadow casters** are the retained objects drawn this frame plus every emulated indexed draw
-  `HdGl` records between the camera and `opaqueEntitiesDone`. Translucent entities (drawn later)
-  cast into the next frame's map. Moving models drawn before the map is made do not receive shadows.
+- **Shadow casters.** Static: every retained object in the chunks around the player, on screen or
+  not, drawn into a cached map (`staticMap`) only when the map's centre moves a four-tile step or
+  the region changes, and copied into the sun's map each frame. Moving: every emulated indexed draw
+  `HdGl` records between the camera and `opaqueEntitiesDone` (not the ground). A recorded draw keeps
+  its buffers' data by copy-on-write: when `HdGl` is about to write a buffer a caster was drawn
+  from, that caster's vertices or indices are copied on the GPU first (`HdShadows.beforeWrite`).
+  The animated-model stream starts fresh storage only at the start of a frame, so ranges recorded
+  in a frame stay valid until its map is drawn. Translucent entities (drawn after the map) cast
+  into the next frame's map. Moving models drawn before the map is made do not receive shadows.
+- **Memory.** The retained scene's CPU geometry and read-back copies, and the shadow casters' index
+  copies, are allocated with LWJGL's allocator and freed when the toolkit stops: left to the garbage
+  collector, a few switches to and from 634HD ran out of direct memory.
 - **Content** (`hd/content/HdContent`): `src/jvmMain/resources/634hd/data/*.json`, each with a
   `*.schema.json` checked at load (`JsonSchema`; a bad entry is skipped with its file and line). With
   `client.debug` from the repository (or `client.hd.dataDir`) the folder is read directly and
