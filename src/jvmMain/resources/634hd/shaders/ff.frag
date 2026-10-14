@@ -276,13 +276,18 @@ void main() {
         float fragmentEye = uHdDepthParams.y / (fragmentZ + uHdDepthParams.x);
         color.a *= clamp((sceneEye - fragmentEye) / 96.0, 0.0, 1.0);
     }
-    if (mapped) color = hdApplyMaterial(uHdMapSlot, color, gUv0, FF_VIEW_POS);
+    bool modelled = hdOn(HD_LIGHTING_MODEL) && length(FF_NORMAL) > 0.0001;
+    if (modelled) {
+        color = hdLightModel(mapped ? uHdMapSlot : -1, color, gUv0, FF_VIEW_POS, FF_NORMAL);
+    } else if (mapped) {
+        color = hdApplyMaterial(uHdMapSlot, color, gUv0, FF_VIEW_POS);
+    }
     if (uHdUnderwater != 0 && hdOn(HD_CAUSTICS)) {
         vec3 world = (hdViewToWorld * vec4(FF_VIEW_POS, 1.0)).xyz;
         float light = hdCaustics(world.xz, hdTime.x * hdWaterParams.y);
         color.rgb += color.rgb * light * 0.55 * (hdSunDirection.w > 0.5 ? 1.0 : 0.4);
     }
-    color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
+    if (!modelled) color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
     hdAppliedOcclusion = uHdGround == 3 ? 1.0 : uHdGround == 2 ? hdGroundOcclusion(FF_VIEW_POS, FF_NORMAL) : hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);
     color.rgb *= hdAppliedOcclusion;
     float depth = gl_FragCoord.z / gl_FragCoord.w;
