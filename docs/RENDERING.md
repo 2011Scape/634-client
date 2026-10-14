@@ -306,6 +306,9 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   295 294's). The `fresh/` maps keep the cache texture's relief and add the fresh grain
   (`make_material_maps.make(fresh=True)`). Effect 1 textures (91, 90: the wet-cobble specular masked
   by alpha) depend on the game's alpha at its own size, which is why the alpha is not regenerated.
+  Size: the art is kept at 256x256 rather than the game's 128 or 64 (decided 2026-10-14): at the
+  game's size, keeping the original's look leaves the texture equal to the game's. "Scaled to the
+  game's size" holds for its mipmap at that size, which is the game texture exactly.
 - **634HD's own materials.** `materials.json` entries from texture 10000 up with an `albedo` file in
   `634hd/materials/<id>/` (`content/HdMaterialProvider` serves them beside the cache's, so every
   path draws them): near-grey detail the face or tile colour tints, made by
