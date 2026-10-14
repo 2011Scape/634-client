@@ -872,6 +872,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 
 	// the texture filtering the world textures were made with (HdSettings.mipmaps, anisotropy)
 	private var texturesMipmapped: Boolean = false
+	private var texturesReplaced: Boolean = false
 	private var texturesAnisotropy: Int = 0
 
 	// 634HD: the data files (lights, environments, materials, overrides, foliage), read on first use
@@ -3343,6 +3344,15 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			}
 			org.lwjgl.opengl.GL33C.glBeginQuery(org.lwjgl.opengl.GL33C.GL_TIME_ELAPSED, this.gpuQueries[this.gpuQueryIndex])
 			this.gpuQueryActive = true
+		}
+		if (HdSettings.textureReplacements != this.texturesReplaced) {
+			// fresh textures on or off: every world texture is made again, the retained scene too
+			this.texturesReplaced = HdSettings.textureReplacements
+			this.textureCache.reset()
+			this.sceneRenderer.resetMaterials()
+			if (this.sceneRenderer.built && Scene.stringStack != null) {
+				this.sceneRenderer.build()
+			}
 		}
 		if (HdSettings.mipmaps != this.texturesMipmapped || HdSettings.anisotropy != this.texturesAnisotropy) {
 			// world textures are made again with the new filtering as they are next used

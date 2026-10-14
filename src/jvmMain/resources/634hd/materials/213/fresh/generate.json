@@ -1,0 +1,27 @@
+{
+  "model": "nano-banana-2-lite",
+  "prompt": "Seamlessly tiling square game texture: fine sand. The reference image is the original 2010 RuneScape texture; repaint it at much higher detail, keeping its layout, scale, shapes, tones and colours exactly (the same stones, planks, cracks or blades in the same places, the same overall brightness). It stays mostly neutral and pale where the reference is, because the game tints it by the face colour. Hand-painted RuneScape HD style with crisp, fine, believable surface detail. Top-down orthographic view, flat even lighting, no cast shadows, no lighting gradient, no vignette, no text, no border; the left and right edges and the top and bottom edges must continue seamlessly when tiled.",
+  "refs": [
+    "/home/pixel/Pictures/generations/refs/634hd_fresh-ref-213.png"
+  ],
+  "ref_urls": [
+    "https://tempfile.redpandaai.co/kieai/12068753/generate-refs/1791998374302-f22wxr74qd8.png"
+  ],
+  "params": {
+    "aspect_ratio": "1:1",
+    "image_urls": [
+      "https://tempfile.redpandaai.co/kieai/12068753/generate-refs/1791998374302-f22wxr74qd8.png"
+    ]
+  },
+  "taskId": "41c53a71cb86f8826776c3b45b23c948",
+  "creditsConsumed": 4.0,
+  "costTimeMs": 106,
+  "resultUrls": [
+    "https://tempfile.aiquickdraw.com/vnp/41c53a71cb86f8826776c3b45b23c948_0_1791998480.jpeg"
+  ],
+  "files": [
+    "634hd_fresh-213_1791998489.jpeg"
+  ],
+  "created": "2026-10-14T17:21:30+00:00",
+  "note": null
+}

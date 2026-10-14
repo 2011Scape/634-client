@@ -33,7 +33,10 @@ class HdTextureCache {
 			return `object` as Hd2DTexture
 		} else if (this.materialProvider!!.textureAvailable(textureId)) {
 			val textureMetrics: MaterialType? = this.materialProvider.getMetrics(textureId)
-			val textureSize: Int = if (textureMetrics!!.isSmall) 64 else this.toolkit!!.size
+			// 634HD: a fresh texture (client.hd.textureReplacements) is made at its own, finer size
+			val fresh: Boolean = (this.materialProvider as? com.jagex.game.runetek5.graphics.hd.content.HdMaterialProvider)?.fresh(textureId) == true
+			val small: Boolean = textureMetrics!!.isSmall
+			val textureSize: Int = if (fresh) com.jagex.game.runetek5.graphics.hd.scene.HdMaterials.FINE_SIZE else if (small) 64 else this.toolkit!!.size
 			// 634HD: every world texture mipmapped with client.hd.mipmaps
 			val mipmapped: Boolean = textureMetrics.mipmapping.toInt() != 0 || HdSettings.mipmaps
 			val texture: Hd2DTexture

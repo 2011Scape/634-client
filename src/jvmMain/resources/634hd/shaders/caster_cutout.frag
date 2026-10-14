@@ -10,6 +10,7 @@ flat in int vMaterial;
 uniform samplerBuffer uMaterials;
 uniform sampler2DArray uSmallLinear;
 uniform sampler2DArray uLargeLinear;
+uniform sampler2DArray uFineLinear;
 
 const int FLAG_TEXTURED = 1;
 const int FLAG_REPEAT_S = 8;
@@ -25,7 +26,7 @@ void main() {
         if ((flags & FLAG_REPEAT_S) == 0) uv.x = clamp(uv.x, 0.0, 1.0);
         if ((flags & FLAG_REPEAT_T) == 0) uv.y = clamp(uv.y, 0.0, 1.0);
         vec3 coord = vec3(uv, material.x);
-        float texel = material.y > 0.5 ? textureLod(uLargeLinear, coord, 0.0).a : textureLod(uSmallLinear, coord, 0.0).a;
+        float texel = material.y > 1.5 ? textureLod(uFineLinear, coord, 0.0).a : material.y > 0.5 ? textureLod(uLargeLinear, coord, 0.0).a : textureLod(uSmallLinear, coord, 0.0).a;
         alpha *= texel;
     }
     if (alpha < 0.5) {

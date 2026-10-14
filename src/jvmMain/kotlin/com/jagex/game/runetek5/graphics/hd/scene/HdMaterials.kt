@@ -4,7 +4,8 @@
  *
  * A layer is a copy of the toolkit's own texture for the material (HdTextureCache), every mip level
  * read back and written into the array, so the retained scene samples the very texels the emulated
- * path does. Two arrays: 64x64 for small materials, the toolkit's texture size for the rest. Each has
+ * path does. Two arrays: 64x64 for small materials, the toolkit's texture size for the rest, and a
+ * third, 256x256, for fresh textures (HdSettings.textureReplacements, tools/make_fresh_textures.py). Each has
  * a linear and a nearest sampler; the material's filter, wrap and mipmapping are kept in its flags.
  *
  * A material is "batchable" when the plain combiner draws it (effect types 0 and 6, not HDR, not
@@ -52,6 +53,12 @@ class HdMaterials(private val toolkit: HdToolkit) {
         const val UNIT_LARGE_LINEAR: Int = 10
         const val UNIT_LARGE_NEAREST: Int = 11
         const val UNIT_MATERIALS: Int = 12
+        const val UNIT_FINE_LINEAR: Int = 28
+        const val UNIT_FINE_NEAREST: Int = 29
+
+        /** The fresh textures' size; their array holds at most FINE_LAYERS (22 MB with mipmaps). */
+        const val FINE_SIZE: Int = 256
+        private const val FINE_LAYERS: Int = 64
 
         private const val ARRAY_BUDGET_BYTES: Long = 96L * 1024L * 1024L
     }
@@ -77,6 +84,8 @@ class HdMaterials(private val toolkit: HdToolkit) {
 
     private val large: TextureArray = TextureArray(toolkit.size)
 
+    private val fine: TextureArray = TextureArray(FINE_SIZE, FINE_LAYERS)
+
     private var tableBuffer: Int = 0
 
     private var tableTexture: Int = 0
@@ -92,7 +101,7 @@ class HdMaterials(private val toolkit: HdToolkit) {
         slotMaterial[0] = -1
     }
 
-    private class TextureArray(val size: Int) {
+    private class TextureArray(val size: Int, val maxLayers: Int = 1024) {
         var texture: Int = 0
         var layers: Int = 0
         var capacity: Int = 0
@@ -143,7 +152,7 @@ class HdMaterials(private val toolkit: HdToolkit) {
             return -1
         }
         val texture: Hd2DTexture = toolkit.textureCache.getTexture(materialId) ?: return -2
-        val array: TextureArray = if (metrics.isSmall) small else large
+        val array: TextureArray = if (texture.width == FINE_SIZE && large.size != FINE_SIZE) fine else if (metrics.isSmall) small else large
         if (texture.width != array.size || texture.length != array.size) {
             return -1
         }
@@ -179,7 +188,7 @@ class HdMaterials(private val toolkit: HdToolkit) {
         slotMaterial[slot] = materialId
         val at: Int = slot * 8
         table[at] = layer.toFloat()
-        table[at + 1] = if (array === large) 1.0f else 0.0f
+        table[at + 1] = if (array === fine) 2.0f else if (array === large) 1.0f else 0.0f
         table[at + 2] = metrics.combineMode.toFloat()
         table[at + 3] = flags.toFloat()
         table[at + 6] = array.size.toFloat()
@@ -235,7 +244,7 @@ class HdMaterials(private val toolkit: HdToolkit) {
         if (array.texture == 0) {
             val levels: Int = 32 - Integer.numberOfLeadingZeros(array.size)
             val layerBytes: Long = array.size.toLong() * array.size * 4L * 4L / 3L
-            array.capacity = minOf(1024L, ARRAY_BUDGET_BYTES / layerBytes).toInt()
+            array.capacity = minOf(array.maxLayers.toLong(), ARRAY_BUDGET_BYTES / layerBytes).toInt()
             array.levels = levels
             array.texture = GL33C.glGenTextures()
             GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + 15)
@@ -350,6 +359,8 @@ class HdMaterials(private val toolkit: HdToolkit) {
         bindArray(UNIT_SMALL_NEAREST, small.texture, nearestSampler)
         bindArray(UNIT_LARGE_LINEAR, large.texture, linearSampler)
         bindArray(UNIT_LARGE_NEAREST, large.texture, nearestSampler)
+        bindArray(UNIT_FINE_LINEAR, fine.texture, linearSampler)
+        bindArray(UNIT_FINE_NEAREST, fine.texture, nearestSampler)
         GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT_MATERIALS)
         GL33C.glBindTexture(GL33C.GL_TEXTURE_BUFFER, tableTexture)
     }
@@ -360,15 +371,28 @@ class HdMaterials(private val toolkit: HdToolkit) {
         GL33C.glBindSampler(unit, sampler)
     }
 
+    /** Forgets every slot (a texture changed: fresh textures on or off); slots are made again as used. */
+    fun reset() {
+        slotOfMaterial = IntArray(0)
+        slotCount = 1
+        animatedCount = 0
+        small.layers = 0
+        large.layers = 0
+        fine.layers = 0
+        tableDirty = true
+    }
+
     fun release() {
         if (small.texture != 0) GL33C.glDeleteTextures(small.texture)
         if (large.texture != 0) GL33C.glDeleteTextures(large.texture)
+        if (fine.texture != 0) GL33C.glDeleteTextures(fine.texture)
         if (tableTexture != 0) GL33C.glDeleteTextures(tableTexture)
         if (tableBuffer != 0) GL33C.glDeleteBuffers(tableBuffer)
         if (linearSampler != 0) GL33C.glDeleteSamplers(linearSampler)
         if (nearestSampler != 0) GL33C.glDeleteSamplers(nearestSampler)
         small.texture = 0
         large.texture = 0
+        fine.texture = 0
         tableTexture = 0
         tableBuffer = 0
     }

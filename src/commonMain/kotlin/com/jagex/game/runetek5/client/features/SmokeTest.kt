@@ -441,7 +441,7 @@ object SmokeTest {
 	private val CYCLE_SWITCHES: Array<String> = arrayOf(
 		"tonemap=aces", "dither=on", "anisotropy=16", "mipmaps=on", "fog=on", "fade=on", "ambientOcclusion=on",
 		"pixelLighting=on", "shadows=4096", "lights=on", "terrainBlend=on", "water=1", "foliage=on", "sky=on",
-		"softParticles=on", "fxaa=on", "bloom=on", "colourGrading=on", "materials=on", "particles=on", "preset=ultra",
+		"softParticles=on", "fxaa=on", "bloom=on", "colourGrading=on", "materials=on", "textureReplacements=on", "particles=on", "preset=ultra",
 	)
 
 	private var cycleDone: Boolean = false
