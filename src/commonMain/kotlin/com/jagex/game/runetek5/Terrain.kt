@@ -75,6 +75,25 @@ open class Terrain @OriginalMember(owner = "client!sr", name = "<init>", descrip
 	@OriginalMember(owner = "client!sr", name = "v", descriptor = "[[[B")
 	private val overlayIds: Array<Array<ByteArray?>?>
 
+	// Not part of the original client: the floor ids, kept after the build frees its own (floorIds)
+	private val keptUnderlayIds: Array<Array<ByteArray?>?> = arrayOfNulls(4)
+	private val keptOverlayIds: Array<Array<ByteArray?>?> = arrayOfNulls(4)
+
+	/**
+	 * Not part of the original client: tile ([x], [z]) of [level]'s floor underlay id (high byte) and
+	 * overlay id (low byte), 0 for none or off the map; for 634HD's authoring tools and tile overrides.
+	 */
+	fun floorIds(level: Int, x: Int, z: Int): Int {
+		val underlays: Array<ByteArray?> = this.underlayIds.getOrNull(level) ?: this.keptUnderlayIds.getOrNull(level) ?: return 0
+		val overlays: Array<ByteArray?> = this.overlayIds.getOrNull(level) ?: this.keptOverlayIds.getOrNull(level) ?: return 0
+		val underlayRow: ByteArray = underlays.getOrNull(x) ?: return 0
+		val overlayRow: ByteArray = overlays.getOrNull(x) ?: return 0
+		if (z < 0 || z >= underlayRow.size || z >= overlayRow.size) {
+			return 0
+		}
+		return ((underlayRow[z].toInt() and 0xFF) shl 8) or (overlayRow[z].toInt() and 0xFF)
+	}
+
 	init {
 		this.underwater = underwater
 		this.floorOverlayTypeList = floorOverlayTypeList
@@ -1072,6 +1091,9 @@ open class Terrain @OriginalMember(owner = "client!sr", name = "<init>", descrip
 			} else {
 				this.addRegularTile(toolkit, if (i == 0) ground else null, i, floorColours, Scene.aClass65Array1!![i], if (i == 0) ground2 else null)
 			}
+			// Not part of the original client: the floor ids kept for floorIds (634HD's authoring tools)
+			this.keptUnderlayIds[i] = this.underlayIds[i]
+			this.keptOverlayIds[i] = this.overlayIds[i]
 			this.underlayIds[i] = null
 			this.overlayIds[i] = null
 			this.tileShapes[i] = null
