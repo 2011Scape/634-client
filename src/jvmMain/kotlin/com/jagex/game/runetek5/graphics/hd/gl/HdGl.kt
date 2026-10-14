@@ -1116,11 +1116,13 @@ object HdGl {
     }
 
     fun glBufferDataARBa(arg0: Int, arg1: Int, arg2: Long, arg3: Int) {
+        bufferWritten(arg0)
         if (arg2 == 0L) gl.bufferData(arg0, arg1, arg3)
         else gl.bufferDataAddress(arg0, arg1, arg2, arg3)
     }
 
     fun glBufferDataARBub(arg0: Int, arg1: Int, arg2: ByteArray?, arg3: Int, arg4: Int) {
+        bufferWritten(arg0)
         if (arg2 == null) {
             gl.bufferData(arg0, arg1, arg4)
             return
@@ -1129,11 +1131,13 @@ object HdGl {
     }
 
     fun glBufferSubDataARBa(arg0: Int, arg1: Int, arg2: Int, arg3: Long) {
+        bufferWritten(arg0)
         if (arg3 == 0L) return
         gl.bufferSubDataAddress(arg0, arg1, arg2, arg3)
     }
 
     fun glBufferSubDataARBub(arg0: Int, arg1: Int, arg2: Int, arg3: ByteArray?, arg4: Int) {
+        bufferWritten(arg0)
         val data = arg3 ?: return
         gl.bufferSubData(arg0, arg1, data, arg4, arg2)
     }
@@ -1319,6 +1323,22 @@ object HdGl {
         return out
     }
 
+    /**
+     * 634HD: how many times each GL buffer (by name) has been written through the emulator, so a
+     * shadow caster recorded from a buffer can tell whether its data is still what was drawn.
+     */
+    private val bufferWrites = HashMap<Int, Int>()
+
+    private fun bufferWritten(target: Int) {
+        val buffer = (if (target == WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER) state.boundElementArrayBuffer else state.boundArrayBuffer) ?: return
+        // a shadow caster drawn from this buffer keeps a copy of what it drew before it changes
+        shadows?.beforeWrite(buffer.id)
+        bufferWrites[buffer.id] = (bufferWrites[buffer.id] ?: 0) + 1
+    }
+
+    /** The write count of GL buffer [name] (0 if never written through the emulator). */
+    fun bufferVersion(name: Int): Int = bufferWrites[name] ?: 0
+
     /** 634HD: the shadow map maker recording casters (HdToolkit sets it). */
     @JvmField
     var shadows: com.jagex.game.runetek5.graphics.hd.scene.HdShadows? = null
@@ -1334,7 +1354,7 @@ object HdGl {
             }
             // 634HD: an opaque model of the 3D view with its indices in memory: a shadow caster, its indices copied
             val recorder = shadows
-            if (recorder != null && recorder.recording && state.hdScene != 0 && arg0 == 4 && arg3 != 0L) {
+            if (recorder != null && recorder.recording && state.hdScene != 0 && state.hdGround == 0 && arg0 == 4 && arg3 != 0L) {
                 val p = state.clientArrays[ATTRIB_POSITION]
                 if (p.enabled && p.sourceBuffer != null) {
                     recorder.recordIndices(p.sourceBuffer!!.id, p.size, p.type, p.stride, p.offset, arg3, arg1 * bytesPerIndex, arg1, arg2, state.matrixStack.modelview())
@@ -1351,9 +1371,10 @@ object HdGl {
             // Every path that binds another ELEMENT_ARRAY_BUFFER restores this binding.
             state.prepareDraw()
             gl.drawElements(arg0, arg1, arg2, arg3)
-            // 634HD: an opaque model of the 3D view, recorded as a shadow caster (HdShadows)
+            // 634HD: a model of the 3D view, recorded as a shadow caster (HdShadows); not the ground,
+            // whose buffers are rewritten between frames and which needs no shadow of its own
             val recorder = shadows
-            if (recorder != null && recorder.recording && state.hdScene != 0 && arg0 == 4) {
+            if (recorder != null && recorder.recording && state.hdScene != 0 && state.hdGround == 0 && arg0 == 4) {
                 val p = state.clientArrays[ATTRIB_POSITION]
                 if (p.enabled && p.sourceBuffer != null) {
                     recorder.record(p.sourceBuffer!!.id, p.size, p.type, p.stride, p.offset, state.boundElementArrayBuffer!!.id, arg1, arg2, arg3, state.matrixStack.modelview())

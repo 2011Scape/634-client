@@ -324,6 +324,8 @@ object SmokeTest {
 
 	private val SCENE_SPIN: Int = lang.getInteger("client.test.sceneSpin", 0)
 
+	private val SCENE_WALK: Boolean = lang.getBoolean("client.test.sceneWalk")
+
 	/**
 	 * client.test.hdCycle=true (toolkit 6, scenes mode): at the first scene, the frame with every
 	 * 634HD switch off is taken, then each switch is set to its highest value while playing, held,
@@ -1015,6 +1017,10 @@ object SmokeTest {
 		// client.test.sceneBurst=N: N consecutive frames saved first, to measure flicker between frames
 		if (burstIndex < SCENE_BURST) {
 			if (burstFrame != gameFrames) {
+				if (burstIndex == 0 && SCENE_WALK) {
+					// client.test.sceneWalk: the player walks six tiles east during the burst
+					walkFromMenu(player.movementBaseX[0] + 6, player.movementBaseY[0])
+				}
 				burstFrame = gameFrames
 				saveFrame("build/smoke/scenes/burst-" + name + "-" + burstIndex + ".png")
 				burstIndex++
@@ -1070,6 +1076,7 @@ object SmokeTest {
 			}
 			// the 634HD toggle in the title bar: on, then off again
 			openToolkit = GamePreferences.uid!!.toolkit!!.getValue()
+			println("SMOKE 634HD settings before the toggle: " + HdSettings.describe().joinToString("; ") + ", configured " + HdSettings.configured)
 			if (!HdOptionsButton.pressed(HdOptionsButton.x + 8, HdOptionsButton.y + 8)) {
 				fail("the 634HD toggle did not take the press at " + HdOptionsButton.x + "," + HdOptionsButton.y)
 			}
@@ -1081,8 +1088,9 @@ object SmokeTest {
 			if (GamePreferences.uid!!.toolkit!!.getValue() != ToolkitType.HD) {
 				fail("the 634HD toggle left the client on toolkit " + GamePreferences.uid!!.toolkit!!.getValue())
 			}
-			// turned on with nothing saved: the Medium preset
-			if (HdSettings.currentPreset() != "medium") {
+			println("SMOKE 634HD settings after the toggle: " + HdSettings.describe().joinToString("; "))
+			// turned on with nothing saved: the Medium preset (with switches given, those)
+			if (!HdSettings.configured && HdSettings.currentPreset() != "medium") {
 				fail("turning 634HD on gave the settings " + HdSettings.currentPreset() + ", not the medium preset")
 			}
 			checkImage("-open-hd", "build/smoke/open-" + id + "-hd.png")
@@ -1091,6 +1099,18 @@ object SmokeTest {
 				fail("the 634HD settings button did not open the panel")
 			}
 			openStep = 3
+			openFrame = gameFrames
+			return
+		}
+		if (openStep == 5) {
+			if (GamePreferences.uid!!.toolkit!!.getValue() != ToolkitType.HD) {
+				fail("round " + toggleRound + ": the toggle left the client on toolkit " + GamePreferences.uid!!.toolkit!!.getValue())
+			}
+			checkImage("-open-hd-round", "build/smoke/open-" + id + "-hd-round" + toggleRound + ".png")
+			if (!HdOptionsButton.pressed(HdOptionsButton.x + 8, HdOptionsButton.y + 8)) {
+				fail("the 634HD toggle did not take the second press in round " + toggleRound)
+			}
+			openStep = 6
 			openFrame = gameFrames
 			return
 		}
@@ -1122,12 +1142,27 @@ object SmokeTest {
 		if (GamePreferences.uid!!.toolkit!!.getValue() != openToolkit) {
 			fail("turning 634HD off left the client on toolkit " + GamePreferences.uid!!.toolkit!!.getValue() + ", not " + openToolkit)
 		}
-		println("SMOKE PASS 634HD toggle in the Graphics Options: " + openToolkit + " to 6 (medium preset) and back; settings panel: presets, rows, close")
+		// client.test.toggleRounds: on and off again, more times (a second 634HD in one session)
+		if (toggleRound < TOGGLE_ROUNDS) {
+			toggleRound++
+			println("SMOKE 634HD toggle round " + toggleRound + " of " + TOGGLE_ROUNDS)
+			if (!HdOptionsButton.pressed(HdOptionsButton.x + 8, HdOptionsButton.y + 8)) {
+				fail("the 634HD toggle did not take the press in round " + toggleRound)
+			}
+			openStep = 5
+			openFrame = gameFrames
+			return
+		}
+		println("SMOKE PASS 634HD toggle in the Graphics Options: " + openToolkit + " to 6 (medium preset) and back" + (if (TOGGLE_ROUNDS > 1) ", " + TOGGLE_ROUNDS + " rounds" else "") + "; settings panel: presets, rows, close")
 		lang.flushOut()
 		lang.halt(0)
 	}
 
 	private var openStep: Int = 0
+
+	private val TOGGLE_ROUNDS: Int = lang.getInteger("client.test.toggleRounds", 1)
+
+	private var toggleRound: Int = 1
 
 	private var openToolkit: Int = -1
 
