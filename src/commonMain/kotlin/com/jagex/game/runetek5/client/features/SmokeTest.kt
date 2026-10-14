@@ -375,6 +375,15 @@ object SmokeTest {
 
 	private var burstSaved: Int = 0
 
+	private var burstRoofs: Long = 0L
+
+	private var burstRoofFrame: Int = -1
+
+	/** The area whose roofs the game hides now, packed (it changes as the player steps under a roof). */
+	private fun roofSignature(): Long {
+		return (MapRegion.roofMinX[0].toLong() shl 48) xor (MapRegion.roofMaxX[0].toLong() shl 32) xor (MapRegion.roofMinZ[0].toLong() shl 16) xor MapRegion.roofMaxZ[0].toLong() xor (MapRegion.visibleBelowDrawheight[0].toLong() shl 20)
+	}
+
 	private var burstMaxJump: Double = 0.0
 
 	private var burstMaxJumpAt: Int = 0
@@ -1240,8 +1249,12 @@ object SmokeTest {
 			return
 		}
 		if (sceneStep == 3) {
-			// back in game after the relog (frame() only runs in game)
+			// back in game after the relog (frame() only runs in game); a walk may have left the player
+			// elsewhere, so it is sent to the scene again
 			println("SMOKE scene " + name + ": logged back in")
+			if (!sceneArrived(player, x, y, level)) {
+				sendCommand("tele " + x + " " + y + " " + level)
+			}
 			sceneStep = 1
 			sceneFrame = gameFrames
 		}
@@ -1305,7 +1318,17 @@ object SmokeTest {
 				}
 				burstFrame = gameFrames
 				val luma: Double = burstFrame(if (SCENE_BURST_SAVE) "build/smoke/scenes/burst-" + name + "-" + burstIndex + ".png" else null)
-				if (burstIndex > 0) {
+				// the game's own roof hiding (MapRegion.handleRoofDisplay): the player stepping under or out of a
+				// roof changes what is drawn - a real jump, not a flicker, so that frame is not measured
+				val roofs: Long = roofSignature()
+				if (burstIndex > 0 && roofs != burstRoofs) {
+					burstRoofFrame = burstIndex
+					println("SMOKE scene " + name + ": roofs hidden or shown at burst frame " + burstIndex + " (the next 3 frames not measured)")
+				}
+				burstRoofs = roofs
+				// the scene shows the change a frame or two after the tick that made it
+				val roofChanged: Boolean = burstRoofFrame >= 0 && burstIndex - burstRoofFrame <= 3
+				if (burstIndex > 0 && !roofChanged) {
 					val jump: Double = kotlin.math.abs(luma - burstLuma)
 					if (jump > burstMaxJump) {
 						burstMaxJump = jump
@@ -1334,6 +1357,7 @@ object SmokeTest {
 				fail("scene " + name + ": the brightness jumped by " + format(burstMaxJump) + " at burst frame " + burstMaxJumpAt + " (limit " + SCENE_LUMA_JUMP + ")")
 			}
 			burstMaxJump = 0.0
+			burstRoofFrame = -1
 		}
 		burstIndex = 0
 		// client.test.hdCycle: on the first scene, every 634HD switch turned on and off again live
@@ -1346,7 +1370,8 @@ object SmokeTest {
 			val rebuilt: Int = RenderStats.chunkRebuilds - locRebuildsBefore
 			result += ", chunks rebuilt " + rebuilt
 			// on 634HD exactly the changed loc's chunk is built again (Toolkit.sceneChanged)
-			if (GamePreferences.uid!!.toolkit!!.getValue() == ToolkitType.HD && (rebuilt < 1 || rebuilt > 2)) {
+			// (a walk's own loc changes, client.test.sceneBurstLoc, rebuild more: then it is not counted)
+			if (GamePreferences.uid!!.toolkit!!.getValue() == ToolkitType.HD && SCENE_BURST_LOC == 0 && (rebuilt < 1 || rebuilt > 2)) {
 				sceneFailures++
 				result += " (expected 1)"
 			}

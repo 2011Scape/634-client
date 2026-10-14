@@ -153,6 +153,9 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     /** Each object's plane (Entity.level) and loc shape (GameObject.getShape, -1 for none): the occlusion bake leaves out roofs and the floors above the player. */
     private var objectLevel: ByteArray = ByteArray(4096)
     private var objectShape: ByteArray = ByteArray(4096)
+    /** Objects a model override keeps from casting shadows or occluding (castShadows false). */
+    private var objectNoShadow: BooleanArray = BooleanArray(4096)
+    private var buildingNoShadow: Boolean = false
     private var buildingLevel: Int = 0
     private var buildingShape: Int = -1
 
@@ -449,6 +452,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             windFor(entities[i]!!)
             buildingLevel = entities[i]!!.level.toInt()
             buildingShape = if (entities[i] is com.jagex.game.runetek5.entity.gameobject.GameObject) (entities[i] as com.jagex.game.runetek5.entity.gameobject.GameObject).getShape() else -1
+            buildingNoShadow = entities[i] is com.jagex.game.runetek5.entity.gameobject.GameObject && toolkit.hdContent.overridesByObject[(entities[i] as com.jagex.game.runetek5.entity.gameobject.GameObject).getId()]?.castShadows == false
             capturing = this
             try {
                 val pickable: PickableEntity? = entities[i]!!.render(toolkit)
@@ -627,6 +631,11 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
      * Every chunk of the retained scene with [program] (ao_bake.vert), which is in use: each object
      * placed by the model matrix it was captured with, whether the client drew it this frame or not.
      */
+    /** Binds the material arrays and table to their units (for the sun's cut-out casters). */
+    fun bindMaterials() {
+        materials.bind()
+    }
+
     fun drawAllForBake(program: WebGLProgram, unit: Int) {
         drawRegion(program, unit, 0, 0, CHUNK_GRID - 1, CHUNK_GRID - 1)
     }
@@ -702,6 +711,12 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             bakeUploaded = bakeVersion
             val data: java.nio.FloatBuffer = org.lwjgl.BufferUtils.createFloatBuffer(maxOf(objectCount, 1) * 16)
             data.put(objectMatrices, 0, objectCount * 16).flip()
+            // an object kept from casting (castShadows false) is collapsed to a point: it draws nothing
+            for (i in 0 until objectCount) {
+                if (objectNoShadow[i]) {
+                    for (k in 0 until 16) data.put(i * 16 + k, 0.0f)
+                }
+            }
             GL33C.glBindBuffer(GL33C.GL_TEXTURE_BUFFER, bakeBuffer)
             GL33C.glBufferData(GL33C.GL_TEXTURE_BUFFER, data, GL33C.GL_STATIC_DRAW)
             GL33C.glBindBuffer(GL33C.GL_TEXTURE_BUFFER, 0)
@@ -742,6 +757,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             objectAlpha = objectAlpha.copyOf(size)
             objectLevel = objectLevel.copyOf(size)
             objectShape = objectShape.copyOf(size)
+            objectNoShadow = objectNoShadow.copyOf(size)
             objectIndexStart = objectIndexStart.copyOf(size)
             objectIndexCount = objectIndexCount.copyOf(size)
             objectFaceGroups = objectFaceGroups.copyOf(size)
@@ -765,6 +781,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         objectAlpha[objectId] = buildingAlpha
         objectLevel[objectId] = buildingLevel.toByte()
         objectShape[objectId] = buildingShape.toByte()
+        objectNoShadow[objectId] = buildingNoShadow
         objectWind[objectId] = buildingWind
         if ((objectId + 1) * 16 > objectMatrices.size) {
             objectMatrices = objectMatrices.copyOf(objectMatrices.size * 2)
