@@ -4215,4 +4215,116 @@ class HdModel : Model {
 			return HdModel.altersTextureCoordinates(functionMask, preferenceFlags) || HdModel.altersTextureUV(preferenceFlags, functionMask)
 		}
 	}
+
+	/**
+	 * 634HD: where this model's flame is, in model space, into [out] (x, y, z; the game's y grows down),
+	 * for the GPU particles' emitters (HdLights): the centre of its flame sprites (billboards), else of
+	 * the game's own particle-emitter triangles, else of its faces drawn with the fire texture (110),
+	 * else of its bright orange and yellow faces, else, with [allowTop], its top. 0 when none of them
+	 * applies; else 1 to 5 for the way it was found.
+	 */
+	fun hdFlamePoint(out: IntArray, allowTop: Boolean): Int {
+		val x: IntArray = this.verticesX ?: return 0
+		val y: IntArray = this.verticesY ?: return 0
+		val z: IntArray = this.verticesZ ?: return 0
+		var sx: Long = 0
+		var sy: Long = 0
+		var sz: Long = 0
+		var n: Int = 0
+		val billboards: Array<GlBillboardFace?>? = this.billboardFaces
+		if (billboards != null) {
+			for (face in billboards) {
+				if (face == null) continue
+				sx += (x[face.vertexA] + x[face.vertexB] + x[face.vertexC]).toLong()
+				sy += (y[face.vertexA] + y[face.vertexB] + y[face.vertexC]).toLong()
+				sz += (z[face.vertexA] + z[face.vertexB] + z[face.vertexC]).toLong()
+				n += 3
+			}
+			if (n > 0) return flameOut(out, sx, sy, sz, n, 1)
+		}
+		val emitters: Array<EmissiveTriangle?>? = this.emissiveTriangles
+		if (emitters != null) {
+			for (t in emitters) {
+				if (t == null) continue
+				sx += (x[t.faceA] + x[t.faceB] + x[t.vertexC]).toLong()
+				sy += (y[t.faceA] + y[t.faceB] + y[t.vertexC]).toLong()
+				sz += (z[t.faceA] + z[t.faceB] + z[t.vertexC]).toLong()
+				n += 3
+			}
+			if (n > 0) return flameOut(out, sx, sy, sz, n, 2)
+		}
+		val a: ShortArray = this.facesA ?: return 0
+		val b: ShortArray = this.facesB ?: return 0
+		val c: ShortArray = this.facesC ?: return 0
+		val colours: ShortArray = this.facesColor ?: return 0
+		// faces index the render vertices (a vertex per normal); back to the model's own vertices
+		val starts: IntArray = this.triangles ?: return 0
+		val slots: ShortArray = this.vertexNormalIndices ?: return 0
+		val meshOf: IntArray = IntArray(this.numNormals) { -1 }
+		for (vertex in 0 until minOf(this.numVertices, starts.size - 1)) {
+			for (slot in starts[vertex] until minOf(starts[vertex + 1], slots.size)) {
+				val render: Int = slots[slot] - 1
+				if (render >= 0 && render < meshOf.size) meshOf[render] = vertex
+			}
+		}
+		val materials: ShortArray? = this.facesMaterial
+		// first the faces drawn with the game's fire texture (110), then, without any, bright orange and
+		// yellow faces
+		for (pass in 0 until 2) {
+		for (f in 0 until this.numFaces) {
+			if (pass == 0) {
+				if (materials == null || materials[f].toInt() != 110) continue
+			} else {
+				val colour: Int = colours[f].toInt() and 0xFFFF
+				val hue: Int = (colour shr 10) and 0x3F
+				val saturation: Int = (colour shr 7) and 0x7
+				val lightness: Int = colour and 0x7F
+				// the game's HSL: hue 3 to 11 is orange to yellow
+				if (hue < 3 || hue > 11 || saturation < 4 || lightness < 70) continue
+			}
+			val ra: Int = a[f].toInt() and 0xFFFF
+			val rb: Int = b[f].toInt() and 0xFFFF
+			val rc: Int = c[f].toInt() and 0xFFFF
+			if (ra >= meshOf.size || rb >= meshOf.size || rc >= meshOf.size) continue
+			val va: Int = meshOf[ra]
+			val vb: Int = meshOf[rb]
+			val vc: Int = meshOf[rc]
+			if (va < 0 || vb < 0 || vc < 0) continue
+			sx += (x[va] + x[vb] + x[vc]).toLong()
+			sy += (y[va] + y[vb] + y[vc]).toLong()
+			sz += (z[va] + z[vb] + z[vc]).toLong()
+			n += 3
+		}
+		if (n > 0) return flameOut(out, sx, sy, sz, n, 3 + pass)
+		}
+		if (!allowTop) return 0
+		// last: the top of the model (candles, torches and braziers burn there), its highest twentieth
+		var top: Int = Int.MAX_VALUE
+		var bottom: Int = Int.MIN_VALUE
+		for (v in 0 until this.numVertices) {
+			if (y[v] < top) top = y[v]
+			if (y[v] > bottom) bottom = y[v]
+		}
+		if (top == Int.MAX_VALUE) return 0
+		val limit: Int = top + maxOf(8, (bottom - top) / 20)
+		for (v in 0 until this.numVertices) {
+			if (y[v] > limit) continue
+			sx += x[v].toLong()
+			sy += y[v].toLong()
+			sz += z[v].toLong()
+			n++
+		}
+		if (n > 0) return flameOut(out, sx, sy, sz, n, 5)
+		return 0
+	}
+
+	private fun flameOut(out: IntArray, sx: Long, sy: Long, sz: Long, n: Int, way: Int): Int {
+		out[0] = (sx / n).toInt()
+		out[1] = (sy / n).toInt()
+		out[2] = (sz / n).toInt()
+		return way
+	}
+
+
+
 }
