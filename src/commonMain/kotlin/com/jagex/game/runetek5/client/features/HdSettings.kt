@@ -146,6 +146,13 @@ object HdSettings {
 	@JvmField
 	var grassDisplacement: Boolean = false
 
+	/**
+	 * Day and night: 0 off (the game's light), -1 following the computer's clock, else a whole day
+	 * every that many minutes. Not part of the presets.
+	 */
+	@JvmField
+	var dayNight: Int = 0
+
 	/** Debug panel (debug builds: client.debug), toggled with F10 or ::hdpanel. */
 	@JvmField
 	var panel: Boolean = false
@@ -154,7 +161,7 @@ object HdSettings {
 		"tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting",
 		"shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom",
 		"colourGrading", "interfaceScale", "smoothInterface", "materials", "particles", "panel",
-		"terrainShadows", "cutoutShadows", "worldTextures", "environmentLighting", "caustics", "grassDisplacement",
+		"terrainShadows", "cutoutShadows", "worldTextures", "environmentLighting", "caustics", "grassDisplacement", "dayNight",
 	)
 
 	/** The switches a player sets in the 634HD settings panel (HdSettingsPanel) and that are saved. */
@@ -162,7 +169,7 @@ object HdSettings {
 	val SAVED: Array<String> = arrayOf(
 		"tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting",
 		"shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom",
-		"colourGrading", "materials", "particles", "terrainShadows", "cutoutShadows", "worldTextures", "environmentLighting", "caustics", "grassDisplacement",
+		"colourGrading", "materials", "particles", "terrainShadows", "cutoutShadows", "worldTextures", "environmentLighting", "caustics", "grassDisplacement", "dayNight",
 	)
 
 	/** Saved too, but not part of the presets: the whole client's draw distance and interface scale. */
@@ -313,6 +320,7 @@ object HdSettings {
 		"environmentLighting" -> onOff(environmentLighting)
 		"caustics" -> onOff(caustics)
 		"grassDisplacement" -> onOff(grassDisplacement)
+		"dayNight" -> if (dayNight == 0) "off" else if (dayNight < 0) "realtime" else dayNight.toString()
 		"renderDistance" -> if (renderDistance > 0.0) number(renderDistance) else "auto"
 		"scale" -> if (scale > 0.0) number(scale) else "auto"
 		else -> ""
@@ -435,6 +443,7 @@ object HdSettings {
 			"environmentlighting" -> environmentLighting = flag(on, off) ?: return "takes on or off"
 			"caustics" -> caustics = flag(on, off) ?: return "takes on or off"
 			"grassdisplacement" -> grassDisplacement = flag(on, off) ?: return "takes on or off"
+			"daynight" -> dayNight = if (off) 0 else if (text == "realtime") -1 else if (number in 1..1440) number else return "takes off, realtime, or the minutes a day lasts (1 to 1440)"
 			"renderdistance" -> {
 				val distance: Double = if (text == "auto") 0.0 else text.toDoubleOrNull() ?: -1.0
 				if (distance != 0.0 && distance != 1.0 && distance != 1.5 && distance != 2.0) return "takes 1, 1.5 or 2"
@@ -492,7 +501,7 @@ object HdSettings {
 		"terrainBlend " + onOff(terrainBlend) + ", water " + water + ", foliage " + onOff(foliage) + ", softParticles " + onOff(softParticles),
 		"fxaa " + onOff(fxaa) + ", bloom " + onOff(bloom) + ", colourGrading " + onOff(colourGrading),
 		"interfaceScale " + interfaceScale + ", smoothInterface " + onOff(smoothInterface) + ", materials " + onOff(materials) + ", particles " + onOff(particles),
-		"terrainShadows " + onOff(terrainShadows) + ", cutoutShadows " + onOff(cutoutShadows) + ", worldTextures " + onOff(worldTextures) + ", environmentLighting " + onOff(environmentLighting) + ", caustics " + onOff(caustics) + ", grassDisplacement " + onOff(grassDisplacement),
+		"terrainShadows " + onOff(terrainShadows) + ", cutoutShadows " + onOff(cutoutShadows) + ", worldTextures " + onOff(worldTextures) + ", environmentLighting " + onOff(environmentLighting) + ", caustics " + onOff(caustics) + ", grassDisplacement " + onOff(grassDisplacement) + ", dayNight " + valueOf("dayNight"),
 		"renderDistance " + valueOf("renderDistance") + ", scale " + valueOf("scale") + " (from the next start)",
 	)
 

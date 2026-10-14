@@ -246,7 +246,7 @@ void main() {
         for (int i = 0; i < 8; i++) {
             if (!uLightEnabled[i]) continue;
             if (uLightPosition[i].w == 0.0) {
-                lit += hdEnvDiffuse(uLightDiffuse[i], i) * max(dot(vEyeNormal, normalize(uLightPosition[i].xyz)), 0.0);
+                lit += hdEnvDiffuse(uLightDiffuse[i], i) * max(dot(vEyeNormal, normalize(hdLightDirection(uLightPosition[i].xyz, i))), 0.0);
             } else {
                 lit += hdPointLight(vEyeNormal, vViewPos, uLightPosition[i].xyz, uLightAttenuation[i], uLightDiffuse[i].rgb);
             }

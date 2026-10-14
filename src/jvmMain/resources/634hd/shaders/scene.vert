@@ -118,7 +118,7 @@ void main() {
         vec4 lit = hdEnvAmbientLight(uGlobalAmbient);
         for (int i = 0; i < 2; i++) {
             if (uDirLight[i].w > 0.5) {
-                vec3 lightDir = normalize(uDirLight[i].xyz);
+                vec3 lightDir = normalize(hdLightDirection(uDirLight[i].xyz, i));
                 float diff = max(dot(rawEyeNormal, lightDir), 0.0);
                 lit += vec4(0.0, 0.0, 0.0, 1.0) + hdEnvDiffuse(uDirDiffuse[i], i) * diff;
             }
