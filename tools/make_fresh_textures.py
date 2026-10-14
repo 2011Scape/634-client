@@ -59,7 +59,8 @@ EPS = 0.03
 # another one with a gradient laid over it (90 is 91 darkened towards the bottom) shares its art.
 TEXTURES = {
     # Lumbridge and Varrock's most used textures (HDDEBUG textures used, the texture-id overlay), less
-    # the blank ones, decals, water and lava
+    # the blank ones, decals, water and lava, and those never seen on screen to check them by (159, 322,
+    # 387: their texels were hidden or on NPC clothing in every view tried)
     63: ('wooden planks', 'wood', 63),
     66: ('loose rock and stone chips', 'gravel', 66),
     70: ('packed dirt', 'ground', 70),
@@ -75,7 +76,6 @@ TEXTURES = {
     127: ('streaked stone', 'stone', 127),
     140: ('mottled plaster, shaded', 'sand', 254),
     154: ('sand', 'sand', 154),
-    159: ('weathered boards', 'wood', 163),
     163: ('vertical wooden wall boards', 'wood', 163),
     181: ('rocky ground with pebbles', 'ground', 181),
     185: ('straw and dry grass', 'grass', 185),
@@ -85,8 +85,7 @@ TEXTURES = {
     294: ('rough plaster', 'sand', 294),
     295: ('rough plaster, shaded', 'sand', 294),
     309: ('rocky ground', 'ground', 96),
-    322: ('mossy stone wall with mortar', 'brick', 322),
-    387: ('fine wood grain', 'wood', 387),
+    505: ('flagstones', 'brick', 505),
 }
 
 

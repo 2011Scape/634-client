@@ -1,3 +1,0 @@
-Derived by tools/make_material_maps.py from the fresh albedo of texture 387 (fine wood grain), class wood:
-normal strength 2.40, height blur 0.90, roughness 0.65 +- 0.20 by brightness, specular 0.40, parallax 0.000.
-Height is the albedo luminance at 256x256, blurred and stretched to 2-98%; normals by Sobel; AO from cavities.
