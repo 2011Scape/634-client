@@ -1320,6 +1320,30 @@ object SmokeTest {
 		if (gameFrames - sceneFrame < SCENE_FRAMES) {
 			return
 		}
+		// client.test.inspect=true: on the first scene, 634HD's Inspect text (the authoring tool) for the
+		// player's tile and a loc next to it, printed
+		if (INSPECT && !inspected) {
+			inspected = true
+			val px: Int = player.movementBaseX[0]
+			val pz: Int = player.movementBaseY[0]
+			var found: String = "none"
+			var foundUid: Long = 0L
+			for (dz in -5..5) {
+				for (dx in -5..5) {
+					val tile: com.jagex.game.runetek5.scene.tile.Tile = com.jagex.game.runetek5.scene.Scene.getTile(0, px + dx, pz + dz) ?: continue
+					val container: com.jagex.game.runetek5.entity.InteractiveEntityContainer = tile.interactives ?: continue
+					val loc: Any? = container.interactiveObject
+					if (found == "none" && loc is com.jagex.game.runetek5.entity.gameobject.GameObject) {
+						val uid: Long = (loc.getId().toLong() shl 32) or ((loc.getShape() and 0x1F).toLong() shl 14) or ((pz + dz).toLong() shl 7) or (px + dx).toLong()
+						foundUid = uid
+						found = "loc " + loc.getId() + " shape " + loc.getShape() + " at " + (px + dx + MapRegion.sceneBaseX) + "," + (pz + dz + MapRegion.sceneBaseY)
+					}
+				}
+			}
+			println("SMOKE inspect: player tile " + (px + MapRegion.sceneBaseX) + "," + (pz + MapRegion.sceneBaseY) + ", " + found)
+			lang.setProperty("client.test.inspectNow", px.toString() + "," + pz + "," + foundUid)
+			return
+		}
 		// client.test.sceneBurst=N: N consecutive frames saved first, to measure flicker between frames
 		if (burstIndex < SCENE_BURST) {
 			if (burstFrame != gameFrames) {
@@ -1554,6 +1578,10 @@ object SmokeTest {
 	private val scanPending: ArrayList<Int> = ArrayList()
 
 	private var worn: Boolean = false
+
+	private val INSPECT: Boolean = lang.getBoolean("client.test.inspect")
+
+	private var inspected: Boolean = false
 
 	/** What the player wore before the first scene with an outfit. */
 	private var savedParts: IntArray? = null

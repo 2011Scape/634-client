@@ -786,7 +786,55 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			}
 			node = node.next
 		}
+		inspectTargets(out)
 		return out.toString()
+	}
+
+	// for content authoring (tile_overrides.json, model_overrides.json): the tile and the locs under
+	// the mouse, from the mini menu's walk and loc entries
+	private fun inspectTargets(out: StringBuilder) {
+		val sentinel = com.jagex.game.runetek5.client.menu.MiniMenu.entryList.sentinel
+		val level: Int = com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate.localPlayer?.level?.toInt() ?: 0
+		var node = sentinel.next
+		val seen: HashSet<Long> = HashSet()
+		if (sentinel == null) return
+		while (node != null && node !== sentinel) {
+			val entry = node as? com.jagex.game.runetek5.client.menu.MiniMenuEntry
+			node = node.next
+			if (entry == null) continue
+			val type: Int = entry.clickType.toInt()
+			if (type == com.jagex.game.runetek5.core.constants.MiniMenuAction.WALK) {
+				describeTile(out, entry.param0, entry.param1)
+			} else if (type == com.jagex.game.runetek5.core.constants.MiniMenuAction.OPLOC1 || type == com.jagex.game.runetek5.core.constants.MiniMenuAction.OPLOC2 || type == com.jagex.game.runetek5.core.constants.MiniMenuAction.OPLOC3 || type == com.jagex.game.runetek5.core.constants.MiniMenuAction.OPLOC4 || type == com.jagex.game.runetek5.core.constants.MiniMenuAction.OPLOC5 || type == com.jagex.game.runetek5.core.constants.MiniMenuAction.TGT_LOC) {
+				if (seen.add(entry.bitpacked)) describeLoc(out, entry.bitpacked)
+			}
+		}
+	}
+
+	/** Scene tile ([x], [z]) on the player's plane: its absolute position and floor ids. */
+	private fun describeTile(out: StringBuilder, x: Int, z: Int) {
+		val level: Int = com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate.localPlayer?.level?.toInt() ?: 0
+		val ids: Int = com.jagex.game.runetek5.MapRegion.aClass322_Sub1_1?.floorIds(level, x, z) ?: 0
+		out.append("Tile ").append(x + com.jagex.game.runetek5.MapRegion.sceneBaseX).append(", ").append(z + com.jagex.game.runetek5.MapRegion.sceneBaseY)
+		out.append(", level ").append(level).append(": underlay ").append((ids shr 8) and 0xFF).append(", overlay ").append(ids and 0xFF).append('\n')
+	}
+
+	/** A loc from its entity uid: id, name, shape, rotation and model ids. */
+	private fun describeLoc(out: StringBuilder, uid: Long) {
+		val id: Int = Int.MAX_VALUE and (uid ushr 32).toInt()
+		val shape: Int = (uid.toInt() shr 14) and 0x1F
+		val rotation: Int = (uid.toInt() shr 20) and 0x3
+		val loc = com.jagex.game.runetek5.config.TypeLists.LOC!!.list(id)
+		out.append("Loc ").append(id).append(" \"").append(loc?.name ?: "?").append("\", shape ").append(shape).append(", rotation ").append(rotation).append(", models")
+		val models: Array<IntArray?>? = loc?.hdModelIds()
+		if (models != null) {
+			for (group in models) {
+				if (group != null) {
+					for (m in group) out.append(' ').append(m)
+				}
+			}
+		}
+		out.append('\n')
 	}
 
 	// 634HD: Phase 5 material maps (materials.json)
@@ -3299,6 +3347,17 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	// Ends the 3D view: the target is popped, the view resolved into its texture and drawn over its
 	// place in the frame. The clip is not reset through la(), which would move the picking bounds.
 	override fun endScene() {
+		// a smoke test's request (client.test.inspect): the Inspect tab's text for the mini menu now
+		val inspect: String? = System.getProperty("client.test.inspectNow")
+		if (inspect != null) {
+			// "x,z,uid": a scene tile and a loc uid, described as the Inspect tab describes them
+			System.clearProperty("client.test.inspectNow")
+			val parts: List<String> = inspect.split(",")
+			val out: StringBuilder = StringBuilder()
+			describeTile(out, parts[0].toInt(), parts[1].toInt())
+			describeLoc(out, parts[2].toLong())
+			println("SMOKE INSPECT\n" + out)
+		}
 		HdToolkit.printDebugMaterials()
 		// 634HD: GPU particles over the finished 3D view, before it is resolved and post-processed
 		if (this.sceneDrawing && !this.particlesDrawn) {
