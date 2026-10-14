@@ -1,3 +1,19 @@
 {
-  "tiles": []
+  "tiles": [
+    {
+      "name": "Lumbridge: the two untextured floor tiles as cobbles",
+      "area": [
+        3200,
+        3200,
+        3263,
+        3263
+      ],
+      "overlays": [
+        51,
+        55
+      ],
+      "material": 10008,
+      "scale": 1
+    }
+  ]
 }

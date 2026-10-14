@@ -279,9 +279,12 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   ambient, a calm river), Varrock (cooler city light), and a new Lumbridge swamp (regions 12593 and
   12849: hazier sky, a soft mist, murky green, slow water, the swamp grade). Foliage: the courtyard's
   grass tufts bend and sway. Textures: `client.test.hdFloorTally` counts the floor faces each region
-  leaves untextured (Lumbridge 24, Varrock 12: the cache textures nearly every floor) and the Inspect
-  lists show the few untextured loc faces, so these areas need no texture overrides; the engine is
-  there for areas that do.
+  leaves untextured (Lumbridge's own region: 2 tiles; Varrock's: none - the cache textures nearly
+  every floor), with an example tile for each, and the Inspect lists show the few untextured loc faces.
+  Those few are authored: Lumbridge castle's untextured wall faces as stone (locs 45332, 45335,
+  45336, 33877 by face colour), Varrock's boxes and beams as planks, Lumbridge's two untextured
+  floor tiles (overlays 51 and 55) as cobbles - all small, so with worldTextures on the default
+  scenes stay within their limits against toolkit 1.
 - **634HD's own materials.** `materials.json` entries from texture 10000 up with an `albedo` file in
   `634hd/materials/<id>/` (`content/HdMaterialProvider` serves them beside the cache's, so every
   path draws them): near-grey detail the face or tile colour tints, made by

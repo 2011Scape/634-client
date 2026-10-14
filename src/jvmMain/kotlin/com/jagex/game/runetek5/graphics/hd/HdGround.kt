@@ -807,6 +807,9 @@ class HdGround : Ground {
 			if (untextured > 0) {
 				val key: Int = (underlayId shl 8) or overlayId
 				TALLY[key] = (TALLY[key] ?: 0) + untextured
+				if (!TALLY_AT.containsKey(key)) {
+					TALLY_AT[key] = (x + com.jagex.game.runetek5.MapRegion.sceneBaseX).toString() + "," + (z + com.jagex.game.runetek5.MapRegion.sceneBaseY)
+				}
 			}
 		}
 		if (!HdSettings.worldTextures || textures == null || textureScales == null) {
@@ -934,6 +937,8 @@ class HdGround : Ground {
 	}
 
 	companion object {
+		private val TALLY_AT: HashMap<Int, String> = HashMap()
+
 		@JvmField
 		val TALLY: HashMap<Int, Int>? = if (System.getProperty("client.test.hdFloorTally") != null) HashMap() else null
 
@@ -943,7 +948,7 @@ class HdGround : Ground {
 			val tally: HashMap<Int, Int> = TALLY ?: return ""
 			val out: StringBuilder = StringBuilder()
 			for ((key, faces) in tally.entries.sortedByDescending { it.value }.take(16)) {
-				out.append("  underlay ").append(key shr 8).append(", overlay ").append(key and 0xFF).append(": ").append(faces).append(" untextured faces\n")
+				out.append("  underlay ").append(key shr 8).append(", overlay ").append(key and 0xFF).append(": ").append(faces).append(" untextured faces, e.g. at ").append(TALLY_AT[key]).append("\n")
 			}
 			return out.toString()
 		}

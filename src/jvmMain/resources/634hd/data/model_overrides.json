@@ -4,6 +4,51 @@
       "name": "Flags and banners sway",
       "objects": [],
       "wind": true
+    },
+    {
+      "name": "Lumbridge castle: untextured wall faces as stone",
+      "objects": [
+        45332,
+        45335,
+        45336,
+        33877
+      ],
+      "faceColours": [
+        9096,
+        10418,
+        5385,
+        5392
+      ],
+      "material": 10002,
+      "uvScale": 1
+    },
+    {
+      "name": "Varrock: boxes as planks",
+      "objects": [
+        24206
+      ],
+      "faceColours": [
+        8078,
+        7587,
+        7582,
+        7706
+      ],
+      "material": 10005,
+      "uvScale": 0.5
+    },
+    {
+      "name": "Varrock: beams as planks",
+      "objects": [
+        15538,
+        18315
+      ],
+      "faceColours": [
+        10132,
+        2454,
+        1579
+      ],
+      "material": 10005,
+      "uvScale": 0.5
     }
   ]
 }
