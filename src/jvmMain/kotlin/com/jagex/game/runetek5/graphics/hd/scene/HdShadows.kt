@@ -357,9 +357,7 @@ class HdShadows {
         late = swap
         // last frame's translucent casters drew from the stream; if it was orphaned since, their
         // ranges hold something else now, and they are dropped (a frame without their shadows)
-        if (HdDynamicStream.orphans != lateOrphans) {
-            previous.count = 0
-        }
+
         // the references: only last frame's late casters carry over (they are drawn this frame)
         referencedBy.clear()
         for (i in 0 until previous.count) {
@@ -518,6 +516,54 @@ class HdShadows {
         }
         users.add(list)
         users.add(index)
+    }
+
+    /**
+     * Called by a stream before it replaces its storage: casters drawn from stream buffer [buffer]
+     * (this frame's and last frame's late ones) get copies of their ranges ([written]: offset to
+     * size), so they still cast after the stream moves on.
+     */
+    fun beforeStreamOrphan(buffer: Int, written: java.util.TreeMap<Int, Int>) {
+        GL33C.glBindBuffer(GL33C.GL_COPY_READ_BUFFER, buffer)
+        for (list in arrayOf(previous, late, casters)) {
+            for (i in 0 until list.count) {
+                if (list.vertexBuffer[i] == buffer) {
+                    val range = written.floorEntry(list.offset[i].toInt())
+                    val bytes: Long = if (range == null) -1L else range.key.toLong() + range.value - list.offset[i]
+                    if (!copyOut(list, i, true, bytes)) list.elements[i] = 0
+                }
+                if (list.elementBuffer[i] == buffer) {
+                    val bytes: Long = list.elements[i].toLong() * (if (list.elementType[i] == GL33C.GL_UNSIGNED_BYTE) 1L else if (list.elementType[i] == GL33C.GL_UNSIGNED_SHORT) 2L else 4L)
+                    if (!copyOut(list, i, false, bytes)) list.elements[i] = 0
+                }
+            }
+        }
+    }
+
+    /** Copies caster [i]'s vertices (or indices) from the buffer bound to COPY_READ into the list's copy buffer. */
+    private fun copyOut(list: Casters, i: Int, vertices: Boolean, bytes: Long): Boolean {
+        if (bytes <= 0L || bytes > MAX_COPY) return false
+        if (list.copyBuffer == 0) {
+            list.copyBuffer = GL33C.glGenBuffers()
+            GL33C.glBindBuffer(GL33C.GL_COPY_WRITE_BUFFER, list.copyBuffer)
+            GL33C.glBufferData(GL33C.GL_COPY_WRITE_BUFFER, COPY_CAPACITY, GL33C.GL_STREAM_COPY)
+        }
+        val at: Long = (list.copyUsed + 255L) and 255L.inv()
+        if (at + bytes > COPY_CAPACITY) return false
+        GL33C.glBindBuffer(GL33C.GL_COPY_WRITE_BUFFER, list.copyBuffer)
+        val from: Long = if (vertices) list.offset[i] else list.elementOffset[i]
+        GL33C.glCopyBufferSubData(GL33C.GL_COPY_READ_BUFFER, GL33C.GL_COPY_WRITE_BUFFER, from, at, bytes)
+        list.copyUsed = at + bytes
+        if (vertices) {
+            list.vertexBuffer[i] = list.copyBuffer
+            list.offset[i] = at
+            list.vertexVersion[i] = 0
+        } else {
+            list.elementBuffer[i] = list.copyBuffer
+            list.elementOffset[i] = at
+            list.elementVersion[i] = 0
+        }
+        return true
     }
 
     /** Called by HdGl before it writes GL buffer [buffer]: casters drawn from it get their own copy. */
@@ -782,6 +828,11 @@ class HdShadows {
             uploaded = true
         }
         lastCasters = casters.count - drawnCasters + previous.count
+        if (System.getProperty("client.test.hdDebugCasters") != null && first) {
+            var live: Int = 0
+            for (i in 0 until previous.count) if (previous.elements[i] > 0) live++
+            println("HDDEBUG casters now " + casters.count + " late " + live + "/" + previous.count + " stale " + staleCasters)
+        }
         if (System.getProperty("client.test.hdDebug") != null && sun.active) {
             checkMap(first)
         }
