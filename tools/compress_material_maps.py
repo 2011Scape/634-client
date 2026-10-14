@@ -126,30 +126,54 @@ def load(path):
     return np.asarray(Image.open(path).convert('RGBA').resize((SIZE, SIZE), Image.BICUBIC), dtype=np.float64)
 
 
+def fresh_for(png, out):
+    """Whether [out] is missing or older than [png] (only changed maps are compressed again)."""
+    return not os.path.exists(out) or os.path.getmtime(out) < os.path.getmtime(png)
+
+
+def compress(folder):
+    """Compresses one set (a texture's folder, or its fresh/ folder); False when it has no maps."""
+    normal_png = os.path.join(folder, 'normal.png')
+    orm_png = os.path.join(folder, 'orm.png')
+    emissive_png = os.path.join(folder, 'emissive.png')
+    if not os.path.exists(normal_png) and not os.path.exists(orm_png):
+        return False
+    normal = None
+    if os.path.exists(normal_png) and (fresh_for(normal_png, os.path.join(folder, 'normal.bc5')) or (os.path.exists(orm_png) and fresh_for(orm_png, os.path.join(folder, 'orm.bc7')))):
+        normal = load(normal_png)
+        if fresh_for(normal_png, os.path.join(folder, 'normal.bc5')):
+            with open(os.path.join(folder, 'normal.bc5'), 'wb') as f:
+                for level in mips(normal):
+                    f.write(bc5(level))
+    if os.path.exists(orm_png) and (fresh_for(orm_png, os.path.join(folder, 'orm.bc7')) or (os.path.exists(normal_png) and fresh_for(normal_png, os.path.join(folder, 'orm.bc7')))):
+        orm = load(orm_png)
+        if normal is None and os.path.exists(normal_png):
+            normal = load(normal_png)
+        orm[:, :, 3] = normal[:, :, 3] if normal is not None else 255.0
+        with open(os.path.join(folder, 'orm.bc7'), 'wb') as f:
+            for level in mips(orm):
+                f.write(bc7_mode6(level))
+    if os.path.exists(emissive_png):
+        if fresh_for(emissive_png, os.path.join(folder, 'emissive.bc7')):
+            with open(os.path.join(folder, 'emissive.bc7'), 'wb') as f:
+                for level in mips(load(emissive_png)):
+                    f.write(bc7_mode6(level))
+    elif os.path.exists(os.path.join(folder, 'emissive.bc7')):
+        os.remove(os.path.join(folder, 'emissive.bc7'))
+    return True
+
+
 def main():
     done = 0
     for name in sorted(os.listdir(MATERIALS), key=lambda s: int(s) if s.isdigit() else -1):
         folder = os.path.join(MATERIALS, name)
         if not os.path.isdir(folder):
             continue
-        normal = load(os.path.join(folder, 'normal.png')) if os.path.exists(os.path.join(folder, 'normal.png')) else None
-        if normal is not None:
-            with open(os.path.join(folder, 'normal.bc5'), 'wb') as f:
-                for level in mips(normal):
-                    f.write(bc5(level))
-        if os.path.exists(os.path.join(folder, 'orm.png')):
-            orm = load(os.path.join(folder, 'orm.png'))
-            orm[:, :, 3] = normal[:, :, 3] if normal is not None else 255.0
-            with open(os.path.join(folder, 'orm.bc7'), 'wb') as f:
-                for level in mips(orm):
-                    f.write(bc7_mode6(level))
-        if os.path.exists(os.path.join(folder, 'emissive.png')):
-            with open(os.path.join(folder, 'emissive.bc7'), 'wb') as f:
-                for level in mips(load(os.path.join(folder, 'emissive.png'))):
-                    f.write(bc7_mode6(level))
-        done += 1
+        for sub in (folder, os.path.join(folder, 'fresh')):
+            if os.path.isdir(sub) and compress(sub):
+                done += 1
         print('compressed', name)
-    print(done, 'material folders')
+    print(done, 'material sets')
     return 0
 
 

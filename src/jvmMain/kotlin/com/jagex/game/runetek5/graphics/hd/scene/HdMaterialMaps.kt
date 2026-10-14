@@ -31,7 +31,8 @@ class HdMaterialMaps {
         const val UNIT_NORMAL: Int = 19
         const val UNIT_ORM: Int = 20
         const val UNIT_EMISSIVE: Int = 21
-        const val MAX_MAPS: Int = 256
+        // 448 sets: the two vec4 arrays of the HdMaterialMaps block stay under 16 KB, GL's least limit
+        const val MAX_MAPS: Int = 448
         const val SIZE: Int = 256
         private const val TABLE_BYTES: Int = MAX_MAPS * 16 * 2
         private const val COMPRESSED_RGBA_BPTC: Int = 0x8E8C
@@ -164,6 +165,11 @@ class HdMaterialMaps {
         count = materials.size
         version++
         if (count == 0) return
+        // the emitted-colour maps (lava) have their own, small array: a layer per material that has one
+        var emissiveCount: Int = 0
+        for (m in materials) if (m.emissive != null) emissiveCount++
+        val layersOf: IntArray = intArrayOf(count, count, maxOf(1, emissiveCount))
+        var nextEmissive: Int = 0
         val layerBytes: Int = SIZE * SIZE * 4
         val pixels: ByteBuffer = ByteBuffer.allocateDirect(layerBytes).order(ByteOrder.nativeOrder())
         val table: ByteBuffer = ByteBuffer.allocateDirect(TABLE_BYTES).order(ByteOrder.nativeOrder())
@@ -184,7 +190,7 @@ class HdMaterialMaps {
             GL33C.glBindTexture(GL33C.GL_TEXTURE_2D_ARRAY, arrays[type])
             var size: Int = SIZE
             for (level in 0 until levels) {
-                GL33C.glTexImage3D(GL33C.GL_TEXTURE_2D_ARRAY, level, formats[type], size, size, count, 0, GL33C.GL_RGBA, GL33C.GL_UNSIGNED_BYTE, null as ByteBuffer?)
+                GL33C.glTexImage3D(GL33C.GL_TEXTURE_2D_ARRAY, level, formats[type], size, size, layersOf[type], 0, GL33C.GL_RGBA, GL33C.GL_UNSIGNED_BYTE, null as ByteBuffer?)
                 size = maxOf(1, size shr 1)
             }
             GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D_ARRAY, GL33C.GL_TEXTURE_MAX_LEVEL, levels - 1)
@@ -206,16 +212,20 @@ class HdMaterialMaps {
                 }
             }
             val has: BooleanArray = BooleanArray(3)
+            val emissiveLayer: Int = if (files[2] != null) nextEmissive++ else -1
             for (type in 0 until 3) {
+                // no emitted colour: nothing to upload (the shader does not read the emissive array)
+                if (type == 2 && emissiveLayer < 0) continue
+                val layer: Int = if (type == 2) emissiveLayer else slot
                 GL33C.glBindTexture(GL33C.GL_TEXTURE_2D_ARRAY, arrays[type])
                 pixels.clear()
                 // precompressed blocks (tools/compress_material_maps.py) go up as they are
                 val blocksFile: String? = if (files[type] == null) null else files[type]!!.substringBeforeLast('.') + (if (type == 0) ".bc5" else ".bc7")
                 val precompressed: ByteArray? = if (blocksFile != null && formats[type] != GL33C.GL_RGBA8) readBytes(content, m.texture, blocksFile) else null
-                if (precompressed != null && uploadBlocks(precompressed, slot, formats[type])) {
+                if (precompressed != null && uploadBlocks(precompressed, layer, formats[type])) {
                     has[type] = true
-                    if (type == 0) {
-                        // the height is in the precompressed packed map already; the PNG path needs it from here
+                    if (type == 0 && files[1] != null && readBytes(content, m.texture, files[1]!!.substringBeforeLast('.') + ".bc7") == null) {
+                        // the height travels in the packed map's alpha; only its PNG path needs it from here
                         read(content, m.texture, files[type]!!, pixels)
                         for (i in 0 until SIZE * SIZE) heights[i] = pixels.get(i * 4 + 3)
                     }
@@ -238,11 +248,11 @@ class HdMaterialMaps {
                 } else if (type == 1) {
                     for (i in 0 until SIZE * SIZE) pixels.put(i * 4 + 3, heights[i])
                 }
-                upload(pixels, slot)
+                upload(pixels, layer)
             }
             table.putFloat(slot * 16, slot.toFloat()).putFloat(slot * 16 + 4, m.specular).putFloat(slot * 16 + 8, m.emissiveStrength).putFloat(slot * 16 + 12, if (m.height != null) m.parallax else 0.0f)
             val b: Int = MAX_MAPS * 16 + slot * 16
-            table.putFloat(b, if (has[0]) 1.0f else 0.0f).putFloat(b + 4, if (has[1]) 1.0f else 0.0f).putFloat(b + 8, if (has[2]) 1.0f else 0.0f).putFloat(b + 12, 0.0f)
+            table.putFloat(b, if (has[0]) 1.0f else 0.0f).putFloat(b + 4, if (has[1]) 1.0f else 0.0f).putFloat(b + 8, if (has[2]) 1.0f else 0.0f).putFloat(b + 12, maxOf(0, emissiveLayer).toFloat())
         }
         if (!uncompressed && GL33C.glGetError() != GL33C.GL_NO_ERROR) {
             // the driver would not compress: load again uncompressed
@@ -253,7 +263,7 @@ class HdMaterialMaps {
         }
         for (type in 0 until 3) {
             val perPixel: Long = if (formats[type] == GL33C.GL_RGBA8) 4L else 1L
-            bytes += SIZE.toLong() * SIZE * count * perPixel * 4L / 3L
+            bytes += SIZE.toLong() * SIZE * layersOf[type] * perPixel * 4L / 3L
         }
         compressed = !uncompressed
         if (System.getProperty("client.test.hdDebug") != null && materials.isNotEmpty()) {

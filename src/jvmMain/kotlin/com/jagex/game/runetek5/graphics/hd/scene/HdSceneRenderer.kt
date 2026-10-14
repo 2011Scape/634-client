@@ -323,6 +323,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
 
     fun build() {
         clear()
+        // the fresh textures' array holds what the regions so far used: start it afresh before it is full
+        if (materials.fineFilling()) materials.reset()
         queueList(Scene.stringStack, -1)
         queueList(Scene.aClass3_Sub1Array129, -1)
         built = true

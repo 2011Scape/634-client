@@ -56,9 +56,9 @@ class HdMaterials(private val toolkit: HdToolkit) {
         const val UNIT_FINE_LINEAR: Int = 28
         const val UNIT_FINE_NEAREST: Int = 29
 
-        /** The fresh textures' size; their array holds at most FINE_LAYERS (22 MB with mipmaps). */
+        /** The fresh textures' size; their array holds at most FINE_LAYERS (45 MB with mipmaps). */
         const val FINE_SIZE: Int = 256
-        private const val FINE_LAYERS: Int = 64
+        private const val FINE_LAYERS: Int = 128
 
         private const val ARRAY_BUDGET_BYTES: Long = 96L * 1024L * 1024L
     }
@@ -370,6 +370,9 @@ class HdMaterials(private val toolkit: HdToolkit) {
         GL33C.glBindTexture(GL33C.GL_TEXTURE_2D_ARRAY, texture)
         GL33C.glBindSampler(unit, sampler)
     }
+
+    /** Whether the fresh textures' array is three quarters full: the next region build starts it afresh (HdSceneRenderer.build). */
+    fun fineFilling(): Boolean = fine.capacity > 0 && fine.layers * 4 >= fine.capacity * 3
 
     /** Forgets every slot (a texture changed: fresh textures on or off); slots are made again as used. */
     fun reset() {

@@ -6,7 +6,7 @@ The cache texture stays the albedo (634hd-plan.md, Phase 5); this makes the extr
 
   normal.png    tangent-space normal (RGB) from a height field, height in alpha (for parallax)
   orm.png       R ambient occlusion (cavities of the height field), G roughness, B emissive mask
-  emissive.png  emitted colour (lava, fire), black elsewhere
+  emissive.png  emitted colour (lava only)
 
 The height field is the albedo's luminance (634 textures are mostly grey detail tinted by vertex
 colour, so their brightness is their relief), blurred and stretched, with a per-class recipe below.
@@ -37,6 +37,7 @@ CLASSES = {
     'wood': (2.4, 0.9, 0.65, 0.20, 0.40, 0.0),
     'water': (1.0, 2.0, 0.08, 0.0, 1.20, 0.0),
     'lava': (2.0, 1.5, 0.55, 0.0, 0.60, 0.0),
+    'fabric': (1.2, 1.0, 0.92, 0.04, 0.10, 0.0),
 }
 
 # the test set: texture id -> (name, class)
@@ -207,7 +208,11 @@ def make(texture, name, cls, fresh=False):
     orm = np.stack([ao, rough, mask], axis=-1)
     Image.fromarray((orm * 255 + 0.5).astype(np.uint8), 'RGB').save(os.path.join(out, 'orm.png'))
     emissive = rgb * mask[..., None] * 1.2
-    Image.fromarray((np.clip(emissive, 0, 1) * 255 + 0.5).astype(np.uint8), 'RGB').save(os.path.join(out, 'emissive.png'))
+    # only lava glows: elsewhere there is no emitted-colour map (HdMaterialMaps uploads none)
+    if cls == 'lava':
+        Image.fromarray((np.clip(emissive, 0, 1) * 255 + 0.5).astype(np.uint8), 'RGB').save(os.path.join(out, 'emissive.png'))
+    elif os.path.exists(os.path.join(out, 'emissive.png')):
+        os.remove(os.path.join(out, 'emissive.png'))
     if generated is not None:
         name_, prompt, sidecar = source
         with open(os.path.join(out, 'prompt.txt'), 'w') as f:
