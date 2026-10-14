@@ -4,6 +4,7 @@
  */
 package com.jagex.game.runetek5.graphics.hd
 
+import com.jagex.game.runetek5.client.features.HdSettings
 import com.jagex.game.runetek5.client.features.RenderStats
 
 import com.jagex.game.runetek5.scene.ground.Ground
@@ -889,7 +890,9 @@ class HdGround : Ground {
 			this.glToolkit.setActiveTexture(null)
 			this.glToolkit.L(fogColour, fogDensity, this.glToolkit.fogOffset)
 		}
-		if (this.shadowMap == null) {
+		// 634HD: the game's blob shadows under trees and other locs are left out while the sun's shadows
+		// (HdSettings.shadows) draw them for real; both would darken the ground twice
+		if (this.shadowMap == null || HdSettings.shadows != 0) {
 			return
 		}
 		HdGl.glPushMatrix()
