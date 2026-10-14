@@ -33,14 +33,22 @@ class HdShadows {
         const val UNIT: Int = 16
         const val AO_UNIT: Int = 17
         const val AO_BAKE_UNIT: Int = 22
+        const val GROUND_AO_UNIT: Int = 25
+        /** The ground's baked occlusion: samples per tile side, and the ground levels kept at once. */
+        private const val GROUND_SAMPLES: Int = 4
+        private const val GROUND_SLOTS: Int = 12
         /** The baked map: the whole 104x104-tile scene, and the heights it holds (y grows downwards). */
         private const val BAKE_EXTENT: Float = 104.0f * 512.0f
         private const val BAKE_SIZE: Int = 2048
         private const val BAKE_TOP: Float = -20000.0f
         private const val BAKE_RANGE: Float = 32000.0f
-        /** The height map: its half side and resolution, and the height range it holds. */
-        private const val AO_HALF_EXTENT: Float = 24.0f * 512.0f
-        private const val AO_SIZE: Int = 1024
+        /**
+         * The moving models' height map: its half side and resolution, and the height range it holds.
+         * Ten tiles each way: past that, a moving model's shading on what is around it is too small to
+         * see, and a ground pixel outside it reads only its baked texture (hdGroundOcclusion).
+         */
+        private const val AO_HALF_EXTENT: Float = 10.0f * 512.0f
+        private const val AO_SIZE: Int = 512
         private const val AO_RANGE: Float = 16000.0f
         /** Half the side of the box the map covers, in scene units (512 a tile). */
         private const val HALF_EXTENT: Float = 26.0f * 512.0f
@@ -137,6 +145,7 @@ class HdShadows {
      */
     fun bake(scene: HdSceneRenderer) {
         framesSinceBake++
+        groundNanos = 0L
         scene.stepVertexOcclusion(1500000L)
         // once the region is built, and not more than every 2 seconds or so (a bake reads the map back)
         if (!HdSettings.ambientOcclusion || scene.bakeVersion == bakedVersion || scene.building() || framesSinceBake < 120) return
@@ -228,6 +237,110 @@ class HdShadows {
     // the chunk the sun's map is centred on (the player's)
     private var sunChunkX: Int = 0
     private var sunChunkZ: Int = 0
+
+    // the ground's occlusion, baked from the height map into a texture per ground level (GROUND_SAMPLES
+    // a tile side), so a ground pixel reads one texel instead of measuring the sky itself; computed on
+    // the CPU a little each frame after a bake, and used once complete
+    private val groundOwner: Array<Any?> = arrayOfNulls(GROUND_SLOTS)
+    private val groundTexture: IntArray = IntArray(GROUND_SLOTS)
+    private val groundVersion: IntArray = IntArray(GROUND_SLOTS) { -1 }
+    private val groundCursor: IntArray = IntArray(GROUND_SLOTS)
+    private val groundReady: BooleanArray = BooleanArray(GROUND_SLOTS)
+    private val groundUsed: IntArray = IntArray(GROUND_SLOTS)
+    private val groundValues: Array<ByteBuffer?> = arrayOfNulls(GROUND_SLOTS)
+    private var groundFrame: Int = 0
+    // the time the grounds' occlusion took this frame: one budget shared by every ground
+    private var groundNanos: Long = 0L
+
+    /**
+     * Called before [ground] draws: binds its baked occlusion texture on GROUND_AO_UNIT and returns true
+     * once it is complete for the current bake; until then false (the shader measures per pixel). The
+     * grounds compute a little more each frame, for at most [budgetNanos] between them.
+     */
+    fun bindGroundOcclusion(ground: com.jagex.game.runetek5.scene.ground.Ground, budgetNanos: Long): Boolean {
+        val depths: java.nio.FloatBuffer? = bakeDepths
+        if (!HdSettings.ambientOcclusion || depths == null || aoBakeParams[2] < 0.5f || ground.tileHeights == null) return false
+        groundFrame++
+        var slot: Int = -1
+        for (i in 0 until GROUND_SLOTS) {
+            if (groundOwner[i] === ground) slot = i
+        }
+        if (slot < 0) {
+            // the slot used least recently: the grounds of a region left behind
+            slot = 0
+            for (i in 1 until GROUND_SLOTS) {
+                if (groundUsed[i] < groundUsed[slot]) slot = i
+            }
+            groundOwner[slot] = ground
+            groundVersion[slot] = -1
+        }
+        groundUsed[slot] = groundFrame
+        val width: Int = ground.width * GROUND_SAMPLES
+        val length: Int = ground.length * GROUND_SAMPLES
+        if (groundVersion[slot] != bakedVersion) {
+            groundVersion[slot] = bakedVersion
+            groundCursor[slot] = 0
+            groundReady[slot] = false
+            var values: ByteBuffer? = groundValues[slot]
+            if (values == null || values.capacity() < width * length) {
+                if (values != null) org.lwjgl.system.MemoryUtil.memFree(values)
+                values = org.lwjgl.system.MemoryUtil.memAlloc(width * length)
+                groundValues[slot] = values
+            }
+        }
+        if (!groundReady[slot]) {
+            val values: ByteBuffer = groundValues[slot]!!
+            val heights: Array<IntArray?> = ground.tileHeights
+            val start: Long = System.nanoTime()
+            val step: Float = 512.0f / GROUND_SAMPLES
+            val scale: Float = BAKE_SIZE / BAKE_EXTENT
+            var cursor: Int = groundCursor[slot]
+            val total: Int = width * length
+            while (cursor < total) {
+                if ((cursor and 63) == 0 && groundNanos + System.nanoTime() - start > budgetNanos) break
+                val i: Int = cursor % width
+                val j: Int = cursor / width
+                val x: Float = (i + 0.5f) * step
+                val z: Float = (j + 0.5f) * step
+                // the ground's height there, between its tile corners
+                val tileX: Int = minOf(i / GROUND_SAMPLES, heights.size - 2)
+                val tileZ: Int = minOf(j / GROUND_SAMPLES, heights[0]!!.size - 2)
+                val fx: Float = x / 512.0f - tileX
+                val fz: Float = z / 512.0f - tileZ
+                val h0: Float = heights[tileX]!![tileZ] * (1.0f - fx) + heights[tileX + 1]!![tileZ] * fx
+                val h1: Float = heights[tileX]!![tileZ + 1] * (1.0f - fx) + heights[tileX + 1]!![tileZ + 1] * fx
+                val y: Float = h0 * (1.0f - fz) + h1 * fz
+                val ao: Float = HdSceneRenderer.skyVisibility(depths, BAKE_SIZE, scale, BAKE_TOP, BAKE_RANGE, x, y, z, 0.0f, -1.0f, 0.0f)
+                values.put(cursor, (ao * 255.0f + 0.5f).toInt().coerceIn(0, 255).toByte())
+                cursor++
+            }
+            groundCursor[slot] = cursor
+            groundNanos += System.nanoTime() - start
+            if (cursor < total) return false
+            groundReady[slot] = true
+            if (groundTexture[slot] == 0) groundTexture[slot] = GL33C.glGenTextures()
+            GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + GROUND_AO_UNIT)
+            GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, groundTexture[slot])
+            GL33C.glPixelStorei(GL33C.GL_UNPACK_ALIGNMENT, 1)
+            values.limit(total).position(0)
+            GL33C.glTexImage2D(GL33C.GL_TEXTURE_2D, 0, GL33C.GL_R8, width, length, 0, GL33C.GL_RED, GL33C.GL_UNSIGNED_BYTE, values)
+            values.clear()
+            GL33C.glPixelStorei(GL33C.GL_UNPACK_ALIGNMENT, 4)
+            GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_MIN_FILTER, GL33C.GL_LINEAR)
+            GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_MAG_FILTER, GL33C.GL_LINEAR)
+            GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_WRAP_S, GL33C.GL_CLAMP_TO_EDGE)
+            GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_WRAP_T, GL33C.GL_CLAMP_TO_EDGE)
+            GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + HdGl.state.activeTextureUnit)
+            if (System.getProperty("client.test.hdDebug") != null) {
+                println("HDDEBUG ground occlusion baked: " + width + "x" + length + " (slot " + slot + ")")
+            }
+        }
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + GROUND_AO_UNIT)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, groundTexture[slot])
+        GL33C.glBindSampler(GROUND_AO_UNIT, 0)
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + HdGl.state.activeTextureUnit)
+        return true
+    }
 
     /** Binds the baked map for the frame's receivers (it stays bound between bakes otherwise). */
     fun bindBaked() {
@@ -866,6 +979,15 @@ class HdShadows {
     }
 
     fun release() {
+        for (i in 0 until GROUND_SLOTS) {
+            if (groundTexture[i] != 0) GL33C.glDeleteTextures(groundTexture[i])
+            groundTexture[i] = 0
+            val values: ByteBuffer? = groundValues[i]
+            if (values != null) org.lwjgl.system.MemoryUtil.memFree(values)
+            groundValues[i] = null
+            groundOwner[i] = null
+            groundVersion[i] = -1
+        }
         sun.release()
         staticMap.release()
         staticVersion = -1

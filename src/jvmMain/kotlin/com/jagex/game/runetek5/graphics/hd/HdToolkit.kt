@@ -3684,6 +3684,23 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	}
 
 	companion object {
+		/** Free video memory in MB on an NVIDIA driver (GL_NVX_gpu_memory_info) while 634HD is active, else -1. */
+		@JvmStatic
+		fun freeVideoMemoryMb(): Int {
+			if (com.jagex.game.runetek5.client.ClientState.activeToolkit !is HdToolkit) {
+				return -1
+			}
+			val caps: org.lwjgl.opengl.GLCapabilities = try {
+				org.lwjgl.opengl.GL.getCapabilities()
+			} catch (ex: Exception) {
+				return -1
+			}
+			if (!caps.GL_NVX_gpu_memory_info) {
+				return -1
+			}
+			return org.lwjgl.opengl.GL11C.glGetInteger(0x9049) shr 10
+		}
+
 		// 634HD debugging: texture use counts in the 3D view, printed at exit (client.test.hdDebug)
 		@JvmField
 		val DEBUG_MATERIALS: HashMap<Int, Int>? = if (System.getProperty("client.test.hdDebug") != null) HashMap() else null
