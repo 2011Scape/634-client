@@ -109,21 +109,35 @@
       "name": "Draynor",
       "area": {
         "regions": [
-          12339,
           12338,
-          12083
+          12339
         ]
       },
       "sky": {
-        "top": "#566f8c",
-        "horizon": "#b8c0c0"
+        "top": "#5a85b8",
+        "horizon": "#c4ced4"
+      },
+      "sun": {
+        "colour": "#fff3e2",
+        "intensity": 1.0
+      },
+      "ambient": {
+        "colour": "#f0f2ee",
+        "intensity": 1.0
       },
       "heightFog": {
-        "density": 0.35,
-        "top": -100
+        "density": 0.1,
+        "top": -150
       },
-      "lut": "swamp.png",
-      "waterTint": "#2c4a3c"
+      "lut": "neutral_warm.png",
+      "water": {
+        "tint": "#3f6f86",
+        "strength": 0.45,
+        "waves": 1.0,
+        "speed": 0.9,
+        "size": 1.2,
+        "glint": 1.1
+      }
     },
     {
       "name": "Karamja volcano",
@@ -164,17 +178,36 @@
       "lut": "dungeon.png"
     },
     {
-      "name": "Falador park",
+      "name": "Falador",
       "area": {
         "regions": [
-          11828
+          11827,
+          11828,
+          11829,
+          12083,
+          12084
         ]
       },
       "sky": {
         "top": "#5590d8",
         "horizon": "#c4d6e6"
       },
-      "lut": "neutral_warm.png"
+      "sun": {
+        "colour": "#fff8f0",
+        "intensity": 1.05
+      },
+      "ambient": {
+        "colour": "#f4f6fa",
+        "intensity": 1.0
+      },
+      "lut": "neutral_warm.png",
+      "water": {
+        "tint": "#3d6a8c",
+        "strength": 0.4,
+        "waves": 0.6,
+        "speed": 0.7,
+        "glint": 1.0
+      }
     },
     {
       "name": "Wizards' Tower",
@@ -188,6 +221,69 @@
         "horizon": "#c0d2e2"
       },
       "waterTint": "#244e64"
+    },
+    {
+      "name": "Draynor Manor",
+      "area": {
+        "regions": [
+          12340
+        ]
+      },
+      "sky": {
+        "top": "#4b5868",
+        "horizon": "#9aa4a6"
+      },
+      "sun": {
+        "colour": "#d8dce2",
+        "intensity": 0.75
+      },
+      "ambient": {
+        "colour": "#c8d0d8",
+        "intensity": 0.85
+      },
+      "heightFog": {
+        "density": 0.3,
+        "top": -150
+      },
+      "lut": "swamp.png"
+    },
+    {
+      "name": "Al Kharid",
+      "area": {
+        "regions": [
+          13104,
+          13105,
+          13106,
+          13360,
+          13361,
+          13362
+        ]
+      },
+      "sky": {
+        "top": "#6aa0d8",
+        "horizon": "#efe0c2"
+      },
+      "sun": {
+        "colour": "#fff0d2",
+        "intensity": 1.15
+      },
+      "ambient": {
+        "colour": "#fff0dc",
+        "intensity": 1.05
+      },
+      "heightFog": {
+        "density": 0.06,
+        "top": -150
+      },
+      "lut": "desert.png",
+      "water": {
+        "tint": "#3f9a8a",
+        "strength": 0.45,
+        "waves": 0.4,
+        "speed": 0.6,
+        "size": 1.1,
+        "glint": 1.3
+      }
     }
   ]
 }
