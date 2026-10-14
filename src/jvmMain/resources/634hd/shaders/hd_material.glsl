@@ -5,12 +5,12 @@
 // texture stays the albedo. The tangent frame comes from the fragment's position and uv derivatives,
 // so no vertex data is needed and the ground, models and the retained scene all take maps.
 
-#define HD_MAX_MAPS 256
+#define HD_MAX_MAPS 448
 
 layout(std140) uniform HdMaterialMaps {
     // x: layer, y: specular strength, z: emissive strength, w: parallax depth
     vec4 hdMapA[HD_MAX_MAPS];
-    // x: has normal, y: has orm, z: has emissive, w: unused
+    // x: has normal, y: has orm, z: has emissive, w: the emissive array's layer
     vec4 hdMapB[HD_MAX_MAPS];
 };
 
@@ -93,7 +93,7 @@ vec4 hdApplyMaterial(int slot, vec4 color, vec2 uv, vec3 viewPos) {
     float highlight = pow(max(dot(n, halfway), 0.0), shininess) * (1.0 - roughness) * hdMapA[slot].y;
     rgb += hdSunColour.rgb * highlight * hdShadow(viewPos);
     if (hdMapB[slot].z > 0.5) {
-        rgb += hdColour(texture(uHdEmissiveMaps, vec3(uv, layer))).rgb * orm.b * hdMapA[slot].z;
+        rgb += hdColour(texture(uHdEmissiveMaps, vec3(uv, hdMapB[slot].w))).rgb * orm.b * hdMapA[slot].z;
     }
     return vec4(rgb, color.a);
 }
@@ -196,7 +196,7 @@ vec4 hdLightModel(int slot, vec4 color, vec2 uv, vec3 viewPos, vec3 normal) {
     }
     if (mapped && hdMapB[slot].z > 0.5) {
         vec4 orm = texture(uHdOrmMaps, vec3(uv, layer));
-        rgb += hdColour(texture(uHdEmissiveMaps, vec3(uv, layer))).rgb * orm.b * hdMapA[slot].z;
+        rgb += hdColour(texture(uHdEmissiveMaps, vec3(uv, hdMapB[slot].w))).rgb * orm.b * hdMapA[slot].z;
     }
     return vec4(rgb, color.a);
 }

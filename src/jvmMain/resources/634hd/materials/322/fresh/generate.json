@@ -1,0 +1,27 @@
+{
+  "model": "nano-banana-2-lite",
+  "prompt": "Greyscale height map (displacement map) for a seamlessly tiling game texture: stone wall. The reference image is the original 2010 RuneScape texture; follow its layout, scale and shapes exactly (the same stones, planks, cracks or ripples in the same places) so the height map lines up with it. White is raised, black is recessed. Add fine, believable surface relief in the hand-made RuneScape HD style. Square image, flat even lighting, no shading, no shadows, no colour, no text, no border; the left and right edges and the top and bottom edges must continue seamlessly when tiled.",
+  "refs": [
+    "/home/pixel/Pictures/generations/refs/634hd_tex322.png"
+  ],
+  "ref_urls": [
+    "https://tempfile.redpandaai.co/kieai/12068753/generate-refs/1791934032258-byjpfjju4zo.png"
+  ],
+  "params": {
+    "aspect_ratio": "1:1",
+    "image_urls": [
+      "https://tempfile.redpandaai.co/kieai/12068753/generate-refs/1791934032258-byjpfjju4zo.png"
+    ]
+  },
+  "taskId": "444a784c47637a268cbe4b096d5336fb",
+  "creditsConsumed": 4.0,
+  "costTimeMs": 73,
+  "resultUrls": [
+    "https://tempfile.aiquickdraw.com/vnp/444a784c47637a268cbe4b096d5336fb_0_1791934105.jpeg"
+  ],
+  "files": [
+    "634hd_height-322_1791934114.jpeg"
+  ],
+  "created": "2026-10-13T23:28:34+00:00",
+  "note": null
+}

@@ -318,6 +318,15 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   inpainted) worked twice in eleven tries, so they are not used. An earlier detail-only mode (the
   game texture with generated grain under one texel) still runs for any listed texture without
   realistic art.
+- **The world's textures (in progress).** `tools/fresh_catalogue.json` lists the most drawn surface
+  textures across the world (a tour of 27 places with `HDDEBUG textures used`; effects, cut-outs,
+  scrolling and blank textures and non-materials left out; textures that are another with a gradient
+  over it share its art), each with a name, a material class and the texture whose art it takes.
+  `make_fresh_textures.py` reads it and adds `materials.json` entries for new ones; their art is
+  painterly (`tools/pt_prompt.txt`) on nano-banana-2-lite. Limits for it: 448 map sets (the uniform
+  block's 16 KB), an emissive array only for the textures that glow (lava), 128 fresh-texture layers
+  started afresh at a region build once three quarters full, and `compress_material_maps.py`
+  compressing the `fresh/` sets too, only what changed.
 - **Environments beyond Lumbridge and Varrock.** Draynor village (regions 12338, 12339: a light
   coastal haze, the sea's own tint; the swamp grade it had moved to Draynor Manor, 12340), Falador (the
   whole city, 11827-11829, 12083, 12084, which had only the park; 12083 was wrongly under Draynor) and

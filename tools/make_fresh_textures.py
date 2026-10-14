@@ -70,24 +70,12 @@ SHINE_MASKS = {90, 91, 109}
 GROUND = {66, 70, 82, 90, 91, 96, 109, 125, 154, 181, 213, 309}
 GROUND_PUNCH = 2.0
 
-TEXTURES = {
-    # Lumbridge and Varrock's most used textures (HDDEBUG textures used, the texture-id overlay), less
-    # the blank ones, decals, water and lava, and those never seen on screen to check them by (159, 322,
-    # 387: their texels were hidden or on NPC clothing in every view tried), and 63 and 83 (only on small
-    # objects, clothing and the fountain's rim, where realistic art made no visible gain); and, in the
-    # realistic pass, those too small on screen to judge: 72, 75, 109, 127, 163, and 125, 140, 185, 213,
-    # 228, 254, 294, 295, 0-3% of their best views (clothing, reeds, hidden faces) even with bold art
-    66: ('loose rock and stone chips', 'gravel', 66),
-    70: ('packed dirt', 'ground', 70),
-    82: ('gravel', 'gravel', 82),
-    90: ('pebbled ground, shaded', 'ground', 91),
-    91: ('gravel path', 'gravel', 91),
-    96: ('pebbles', 'gravel', 96),
-    154: ('sand', 'sand', 154),
-    181: ('rocky ground with pebbles', 'ground', 181),
-    309: ('rocky ground', 'ground', 96),
-    505: ('flagstones', 'brick', 505),
-}
+# texture id -> (name, material map class, the texture whose art it takes): tools/fresh_catalogue.json,
+# the most drawn surface textures across the world (a tour of 27 places, HDDEBUG textures used),
+# less effects, cut-outs, scrolling, blank ones and gradients, stripes and other non-materials. A
+# texture that is another one with a gradient over it (pattern correlation over 0.9) takes its art.
+with open(os.path.join(os.path.dirname(__file__), 'fresh_catalogue.json')) as _f:
+    TEXTURES = {int(k): (v['name'], v['class'], v['art']) for k, v in json.load(_f).items()}
 
 
 def generated(texture):
@@ -257,8 +245,13 @@ def main():
             print('missing build/textures/%d.png: dump the cache textures first' % texture)
             return 1
         if texture not in by_texture:
-            print('texture %d has no material maps entry: add it to tools/make_material_maps.py first' % texture)
-            return 1
+            # a new entry: its maps are only the fresh ones (fresh/), made below
+            specular, parallax = maps.CLASSES[cls][4], maps.CLASSES[cls][5]
+            entry = {'texture': texture, 'name': name, 'normal': 'normal.png', 'orm': 'orm.png', 'height': 'normal.png', 'specular': specular}
+            if parallax > 0:
+                entry['parallax'] = parallax
+            entries.append(entry)
+            by_texture[texture] = entry
         gain = make(texture, name, cls, art)
         if gain is None:
             continue

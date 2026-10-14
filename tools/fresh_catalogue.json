@@ -1,0 +1,488 @@
+{
+ "57": {
+  "name": "blotchy pale stone",
+  "class": "stone",
+  "short": "blotches",
+  "art": 57
+ },
+ "63": {
+  "name": "weathered wooden planks",
+  "class": "wood",
+  "short": "planks",
+  "art": 63
+ },
+ "64": {
+  "name": "wooden planks",
+  "class": "wood",
+  "short": "planks",
+  "art": 64
+ },
+ "66": {
+  "name": "packed dirt with stone chips",
+  "class": "ground",
+  "short": "stone chips",
+  "art": 66
+ },
+ "67": {
+  "name": "gritty grey stone",
+  "class": "stone",
+  "short": "grit",
+  "art": 67
+ },
+ "70": {
+  "name": "packed dirt",
+  "class": "ground",
+  "short": "stones",
+  "art": 70
+ },
+ "72": {
+  "name": "rough weathered rock",
+  "class": "stone",
+  "short": "rock features",
+  "art": 72
+ },
+ "73": {
+  "name": "dark wooden planks",
+  "class": "wood",
+  "short": "planks",
+  "art": 73
+ },
+ "75": {
+  "name": "weathered grey wooden boards",
+  "class": "wood",
+  "short": "planks",
+  "art": 75
+ },
+ "82": {
+  "name": "coarse gravel",
+  "class": "gravel",
+  "short": "stones",
+  "art": 82
+ },
+ "83": {
+  "name": "rough rock face",
+  "class": "stone",
+  "short": "rock features",
+  "art": 83
+ },
+ "86": {
+  "name": "woven straw mat",
+  "class": "fabric",
+  "short": "weave",
+  "art": 86
+ },
+ "90": {
+  "name": "gravel path (variant)",
+  "class": "gravel",
+  "short": "pebbles",
+  "art": 91
+ },
+ "91": {
+  "name": "gravel path",
+  "class": "gravel",
+  "short": "pebbles",
+  "art": 91
+ },
+ "96": {
+  "name": "small rounded pebbles",
+  "class": "gravel",
+  "short": "pebbles",
+  "art": 96
+ },
+ "101": {
+  "name": "tree bark",
+  "class": "wood",
+  "short": "bark ridges",
+  "art": 101
+ },
+ "102": {
+  "name": "smooth wood grain",
+  "class": "wood",
+  "short": "grain lines",
+  "art": 102
+ },
+ "105": {
+  "name": "boulder rock",
+  "class": "stone",
+  "short": "rock features",
+  "art": 105
+ },
+ "109": {
+  "name": "gravel path (variant)",
+  "class": "gravel",
+  "short": "pebbles",
+  "art": 91
+ },
+ "111": {
+  "name": "pale ground with sparse gravel",
+  "class": "ground",
+  "short": "stones",
+  "art": 111
+ },
+ "125": {
+  "name": "speckled gravel",
+  "class": "gravel",
+  "short": "stones",
+  "art": 125
+ },
+ "127": {
+  "name": "streaked weathered stone",
+  "class": "stone",
+  "short": "stone streaks",
+  "art": 127
+ },
+ "128": {
+  "name": "fine speckled sand",
+  "class": "sand",
+  "short": "grains",
+  "art": 128
+ },
+ "132": {
+  "name": "tree bark",
+  "class": "wood",
+  "short": "bark ridges",
+  "art": 132
+ },
+ "139": {
+  "name": "pale ground with sparse gravel (variant)",
+  "class": "ground",
+  "short": "stones",
+  "art": 111
+ },
+ "140": {
+  "name": "mottled lime plaster (variant)",
+  "class": "sand",
+  "short": "blotches",
+  "art": 254
+ },
+ "154": {
+  "name": "sand",
+  "class": "sand",
+  "short": "ripples",
+  "art": 154
+ },
+ "159": {
+  "name": "pale plastered wall with small bumps (variant)",
+  "class": "sand",
+  "short": "dimples",
+  "art": 163
+ },
+ "160": {
+  "name": "wooden boards",
+  "class": "wood",
+  "short": "boards",
+  "art": 160
+ },
+ "163": {
+  "name": "pale plastered wall with small bumps",
+  "class": "sand",
+  "short": "dimples",
+  "art": 163
+ },
+ "167": {
+  "name": "stained streaky wall plaster",
+  "class": "sand",
+  "short": "streaks",
+  "art": 167
+ },
+ "181": {
+  "name": "rocky ground with pebbles",
+  "class": "ground",
+  "short": "stones",
+  "art": 181
+ },
+ "185": {
+  "name": "dry straw and dead grass",
+  "class": "grass",
+  "short": "straw stems",
+  "art": 185
+ },
+ "202": {
+  "name": "stone bricks",
+  "class": "brick",
+  "short": "bricks",
+  "art": 202
+ },
+ "206": {
+  "name": "wooden planks",
+  "class": "wood",
+  "short": "planks",
+  "art": 206
+ },
+ "225": {
+  "name": "fine scratched plaster",
+  "class": "sand",
+  "short": "scratches",
+  "art": 225
+ },
+ "228": {
+  "name": "wood grain",
+  "class": "wood",
+  "short": "grain lines",
+  "art": 228
+ },
+ "236": {
+  "name": "mottled pale stone",
+  "class": "stone",
+  "short": "blotches",
+  "art": 236
+ },
+ "244": {
+  "name": "scattered pebbles",
+  "class": "gravel",
+  "short": "pebbles",
+  "art": 244
+ },
+ "246": {
+  "name": "rough plaster",
+  "class": "sand",
+  "short": "bumps",
+  "art": 246
+ },
+ "247": {
+  "name": "fine gravel",
+  "class": "gravel",
+  "short": "stones",
+  "art": 247
+ },
+ "248": {
+  "name": "rough tree bark",
+  "class": "wood",
+  "short": "bark ridges",
+  "art": 248
+ },
+ "249": {
+  "name": "scattered pebbles on dirt",
+  "class": "gravel",
+  "short": "pebbles",
+  "art": 249
+ },
+ "250": {
+  "name": "plaid woven cloth",
+  "class": "fabric",
+  "short": "checks",
+  "art": 250
+ },
+ "254": {
+  "name": "mottled lime plaster",
+  "class": "sand",
+  "short": "blotches",
+  "art": 254
+ },
+ "257": {
+  "name": "woven wicker",
+  "class": "wood",
+  "short": "strands",
+  "art": 257
+ },
+ "258": {
+  "name": "speckled gravel ground",
+  "class": "gravel",
+  "short": "stones",
+  "art": 258
+ },
+ "265": {
+  "name": "stony ground",
+  "class": "ground",
+  "short": "stones",
+  "art": 265
+ },
+ "266": {
+  "name": "rough grey rock",
+  "class": "stone",
+  "short": "rock features",
+  "art": 266
+ },
+ "273": {
+  "name": "plaid woven cloth",
+  "class": "fabric",
+  "short": "checks",
+  "art": 273
+ },
+ "276": {
+  "name": "meadow grass",
+  "class": "grass",
+  "short": "blades",
+  "art": 276
+ },
+ "277": {
+  "name": "dark woven fabric",
+  "class": "fabric",
+  "short": "weave",
+  "art": 277
+ },
+ "283": {
+  "name": "bamboo stalks",
+  "class": "wood",
+  "short": "stalks",
+  "art": 283
+ },
+ "291": {
+  "name": "scattered pebbles on dirt (variant)",
+  "class": "gravel",
+  "short": "pebbles",
+  "art": 249
+ },
+ "294": {
+  "name": "rough plaster render",
+  "class": "sand",
+  "short": "bumps",
+  "art": 294
+ },
+ "295": {
+  "name": "rough plaster render (variant)",
+  "class": "sand",
+  "short": "bumps",
+  "art": 294
+ },
+ "297": {
+  "name": "scattered pebbles",
+  "class": "gravel",
+  "short": "pebbles",
+  "art": 297
+ },
+ "301": {
+  "name": "cracked stone floor tiles",
+  "class": "brick",
+  "short": "tiles",
+  "art": 301
+ },
+ "302": {
+  "name": "dark mottled stone (variant)",
+  "class": "stone",
+  "short": "blotches",
+  "art": 326
+ },
+ "303": {
+  "name": "pale mottled stone",
+  "class": "stone",
+  "short": "blotches",
+  "art": 303
+ },
+ "305": {
+  "name": "speckled granite",
+  "class": "stone",
+  "short": "grains",
+  "art": 305
+ },
+ "309": {
+  "name": "rocky ground",
+  "class": "ground",
+  "short": "stones",
+  "art": 309
+ },
+ "312": {
+  "name": "lush grass",
+  "class": "grass",
+  "short": "blades",
+  "art": 312
+ },
+ "314": {
+  "name": "dark woven fabric",
+  "class": "fabric",
+  "short": "weave",
+  "art": 314
+ },
+ "322": {
+  "name": "mossy stone wall with mortar",
+  "class": "brick",
+  "short": "stones",
+  "art": 322
+ },
+ "326": {
+  "name": "dark mottled stone",
+  "class": "stone",
+  "short": "blotches",
+  "art": 326
+ },
+ "384": {
+  "name": "tree bark",
+  "class": "wood",
+  "short": "bark ridges",
+  "art": 384
+ },
+ "387": {
+  "name": "fine wood grain",
+  "class": "wood",
+  "short": "grain lines",
+  "art": 387
+ },
+ "426": {
+  "name": "straw thatch",
+  "class": "grass",
+  "short": "straw stems",
+  "art": 426
+ },
+ "491": {
+  "name": "heather and flowers",
+  "class": "grass",
+  "short": "flowers",
+  "art": 491
+ },
+ "495": {
+  "name": "grass and moss",
+  "class": "grass",
+  "short": "clumps",
+  "art": 495
+ },
+ "499": {
+  "name": "rocky dirt",
+  "class": "ground",
+  "short": "stones",
+  "art": 499
+ },
+ "504": {
+  "name": "rocky ground",
+  "class": "ground",
+  "short": "rocks",
+  "art": 504
+ },
+ "505": {
+  "name": "cobblestone street",
+  "class": "brick",
+  "short": "cobbles",
+  "art": 505
+ },
+ "508": {
+  "name": "rocky sandstone",
+  "class": "stone",
+  "short": "rocks",
+  "art": 508
+ },
+ "510": {
+  "name": "cracked dry earth",
+  "class": "ground",
+  "short": "cracks",
+  "art": 510
+ },
+ "519": {
+  "name": "short grass",
+  "class": "grass",
+  "short": "blades",
+  "art": 519
+ },
+ "520": {
+  "name": "dense grass",
+  "class": "grass",
+  "short": "blades",
+  "art": 520
+ },
+ "595": {
+  "name": "wooden floorboards",
+  "class": "wood",
+  "short": "boards",
+  "art": 595
+ },
+ "600": {
+  "name": "stone floor slabs",
+  "class": "brick",
+  "short": "slabs",
+  "art": 600
+ },
+ "724": {
+  "name": "cloudy marble",
+  "class": "stone",
+  "short": "veins",
+  "art": 724
+ }
+}
