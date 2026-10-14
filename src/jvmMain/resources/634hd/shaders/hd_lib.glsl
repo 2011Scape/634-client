@@ -22,6 +22,7 @@
 #define HD_CAUSTICS 32768
 #define HD_GRASS 65536
 #define HD_LIGHTING_MODEL 131072
+#define HD_DETAIL_FADE 262144
 #define HD_MAX_ACTORS 8
 #define HD_MAX_LIGHTS 64
 
@@ -164,6 +165,19 @@ vec4 hdPointLight(vec3 normal, vec3 viewPos, vec3 lightPos, vec3 attenuation, ve
     vec3 lightDir = toLight / max(dist, 0.0001);
     float atten = 1.0 / max(attenuation.x + attenuation.y * dist + attenuation.z * dist * dist, 0.0001);
     return vec4(diffuse * max(dot(normal, lightDir), 0.0) * atten, 0.0);
+}
+
+// Detail fade (HD_DETAIL_FADE): far from the camera, textures sample a blurrier mip level (hdDetailBias)
+// and material relief fades to the plain surface (hdDetail, 1 near, 0 far), so distant ground and
+// walls do not crawl and shimmer as the camera moves. Set per fragment by hdSetDetail.
+float hdDetail = 1.0;
+float hdDetailBias = 0.0;
+
+void hdSetDetail(vec3 viewPos) {
+    if (!hdOn(HD_DETAIL_FADE)) return;
+    float d = length(viewPos);
+    hdDetail = 1.0 - smoothstep(3200.0, 7000.0, d);
+    hdDetailBias = smoothstep(3600.0, 8000.0, d) * 1.5;
 }
 
 vec4 hdApplyLight(vec4 base, vec4 lit) {
