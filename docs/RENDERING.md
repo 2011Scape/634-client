@@ -217,8 +217,8 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   every program's samplers at their units: shadow map 16, height map 17, soft-particle depth 18,
   material arrays 19-21 (block `HdMaterialMaps`, binding 1), baked occlusion 22, the ground's baked
   occlusion 25.
-- **Shadow casters.** Static: every retained object in the chunks around the player, on screen or
-  not, drawn into a cached map (`staticMap`) only when the map's centre moves a four-tile step or
+- **Shadow casters.** Static: every retained object in the chunks around the player, opaque or with
+  transparent parts (tree canopies), on screen or not, drawn into a cached map (`staticMap`) only when the map's centre moves a four-tile step or
   the region changes, and copied into the sun's map each frame. Moving: every emulated indexed draw
   `HdGl` records between the camera and `opaqueEntitiesDone` (not the ground). A recorded draw keeps
   its buffers' data by copy-on-write: when `HdGl` is about to write a buffer a caster was drawn
@@ -226,6 +226,8 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   The animated-model stream starts fresh storage only at the start of a frame, so ranges recorded
   in a frame stay valid until its map is drawn. Translucent entities (drawn after the map) cast
   into the next frame's map. Moving models drawn before the map is made do not receive shadows.
+  While sun shadows are on, the game's own blob shadows under locs (`HdShadowMap`'s overlay on the
+  ground) are not drawn; the wall darkening baked into the ground's colours stays.
 - **Memory.** The retained scene's CPU geometry and read-back copies, and the shadow casters' index
   copies, are allocated with LWJGL's allocator and freed when the toolkit stops: left to the garbage
   collector, a few switches to and from 634HD ran out of direct memory.

@@ -177,6 +177,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     private val chunkIndexCount: IntArray = IntArray(CHUNKS)
 
     private val chunkTriangles: IntArray = IntArray(CHUNKS)
+    /** Each chunk's opaque and transparent objects' indices together (from chunkIndexStart): shadow casters and occluders. */
+    private val chunkCasterCount: IntArray = IntArray(CHUNKS)
 
     private val chunkDirty: BooleanArray = BooleanArray(CHUNKS)
 
@@ -396,6 +398,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         chunkIndexCount[chunk] = indexCount - firstIndex
         chunkTriangles[chunk] = (indexCount - firstIndex) / 3
         buildEntities(chunk, entities, count, true)
+        // the transparent objects follow the opaque ones: tree canopies and the like cast shadows too
+        chunkCasterCount[chunk] = indexCount - firstIndex
         bakeVersion++
     }
 
@@ -610,14 +614,14 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         var triangles: Int = 0
         var draws: Int = 0
         for (chunk in 0 until CHUNKS) {
-            if (chunkIndexCount[chunk] == 0) continue
+            if (chunkCasterCount[chunk] == 0) continue
             val cx: Int = chunk / CHUNK_GRID
             val cz: Int = chunk % CHUNK_GRID
             if (cx < minChunkX || cx > maxChunkX || cz < minChunkZ || cz > maxChunkZ) continue
             if (draws == drawCounts.capacity()) break
-            drawCounts.put(chunkIndexCount[chunk])
+            drawCounts.put(chunkCasterCount[chunk])
             drawOffsets.put(chunkIndexStart[chunk].toLong() * 4L)
-            triangles += chunkTriangles[chunk]
+            triangles += chunkCasterCount[chunk] / 3
             draws++
         }
         drawCounts.flip()
@@ -878,6 +882,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         frameCount = 0
         java.util.Arrays.fill(chunkIndexCount, 0)
         java.util.Arrays.fill(chunkTriangles, 0)
+        java.util.Arrays.fill(chunkCasterCount, 0)
         java.util.Arrays.fill(chunkVisible, 0)
         java.util.Arrays.fill(chunkDirty, false)
         dirtyCount = 0
@@ -945,6 +950,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             }
             chunkIndexCount[chunk] = 0
             chunkTriangles[chunk] = 0
+            chunkCasterCount[chunk] = 0
             if (pendingCount[chunk] > 0) {
                 // still waiting from the region build: queued again with the entities there now
                 java.util.Arrays.fill(pending[chunk]!!, 0, pendingCount[chunk], null)

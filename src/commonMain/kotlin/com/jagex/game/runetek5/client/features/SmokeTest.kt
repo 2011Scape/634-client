@@ -1242,6 +1242,7 @@ object SmokeTest {
 			// the draw distance row: live, the map built again further out (checked in the next step)
 			visibleTilesBefore = SceneVisibleTiles.visibleTiles
 			val distance: Double = ClientFeatures.RENDER_DISTANCE
+			distanceBefore = distance
 			if (!HdSettingsPanel.clickRow("renderDistance") || ClientFeatures.RENDER_DISTANCE == distance || !HdSettingsPanel.mapRebuildWanted) {
 				fail("a click on the draw distance row did not change it (" + distance + " to " + ClientFeatures.RENDER_DISTANCE + ")")
 			}
@@ -1257,8 +1258,10 @@ object SmokeTest {
 			return
 		}
 		if (openStep == 4) {
-			if (SceneVisibleTiles.visibleTiles <= visibleTilesBefore) {
-				fail("the map was not built again further out: " + visibleTilesBefore + " visible tiles, now " + SceneVisibleTiles.visibleTiles)
+			// further out, or nearer when the click wrapped round from the largest distance to 1
+			val further: Boolean = ClientFeatures.RENDER_DISTANCE > distanceBefore
+			if (if (further) SceneVisibleTiles.visibleTiles <= visibleTilesBefore else SceneVisibleTiles.visibleTiles >= visibleTilesBefore) {
+				fail("the map was not built again at draw distance " + ClientFeatures.RENDER_DISTANCE + " (from " + distanceBefore + "): " + visibleTilesBefore + " visible tiles, now " + SceneVisibleTiles.visibleTiles)
 			}
 			println("SMOKE draw distance " + ClientFeatures.RENDER_DISTANCE + ": " + visibleTilesBefore + " to " + SceneVisibleTiles.visibleTiles + " visible tiles")
 			checkImage("-open-hd-settings-high", "build/smoke/open-" + id + "-hd-settings-high.png")
@@ -1296,6 +1299,8 @@ object SmokeTest {
 	private val TOGGLE_ROUNDS: Int = lang.getInteger("client.test.toggleRounds", 1)
 
 	private var visibleTilesBefore: Int = 0
+
+	private var distanceBefore: Double = 0.0
 
 	/** Set by a check that wants the map built again (MapRebuild, a root-package class: the hook does it). */
 	@JvmField
