@@ -38,7 +38,7 @@ object HdSettings {
 	@JvmField
 	var fog: Boolean = false
 
-	/** Locs fade in over a short band at the edge of the view instead of appearing (dithered). */
+	/** The last stretch before the draw distance fades into the fog or sky colour, hiding things popping in. */
 	@JvmField
 	var fade: Boolean = false
 

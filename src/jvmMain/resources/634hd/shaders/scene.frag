@@ -144,9 +144,6 @@ void main() {
     // maps (moving models, the ground) until then
     color.rgb *= (hdOn(HD_AO) && hdAoBake.z > 0.5) ? mix(1.0, vOcclusion, hdAoParams.y) : hdAmbientOcclusion(vViewPos, vEyeNormal);
     float depth = gl_FragCoord.z / gl_FragCoord.w;
-    if (hdFaded(length(vViewPos), gl_FragCoord.xy)) {
-        discard;
-    }
     if (uFogEnabled) {
         color = hdFog(color, vViewPos, depth, uFogColor, uFogStart, uFogEnd);
     }

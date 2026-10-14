@@ -138,7 +138,7 @@ vec3 hdSkyColour(vec3 dir) {
 // are the draw's fixed-function fog, which is all there is unless HD_FOG (the environment's colour
 // and distances, a smooth curve, height fog) or HD_SKY (the colour of the sky behind the fragment).
 vec4 hdFog(vec4 color, vec3 viewPos, float depth, vec4 fogColour, float start, float end) {
-    if (!hdOn(HD_FOG) && !hdOn(HD_SKY)) {
+    if (!hdOn(HD_FOG) && !hdOn(HD_SKY) && !hdOn(HD_FADE)) {
         float fogFactor = clamp((end - depth) / (end - start), 0.0, 1.0);
         return vec4(mix(hdColour(fogColour).rgb, color.rgb, fogFactor), color.a);
     }
@@ -160,19 +160,14 @@ vec4 hdFog(vec4 color, vec3 viewPos, float depth, vec4 fogColour, float start, f
             amount = max(amount, hdFogParams.z * below * clamp(dist / 6144.0, 0.0, 1.0));
         }
     }
+    // the fade (HD_FADE): over the last band before the draw distance, into the fog or sky colour,
+    // so the edge of the world and what pops in there melt into the background
+    if (hdOn(HD_FADE) && hdTime.w > 0.0) {
+        amount = max(amount, smoothstep(hdTime.z, hdTime.z + hdTime.w, dist));
+    }
     return vec4(mix(color.rgb, hdColour(vec4(fogRgb, 1.0)).rgb, amount), color.a);
 }
 
-// Whether a fragment at eye distance [dist] is dropped by the fade at the edge of the view (HD_FADE):
-// over the band hdTime.z .. hdTime.z + hdTime.w, a growing share of a 4x4 ordered pattern.
-bool hdFaded(float dist, vec2 fragCoord) {
-    if (!hdOn(HD_FADE) || hdTime.w <= 0.0 || dist <= hdTime.z) return false;
-    float share = (dist - hdTime.z) / hdTime.w;
-    ivec2 p = ivec2(fragCoord) & 3;
-    int index = p.x + p.y * 4;
-    int bayer[16] = int[16](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
-    return share > (float(bayer[index]) + 0.5) / 16.0;
-}
 
 // The point lights of lights.json (HD_LIGHTS) on a fragment at eye-space [viewPos] with the game's
 // eye-space [normal] (any scale; a zero normal, as on the ground's unlit draws, takes light from every
