@@ -585,6 +585,17 @@ object SmokeTest {
 		if (ClientState.mainLogicStep !== MainLogicStep.STEP_GAME_SCREEN || player == null) {
 			return
 		}
+		// client.test.wear=slot:item,...: the local player shown wearing those items, on this client only
+		// (Void has no command to equip them); e.g. 0:1163,4:1127,5:1201,7:1079 is rune armour
+		if (WEAR.length > 0 && !worn && player.playerModel != null) {
+			worn = true
+			val pairs: Array<String> = WEAR.javaSplit(",")
+			for (pair in pairs) {
+				val colon: Int = pair.indexOf(':')
+				player.playerModel!!.addAppearanceItem(pair.substring(0, colon).javaTrim().toInt(), pair.substring(colon + 1).javaTrim().toInt(), TypeLists.OBJ)
+			}
+			println("SMOKE wearing " + WEAR)
+		}
 		// client.test.characterShadows=0|1: the Character shadows graphics option for this run (not saved)
 		if (CHARACTER_SHADOWS >= 0 && GamePreferences.uid!!.characterShadows!!.getValue() != CHARACTER_SHADOWS) {
 			GamePreferences.uid!!.setValue(GamePreferences.uid!!.characterShadows, CHARACTER_SHADOWS)
@@ -1304,6 +1315,10 @@ object SmokeTest {
 	private val TOGGLE_ROUNDS: Int = lang.getInteger("client.test.toggleRounds", 1)
 
 	private var visibleTilesBefore: Int = 0
+
+	private val WEAR: String = lang.getProperty("client.test.wear", "")
+
+	private var worn: Boolean = false
 
 	private val CHARACTER_SHADOWS: Int = lang.getInteger("client.test.characterShadows", -1)
 
