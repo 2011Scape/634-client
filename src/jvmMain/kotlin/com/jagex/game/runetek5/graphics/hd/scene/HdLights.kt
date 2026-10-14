@@ -79,6 +79,10 @@ class HdLights {
     private var contentVersion: Int = -1
 
     private val DEBUG: Boolean = System.getProperty("client.test.hdDebug") != null
+
+    /** client.test.hdLocScan: prints every distinct loc of the scene once (authoring lights.json). */
+    private val SCAN: Boolean = System.getProperty("client.test.hdLocScan") != null
+    private val scanned: HashSet<Int> = HashSet()
     private var debugFrame: Int = 0
 
     /** GPU particle emitters this frame: world x, y, z, kind (1 fire, 2 lava), strength, flame width and height (0: unknown). */
@@ -273,6 +277,12 @@ class HdLights {
                 val id: Int = (entity as GameObject).getId()
                 val name: String? = try { com.jagex.game.runetek5.config.TypeLists.LOC!!.list(id).name } catch (ex: Exception) { "?" }
                 println("HDDEBUG near loc " + id + " " + name + " " + entity.javaClass.simpleName + " at " + (entity.x shr 9) + "," + (entity.z shr 9))
+            }
+            if (SCAN && entity is GameObject && scanned.add((entity as GameObject).getId())) {
+                // client.test.hdLocScan (authoring): every loc in the scene once, to find light sources
+                val id: Int = (entity as GameObject).getId()
+                val name: String? = try { com.jagex.game.runetek5.config.TypeLists.LOC!!.list(id).name } catch (ex: Exception) { "?" }
+                println("HDDEBUG scan loc " + id + " \"" + name + "\" at " + (entity.x shr 9) + "," + (entity.z shr 9) + (if (content.lightsByObject[id] != null) " light " + content.lightsByObject[id]!!.name else ""))
             }
             if (entity is GameObject) {
                 val light: HdContent.LightDef? = content.lightsByObject[(entity as GameObject).getId()]

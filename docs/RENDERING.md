@@ -318,6 +318,12 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   inpainted) worked twice in eleven tries, so they are not used. An earlier detail-only mode (the
   game texture with generated grain under one texel) still runs for any listed texture without
   realistic art.
+- **Environments beyond Lumbridge and Varrock.** Draynor village (regions 12338, 12339: a light
+  coastal haze, the sea's own tint; the swamp grade it had moved to Draynor Manor, 12340), Falador (the
+  whole city, 11827-11829, 12083, 12084, which had only the park; 12083 was wrongly under Draynor) and
+  Al Kharid (13104-13106, 13360-13362: a warm sun, a hazy sandy horizon, `desert.png` from
+  `tools/make_luts.py`, the oasis's turquoise water). The three areas' light sources were already all
+  in `lights.json` (`client.test.hdLocScan` lists a scene's locs, flagging those with a light).
 - **634HD's own materials.** `materials.json` entries from texture 10000 up with an `albedo` file in
   `634hd/materials/<id>/` (`content/HdMaterialProvider` serves them beside the cache's, so every
   path draws them): near-grey detail the face or tile colour tints, made by

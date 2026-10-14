@@ -25,6 +25,7 @@ GRADES = {
     'swamp.png': dict(saturation=0.8, tint=(-0.01, 0.02, -0.01), contrast=0.97, lift=0.01),
     'volcanic.png': dict(saturation=1.15, warmth=0.05, contrast=1.08),
     'dungeon.png': dict(saturation=0.7, warmth=-0.01, contrast=1.1, lift=-0.02),
+    'desert.png': dict(saturation=1.05, warmth=0.03, contrast=1.03, lift=0.01),
 }
 
 def main():
