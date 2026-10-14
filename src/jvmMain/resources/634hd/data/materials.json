@@ -189,8 +189,7 @@
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
-      "specular": 0.4,
-      "albedo": "albedo.png"
+      "specular": 0.4
     },
     {
       "texture": 160,
@@ -320,8 +319,7 @@
       "orm": "orm.png",
       "height": "normal.png",
       "specular": 0.4,
-      "parallax": 0.05,
-      "albedo": "albedo.png"
+      "parallax": 0.05
     },
     {
       "texture": 387,
@@ -329,8 +327,7 @@
       "normal": "normal.png",
       "orm": "orm.png",
       "height": "normal.png",
-      "specular": 0.4,
-      "albedo": "albedo.png"
+      "specular": 0.4
     },
     {
       "texture": 505,
