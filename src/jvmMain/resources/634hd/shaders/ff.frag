@@ -81,6 +81,15 @@ uniform vec2 uEnvScale[3];
 // Interface scale N for 2D drawing to the window, 0 otherwise: see logicalCentre().
 uniform highp float uLogicalScale;
 
+// Water draws (uHdWater) are computed in sRGB as the game computes them - its textures, the wave
+// texture added on top, the tint constants, the vertex colour - and made linear once at the end: in
+// linear light the same sums came out pale and white (Draynor's sea, the river's shallows).
+bool gSrgbWater = false;
+
+vec4 hdInput(vec4 c) {
+    return gSrgbWater ? c : hdColour(c);
+}
+
 vec4 combineSource(int src, vec4 texColor, vec4 previous, vec4 constant) {
     if (src == 34166) return constant;
     if (src == 5890) return texColor;
@@ -102,7 +111,7 @@ float applyOperandAlpha(int op, vec4 c) {
 
 vec4 combineStage(int stage, vec4 texColor, vec4 previous) {
     // the stage constant (the water tints) is an sRGB colour like the rest
-    vec4 constant = hdColour(uTexEnvColor[stage]);
+    vec4 constant = hdInput(uTexEnvColor[stage]);
     ivec3 srcRgb = uSrcRgb[stage];
     ivec3 opRgb = uOpRgb[stage];
     ivec3 srcAlpha = uSrcAlpha[stage];
@@ -223,30 +232,31 @@ vec4 sampleUnit(int unit) {
     // 3D textures (the animated water normal map) are sampled with the texcoord's full vec3;
     // the animated slice coordinate r arrives through the per-unit texture matrix.
     if (unit == 0) {
-        if (uIs3D[0] != 0) return hdColour(sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0));
+        if (uIs3D[0] != 0) return hdInput(sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0));
         // 634HD: the ground's texture blended (HD_TERRAIN); the base texture in linear colour too (tonemap)
-        if (uHdGround != 0 && hdOn(HD_TERRAIN)) return hdColour(hdTerrainTexture(uTexture0, gUv0, FF_VIEW_POS));
+        if (uHdGround != 0 && hdOn(HD_TERRAIN)) return hdInput(hdTerrainTexture(uTexture0, gUv0, FF_VIEW_POS));
         if (uHdSmooth != 0 && uLogicalScale > 1.0 && uHdScene == 0) return sharpBilinear(uTexture0, gUv0);
-        return hdColour(texture(uTexture0, gUv0, hdDetailBias));
+        return hdInput(texture(uTexture0, gUv0, hdDetailBias));
     }
     // the other units' colours are sRGB too (environment maps, the water's wave textures): linear
     // with HD_LINEAR like the base texture, so they add up as they did in the game's sRGB
     if (unit == 1) {
-        if (uCubeMap[1]) return hdColour(texture(uTextureCube1, vTexCoord1));
-        if (uIs3D[1] != 0) return hdColour(sampleLuminanceAlpha3D(uTexture3D1, vTexCoord1));
-        return hdColour(texture(uTexture1, logicalCentre(vTexCoord1.xy)));
+        if (uCubeMap[1]) return hdInput(texture(uTextureCube1, vTexCoord1));
+        if (uIs3D[1] != 0) return hdInput(sampleLuminanceAlpha3D(uTexture3D1, vTexCoord1));
+        return hdInput(texture(uTexture1, logicalCentre(vTexCoord1.xy)));
     }
-    if (uCubeMap[2]) return hdColour(texture(uTextureCube2, vTexCoord2));
-    if (uIs3D[2] != 0) return hdColour(sampleLuminanceAlpha3D(uTexture3D2, vTexCoord2));
-    return hdColour(texture(uTexture2, logicalCentre(vTexCoord2.xy)));
+    if (uCubeMap[2]) return hdInput(texture(uTextureCube2, vTexCoord2));
+    if (uIs3D[2] != 0) return hdInput(sampleLuminanceAlpha3D(uTexture3D2, vTexCoord2));
+    return hdInput(texture(uTexture2, logicalCentre(vTexCoord2.xy)));
 }
 
 void main() {
+    gSrgbWater = uHdWater != 0 && hdOn(HD_LINEAR);
     hdSetDetail(FF_VIEW_POS);
     gPrimary = vColor;
 #ifdef ARB_VERTEX
     // the ARB vertex programs (the water effects) pass the game's colour through as it is: sRGB
-    gPrimary = hdColour(vColor);
+    gPrimary = hdInput(vColor);
 #endif
 #ifndef ARB_VERTEX
     if (hdOn(HD_PIXEL_LIGHTING) && uLightingEnabled) {
@@ -262,6 +272,8 @@ void main() {
         gPrimary = hdApplyLight(vBase, lit);
     }
     gPrimary = hdAddPointLights(gPrimary, vBase, vViewPos, vEyeNormal);
+    // lit in the scene's (linear) space: back to sRGB for a water draw's sums
+    if (gSrgbWater) gPrimary.rgb = hdToSrgb(gPrimary.rgb);
 #endif
     vec4 color = gPrimary;
     gUv0 = vTexCoord0.xy;
@@ -274,8 +286,9 @@ void main() {
         discard;
     }
     if (uHdWater != 0 && hdOn(HD_WATER)) {
-        color = hdWater(color, FF_VIEW_POS);
+        color = hdWater(color, FF_VIEW_POS, gSrgbWater);
     }
+    if (gSrgbWater) color.rgb = hdToLinear(color.rgb);
     if (uHdSoft != 0 && hdOn(HD_SOFT_PARTICLES)) {
         // fade out over the last 96 units before the geometry behind: no hard line where it cuts in
         float sceneZ = texture(uHdSceneDepth, gl_FragCoord.xy * uHdDepthParams.zw).r * 2.0 - 1.0;
