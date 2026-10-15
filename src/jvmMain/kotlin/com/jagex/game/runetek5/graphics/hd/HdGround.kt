@@ -100,6 +100,10 @@ class HdGround : Ground {
 
 	private var shadowMap: HdShadowMap? = null
 
+	/** 634HD: this ground's water depth map (buildWaterDepthMap), 0 for none, and world x, z to its u, v. */
+	private var waterDepthTexture: Int = 0
+	private val waterMap: FloatArray = FloatArray(4)
+
 	/** 634HD: the blob shadows of water models only (the oasis's pool), drawn with the sun's shadows on. */
 	private var waterShadowMap: HdShadowMap? = null
 
@@ -852,9 +856,19 @@ class HdGround : Ground {
 	 */
 	private fun buildWaterDepthMap() {
 		val depths: Array<Array<IntArray?>> = this.tileWaterDepths ?: return
+		// the maps of grounds no longer used
+		var i: Int = waterDepthTextures.size - 1
+		while (i >= 0) {
+			if (waterDepthTextures[i].get() == null) {
+				org.lwjgl.opengl.GL33C.glDeleteTextures(waterDepthTextureIds[i])
+				waterDepthTextures.removeAt(i)
+				waterDepthTextureIds.removeAt(i)
+			}
+			i--
+		}
 		val width: Int = super.width
 		val length: Int = super.length
-		val data: java.nio.FloatBuffer = org.lwjgl.BufferUtils.createFloatBuffer(width * length)
+		val raw: FloatArray = FloatArray(width * length)
 		var deepest: Float = 0.0f
 		for (tileZ in 0 until length) {
 			for (tileX in 0 until width) {
@@ -867,16 +881,51 @@ class HdGround : Ground {
 					sum /= tile.size.toFloat()
 				}
 				if (sum > deepest) deepest = sum
-				data.put(sum)
+				raw[tileZ * width + tileX] = sum
 			}
 		}
+		// blurred over a few tiles (twice, 5 wide each way): filtered one texel a tile, the depth's colour
+		// showed each tile's facets
+		val blurred: FloatArray = FloatArray(width * length)
+		for (pass in 0 until 2) {
+			for (tileZ in 0 until length) {
+				for (tileX in 0 until width) {
+					var total: Float = 0.0f
+					var count: Int = 0
+					for (k in -2..2) {
+						val sx: Int = tileX + k
+						if (sx < 0 || sx >= width) continue
+						total += raw[tileZ * width + sx]
+						count++
+					}
+					blurred[tileZ * width + tileX] = total / count.toFloat()
+				}
+			}
+			for (tileZ in 0 until length) {
+				for (tileX in 0 until width) {
+					var total: Float = 0.0f
+					var count: Int = 0
+					for (k in -2..2) {
+						val sz: Int = tileZ + k
+						if (sz < 0 || sz >= length) continue
+						total += blurred[sz * width + tileX]
+						count++
+					}
+					raw[tileZ * width + tileX] = total / count.toFloat()
+				}
+			}
+		}
+		val data: java.nio.FloatBuffer = org.lwjgl.BufferUtils.createFloatBuffer(width * length)
+		data.put(raw)
 		data.flip()
-		if (waterDepthTexture == 0) {
-			waterDepthTexture = org.lwjgl.opengl.GL33C.glGenTextures()
+		if (this.waterDepthTexture == 0) {
+			this.waterDepthTexture = org.lwjgl.opengl.GL33C.glGenTextures()
+			waterDepthTextures.add(java.lang.ref.WeakReference(this))
+			waterDepthTextureIds.add(this.waterDepthTexture)
 		}
 		val active: Int = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_ACTIVE_TEXTURE)
 		org.lwjgl.opengl.GL33C.glActiveTexture(org.lwjgl.opengl.GL33C.GL_TEXTURE0 + WATER_DEPTH_UNIT)
-		org.lwjgl.opengl.GL33C.glBindTexture(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, waterDepthTexture)
+		org.lwjgl.opengl.GL33C.glBindTexture(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, this.waterDepthTexture)
 		org.lwjgl.opengl.GL33C.glPixelStorei(org.lwjgl.opengl.GL33C.GL_UNPACK_ALIGNMENT, 4)
 		org.lwjgl.opengl.GL33C.glTexImage2D(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, 0, org.lwjgl.opengl.GL33C.GL_R16F, width, length, 0, org.lwjgl.opengl.GL33C.GL_RED, org.lwjgl.opengl.GL33C.GL_FLOAT, data)
 		org.lwjgl.opengl.GL33C.glTexParameteri(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, org.lwjgl.opengl.GL33C.GL_TEXTURE_MIN_FILTER, org.lwjgl.opengl.GL33C.GL_LINEAR)
@@ -884,9 +933,9 @@ class HdGround : Ground {
 		org.lwjgl.opengl.GL33C.glTexParameteri(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, org.lwjgl.opengl.GL33C.GL_TEXTURE_WRAP_S, org.lwjgl.opengl.GL33C.GL_CLAMP_TO_EDGE)
 		org.lwjgl.opengl.GL33C.glTexParameteri(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, org.lwjgl.opengl.GL33C.GL_TEXTURE_WRAP_T, org.lwjgl.opengl.GL33C.GL_CLAMP_TO_EDGE)
 		org.lwjgl.opengl.GL33C.glActiveTexture(active)
-		waterMap[0] = 1.0f / (width * super.tileUnits).toFloat()
-		waterMap[1] = 1.0f / (length * super.tileUnits).toFloat()
-		waterMap[2] = 1.0f
+		this.waterMap[0] = 1.0f / (width * super.tileUnits).toFloat()
+		this.waterMap[1] = 1.0f / (length * super.tileUnits).toFloat()
+		this.waterMap[2] = 1.0f
 		if (WATER_DEBUG) println("HDDEBUG water depth map " + width + "x" + length + ", deepest " + deepest)
 	}
 
@@ -895,12 +944,13 @@ class HdGround : Ground {
 			return
 		}
 		// 634HD: the water depth map for the water draws (it stays bound for the water models after)
-		if (waterMap[2] > 0.0f) {
+		// (each ground its own: at a longer draw distance there are several with water)
+		if (this.waterMap[2] > 0.0f) {
 			val active: Int = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_ACTIVE_TEXTURE)
 			org.lwjgl.opengl.GL33C.glActiveTexture(org.lwjgl.opengl.GL33C.GL_TEXTURE0 + WATER_DEPTH_UNIT)
-			org.lwjgl.opengl.GL33C.glBindTexture(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, waterDepthTexture)
+			org.lwjgl.opengl.GL33C.glBindTexture(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, this.waterDepthTexture)
 			org.lwjgl.opengl.GL33C.glActiveTexture(active)
-			System.arraycopy(waterMap, 0, HdGl.state.hdWaterMap, 0, 4)
+			System.arraycopy(this.waterMap, 0, HdGl.state.hdWaterMap, 0, 4)
 		}
 		RenderStats.category = RenderStats.CATEGORY_GROUND
 		// 634HD: the ground's draws are marked, for its texture blending (HdSettings.terrainBlend); 2 when
@@ -1016,11 +1066,9 @@ class HdGround : Ground {
 		/** 634HD: the texture unit of the water depth map (HdSettings.water: the water's colour by depth). */
 		const val WATER_DEPTH_UNIT: Int = 30
 
-		/** The water depth map, of the last ground built with water: one texel a tile, its water depth in units. */
-		private var waterDepthTexture: Int = 0
-
-		/** World x, z to the map's u, v; z 1 while there is one. */
-		private val waterMap: FloatArray = FloatArray(4)
+		/** The grounds' water depth maps, deleted once their ground is gone (purged at each build). */
+		private val waterDepthTextures: ArrayList<java.lang.ref.WeakReference<HdGround>> = ArrayList()
+		private val waterDepthTextureIds: ArrayList<Int> = ArrayList()
 
 		private val WATER_DEBUG: Boolean = System.getProperty("client.test.hdDebug") != null
 

@@ -289,8 +289,9 @@ float hdWaterHash(vec2 p) {
 vec3 hdWaterNoise(vec2 p) {
     vec2 i = floor(p);
     vec2 f = fract(p);
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    vec2 du = 6.0 * f * (1.0 - f);
+    // quintic: smooth slopes, no creases along the lattice
+    vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+    vec2 du = 30.0 * f * f * (f * (f - 2.0) + 1.0);
     float a = hdWaterHash(i);
     float b = hdWaterHash(i + vec2(1.0, 0.0));
     float c = hdWaterHash(i + vec2(0.0, 1.0));

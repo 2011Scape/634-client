@@ -235,6 +235,8 @@ vec4 hdFog(vec4 color, vec3 viewPos, float depth, vec4 fogColour, float start, f
     // so the edge of the world and what pops in there melt into the background
     if (hdOn(HD_FADE) && hdTime.w > 0.0) {
         float fade = smoothstep(hdTime.z, hdTime.z + hdTime.w, dist);
+        // water over a much longer band: the open sea's edge of the fade showed as a line
+        if (hdFogWater) fade = smoothstep(hdTime.z - 4096.0, hdTime.z + hdTime.w, dist);
         if (hdFogWater && fade > amount) {
             // water fades into a sea horizon (its own colour with a little of the sky's), not into the
             // pale sky: the sea at the world's edge went white (Draynor, looking west)
