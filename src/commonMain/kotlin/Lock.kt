@@ -9,6 +9,9 @@ import withLock
  * an expect function cannot carry one. On the JVM both functions inline to the same
  * monitorenter/monitorexit as before.
  */
+// The compiler cannot see through the expect function that the block runs exactly once in place; on
+// every platform it does (synchronized on the JVM, a plain call in the browser), so the contract holds.
+@Suppress("LEAKED_IN_PLACE_LAMBDA", "WRONG_INVOCATION_KIND")
 @OptIn(ExperimentalContracts::class)
 inline fun <T> withLock(lock: Any, block: () -> T): T {
     contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }

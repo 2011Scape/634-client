@@ -1,3 +1,6 @@
+// The warnings of the original (deobfuscated) code, left as it was: the build treats warnings as errors.
+@file:Suppress("DEPRECATION")
+
 package lang.reflect
 
 actual typealias Field = java.lang.reflect.Field

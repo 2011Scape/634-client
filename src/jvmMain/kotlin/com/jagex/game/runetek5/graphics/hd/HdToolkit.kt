@@ -2,6 +2,9 @@
  * Not part of the original client: 634HD (toolkit 6), copied from GlToolkit (the Java OpenGL toolkit,
  * toolkit 1) and moved onto HdGl, the GL 3.3 core emulator. The original stays as it was.
  */
+// The warnings of the original (deobfuscated) code, left as it was: the build treats warnings as errors.
+@file:Suppress("SENSELESS_COMPARISON")
+
 package com.jagex.game.runetek5.graphics.hd
 
 import com.jagex.game.runetek5.graphics.hd.gl.CoreGl

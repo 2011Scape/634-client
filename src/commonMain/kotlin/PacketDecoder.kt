@@ -1,3 +1,6 @@
+// The warnings of the original (deobfuscated) code, left as it was: the build treats warnings as errors.
+@file:Suppress("SENSELESS_COMPARISON")
+
 import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.config.iftype.SubInterfaceType
 import com.jagex.game.runetek5.client.input.camera.Camera

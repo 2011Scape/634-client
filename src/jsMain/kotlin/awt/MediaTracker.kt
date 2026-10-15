@@ -7,9 +7,11 @@ actual class MediaTracker() {
     private val errored = mutableSetOf<Int>()
 
     actual fun addImage(image: Image, id: Int) {
-        require(image is HTMLImageElement) { "image must be an HTMLImageElement on the JS target" }
-        tracked[id] = image
-        image.addEventListener("error", { _ -> errored += id })
+        // an Image wraps an HTMLImageElement or a canvas; only the element loads (the check was on the
+        // wrapper itself, never an element, and threw for every image)
+        val element: HTMLImageElement = image.source as? HTMLImageElement ?: return
+        tracked[id] = element
+        element.addEventListener("error", { _ -> errored += id })
     }
 
     actual fun checkID(id: Int): Boolean = checkID(id, false)

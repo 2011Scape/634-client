@@ -1,3 +1,6 @@
+// The warnings of the original (deobfuscated) code, left as it was: the build treats warnings as errors.
+@file:Suppress("SENSELESS_COMPARISON")
+
 package com.jagex.game.runetek5.js5.dependency
 
 import org.openrs2.deob.annotation.OriginalArg

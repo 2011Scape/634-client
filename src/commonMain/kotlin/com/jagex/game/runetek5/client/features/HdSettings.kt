@@ -288,7 +288,7 @@ object HdSettings {
 	/** The saved switches' values, as set() takes them. */
 	@JvmStatic
 	fun values(): Array<String> {
-		val out: Array<String> = arrayOfNulls<String>(SAVED.size) as Array<String>
+		val out: Array<String> = Array(SAVED.size) { "" }
 		for (i in SAVED.indices) {
 			out[i] = valueOf(SAVED[i])
 		}

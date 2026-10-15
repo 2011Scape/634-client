@@ -1,3 +1,6 @@
+// The warnings of the original (deobfuscated) code, left as it was: the build treats warnings as errors.
+@file:Suppress("UNCHECKED_CAST")
+
 package com.jagex.game.runetek5.sign
 
 import com.jagex.game.runetek5.client.features.WindowIcons
