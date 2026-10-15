@@ -360,7 +360,9 @@ void main() {
         color.rgb = hdFogMix(color.rgb, uTexEnvColor[1].rgb, murk);
     }
     float depth = gl_FragCoord.z / gl_FragCoord.w;
-    hdFogWater = uHdWater != 0 || uHdUnderwater != 0;
+    // the water surface only: the seabed fades into the sky like the land (its wall at the scene's edge
+    // stood out against the sky in the sea horizon's colour)
+    hdFogWater = uHdWater != 0 && uHdWater != 3;
     if (uFogEnabled) {
         color = hdFog(color, FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd);
     }

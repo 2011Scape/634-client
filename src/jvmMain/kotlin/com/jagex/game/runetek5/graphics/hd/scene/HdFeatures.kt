@@ -116,6 +116,7 @@ class HdFeatures {
             (if (area) envLight[3] else 1.0f) * (if (time) dayLight[3] else 1.0f), (if (area) envLight[4] else 1.0f) * (if (time) dayLight[4] else 1.0f), (if (area) envLight[5] else 1.0f) * (if (time) dayLight[5] else 1.0f))
         uniforms.setDayNight(lightEye[0], lightEye[1], lightEye[2], time, moonWorld[0], moonWorld[1], moonWorld[2], if (time) nightness else 0.0f)
         uniforms.setTonemap(HdPost.exposure())
+        uniforms.setSceneSize((com.jagex.game.runetek5.MapRegion.sceneSizeX * 512).toFloat(), (com.jagex.game.runetek5.MapRegion.sceneSizeY * 512).toFloat())
         if (time) {
             uniforms.setSun(lightEye[0], lightEye[1], lightEye[2], true)
         }
