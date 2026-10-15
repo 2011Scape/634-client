@@ -78,7 +78,8 @@ void main() {
         }
         // 634HD: in linear (HDR) colour the lit colour is not clamped; the tonemapper takes it down
         vec4 base = hdColour(aColor);
-        vColor = hdOn(HD_LINEAR) ? vec4(base.rgb * lit.rgb, base.a) : vec4(clamp(aColor.rgb * lit.rgb, 0.0, 1.0), aColor.a);
+        // with tonemapping the light multiplies the sRGB colour, then made linear (hd_lib.glsl hdApplyLight)
+        vColor = hdOn(HD_LINEAR) ? vec4(hdToLinear(aColor.rgb * lit.rgb), base.a) : vec4(clamp(aColor.rgb * lit.rgb, 0.0, 1.0), aColor.a);
     } else {
         vColor = hdColour(aColor);
     }
