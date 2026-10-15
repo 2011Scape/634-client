@@ -59,6 +59,12 @@ internal object ArbVertexProgramTranspiler {
         val usedAttribs = LinkedHashSet<Int>()            // attribute locations referenced
         var positionWritten = false
         var positionReferenced = false
+        // 634HD: the temporary the program projects into result.position (DP4 with the projection's or
+        // the mvp's rows), still holding the position after the program moved it (the still water
+        // effect lifts the seabed to the water plane): vArbViewPos comes from it, so ff.frag's fog,
+        // shadows, occlusion and water see the drawn position. Null when none, or written over after.
+        var positionSource: String? = null
+        var positionSourceIsView = false
         var usesSecondary = false
         var usesLightModelAmbient = false
         var usesLightState = false
@@ -468,6 +474,21 @@ internal object ArbVertexProgramTranspiler {
                     "DP4" -> "dot(${fullVec(srcs[0])}, ${fullVec(srcs[1])})"
                     else -> "dot(${vec3(srcs[0])}, ${vec3(srcs[1])}) + ${comp(srcs[1], 3)}"
                 }
+                if (op == "DP4" && dest.name == "oPosition" && !dest.dropped) {
+                    // 634HD: the position's source (see Ctx.positionSource)
+                    for (k in 0 until 2) {
+                        val row = srcs[k].base
+                        val other = srcs[1 - k]
+                        if (other.isNumber || other.swizzle != null || other.abs || other.negate || !ctx.temps.contains(other.base)) continue
+                        if (row.startsWith("arbRow(uProjectionMatrix")) {
+                            ctx.positionSource = other.base
+                            ctx.positionSourceIsView = true
+                        } else if (row.startsWith("arbRow(arbMvp")) {
+                            ctx.positionSource = other.base
+                            ctx.positionSourceIsView = false
+                        }
+                    }
+                }
                 assign(rhs) // scalar broadcasts across the write mask
             }
 
@@ -591,7 +612,10 @@ internal object ArbVertexProgramTranspiler {
                     if (reg == "oPosition") ctx.positionWritten = true
                 }
             }
-            ctx.temps.contains(name) -> {}
+            ctx.temps.contains(name) -> {
+                // 634HD: written over after the projection: no longer the position
+                if (ctx.positionWritten && name == ctx.positionSource) ctx.positionSource = null
+            }
             ctx.addresses.contains(name) -> if (!allowAddress)
                 throw ArbTranspileException(line, "address register '$name' written outside ARL")
             ctx.outputs.containsKey(name) -> {
@@ -833,7 +857,13 @@ internal object ArbVertexProgramTranspiler {
         sb.append("    vTexCoord1 = oTexCoord1.xyz;\n")
         sb.append("    vTexCoord2 = oTexCoord2.xyz;\n")
         if (ctx.usesSecondary) sb.append("    vColorSecondary = oColorSecondary;\n")
-        sb.append(if (ATTRIB_POSITION in ctx.usedAttribs) "    vArbViewPos = (uModelViewMatrix * aPosition).xyz;\n" else "    vArbViewPos = vec3(0.0);\n")
+        val source: String? = ctx.positionSource
+        sb.append(
+            if (source != null && ctx.positionSourceIsView) "    vArbViewPos = $source.xyz;\n"
+            else if (source != null) "    vArbViewPos = (uModelViewMatrix * $source).xyz;\n"
+            else if (ATTRIB_POSITION in ctx.usedAttribs) "    vArbViewPos = (uModelViewMatrix * aPosition).xyz;\n"
+            else "    vArbViewPos = vec3(0.0);\n"
+        )
         if (ctx.positionWritten) {
             sb.append("    gl_Position = oPosition;\n")
         } else {

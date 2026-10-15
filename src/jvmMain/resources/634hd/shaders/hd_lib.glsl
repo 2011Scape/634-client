@@ -12,6 +12,8 @@
 #define HD_FADE 32
 // the water depth (world units) at which water takes its deep colour (hdWater)
 #define HD_WATER_DEEP 1600.0
+// what the game's animated water texture averages (luminance and alpha), standing in for it (ff.frag)
+#define HD_WATER_NET_MEAN vec4(0.035, 0.035, 0.035, 0.035)
 #define HD_SKY 64
 #define HD_AO 128
 #define HD_TERRAIN 256
