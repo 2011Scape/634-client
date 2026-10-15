@@ -906,24 +906,27 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	}
 
 	/**
-	 * Frames until the retained scene is built again after this toolkit's first build: built in the
-	 * first frames after a toolkit switch, some of its objects (Barbarian Village's huts) were kept
-	 * but never drew - they were missing until the next region load. Built again a moment later they
-	 * draw. -1: no rebuild pending.
+	 * The retained scene's build order: it is built from the map's entities (after the map build,
+	 * sceneBuilt) and only once this toolkit has drawn a whole frame - a new toolkit's first frame sets
+	 * up per-frame state its draw depends on. Built before that (on a switch to 634HD in game, the map
+	 * is rebuilt before the new toolkit's first frame) some objects were kept but never drew, Barbarian
+	 * Village's huts until the next region load. A build asked for earlier waits for the second frame.
 	 */
-	private var rebuildAfterSwitch: Int = -1
-	private var firstBuildDone: Boolean = false
+	private var framesDrawn: Int = 0
+	private var buildWaiting: Boolean = false
 
-	private fun noteBuild() {
-		if (!this.firstBuildDone) {
-			this.firstBuildDone = true
-			this.rebuildAfterSwitch = 25
+	/** Builds the retained scene for the region now, or at the start of the first frame it can be built in. */
+	private fun buildRegion() {
+		if (this.framesDrawn < 1) {
+			this.buildWaiting = true
+			return
 		}
+		this.buildWaiting = false
+		this.sceneRenderer.regionBuilt()
 	}
 
 	override fun sceneBuilt() {
-		this.noteBuild()
-		this.sceneRenderer.regionBuilt()
+		this.buildRegion()
 		this.hdFeatures.lights.dirty = true
 	}
 
@@ -948,9 +951,8 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		}
 		if (!this.sceneRenderer.built) {
 			// a toolkit switched to with a scene already built (the scene is not built again)
-			if (Scene.stringStack != null) {
-				this.noteBuild()
-				this.sceneRenderer.regionBuilt()
+			if (Scene.stringStack != null && !this.buildWaiting) {
+				this.buildRegion()
 			}
 			return
 		}
@@ -3340,8 +3342,8 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	}
 
 	override fun beginScene(x: Int, y: Int, width: Int, height: Int) {
-		if (this.rebuildAfterSwitch > 0 && --this.rebuildAfterSwitch == 0 && this.sceneRenderer.built && Scene.stringStack != null) {
-			this.sceneRenderer.build()
+		if (this.buildWaiting && this.framesDrawn >= 1 && Scene.stringStack != null) {
+			this.buildRegion()
 		}
 		this.rebuildForWorldTextures()
 		// 634HD: the debug panel reads the last frame, whole, before this one's 3D view starts
@@ -3422,6 +3424,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	// Ends the 3D view: the target is popped, the view resolved into its texture and drawn over its
 	// place in the frame. The clip is not reset through la(), which would move the picking bounds.
 	override fun endScene() {
+		this.framesDrawn++
 		// a smoke test's request (client.test.inspect): the Inspect tab's text for the mini menu now
 		val inspect: String? = System.getProperty("client.test.inspectNow")
 		if (inspect != null) {
