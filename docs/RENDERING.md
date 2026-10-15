@@ -170,12 +170,24 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
   switch, each click stepping to its next value. Changes apply at once and are saved to
   `~/.634hd-settings.txt`, read at the next start unless `client.hd.*` switches are given. Two rows
   are the whole client's, outside the presets: draw distance (1x, 1.5x, 2x; `ClientFeatures.RENDER_DISTANCE`,
-  live: the map is built again) and interface scale (auto or 1x-3x; `ClientFeatures.SCALE`, from the
+  live: the map is built again; see below) and interface scale (auto or 1x-3x; `ClientFeatures.SCALE`, from the
   next start, since the window's layout is made at start). Saved, they win over the launcher's
   defaults (`LauncherDefaults` marks what it set with `<name>.default`) but not over `--render-distance`
   or `--scale`; also `::hd renderDistance <n>` and `::hd scale <n>`. The smoke test neither reads nor
   writes that file; `client.test.findText=open:742` checks the toggle, the Medium preset, the panel's
   presets, rows (the draw distance's map rebuild too) and Close.
+- **Draw distance:** the game's own longer view, a bigger scene. The scene the client builds is
+  sized from the last region packet (`StaticRegionInit.hdApplySceneSize`): 136 tiles at 1.5x, 168 at
+  2x, never smaller than the server's (Void sends 104). The server's keys are matched to the regions
+  by position and the rest get zero keys (Void's maps are not encrypted); the map data comes from the
+  cache. The fog's end and the ground's draw radius then come from the game's own tables for the size
+  (46 and 47 tiles at 168, against 29 and 32 at 104), so the loaded world extends well past the fog.
+  (Scaling the fog and the draw radius of the 104-tile scene instead put the fog's end on the scene's
+  edge: the sea stopped in a wall, the ground in a cliff, nothing beyond.) NPCs, players and the
+  server's own locs beyond the server's 104 tiles are not there until the server's view moves. A
+  168-tile scene needs about twice the heap of a 104 one; `clientJvmArgs` gives 512 MB; under 448 MB
+  the client builds 136 instead and under 320 MB only the server's scene (`ClientFeatures.sceneMapSize`;
+  168 and 136 both went out of memory at 256 MB).
 - **Checks:**
   - the scene harness against toolkit 1's references (`-Pclient.test.toolkit=6
     -Pclient.test.scenes=default -Pclient.test.sceneReferenceToolkit=1`): every scene, the reload, the

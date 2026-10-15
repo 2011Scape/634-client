@@ -81,7 +81,7 @@ Windows and macOS, x64 and arm64, plus Windows x86, in the jar). Toolkits 0 and 
 to `LD_LIBRARY_PATH`, because `libhw3d.so` (toolkit 5) links `libjaclib.so` by name. Without it,
 toolkit 5 fails and the client silently falls back to the software toolkit (looks like safe mode).
 LWJGL unpacks its natives into `~/.lwjgl/634-client`. In an IDE, also pass
-`--add-opens java.base/java.lang=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -Xmx256m`.
+`--add-opens java.base/java.lang=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -Xmx512m`.
 
 ## Architecture
 

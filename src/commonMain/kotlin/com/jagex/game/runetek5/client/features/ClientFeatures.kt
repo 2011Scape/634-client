@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.client.features
 
+import com.jagex.game.runetek5.client.GameShell
 import maxTicksPerFrame
 import hdAvailable
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
@@ -43,6 +44,22 @@ object ClientFeatures {
 	/** A mouse-wheel zoom wider than the original field of view allows. */
 	@JvmField
 	var ZOOM: Boolean = lang.getBoolean("client.zoom")
+
+	/**
+	 * The scene size (an index into MapRegion.MAP_SIZES) the client builds for the server's
+	 * [serverMapSize] at RENDER_DISTANCE: the game's own way to a longer view, its fog and draw radius
+	 * sized from the scene (1.5: 136 tiles, 2: 168; never smaller than the server's).
+	 */
+	@JvmStatic
+	fun sceneMapSize(serverMapSize: Int): Int {
+		var wanted: Int = if (RENDER_DISTANCE >= 2.0) 3 else if (RENDER_DISTANCE >= 1.5) 2 else if (RENDER_DISTANCE > 1.0) 1 else 0
+		// a scene the heap cannot hold is not built (168 tiles held at 512 MB; 168 and 136 both went out of
+		// memory at 256 MB, so below that only the server's scene)
+		val heap: Int = GameShell.maxMemory
+		if (wanted == 3 && heap < 448) wanted = 2
+		if (wanted >= 1 && heap < 320) wanted = 0
+		return if (wanted > serverMapSize) wanted else serverMapSize
+	}
 
 	/**
 	 * How much further than the original the scene is drawn and fogged; 1 is the original distance.

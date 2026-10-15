@@ -67,9 +67,10 @@ val jvmRuntimeClasspath = configurations.named("jvmRuntimeClasspath")
 val clientClasspath = files(jvmJar, jvmRuntimeClasspath)
 val clientLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
 
-/* The JVM options of the launcher, the client and the start scripts. */
+/* The JVM options of the launcher, the client and the start scripts (512m: 634HD's draw distance 2x builds
+   a 168-tile scene, which needs about twice the game's 104-tile one). */
 val clientJvmArgs = listOf(
-    "-Xmx256m",
+    "-Xmx512m",
     "-Dsun.java2d.noddraw=true",
     "--add-opens",
     "java.base/java.lang=ALL-UNNAMED",

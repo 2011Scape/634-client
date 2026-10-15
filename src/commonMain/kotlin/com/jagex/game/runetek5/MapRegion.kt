@@ -1367,11 +1367,6 @@ class MapRegion @OriginalMember(owner = "client!vaa", name = "<init>", descripto
 				MapRegion.viewRangeEnd += 512
 			}
 			MapRegion.applyViewDepthRange(false)
-			if (ClientFeatures.RENDER_DISTANCE != 1.0) {
-				// Not part of the original client: the fog moves out with the draw distance, a little less far so the
-				// edge of the scene stays hidden.
-				MapRegion.viewRangeEnd = (MapRegion.viewRangeEnd.toDouble() * (1.0 + (ClientFeatures.RENDER_DISTANCE - 1.0) * 0.8)).toInt()
-			}
 		}
 
 		@OriginalMember(owner = "client!ag", name = "e", descriptor = "[I")
@@ -1488,6 +1483,17 @@ class MapRegion @OriginalMember(owner = "client!vaa", name = "<init>", descripto
 		@OriginalMember(owner = "client!kk", name = "i", descriptor = "[I")
 		@JvmField
 		val MAP_SIZES: IntArray = intArrayOf(104, 120, 136, 168)
+
+		// Not part of the original client: the last static region packet's scene size, centre and keys,
+		// kept so the scene can be built at another size (StaticRegionInit.hdApplySceneSize)
+		@JvmField
+		var hdServerMapSize: Int = 0
+		@JvmField
+		var hdServerKeys: Array<IntArray?>? = null
+		@JvmField
+		var hdBaseX: Int = 0
+		@JvmField
+		var hdBaseY: Int = 0
 
 		@OriginalMember(owner = "client!lk", name = "w", descriptor = "Z")
 		@JvmField
