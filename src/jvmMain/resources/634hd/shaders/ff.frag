@@ -335,6 +335,7 @@ void main() {
         color.rgb = hdFogMix(color.rgb, uTexEnvColor[1].rgb, murk);
     }
     float depth = gl_FragCoord.z / gl_FragCoord.w;
+    hdFogWater = uHdWater != 0 || uHdUnderwater != 0;
     if (uFogEnabled) {
         color = hdFog(color, FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd);
     }
