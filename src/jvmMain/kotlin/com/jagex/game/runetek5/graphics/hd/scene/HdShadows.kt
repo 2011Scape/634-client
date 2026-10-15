@@ -37,7 +37,6 @@ class HdShadows {
         /** How strongly occlusion darkens: 1 - strength in a fully closed spot. */
         private const val AO_STRENGTH: Float = 0.55f
         /** How far below the ground its shadow-casting copy sits (the game's y grows downwards). */
-        private const val TERRAIN_DROP: Float = 96.0f
         /** The ground's baked occlusion: samples per tile side, and the ground levels kept at once. */
         private const val GROUND_SAMPLES: Int = 4
         private const val GROUND_SLOTS: Int = 12
@@ -234,15 +233,6 @@ class HdShadows {
         state.invalidateProgramCache()
     }
 
-    // the terrain as a shadow caster (HdSettings.terrainShadows): plane 0's tile corner heights as a
-    // mesh, built once per region; drawn TERRAIN_DROP units lower, so flat ground does not shade itself
-    // and only slopes steep enough to rise above the light's ray cast shadows
-    private var terrainVao: Int = 0
-    private var terrainVbo: Int = 0
-    private var terrainIbo: Int = 0
-    private var terrainIndices: Int = 0
-    private var terrainGround: Any? = null
-    private var staticTerrain: Boolean = false
     private var staticCutout: Boolean = false
     private var cutoutProgram: WebGLProgram? = null
 
@@ -258,68 +248,6 @@ class HdShadows {
             cutoutProgram = program
         }
         return program
-    }
-
-    /** Builds the terrain mesh for the scene's plane-0 ground if it changed; false when there is none. */
-    private fun ensureTerrain(scene: HdSceneRenderer): Boolean {
-        val grounds: Array<com.jagex.game.runetek5.scene.ground.Ground?> = com.jagex.game.runetek5.scene.Scene.aClass65Array2 ?: return false
-        val ground: com.jagex.game.runetek5.scene.ground.Ground = grounds[0] ?: return false
-        val heights: Array<IntArray?> = ground.tileHeights ?: return false
-        if (ground === terrainGround && terrainIndices > 0) {
-            return true
-        }
-        terrainGround = ground
-        val columns: Int = minOf(ground.width + 1, heights.size)
-        val rows: Int = minOf(ground.length + 1, heights[0]!!.size)
-        val vertices: java.nio.FloatBuffer = org.lwjgl.system.MemoryUtil.memAllocFloat(columns * rows * 3)
-        val indices: java.nio.IntBuffer = org.lwjgl.system.MemoryUtil.memAllocInt((columns - 1) * (rows - 1) * 6)
-        try {
-            for (x in 0 until columns) {
-                for (z in 0 until rows) {
-                    vertices.put(x * 512.0f).put(heights[x]!![z].toFloat()).put(z * 512.0f)
-                }
-            }
-            for (x in 0 until columns - 1) {
-                for (z in 0 until rows - 1) {
-                    val a: Int = x * rows + z
-                    val b: Int = (x + 1) * rows + z
-                    indices.put(a).put(b).put(a + 1)
-                    indices.put(b).put(b + 1).put(a + 1)
-                }
-            }
-            vertices.flip()
-            indices.flip()
-            if (terrainVao == 0) {
-                terrainVao = GL33C.glGenVertexArrays()
-                terrainVbo = GL33C.glGenBuffers()
-                terrainIbo = GL33C.glGenBuffers()
-            }
-            GL33C.glBindVertexArray(terrainVao)
-            GL33C.glBindBuffer(GL33C.GL_ARRAY_BUFFER, terrainVbo)
-            GL33C.glBufferData(GL33C.GL_ARRAY_BUFFER, vertices, GL33C.GL_STATIC_DRAW)
-            GL33C.glEnableVertexAttribArray(0)
-            GL33C.glVertexAttribPointer(0, 3, GL33C.GL_FLOAT, false, 12, 0L)
-            GL33C.glBindBuffer(GL33C.GL_ELEMENT_ARRAY_BUFFER, terrainIbo)
-            GL33C.glBufferData(GL33C.GL_ELEMENT_ARRAY_BUFFER, indices, GL33C.GL_STATIC_DRAW)
-            terrainIndices = indices.limit()
-            // the emulator's vertex array and element buffer are put back after the shadow pass (render)
-        } finally {
-            org.lwjgl.system.MemoryUtil.memFree(vertices)
-            org.lwjgl.system.MemoryUtil.memFree(indices)
-        }
-        return terrainIndices > 0
-    }
-
-    private fun drawTerrain(map: DepthMap) {
-        ensurePrograms()
-        val program: WebGLProgram = dynamicProgram!!
-        GL33C.glUseProgram(program.id)
-        val matrix: FloatArray = Mat4.multiply(map.worldToClip, Mat4.translate(0.0f, TERRAIN_DROP, 0.0f))
-        map.viewToClipBuffer.clear()
-        map.viewToClipBuffer.put(matrix).flip()
-        GL33C.glUniformMatrix4fv(uDynamicMatrix, false, map.viewToClipBuffer)
-        GL33C.glBindVertexArray(terrainVao)
-        GL33C.glDrawElements(GL33C.GL_TRIANGLES, terrainIndices, GL33C.GL_UNSIGNED_INT, 0L)
     }
 
     private fun ensureBakeProgram() {
@@ -1075,12 +1003,10 @@ class HdShadows {
                 // matrix: drawn into staticMap when the map moves or the scene changes, and copied in
                 // from there every frame (the height map of moving models has no static scene: it is baked)
                 staticMap.ensure(sun.size)
-                val terrain: Boolean = HdSettings.terrainShadows && ensureTerrain(scene)
                 val cutout: Boolean = HdSettings.cutoutShadows
-                if (staticKey != staticWanted || staticVersion != scene.bakeVersion || staticTerrain != terrain || staticCutout != cutout) {
+                if (staticKey != staticWanted || staticVersion != scene.bakeVersion || staticCutout != cutout) {
                     staticKey = staticWanted
                     staticVersion = scene.bakeVersion
-                    staticTerrain = terrain
                     staticCutout = cutout
                     GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, staticMap.framebuffer)
                     GL33C.glClear(GL33C.GL_DEPTH_BUFFER_BIT)
@@ -1096,9 +1022,6 @@ class HdShadows {
                     GL33C.glUniformMatrix4fv(GL33C.glGetUniformLocation(program.id, "uWorldToClip"), false, map.viewToClipBuffer)
                     val reach: Int = ((HALF_EXTENT / 512.0f).toInt() + 6) / 8 + 1
                     scene.drawRegion(program, 23, sunChunkX - reach, sunChunkZ - reach, sunChunkX + reach, sunChunkZ + reach)
-                    if (terrain) {
-                        drawTerrain(map)
-                    }
                     staticRedraws++
                 }
                 GL33C.glBindFramebuffer(GL33C.GL_READ_FRAMEBUFFER, staticMap.framebuffer)
@@ -1160,14 +1083,6 @@ class HdShadows {
         if (cutout != null) {
             GL33C.glDeleteProgram(cutout.id)
             cutoutProgram = null
-        }
-        if (terrainVao != 0) {
-            GL33C.glDeleteVertexArrays(terrainVao)
-            GL33C.glDeleteBuffers(terrainVbo)
-            GL33C.glDeleteBuffers(terrainIbo)
-            terrainVao = 0
-            terrainIndices = 0
-            terrainGround = null
         }
         for (i in 0 until GROUND_SLOTS) {
             groundHasTexture[i] = false
