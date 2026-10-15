@@ -37,6 +37,11 @@ kotlin {
     }
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
+        /*
+         * The deobfuscated classes keep the 2010 jar's parameter names where they override a supertype's
+         * (2,856 warnings that hide the rest); the remaining warnings are the ones worth reading.
+         */
+        freeCompilerArgs.add("-Xsuppress-warning=PARAMETER_NAME_CHANGED_ON_OVERRIDE")
     }
     sourceSets {
         jvmMain.dependencies {
@@ -58,6 +63,10 @@ kotlin {
         }
         jsMain.dependencies {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+        }
+        /* Unit tests of the JVM target (src/jvmTest): ./gradlew jvmTest, part of build. */
+        jvmTest.dependencies {
+            implementation(kotlin("test"))
         }
     }
 }

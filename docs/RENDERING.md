@@ -189,6 +189,8 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
   the client builds 136 instead and under 320 MB only the server's scene (`ClientFeatures.sceneMapSize`;
   168 and 136 both went out of memory at 256 MB).
 - **Checks:**
+  - unit tests in `src/jvmTest` (`./gradlew jvmTest`, part of `build` and so of CI): the logic that
+    needs no running client, `ClientFeatures.sceneMapSize` so far;
   - the scene harness against toolkit 1's references (`-Pclient.test.toolkit=6
     -Pclient.test.scenes=default -Pclient.test.sceneReferenceToolkit=1`): every scene, the reload, the
     relog and a loc change within the noise of toolkit 1 against itself (40 per 1000; the cow
