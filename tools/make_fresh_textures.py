@@ -57,8 +57,9 @@ GAIN = 0.8
 CONTRAST_FLOOR = 1.6
 # the realistic mode: art with a tiling seam above this (make_material_maps.seam) is cross-faded
 SEAM_LIMIT = 1.5
-# painterly art: contrast between these times the game texture's
-PAINTERLY_CONTRAST = (1.0, 1.3)
+# painterly art: contrast between these times the game texture's (under 1: its sharper detail reads
+# stronger than the game's soft detail at the same contrast, and the lighting adds to it)
+PAINTERLY_CONTRAST = (0.7, 0.8)
 EPS = 0.03
 
 # texture id -> (name, material map class, generation it takes its detail from). A texture that is
@@ -152,6 +153,9 @@ def make_realistic(texture, name, cls, art, path):
     own = lum(rgb)
     image = Image.open(path).convert('L')
     art_lum = np.asarray(image.resize((SIZE, SIZE), Image.LANCZOS), dtype=np.float64) / 255.0
+    if os.path.basename(path).startswith('634hd_pt-'):
+        # painterly art: its finest speckle (under a texel at 256) softened, as the game's own is soft
+        art_lum = maps.blur(art_lum, 0.6)
     # art that tiles by itself is used whole (a cross-fade would ghost its stones); art with a seam is
     # cross-faded along each axis (loose materials: dirt, sand, plaster, straw, where it does not show)
     if maps.seam(art_lum) > SEAM_LIMIT:

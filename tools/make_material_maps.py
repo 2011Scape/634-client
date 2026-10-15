@@ -158,10 +158,10 @@ def make(texture, name, cls, fresh=False):
     lum = rgb @ np.array([0.299, 0.587, 0.114])
     grain = None
     if fresh == 'realistic':
-        # the realistic mode: the relief is the new art's own, softened (wider blur, half the strength):
-        # at full strength its fine edges light as speckle in game
-        strength *= 0.5
-        soften = max(soften, 2.5)
+        # the realistic mode: the relief is the new art's broad shapes only (a wide blur) at a quarter
+        # of the strength - its fine detail is already in the colour, and lit as relief too it doubled
+        strength *= 0.25
+        soften = max(soften, 5.0)
         rgb = np.asarray(wrap_resize(Image.open(os.path.join(OUT, str(texture), 'albedo.png')).convert('RGB'), Image.BICUBIC), dtype=np.float64) / 255.0
         lum = rgb @ np.array([0.299, 0.587, 0.114])
     elif fresh:
@@ -198,7 +198,7 @@ def make(texture, name, cls, fresh=False):
     Image.fromarray((normal_rgba * 255 + 0.5).astype(np.uint8), 'RGBA').save(os.path.join(out, 'normal.png'))
     # occlusion: how far a point sits below its surroundings
     cavity = np.clip((blur(height, 6) - height) * 2.5, 0.0, 1.0)
-    ao = 1.0 - cavity * 0.8
+    ao = 1.0 - cavity * (0.35 if fresh == 'realistic' else 0.8)
     rough = np.clip(rough_base - (lum - lum.mean()) * rough_var * 2.0, 0.04, 1.0)
     if cls == 'lava':
         r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]

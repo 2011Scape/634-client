@@ -1,3 +1,3 @@
 Derived by tools/make_material_maps.py from the fresh albedo of texture 167 (stained streaky wall plaster), class sand:
-normal strength 0.70, height blur 2.50, roughness 0.85 +- 0.05 by brightness, specular 0.20, parallax 0.020.
+normal strength 0.35, height blur 5.00, roughness 0.85 +- 0.05 by brightness, specular 0.20, parallax 0.020.
 Height is the albedo luminance at 256x256, blurred and stretched to 2-98%; normals by Sobel; AO from cavities.

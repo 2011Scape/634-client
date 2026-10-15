@@ -165,7 +165,7 @@ vec4 hdLightModel(int slot, vec4 color, vec2 uv, vec3 viewPos, vec3 normal) {
         }
         if (hdMapB[slot].y > 0.5) {
             vec4 orm = texture(uHdOrmMaps, vec3(uv, layer));
-            occlusion = mix(1.0, orm.r, 0.7 * hdDetail);
+            occlusion = mix(1.0, orm.r, 0.45 * hdDetail);
             roughness = orm.g;
         }
         strength = hdMapA[slot].y;
