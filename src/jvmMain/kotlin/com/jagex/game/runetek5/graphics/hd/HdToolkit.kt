@@ -905,7 +905,24 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		return HdSettings.shadows != 0
 	}
 
+	/**
+	 * Frames until the retained scene is built again after this toolkit's first build: built in the
+	 * first frames after a toolkit switch, some of its objects (Barbarian Village's huts) were kept
+	 * but never drew - they were missing until the next region load. Built again a moment later they
+	 * draw. -1: no rebuild pending.
+	 */
+	private var rebuildAfterSwitch: Int = -1
+	private var firstBuildDone: Boolean = false
+
+	private fun noteBuild() {
+		if (!this.firstBuildDone) {
+			this.firstBuildDone = true
+			this.rebuildAfterSwitch = 25
+		}
+	}
+
 	override fun sceneBuilt() {
+		this.noteBuild()
 		this.sceneRenderer.regionBuilt()
 		this.hdFeatures.lights.dirty = true
 	}
@@ -932,6 +949,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		if (!this.sceneRenderer.built) {
 			// a toolkit switched to with a scene already built (the scene is not built again)
 			if (Scene.stringStack != null) {
+				this.noteBuild()
 				this.sceneRenderer.regionBuilt()
 			}
 			return
@@ -3322,6 +3340,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	}
 
 	override fun beginScene(x: Int, y: Int, width: Int, height: Int) {
+		if (this.rebuildAfterSwitch > 0 && --this.rebuildAfterSwitch == 0 && this.sceneRenderer.built && Scene.stringStack != null) {
+			this.sceneRenderer.build()
+		}
 		this.rebuildForWorldTextures()
 		// 634HD: the debug panel reads the last frame, whole, before this one's 3D view starts
 		this.debugPanelTick()

@@ -1469,11 +1469,26 @@ object SmokeTest {
 
 	private var openFrame: Int = -1
 
+	/** client.test.openAt: where the open:/toggle test teleports to first ("x,y[,level]"). */
+	private val OPEN_AT: String = lang.getProperty("client.test.openAt", "")
+
+	private var openAtFrame: Int = -1
+
 	/**
 	 * client.test.findText=open:N: opens interface N as a modal in the main-screen slot, and after 60 frames saves the frame to build/smoke/open-N.png and stops.
 	 */
 	private fun openAndCapture() {
 		val id: Int = FIND_TEXT.substring(5).toInt()
+		// client.test.openAt=x,y,level: the toggle test somewhere else first (an admin account's ::tele)
+		if (OPEN_AT.length > 0 && openAtFrame < 0) {
+			val at: Array<String> = OPEN_AT.split(",").toTypedArray()
+			sendCommand("tele " + at[0] + " " + at[1] + " " + (if (at.size > 2) at[2] else "0"))
+			openAtFrame = gameFrames
+			return
+		}
+		if (OPEN_AT.length > 0 && gameFrames - openAtFrame < 200) {
+			return
+		}
 		if (openFrame < 0) {
 			// the main-screen slot, where the server opens such interfaces: 548:18 fixed, 746:8 resizable
 			val slot: Int = if (ClientState.BASE_WINDOW_ID == 548) 18 else 8
