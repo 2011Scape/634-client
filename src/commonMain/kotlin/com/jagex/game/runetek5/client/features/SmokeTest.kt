@@ -17,6 +17,7 @@ import com.jagex.game.runetek5.entity.NPCEntityNode
 import com.jagex.game.runetek5.NPCList
 import com.jagex.game.runetek5.vardomain.PlayerVarDomain
 import com.jagex.game.runetek5.config.TypeLists
+import com.jagex.game.runetek5.config.rsinterface.itemcontainer.ItemContainer
 import com.jagex.game.runetek5.graphics.model.Model
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.client.menu.MiniMenuEntry
@@ -685,6 +686,16 @@ object SmokeTest {
 				player.playerModel!!.addAppearanceItem(pair.substring(0, colon).javaTrim().toInt(), pair.substring(colon + 1).javaTrim().toInt(), TypeLists.OBJ)
 			}
 			println("SMOKE wearing " + WEAR)
+		}
+		// client.test.carry=item,...: those items in the backpack's last slots, on this client only (the
+		// server's backpack is untouched): 634HD's carried light, e.g. 594 a lit torch, 4550 a bullseye lantern
+		if (CARRY.length > 0 && !carried && ItemContainer.getContainer(93, false) != null) {
+			carried = true
+			val ids: Array<String> = CARRY.javaSplit(",")
+			for (i in ids.indices) {
+				ItemContainer.setItemInContainer(93, false, 27 - i, 1, ids[i].javaTrim().toInt())
+			}
+			println("SMOKE carrying " + CARRY)
 		}
 		// client.test.characterShadows=0|1: the Character shadows graphics option for this run (not saved)
 		if (CHARACTER_SHADOWS >= 0 && GamePreferences.uid!!.characterShadows!!.getValue() != CHARACTER_SHADOWS) {
@@ -1618,6 +1629,10 @@ object SmokeTest {
 	private var visibleTilesBefore: Int = 0
 
 	private val WEAR: String = lang.getProperty("client.test.wear", "")
+
+	private val CARRY: String = lang.getProperty("client.test.carry", "")
+
+	private var carried: Boolean = false
 
 	/**
 	 * client.test.materialScan=true: instead of the checks, lists the material classes in the cache

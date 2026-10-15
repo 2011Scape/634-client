@@ -9,6 +9,9 @@ package com.jagex.game.runetek5.graphics.hd.scene
 
 import com.jagex.game.runetek5.NPCList
 import com.jagex.game.runetek5.client.features.HdSettings
+import com.jagex.game.runetek5.config.TypeLists
+import com.jagex.game.runetek5.config.item.ItemType
+import com.jagex.game.runetek5.config.rsinterface.itemcontainer.ItemContainer
 import com.jagex.game.runetek5.config.sequence.PositionedGfx
 import com.jagex.game.runetek5.cache.node.Node
 import com.jagex.game.runetek5.entity.Entity
@@ -82,6 +85,8 @@ class HdLights {
 
     /** client.test.hdLocScan: prints every distinct loc of the scene once (authoring lights.json). */
     private val SCAN: Boolean = System.getProperty("client.test.hdLocScan") != null
+    private val ITEM_SCAN: Boolean = System.getProperty("client.test.hdItemScan") != null
+    private var itemsScanned: Boolean = false
     private val scanned: HashSet<Int> = HashSet()
     private var debugFrame: Int = 0
 
@@ -100,11 +105,106 @@ class HdLights {
     var used: Int = 0
         private set
 
-    /** Finds the lights for this frame and writes the nearest into [uniforms]; [view] is world to eye. */
-    fun prepare(content: HdContent, uniforms: HdFrameUniforms, view: FloatArray, seconds: Float) {
+    /**
+     * The carried light (HdSettings.playerLight): the light of the lit light sources the player has in
+     * the backpack or wears (a lit torch, candle, lantern, mining helmet...), as the game's own light
+     * sources (oldschool.runescape.wiki/w/Light_sources): their brightness tiers add up, to at most 3,
+     * and set the light's reach and strength; the brightest source sets its colour, but a lit sapphire
+     * lantern makes it blue, an emerald lantern green, both teal. A lit source is an
+     * item with an "Extinguish" action. Full at night, faint by day. Found every CARRIED_EVERY frames.
+     */
+    private val playerLight: HdContent.LightDef = HdContent.LightDef("Carried light", IntArray(0), IntArray(0), IntArray(0), IntArray(0),
+        1.0f, 0.62f, 0.3f, 0.0f, 0.0f, 0.0f, 250.0f, 0.0f, 0)
+
+    private val CARRIED_EVERY: Int = 15
+    private var carriedFrame: Int = 0
+
+    /** The carried light's brightness tier now (0 none, up to 3), the brightest source's colour (sRGB). */
+    private var carriedTier: Int = 0
+    private var carriedRed: Float = 0.0f
+    private var carriedGreen: Float = 0.0f
+    private var carriedBlue: Float = 0.0f
+    private var carriedFlame: Boolean = false
+
+    /** Each tier's reach in tiles and strength. */
+    private val TIER_RADIUS: FloatArray = floatArrayOf(0.0f, 4.5f, 6.0f, 7.5f)
+    private val TIER_INTENSITY: FloatArray = floatArrayOf(0.0f, 1.5f, 1.9f, 2.3f)
+
+    /** The backpack's and the worn items' containers. */
+    private val CONTAINER_BACKPACK: Int = 93
+    private val CONTAINER_WORN: Int = 94
+
+    /** Finds the player's lit light sources: carriedTier and the colour of the brightest. */
+    private fun findCarried() {
+        carriedTier = 0
+        var best: Int = 0
+        var sapphire: Boolean = false
+        var emerald: Boolean = false
+        for (c in 0 until 2) {
+            val container: ItemContainer = ItemContainer.getContainer(if (c == 0) CONTAINER_BACKPACK else CONTAINER_WORN, false) ?: continue
+            val ids: IntArray = container.itemIds ?: continue
+            for (slot in ids.indices) {
+                val id: Int = ids[slot]
+                if (id < 0) continue
+                val item: ItemType = TypeLists.OBJ!!.list(id)
+                val name: String = item.name ?: continue
+                var lit: Boolean = false
+                val actions: Array<String?>? = item.inventoryActions
+                if (actions != null) {
+                    for (action in actions) {
+                        if (action == "Extinguish") lit = true
+                    }
+                }
+                // a firemaking cape gives light while worn
+                if (!lit && !(c == 1 && name.startsWith("Firemaking cape"))) continue
+                val tier: Int = lightTier(name)
+                carriedTier += tier
+                if (name == "Sapphire lantern") sapphire = true
+                if (name == "Emerald lantern") emerald = true
+                if (tier > best) {
+                    best = tier
+                    carriedFlame = name == "Lit torch" || name == "Torch" || name.contains("candle") || name == "Oil lamp"
+                    // flames warm orange, lanterns a steadier yellow (the gem lenses below)
+                    if (carriedFlame) {
+                        carriedRed = 1.0f; carriedGreen = 0.62f; carriedBlue = 0.3f
+                    } else {
+                        carriedRed = 1.0f; carriedGreen = 0.8f; carriedBlue = 0.5f
+                    }
+                }
+            }
+        }
+        if (carriedTier > 3) carriedTier = 3
+        // a lit gem lantern colours the light, whatever else is lit: sapphire blue, emerald green, both teal
+        if (sapphire && emerald) {
+            carriedRed = 0.25f; carriedGreen = 0.95f; carriedBlue = 0.9f
+        } else if (sapphire) {
+            carriedRed = 0.3f; carriedGreen = 0.55f; carriedBlue = 1.0f
+        } else if (emerald) {
+            carriedRed = 0.3f; carriedGreen = 1.0f; carriedBlue = 0.4f
+        }
+        if (sapphire || emerald) carriedFlame = false
+    }
+
+    /** A lit light source's brightness tier by its name (the wiki's table); 1 for one not listed. */
+    private fun lightTier(name: String): Int = when (name) {
+        "Bullseye lantern", "Emerald lantern" -> 3
+        "Oil lamp", "Oil lantern", "Sapphire lantern", "Mining helmet" -> 2
+        else -> if (name.startsWith("Firemaking cape")) 3 else 1
+    }
+
+    /**
+     * Finds the lights for this frame and writes the nearest into [uniforms]; [view] is world to eye,
+     * [night] 0 by day to 1 at night (the carried light's strength).
+     */
+    fun prepare(content: HdContent, uniforms: HdFrameUniforms, view: FloatArray, seconds: Float, night: Float) {
         used = 0
         emitterCount = 0
-        if (!HdSettings.lights && !HdSettings.particles) {
+        var carried: Boolean = false
+        if (HdSettings.playerLight) {
+            if (carriedFrame++ % CARRIED_EVERY == 0) findCarried()
+            carried = carriedTier > 0
+        }
+        if (!HdSettings.lights && !HdSettings.particles && !carried) {
             uniforms.setLightCount(0)
             nearest = null
             return
@@ -113,6 +213,19 @@ class HdLights {
             findLocLights(content)
             dirty = false
             contentVersion = content.version
+        }
+        if (ITEM_SCAN && !itemsScanned) {
+            // client.test.hdItemScan: prints the items that could be light sources (authoring the carried light)
+            itemsScanned = true
+            val list = TypeLists.OBJ!!
+            for (id in 0 until list.num) {
+                val item = list.list(id)
+                val name: String = item.name ?: continue
+                val lower: String = name.lowercase()
+                if (lower.contains("torch") || lower.contains("candle") || lower.contains("lantern") || lower.contains("lamp") || lower.contains("mining helmet") || lower.contains("firelighter")) {
+                    println("HDITEM " + id + " " + name + " noted=" + (item.certTemplateId != -1) + " actions=" + item.inventoryActions?.joinToString("|"))
+                }
+            }
         }
         val player = PlayerUpdate.localPlayer
         if (player == null) {
@@ -123,7 +236,19 @@ class HdLights {
         val pz: Int = player.z
         val level: Int = player.level.toInt()
         count = 0
+        if (carried) {
+            // first, at the player: always among the lights used; full at night, faint by day
+            playerLight.radius = TIER_RADIUS[carriedTier]
+            playerLight.intensity = TIER_INTENSITY[carriedTier] * maxOf(night, 0.15f)
+            playerLight.red = carriedRed
+            playerLight.green = carriedGreen
+            playerLight.blue = carriedBlue
+            playerLight.flicker = if (carriedFlame) 1 else 0
+            add(px, player.y, pz, playerLight, px, pz, 0.0f)
+            distance[0] = -1.0f
+        }
         for (i in 0 until locCount) {
+            if (!HdSettings.lights && !HdSettings.particles) break
             if (locLevel[i] != level) continue
             if (add(locX[i], locY[i], locZ[i], locDef[i]!!, px, pz, (i * 7919 % 1000).toFloat()) && locFlameFound[i]) {
                 // the light and its embers at the loc's own flame, the embers sized to it
@@ -138,7 +263,7 @@ class HdLights {
                 z[at] = emitZ[at]
             }
         }
-        if (content.lightsByNpc.isNotEmpty()) {
+        if (HdSettings.lights && content.lightsByNpc.isNotEmpty()) {
             val npcs: Int = NPCList.NPC_UPDATE_INDEX
             val ids: IntArray = NPCList.NPC_UPDATE_INDICES
             for (i in 0 until npcs) {
@@ -149,7 +274,7 @@ class HdLights {
                 add(npc.x, npc.y, npc.z, light, px, pz, ids[i].toFloat())
             }
         }
-        if (content.lightsByProjectile.isNotEmpty()) {
+        if (HdSettings.lights && content.lightsByProjectile.isNotEmpty()) {
             val sentinel: Node = ProjectileAnimation.aClass341_24.sentinel
             var node: Node? = sentinel.next
             while (node != null && node !== sentinel) {
@@ -161,7 +286,7 @@ class HdLights {
                 node = node.next
             }
         }
-        if (content.lightsBySpotAnimation.isNotEmpty()) {
+        if (HdSettings.lights && content.lightsBySpotAnimation.isNotEmpty()) {
             val sentinel: Node = Renderers.activeToolkit.sentinel
             var node: Node? = sentinel.next
             while (node != null && node !== sentinel) {
@@ -177,7 +302,7 @@ class HdLights {
         if (HdSettings.particles) {
             for (i in 0 until count) {
                 val light: HdContent.LightDef = def[i]!!
-                if (light.flicker == 0 || emitterCount >= MAX_EMITTERS || distance[i] > EMITTER_RANGE.toFloat() * EMITTER_RANGE) continue
+                if (light.flicker == 0 || light === playerLight || emitterCount >= MAX_EMITTERS || distance[i] > EMITTER_RANGE.toFloat() * EMITTER_RANGE) continue
                 val at: Int = emitterCount * EMITTER_FLOATS
                 emitters[at] = emitX[i]
                 emitters[at + 1] = emitY[i]
@@ -189,11 +314,13 @@ class HdLights {
                 emitterCount++
             }
         }
-        if (!HdSettings.lights) {
+        if (!HdSettings.lights && !carried) {
             uniforms.setLightCount(0)
             nearest = null
             return
         }
+        // with point lights off, only the night light
+        if (!HdSettings.lights) count = 1
         // the nearest first: a partial selection of up to MAX_LIGHTS
         val limit: Int = minOf(count, HdFrameUniforms.MAX_LIGHTS)
         for (i in 0 until limit) {
