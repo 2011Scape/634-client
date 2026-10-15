@@ -404,7 +404,7 @@ vec4 hdWater(vec4 color, vec3 viewPos, bool srgb, float depth, vec3 mapRgb, bool
     if (surface && ground) {
         // the body's own opacity: more where deep, more at grazing angles, the highlights punch through;
         // a ground tile with no seabed under it (no underwater data) is opaque
-        alpha = depth < 0.0 ? 0.92 : mix(0.35, 0.92, smoothstep(0.0, 900.0, depth));
+        alpha = depth < 0.0 ? 0.8 : mix(0.2, 0.8, smoothstep(0.0, 900.0, depth));
         alpha = max(alpha, clamp(fresnel, 0.0, 0.45));
         alpha = clamp(alpha + glint * 0.5, 0.0, 1.0);
         if (ground && depth < 0.0) alpha = 1.0;

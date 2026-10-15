@@ -356,9 +356,9 @@ void main() {
     // as rectangles far out at sea.
     if (uHdUnderwater != 0 && hdOn(HD_WATER) && uUseTexture[1] && uIs3D[1] == 0 && !uCubeMap[1]) {
         vec3 body = hdWaterBody(dot(waterMap.gba, vec3(1.0)) > 0.0 ? waterMap.gba : uTexEnvColor[1].rgb, waterMap.r);
-        float byDepth = 1.0 - exp(-waterMap.r / 1500.0);
+        float byDepth = 1.0 - exp(-waterMap.r / 2200.0);
         float byDistance = smoothstep(hdTime.z - 5120.0, hdTime.z - 1024.0, length(FF_VIEW_POS));
-        float murk = max(0.15, max(byDepth, byDistance));
+        float murk = max(0.1, max(byDepth, byDistance));
         murk = 1.0 - (1.0 - murk) * (1.0 - murk);
         color.rgb = hdFogMix(color.rgb, body, murk);
     }
