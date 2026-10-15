@@ -29,7 +29,12 @@ node tools/serve.mjs                       # serves the dev bundle on :8080 (and
 
 Unit tests live in `src/jvmTest` (`./gradlew jvmTest`, part of `build`; kotlin-test on JUnit 4) and
 cover the 634HD additions that are plain logic (`ClientFeaturesTest`: the draw distance's scene size).
-There is no linter. Beyond `checkClasses` (every class loads and verifies from
+Lint gates run in `check` (so in `build` and CI): ktlint (`./gradlew ktlintCheck`; the repo's style in
+`.editorconfig`: tabs and no wrapping rules for the client code) and detekt (`./gradlew detekt`;
+`config/detekt.yml` turns off the rules the 2010 idiom cannot meet). Both are baselined
+(`config/ktlint-baseline.xml`, `config/detekt-baseline.xml`): only a new finding fails. The Kotlin
+compile fails on any warning (`allWarningsAsErrors`); the original code's are suppressed per file with
+the reason. Beyond `checkClasses` (every class loads and verifies from
 the release jar; no method over the JIT limit unless `config/huge-methods.txt` lists it), the check
 is the in-client smoke test (`client/features/SmokeTest`), which needs a Void server running locally
 with a `smoketest` / `smoketest1` account:

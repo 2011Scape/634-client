@@ -1,0 +1,48 @@
+# detekt for the 634 client: the default rule set, less the rules the 2010 idiom cannot meet (the
+# deobfuscated code is one long method of magic numbers with the jar's names); everything else is
+# baselined (config/detekt-baseline.xml) and new findings fail the build.
+style:
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    active: false
+  ReturnCount:
+    active: false
+  UnusedPrivateProperty:
+    active: false
+  ForbiddenComment:
+    active: false
+complexity:
+  LongParameterList:
+    active: false
+  CyclomaticComplexMethod:
+    active: false
+  ComplexCondition:
+    active: false
+  LongMethod:
+    active: false
+  NestedBlockDepth:
+    active: false
+  TooManyFunctions:
+    active: false
+  LargeClass:
+    active: false
+naming:
+  FunctionNaming:
+    active: false
+  VariableNaming:
+    active: false
+  ClassNaming:
+    active: false
+  PackageNaming:
+    active: false
+  ConstructorParameterNaming:
+    active: false
+  FunctionParameterNaming:
+    active: false
+  TopLevelPropertyNaming:
+    active: false
+  MatchingDeclarationName:
+    active: false
+  InvalidPackageDeclaration:
+    active: false

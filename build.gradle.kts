@@ -1,5 +1,9 @@
 plugins {
     kotlin("multiplatform") version "2.2.20"
+    // Lint gates, part of check (so of build and CI): ktlint for formatting, detekt for code smells. The
+    // original (deobfuscated) code is baselined; only new findings fail.
+    id("org.jlleitschuh.gradle.ktlint") version "13.1.0"
+    id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
 
 description = "The RuneScape client from December 2010 (build 634), with a launcher for any Void server."
@@ -278,4 +282,19 @@ val jsCopyDevResources = tasks.register<Copy>("jsCopyDevResources") {
 
 tasks.named("jsBrowserDevelopmentWebpack") {
     finalizedBy(jsCopyDevResources)
+}
+
+ktlint {
+    // the client's 2010 idiom (tabs, the deobfuscated names) is baselined, not restyled
+    baseline.set(file("config/ktlint-baseline.xml"))
+    filter {
+        exclude { it.file.path.contains("/build/") }
+    }
+}
+
+detekt {
+    baseline = file("config/detekt-baseline.xml")
+    buildUponDefaultConfig = true
+    config.setFrom(file("config/detekt.yml"))
+    source.setFrom("src/commonMain/kotlin", "src/jvmMain/kotlin", "src/jsMain/kotlin", "src/jvmTest/kotlin")
 }
