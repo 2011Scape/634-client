@@ -227,7 +227,7 @@ with them off), see docs/RENDERING.md "634HD features":
   bake) and no pops while walking (new bakes never change the look until complete; fade-in after a
   region load; rebuilt chunks shaded at once). The smoke harness measures frame-to-frame brightness
   in bursts (`client.test.sceneBurst`, `sceneLumaJump`).
-- Shadows: `terrainShadows`, `cutoutShadows`, `castShadows: false` overrides.
+- Shadows: `cutoutShadows`, `castShadows: false` overrides (`terrainShadows` was removed: too many artefacts).
 - Content engine: the Inspect tab (tile floor ids, loc ids, models, face colours), 634HD's own
   materials (ids 10000 and up, `tools/make_detail_textures.py`), `worldTextures` (model and tile
   overrides), `environmentLighting` (environments' sun and ambient, everything eased between areas).

@@ -122,10 +122,6 @@ object HdSettings {
 	@JvmField
 	var scale: Double = 0.0
 
-	/** The terrain casts sun shadows too (hills, cliffs), with the sun's shadows (shadows). */
-	@JvmField
-	var terrainShadows: Boolean = false
-
 	/** Cut-out shadows: leaves, fences and grilles cast the shape of their texture, not a solid block. */
 	@JvmField
 	var cutoutShadows: Boolean = false
@@ -177,7 +173,7 @@ object HdSettings {
 		"tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting",
 		"shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom",
 		"colourGrading", "interfaceScale", "smoothInterface", "materials", "particles", "panel",
-		"terrainShadows", "cutoutShadows", "worldTextures", "environmentLighting", "caustics", "grassDisplacement", "dayNight", "textureReplacements", "lightingModel", "detailFade",
+		"cutoutShadows", "worldTextures", "environmentLighting", "caustics", "grassDisplacement", "dayNight", "textureReplacements", "lightingModel", "detailFade",
 	)
 
 	/** The switches a player sets in the 634HD settings panel (HdSettingsPanel) and that are saved. */
@@ -185,7 +181,7 @@ object HdSettings {
 	val SAVED: Array<String> = arrayOf(
 		"tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting",
 		"shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom",
-		"colourGrading", "materials", "particles", "terrainShadows", "cutoutShadows", "worldTextures", "environmentLighting", "caustics", "grassDisplacement", "dayNight", "textureReplacements", "lightingModel", "detailFade",
+		"colourGrading", "materials", "particles", "cutoutShadows", "worldTextures", "environmentLighting", "caustics", "grassDisplacement", "dayNight", "textureReplacements", "lightingModel", "detailFade",
 	)
 
 	/** Saved too, but not part of the presets: the whole client's draw distance and interface scale. */
@@ -248,7 +244,6 @@ object HdSettings {
 		softParticles = level >= 3
 		particles = level >= 3
 		fade = level >= 3
-		terrainShadows = level >= 3
 		cutoutShadows = level >= 3
 		worldTextures = level >= 3
 		environmentLighting = level >= 2
@@ -333,7 +328,6 @@ object HdSettings {
 		"colourGrading" -> onOff(colourGrading)
 		"materials" -> onOff(materials)
 		"particles" -> onOff(particles)
-		"terrainShadows" -> onOff(terrainShadows)
 		"cutoutShadows" -> onOff(cutoutShadows)
 		"worldTextures" -> onOff(worldTextures)
 		"environmentLighting" -> onOff(environmentLighting)
@@ -459,7 +453,6 @@ object HdSettings {
 			"materials" -> materials = flag(on, off) ?: return "takes on or off"
 			"particles" -> particles = flag(on, off) ?: return "takes on or off"
 			"panel" -> panel = flag(on, off) ?: return "takes on or off"
-			"terrainshadows" -> terrainShadows = flag(on, off) ?: return "takes on or off"
 			"cutoutshadows" -> cutoutShadows = flag(on, off) ?: return "takes on or off"
 			"worldtextures" -> worldTextures = flag(on, off) ?: return "takes on or off"
 			"environmentlighting" -> environmentLighting = flag(on, off) ?: return "takes on or off"
@@ -501,7 +494,6 @@ object HdSettings {
 				fxaa = enable
 				bloom = enable
 				colourGrading = enable
-				terrainShadows = enable
 				cutoutShadows = enable
 				worldTextures = enable
 				environmentLighting = enable
@@ -529,7 +521,7 @@ object HdSettings {
 		"terrainBlend " + onOff(terrainBlend) + ", water " + water + ", foliage " + onOff(foliage) + ", softParticles " + onOff(softParticles),
 		"fxaa " + onOff(fxaa) + ", bloom " + onOff(bloom) + ", colourGrading " + onOff(colourGrading),
 		"interfaceScale " + interfaceScale + ", smoothInterface " + onOff(smoothInterface) + ", materials " + onOff(materials) + ", particles " + onOff(particles),
-		"terrainShadows " + onOff(terrainShadows) + ", cutoutShadows " + onOff(cutoutShadows) + ", worldTextures " + onOff(worldTextures) + ", environmentLighting " + onOff(environmentLighting) + ", caustics " + onOff(caustics) + ", grassDisplacement " + onOff(grassDisplacement) + ", textureReplacements " + onOff(textureReplacements) + ", lightingModel " + onOff(lightingModel) + ", detailFade " + onOff(detailFade) + ", dayNight " + valueOf("dayNight"),
+		"cutoutShadows " + onOff(cutoutShadows) + ", worldTextures " + onOff(worldTextures) + ", environmentLighting " + onOff(environmentLighting) + ", caustics " + onOff(caustics) + ", grassDisplacement " + onOff(grassDisplacement) + ", textureReplacements " + onOff(textureReplacements) + ", lightingModel " + onOff(lightingModel) + ", detailFade " + onOff(detailFade) + ", dayNight " + valueOf("dayNight"),
 		"renderDistance " + valueOf("renderDistance") + ", scale " + valueOf("scale") + " (from the next start)",
 	)
 
