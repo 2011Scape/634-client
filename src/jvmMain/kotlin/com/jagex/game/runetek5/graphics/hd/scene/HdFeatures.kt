@@ -14,6 +14,7 @@ import com.jagex.game.runetek5.graphics.hd.gl.GlState
 import com.jagex.game.runetek5.graphics.hd.gl.HdGl
 import com.jagex.game.runetek5.graphics.hd.gl.Mat4
 import com.jagex.game.runetek5.MapRegion
+import com.jagex.game.runetek5.client.features.ClientFeatures
 import com.jagex.game.runetek5.client.features.HdSettings
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
 import com.jagex.game.runetek5.graphics.hd.content.HdContent
@@ -142,7 +143,11 @@ class HdFeatures {
         uniforms.setSky(sky[0], sky[1], sky[2], sky[3], sky[4], sky[5])
         // locs fade over the last three tiles before the fog closes (HD_FADE)
         val fadeEnd: Float = if (HdSettings.fog) fog[4] else state.fogEnd
-        uniforms.setTime(seconds, 1.0f, fadeEnd - 1536.0f, 1536.0f)
+        // the fade's band: 3 tiles before the fog's end, or a quarter of the way when the view reaches
+        // further than the game's (client.renderDistance): the far sea and shore fade in over a long way
+        // instead of standing pale and sharp before the fog
+        val band: Float = if (ClientFeatures.RENDER_DISTANCE > 1.0) maxOf(1536.0f, fadeEnd * 0.25f) else 1536.0f
+        uniforms.setTime(seconds, 1.0f, fadeEnd - band, band)
         if (System.getProperty("client.test.hdDebug") != null && (debugFrame++ % 120) == 0) {
             println("HDDEBUG fog game " + state.fogStart + ".." + state.fogEnd + " eased " + fog[3] + ".." + fog[4] + " fade from " + (fadeEnd - 1536.0f) + " env " + this.environment?.name)
         }

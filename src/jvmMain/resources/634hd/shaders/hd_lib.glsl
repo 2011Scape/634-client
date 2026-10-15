@@ -257,9 +257,6 @@ vec3 hdFogMix(vec3 color, vec3 fogRgb, float amount) {
 // Fog over a fragment at eye-space [viewPos] ([depth]: its eye depth). [fogColour], [start] and [end]
 // are the draw's fixed-function fog, which is all there is unless HD_FOG (the environment's colour
 // and distances, a smooth curve, height fog) or HD_SKY (the colour of the sky behind the fragment).
-// Set by a water draw (ff.frag) before hdFog: the fade takes it into a sea horizon, not the sky.
-bool hdFogWater = false;
-
 vec4 hdFog(vec4 color, vec3 viewPos, float depth, vec4 fogColour, float start, float end) {
     if (!hdOn(HD_FOG) && !hdOn(HD_SKY) && !hdOn(HD_FADE)) {
         float fogFactor = clamp((end - depth) / (end - start), 0.0, 1.0);
@@ -286,8 +283,8 @@ vec4 hdFog(vec4 color, vec3 viewPos, float depth, vec4 fogColour, float start, f
     // the fade (HD_FADE): over the last band before the draw distance, into the fog or sky colour,
     // so the edge of the world and what pops in there melt into the background
     if (hdOn(HD_FADE) && hdTime.w > 0.0) {
-        // (the water over the same band as everything else: started earlier, the sea went white under
-        // ships and docks still drawn in full, which seemed to float)
+        // (the water over the same band and into the same sky as everything else: faded to a colour of
+        // its own, the far sea stood pale against the fogged shore)
         float fade = smoothstep(hdTime.z, hdTime.z + hdTime.w, dist);
         // and near the loaded scene's edge, whatever the distance, into the sky: at a long draw distance
         // the view reaches past it, and the sea (and the seabed's wall at its edge) stopped against
@@ -296,14 +293,7 @@ vec4 hdFog(vec4 color, vec3 viewPos, float depth, vec4 fogColour, float start, f
         if (hdSceneSize.x > 0.0) {
             vec3 at = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
             float inside = min(min(at.x, at.z), min(hdSceneSize.x - at.x, hdSceneSize.y - at.z));
-            edge = 1.0 - smoothstep(0.0, 3072.0, inside);
-        }
-        if (hdFogWater && fade > amount) {
-            // the water surface fades into a sea horizon (its own colour with a little of the sky's),
-            // not into the pale sky: the sea at the fade went white (Draynor, looking west)
-            vec3 seaHorizon = hdFogMix(color.rgb, fogRgb, 0.3);
-            vec4 faded = vec4(hdFogMix(color.rgb, fogRgb, amount), color.a) * (1.0 - fade) + vec4(seaHorizon, color.a) * fade;
-            return vec4(hdFogMix(faded.rgb, fogRgb, edge), color.a);
+            edge = 1.0 - smoothstep(0.0, 4096.0, inside);
         }
         amount = max(amount, max(fade, edge));
     }
