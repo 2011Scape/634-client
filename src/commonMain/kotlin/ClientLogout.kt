@@ -55,6 +55,9 @@ object ClientLogout {
 		MapRegion.mapCenterChunkX = 0
 		MapRegion.mapBaseChunkY = 0
 		MapRegion.areaMode = 0
+		// Not part of the original client: the last region packet's keys go with the game area, so a map
+		// rebuild on the login screen keeps its own region list (StaticRegionInit.hdApplySceneSize)
+		MapRegion.hdServerKeys = null
 		NPCList.previousAreaMode = 0
 		for (@Pc(69) j in 0 until PlayerUpdate.HINT_ARROWS.size) {
 			PlayerUpdate.HINT_ARROWS[j] = null
