@@ -1,0 +1,27 @@
+{
+  "model": "nano-banana-2-lite",
+  "prompt": "Seamless tileable square albedo texture for a high-definition remaster of a medieval fantasy MMO, in a painterly-realistic style like modern World of Warcraft or the 117HD RuneScape plugin: rough rock. Real materials with believable shapes and soft volume, but simplified and hand-painted: clean readable forms (rock features with clear outlines), gentle colour variation, soft painted shading inside each shape, no photographic noise, no tiny speckle or grain, no harsh contrast. It must read well when small on screen. The reference image is a deliberately blurred layout guide from the old game texture: use it ONLY for scale (how many rock features fit across the image) and roughly where the darker and lighter areas are. Neutral, desaturated, mostly grey tones (the game tints it with colour), even overall brightness. Top-down orthographic, flat diffuse lighting, no cast shadows, no specular highlights, no lighting gradient, no vignette, no text, no border; the left and right edges and the top and bottom edges must continue seamlessly when tiled.",
+  "refs": [
+    "/home/pixel/Pictures/generations/refs/634hd_hd-layout-290.png"
+  ],
+  "ref_urls": [
+    "https://tempfile.redpandaai.co/kieai/12068753/generate-refs/1792025153222-2t917s47i99.png"
+  ],
+  "params": {
+    "aspect_ratio": "1:1",
+    "image_urls": [
+      "https://tempfile.redpandaai.co/kieai/12068753/generate-refs/1792025153222-2t917s47i99.png"
+    ]
+  },
+  "taskId": "c2c1b2db88e461478e0780745d3236a6",
+  "creditsConsumed": 4.0,
+  "costTimeMs": 55,
+  "resultUrls": [
+    "https://tempfile.aiquickdraw.com/vnp/c2c1b2db88e461478e0780745d3236a6_0_1792025209.jpeg"
+  ],
+  "files": [
+    "634hd_pt-290_1792025212.jpeg"
+  ],
+  "created": "2026-10-15T00:46:52+00:00",
+  "note": null
+}
