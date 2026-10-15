@@ -817,7 +817,8 @@ class HdModel : Model {
 				this.glToolkit!!.setLightingEnabled(this.normalsBuffer != null)
 				this.glToolkit.toggleDrawingClientstates(this.vertexBuffer, this.colorsBuffer, this.textureCoordinatesBuffer, this.normalsBuffer)
 				val batchCount: Int = this.materialBatchOffsets!!.size - 1
-				val retained: BooleanArray? = if (this.retainedObject >= 0 && this.glToolkit.sceneRetained()) this.retainedBatches else null
+				// a model with translucent faces draws its colour here, in the client's order (see render)
+				val retained: BooleanArray? = if (this.retainedObject >= 0 && this.glToolkit.sceneRetained() && !this.glToolkit.sceneRenderer.isAlpha(this.retainedObject)) this.retainedBatches else null
 				for (i in 0 until batchCount) {
 					if (retained != null && retained[i]) {
 						continue
@@ -2617,15 +2618,13 @@ class HdModel : Model {
 		this.glToolkit.setupMatrixRendering()
 		val retained: BooleanArray? = this.retainedBatches
 		if (retained != null && this.retainedObject >= 0 && this.glToolkit.sceneRetained()) {
-			// 634HD retained scene: the batches it holds draw with it after the opaque entities, or,
-			// for a model with translucent faces, now, in the order the client sorted the entities
+			// 634HD retained scene: the batches it holds draw with it after the opaque entities. A model
+			// with translucent faces (trees with see-through leaves) is marked too - for the shadow map and
+			// the occlusion bake - but draws its colour the emulated way below: drawn retained, the parts
+			// of swamp trees' bases under the water showed through it (Lumbridge swamp), and it was no
+			// faster (it was one draw of its own either way)
 			val scene: HdSceneRenderer = this.glToolkit.sceneRenderer
 			scene.markVisible(this.retainedObject, modelMatrix.getColumnMajor(), this.normalsBuffer != null)
-			if (scene.isAlpha(this.retainedObject)) {
-				RenderStats.category = RenderStats.CATEGORY_MODEL
-				scene.drawAlphaObject(this.retainedObject)
-				RenderStats.category = RenderStats.CATEGORY_OTHER
-			}
 		}
 		this.glToolkit.multiMatrix(modelMatrix)
 		RenderStats.category = RenderStats.CATEGORY_MODEL
