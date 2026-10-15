@@ -34,6 +34,7 @@ class HdFrameUniforms {
         const val HD_CAUSTICS: Int = 32768
         const val HD_GRASS: Int = 65536
         const val HD_LIGHTING_MODEL: Int = 131072
+        const val HD_REFLECTIONS: Int = 262144
         const val MAX_ACTORS: Int = 8
 
         // std140 offsets, in bytes
@@ -99,6 +100,7 @@ class HdFrameUniforms {
         if (HdSettings.caustics) bits = bits or HD_CAUSTICS
         if (HdSettings.grassDisplacement) bits = bits or HD_GRASS
         if (HdSettings.lightingModel) bits = bits or HD_LIGHTING_MODEL
+        if (HdSettings.reflections) bits = bits or HD_REFLECTIONS
         return bits
     }
 

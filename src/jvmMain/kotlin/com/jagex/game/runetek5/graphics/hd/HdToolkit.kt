@@ -944,6 +944,10 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		// 634HD: the sun's shadow map from what is known now, for the retained scene, ground and translucent entities
 		if (this.sceneDrawing) {
 			this.hdFeatures.shadows.render(this.sceneRenderer)
+			// 634HD: the water's reflection (HdSettings.reflections), in the main pass once the scene is built
+			if (!this.stillWaterToggled && this.sceneRenderer.built) {
+				this.hdFeatures.reflections.render(this, this.sceneRenderer, this.hdPost)
+			}
 		}
 		// 634HD: the sky behind everything drawn so far, before the ground and translucent entities
 		if (HdSettings.sky && this.sceneDrawing && Skybox.configNpcJs5 == null) {

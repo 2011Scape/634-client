@@ -102,6 +102,13 @@ object HdShaders {
                 org.lwjgl.opengl.GL33C.glUseProgram(previous)
             }
         }
+        val reflection = org.lwjgl.opengl.GL33C.glGetUniformLocation(program.id, "uHdReflectionMap")
+        if (reflection >= 0) {
+            val previous = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_CURRENT_PROGRAM)
+            org.lwjgl.opengl.GL33C.glUseProgram(program.id)
+            org.lwjgl.opengl.GL33C.glUniform1i(reflection, com.jagex.game.runetek5.graphics.hd.scene.HdReflections.UNIT)
+            org.lwjgl.opengl.GL33C.glUseProgram(previous)
+        }
         val groundAo = org.lwjgl.opengl.GL33C.glGetUniformLocation(program.id, "uHdGroundAo")
         if (groundAo >= 0) {
             val previous = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_CURRENT_PROGRAM)
