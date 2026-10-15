@@ -173,18 +173,6 @@
   "short": "rock features",
   "art": 83
  },
- "84": {
-  "name": "sand with grit",
-  "class": "sand",
-  "short": "grains",
-  "art": 84
- },
- "85": {
-  "name": "sandy ground",
-  "class": "sand",
-  "short": "grains",
-  "art": 85
- },
  "86": {
   "name": "woven straw mat",
   "class": "fabric",
@@ -227,29 +215,11 @@
   "short": "stones",
   "art": 70
  },
- "99": {
-  "name": "fine gravel",
-  "class": "gravel",
-  "short": "stones",
-  "art": 99
- },
  "101": {
   "name": "tree bark",
   "class": "wood",
   "short": "bark ridges",
   "art": 101
- },
- "102": {
-  "name": "smooth wood grain",
-  "class": "wood",
-  "short": "grain lines",
-  "art": 102
- },
- "103": {
-  "name": "smooth wood grain",
-  "class": "wood",
-  "short": "grain lines",
-  "art": 103
  },
  "104": {
   "name": "rough rock face (variant)",
@@ -299,29 +269,11 @@
   "short": "blotches",
   "art": 57
  },
- "124": {
-  "name": "mottled lime plaster (variant)",
-  "class": "sand",
-  "short": "blotches",
-  "art": 254
- },
- "125": {
-  "name": "speckled gravel",
-  "class": "gravel",
-  "short": "stones",
-  "art": 125
- },
  "127": {
   "name": "streaked weathered stone",
   "class": "stone",
   "short": "stone streaks",
   "art": 127
- },
- "128": {
-  "name": "fine speckled sand",
-  "class": "sand",
-  "short": "grains",
-  "art": 128
  },
  "129": {
   "name": "crumpled rough rock",
@@ -335,18 +287,6 @@
   "short": "bark ridges",
   "art": 132
  },
- "133": {
-  "name": "pitted plaster",
-  "class": "sand",
-  "short": "pits",
-  "art": 133
- },
- "134": {
-  "name": "cracked plaster",
-  "class": "sand",
-  "short": "cracks",
-  "art": 134
- },
  "135": {
   "name": "grass",
   "class": "grass",
@@ -359,23 +299,11 @@
   "short": "stones",
   "art": 111
  },
- "140": {
-  "name": "mottled lime plaster (variant)",
-  "class": "sand",
-  "short": "blotches",
-  "art": 254
- },
  "144": {
   "name": "woven cloth",
   "class": "fabric",
   "short": "weave",
   "art": 144
- },
- "145": {
-  "name": "speckled rock",
-  "class": "stone",
-  "short": "blotches",
-  "art": 145
  },
  "146": {
   "name": "mossy stone",
@@ -407,12 +335,6 @@
   "short": "ripples",
   "art": 154
  },
- "159": {
-  "name": "pale plastered wall with small bumps (variant)",
-  "class": "sand",
-  "short": "dimples",
-  "art": 163
- },
  "160": {
   "name": "wooden boards",
   "class": "wood",
@@ -425,35 +347,11 @@
   "short": "bark ridges",
   "art": 132
  },
- "163": {
-  "name": "pale plastered wall with small bumps",
-  "class": "sand",
-  "short": "dimples",
-  "art": 163
- },
- "166": {
-  "name": "cracked plaster",
-  "class": "sand",
-  "short": "cracks",
-  "art": 166
- },
- "167": {
-  "name": "stained streaky wall plaster",
-  "class": "sand",
-  "short": "streaks",
-  "art": 167
- },
  "168": {
   "name": "cracked dry mud",
   "class": "ground",
   "short": "cracks",
   "art": 168
- },
- "170": {
-  "name": "fine gravel",
-  "class": "gravel",
-  "short": "stones",
-  "art": 170
  },
  "172": {
   "name": "mossy stone paving",
@@ -467,12 +365,6 @@
   "short": "planks",
   "art": 173
  },
- "175": {
-  "name": "speckled granite (variant)",
-  "class": "stone",
-  "short": "grains",
-  "art": 305
- },
  "176": {
   "name": "streaked weathered stone (variant)",
   "class": "stone",
@@ -485,12 +377,6 @@
   "short": "rock features",
   "art": 177
  },
- "179": {
-  "name": "smooth plaster",
-  "class": "sand",
-  "short": "bumps",
-  "art": 179
- },
  "180": {
   "name": "streaked stone wall",
   "class": "stone",
@@ -502,12 +388,6 @@
   "class": "ground",
   "short": "stones",
   "art": 181
- },
- "182": {
-  "name": "fine gravel (variant)",
-  "class": "gravel",
-  "short": "stones",
-  "art": 247
  },
  "184": {
   "name": "dry straw and dead grass (variant)",
@@ -575,12 +455,6 @@
   "short": "layers",
   "art": 216
  },
- "217": {
-  "name": "speckled granite (variant)",
-  "class": "stone",
-  "short": "grains",
-  "art": 305
- },
  "218": {
   "name": "plaid cloth",
   "class": "fabric",
@@ -593,12 +467,6 @@
   "short": "spots",
   "art": 220
  },
- "225": {
-  "name": "fine scratched plaster",
-  "class": "sand",
-  "short": "scratches",
-  "art": 225
- },
  "228": {
   "name": "wood grain",
   "class": "wood",
@@ -610,12 +478,6 @@
   "class": "ground",
   "short": "blotches",
   "art": 229
- },
- "230": {
-  "name": "speckled granite (variant)",
-  "class": "stone",
-  "short": "grains",
-  "art": 305
  },
  "232": {
   "name": "scattered pebbles",
@@ -659,18 +521,6 @@
   "short": "pebbles",
   "art": 244
  },
- "246": {
-  "name": "rough plaster",
-  "class": "sand",
-  "short": "bumps",
-  "art": 246
- },
- "247": {
-  "name": "fine gravel",
-  "class": "gravel",
-  "short": "stones",
-  "art": 247
- },
  "248": {
   "name": "rough tree bark",
   "class": "wood",
@@ -689,23 +539,11 @@
   "short": "checks",
   "art": 250
  },
- "254": {
-  "name": "mottled lime plaster",
-  "class": "sand",
-  "short": "blotches",
-  "art": 254
- },
  "257": {
   "name": "woven wicker",
   "class": "wood",
   "short": "strands",
   "art": 257
- },
- "258": {
-  "name": "speckled gravel ground",
-  "class": "gravel",
-  "short": "stones",
-  "art": 258
  },
  "265": {
   "name": "stony ground",
@@ -730,12 +568,6 @@
   "class": "fabric",
   "short": "checks",
   "art": 273
- },
- "274": {
-  "name": "soft snow",
-  "class": "sand",
-  "short": "drifts",
-  "art": 274
  },
  "276": {
   "name": "meadow grass",
@@ -797,18 +629,6 @@
   "short": "stones",
   "art": 111
  },
- "294": {
-  "name": "rough plaster render",
-  "class": "sand",
-  "short": "bumps",
-  "art": 294
- },
- "295": {
-  "name": "rough plaster render (variant)",
-  "class": "sand",
-  "short": "bumps",
-  "art": 294
- },
  "296": {
   "name": "scattered pebbles (variant)",
   "class": "gravel",
@@ -844,12 +664,6 @@
   "class": "stone",
   "short": "blotches",
   "art": 303
- },
- "305": {
-  "name": "speckled granite",
-  "class": "stone",
-  "short": "grains",
-  "art": 305
  },
  "309": {
   "name": "rocky ground",
@@ -905,18 +719,6 @@
   "short": "bark ridges",
   "art": 248
  },
- "329": {
-  "name": "speckled granite",
-  "class": "stone",
-  "short": "grains",
-  "art": 329
- },
- "330": {
-  "name": "fine woven cloth",
-  "class": "fabric",
-  "short": "weave",
-  "art": 330
- },
  "335": {
   "name": "crumpled rough stone",
   "class": "stone",
@@ -929,12 +731,6 @@
   "short": "tiles",
   "art": 345
  },
- "348": {
-  "name": "rough plaster",
-  "class": "sand",
-  "short": "bumps",
-  "art": 348
- },
  "364": {
   "name": "feathered thatch",
   "class": "grass",
@@ -946,12 +742,6 @@
   "class": "grass",
   "short": "straw stems",
   "art": 185
- },
- "370": {
-  "name": "fine gravel (variant)",
-  "class": "gravel",
-  "short": "stones",
-  "art": 247
  },
  "373": {
   "name": "fur",
@@ -977,29 +767,11 @@
   "short": "bark ridges",
   "art": 384
  },
- "386": {
-  "name": "fine wood grain (variant)",
-  "class": "wood",
-  "short": "grain lines",
-  "art": 387
- },
- "387": {
-  "name": "fine wood grain",
-  "class": "wood",
-  "short": "grain lines",
-  "art": 387
- },
  "388": {
   "name": "mottled stone",
   "class": "stone",
   "short": "blotches",
   "art": 388
- },
- "390": {
-  "name": "rough plaster",
-  "class": "sand",
-  "short": "bumps",
-  "art": 390
  },
  "395": {
   "name": "wood grain",
@@ -1025,18 +797,6 @@
   "short": "bricks",
   "art": 402
  },
- "405": {
-  "name": "pale plastered wall with small bumps (variant)",
-  "class": "sand",
-  "short": "dimples",
-  "art": 163
- },
- "406": {
-  "name": "scratched plaster",
-  "class": "sand",
-  "short": "scratches",
-  "art": 406
- },
  "408": {
   "name": "lumpy rock",
   "class": "stone",
@@ -1060,12 +820,6 @@
   "class": "grass",
   "short": "straw stems",
   "art": 426
- },
- "432": {
-  "name": "cracked plaster",
-  "class": "sand",
-  "short": "cracks",
-  "art": 432
  },
  "435": {
   "name": "weathered wood grain",
@@ -1127,12 +881,6 @@
   "short": "rock features",
   "art": 497
  },
- "498": {
-  "name": "icy lumps",
-  "class": "sand",
-  "short": "lumps",
-  "art": 498
- },
  "499": {
   "name": "rocky dirt",
   "class": "ground",
@@ -1144,12 +892,6 @@
   "class": "brick",
   "short": "cobbles",
   "art": 500
- },
- "502": {
-  "name": "icy snow",
-  "class": "sand",
-  "short": "snow drifts",
-  "art": 502
  },
  "504": {
   "name": "rocky ground",
@@ -1217,18 +959,6 @@
   "short": "blades",
   "art": 520
  },
- "530": {
-  "name": "cracked plaster",
-  "class": "sand",
-  "short": "cracks",
-  "art": 530
- },
- "533": {
-  "name": "fine scratched plaster (variant)",
-  "class": "sand",
-  "short": "scratches",
-  "art": 225
- },
  "535": {
   "name": "woven wicker",
   "class": "wood",
@@ -1270,12 +1000,6 @@
   "class": "gravel",
   "short": "stones",
   "art": 572
- },
- "577": {
-  "name": "stained streaky wall plaster (variant)",
-  "class": "sand",
-  "short": "streaks",
-  "art": 167
  },
  "594": {
   "name": "rough rock",
@@ -1337,22 +1061,10 @@
   "short": "clumps",
   "art": 674
  },
- "703": {
-  "name": "smooth pale stone",
-  "class": "stone",
-  "short": "blotches",
-  "art": 703
- },
  "724": {
   "name": "cloudy marble",
   "class": "stone",
   "short": "veins",
   "art": 724
- },
- "743": {
-  "name": "smooth wood grain",
-  "class": "wood",
-  "short": "grain lines",
-  "art": 743
  }
 }
