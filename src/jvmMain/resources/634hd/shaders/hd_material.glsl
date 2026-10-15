@@ -318,7 +318,7 @@ vec4 hdWater(vec4 color, vec3 viewPos, bool srgb) {
         float footprint = length(fwidth(world));
         float distanceFade = 1.0 - smoothstep(18.0, 60.0, footprint);
         float glint = pow(max(dot(reflected, sunWorld), 0.0), 48.0) * hdShadow(viewPos) * distanceFade;
-        result += hdSunColour.rgb * glint * hdWaterParams.z * (hdOn(HD_LINEAR) && !srgb ? 0.8 : 0.25);
+        result += hdSunColour.rgb * glint * hdWaterParams.z * (hdOn(HD_LINEAR) && !srgb ? 0.8 : 0.25) * hdSunStrength();
     }
     return vec4(result, color.a);
 }

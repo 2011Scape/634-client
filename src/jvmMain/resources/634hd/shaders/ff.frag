@@ -259,11 +259,14 @@ void main() {
     }
     gSrgbWater = uHdWater != 0 && hdOn(HD_LINEAR);
     gPrimary = vColor;
+    // whether the game's lights reached this draw (its colour already carries day and night)
+    bool lightsApplied = false;
 #ifdef ARB_VERTEX
     // the ARB vertex programs (the water effects) pass the game's colour through as it is: sRGB
     gPrimary = hdInput(vColor);
 #endif
 #ifndef ARB_VERTEX
+    lightsApplied = uLightingEnabled;
     if (hdOn(HD_PIXEL_LIGHTING) && uLightingEnabled) {
         vec4 lit = hdEnvAmbientLight(uGlobalAmbient);
         for (int i = 0; i < 8; i++) {
@@ -293,6 +296,12 @@ void main() {
     if (uHdWater != 0 && hdOn(HD_WATER)) {
         color = hdWater(color, FF_VIEW_POS, gSrgbWater);
     }
+    // the water draws are unlit (the game's colour as it is): the area's and the time of day's light
+    // would pass them by, and water glowed at night. They take the change in light a lit face takes.
+    if (uHdWater != 0 && !lightsApplied && hdOn(HD_ENV_LIGHT)) {
+        vec3 light = hdUnlitLight(hdAmbientColour.rgb, hdSunColour.rgb);
+        color.rgb = gSrgbWater || !hdOn(HD_LINEAR) ? color.rgb * light : hdToLinear(hdToSrgb(color.rgb) * light);
+    }
     if (gSrgbWater) color.rgb = hdToLinear(color.rgb);
     if (uHdSoft != 0 && hdOn(HD_SOFT_PARTICLES)) {
         // fade out over the last 96 units before the geometry behind: no hard line where it cuts in
@@ -311,7 +320,7 @@ void main() {
     if (uHdUnderwater != 0 && hdOn(HD_CAUSTICS)) {
         vec3 world = (hdViewToWorld * vec4(FF_VIEW_POS, 1.0)).xyz;
         float light = hdCaustics(world.xz, hdTime.x * hdWaterParams.y);
-        color.rgb += color.rgb * light * 0.55 * (hdSunDirection.w > 0.5 ? 1.0 : 0.4);
+        color.rgb += color.rgb * light * 0.55 * (hdSunDirection.w > 0.5 ? 1.0 : 0.4) * hdSunStrength();
     }
     if (!modelled) color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
     hdAppliedOcclusion = uHdGround == 3 ? 1.0 : uHdGround == 2 ? hdGroundOcclusion(FF_VIEW_POS, FF_NORMAL) : hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);

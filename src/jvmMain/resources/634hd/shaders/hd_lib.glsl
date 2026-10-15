@@ -126,6 +126,18 @@ vec3 hdLightDirection(vec3 dir, int index) {
 
 // The game's ambient light, and light [index]'s diffuse, as the environment tints them (HD_ENV_LIGHT:
 // the sun is light 0); unchanged without it.
+// For an unlit draw (water): how much the area's and the time of day's tints (HD_ENV_LIGHT) change
+// the light on a face lit by the game's [ambient] and its sun's [diffuse] (at a typical angle).
+vec3 hdUnlitLight(vec3 ambient, vec3 diffuse) {
+    vec3 day = ambient + diffuse * 0.7;
+    return (ambient * hdEnvAmbient.rgb + diffuse * 0.7 * hdEnvSun.rgb) / max(day, vec3(0.05));
+}
+
+// The sun's (or moon's) strength under the area's and the time of day's tint, 1 without them.
+float hdSunStrength() {
+    return hdOn(HD_ENV_LIGHT) ? clamp(dot(hdEnvSun.rgb, vec3(0.3333)), 0.0, 1.0) : 1.0;
+}
+
 vec4 hdEnvAmbientLight(vec4 ambient) {
     return hdOn(HD_ENV_LIGHT) ? vec4(ambient.rgb * hdEnvAmbient.rgb, ambient.a) : ambient;
 }
