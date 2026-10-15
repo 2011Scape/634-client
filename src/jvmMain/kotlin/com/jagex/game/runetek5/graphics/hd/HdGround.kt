@@ -540,6 +540,7 @@ class HdGround : Ground {
 				this.waterShadowMap?.initializeShadowTiles()
 			}
 		}
+		this.buildWaterDepthMap()
 		this.tileHeightOffsets = null
 		this.normalZ = null
 		this.normalY = null
@@ -844,9 +845,62 @@ class HdGround : Ground {
 		}
 	}
 
+	/**
+	 * 634HD: the water depth map (HdSettings.water): each tile's mean water depth, one texel a tile,
+	 * filtered, so the water's colour can follow the depth under it (hdWater). Built with the ground,
+	 * when it has water; the water draws (this ground's and the water models after it) read it.
+	 */
+	private fun buildWaterDepthMap() {
+		val depths: Array<Array<IntArray?>> = this.tileWaterDepths ?: return
+		val width: Int = super.width
+		val length: Int = super.length
+		val data: java.nio.FloatBuffer = org.lwjgl.BufferUtils.createFloatBuffer(width * length)
+		var deepest: Float = 0.0f
+		for (tileZ in 0 until length) {
+			for (tileX in 0 until width) {
+				val tile: IntArray? = depths[tileX][tileZ]
+				var sum: Float = 0.0f
+				if (tile != null && tile.size > 0) {
+					for (i in tile.indices) {
+						sum += maxOf(0, tile[i] - 1).toFloat()
+					}
+					sum /= tile.size.toFloat()
+				}
+				if (sum > deepest) deepest = sum
+				data.put(sum)
+			}
+		}
+		data.flip()
+		if (waterDepthTexture == 0) {
+			waterDepthTexture = org.lwjgl.opengl.GL33C.glGenTextures()
+		}
+		val active: Int = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_ACTIVE_TEXTURE)
+		org.lwjgl.opengl.GL33C.glActiveTexture(org.lwjgl.opengl.GL33C.GL_TEXTURE0 + WATER_DEPTH_UNIT)
+		org.lwjgl.opengl.GL33C.glBindTexture(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, waterDepthTexture)
+		org.lwjgl.opengl.GL33C.glPixelStorei(org.lwjgl.opengl.GL33C.GL_UNPACK_ALIGNMENT, 4)
+		org.lwjgl.opengl.GL33C.glTexImage2D(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, 0, org.lwjgl.opengl.GL33C.GL_R16F, width, length, 0, org.lwjgl.opengl.GL33C.GL_RED, org.lwjgl.opengl.GL33C.GL_FLOAT, data)
+		org.lwjgl.opengl.GL33C.glTexParameteri(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, org.lwjgl.opengl.GL33C.GL_TEXTURE_MIN_FILTER, org.lwjgl.opengl.GL33C.GL_LINEAR)
+		org.lwjgl.opengl.GL33C.glTexParameteri(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, org.lwjgl.opengl.GL33C.GL_TEXTURE_MAG_FILTER, org.lwjgl.opengl.GL33C.GL_LINEAR)
+		org.lwjgl.opengl.GL33C.glTexParameteri(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, org.lwjgl.opengl.GL33C.GL_TEXTURE_WRAP_S, org.lwjgl.opengl.GL33C.GL_CLAMP_TO_EDGE)
+		org.lwjgl.opengl.GL33C.glTexParameteri(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, org.lwjgl.opengl.GL33C.GL_TEXTURE_WRAP_T, org.lwjgl.opengl.GL33C.GL_CLAMP_TO_EDGE)
+		org.lwjgl.opengl.GL33C.glActiveTexture(active)
+		waterMap[0] = 1.0f / (width * super.tileUnits).toFloat()
+		waterMap[1] = 1.0f / (length * super.tileUnits).toFloat()
+		waterMap[2] = 1.0f
+		if (WATER_DEBUG) println("HDDEBUG water depth map " + width + "x" + length + ", deepest " + deepest)
+	}
+
 	private fun renderGround(orthoZoom: Int, radius: Int, belowLowestPlane: Boolean, x: Int, skipFlags: Int, visibility: Array<BooleanArray?>?, z: Int) {
 		if (this.layers == null) {
 			return
+		}
+		// 634HD: the water depth map for the water draws (it stays bound for the water models after)
+		if (waterMap[2] > 0.0f) {
+			val active: Int = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_ACTIVE_TEXTURE)
+			org.lwjgl.opengl.GL33C.glActiveTexture(org.lwjgl.opengl.GL33C.GL_TEXTURE0 + WATER_DEPTH_UNIT)
+			org.lwjgl.opengl.GL33C.glBindTexture(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, waterDepthTexture)
+			org.lwjgl.opengl.GL33C.glActiveTexture(active)
+			System.arraycopy(waterMap, 0, HdGl.state.hdWaterMap, 0, 4)
 		}
 		RenderStats.category = RenderStats.CATEGORY_GROUND
 		// 634HD: the ground's draws are marked, for its texture blending (HdSettings.terrainBlend); 2 when
@@ -958,6 +1012,17 @@ class HdGround : Ground {
 
 	companion object {
 		private val TALLY_AT: HashMap<Int, String> = HashMap()
+
+		/** 634HD: the texture unit of the water depth map (HdSettings.water: the water's colour by depth). */
+		const val WATER_DEPTH_UNIT: Int = 30
+
+		/** The water depth map, of the last ground built with water: one texel a tile, its water depth in units. */
+		private var waterDepthTexture: Int = 0
+
+		/** World x, z to the map's u, v; z 1 while there is one. */
+		private val waterMap: FloatArray = FloatArray(4)
+
+		private val WATER_DEBUG: Boolean = System.getProperty("client.test.hdDebug") != null
 
 		@JvmField
 		val TALLY: HashMap<Int, Int>? = if (System.getProperty("client.test.hdFloorTally") != null) HashMap() else null

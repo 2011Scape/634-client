@@ -34,6 +34,9 @@ uniform int uHdWater;
 uniform int uHdGround;
 // 1 while the game's underwater pass draws (the riverbed): caustics there (HD_CAUSTICS)
 uniform int uHdUnderwater;
+// 634HD: the water depth map (HdGround): world x, z to u, v; z 1 when there is one
+uniform vec4 uHdWaterMap;
+uniform sampler2D uHdWaterDepth;
 // the slot of the texture's 634HD maps (HD_MATERIALS), -1 without
 uniform int uHdMapSlot;
 // the 634 texture id of unit 0 (the debug panel's texture overlay), -1 for none
@@ -235,7 +238,19 @@ vec4 sampleUnit(int unit) {
     // 3D textures (the animated water normal map) are sampled with the texcoord's full vec3;
     // the animated slice coordinate r arrives through the per-unit texture matrix.
     if (unit == 0) {
-        if (uIs3D[0] != 0) return hdInput(sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0));
+        if (uIs3D[0] != 0) {
+            vec4 water = sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0);
+            if (uHdWater != 0 && hdOn(HD_WATER)) {
+                // 634HD: the game's animated water texture, its bright net softened towards its mean (four
+                // samples across the pattern), so hdWater's ripples carry the detail
+                vec4 mean = (sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0 + vec3(0.5, 0.0, 0.0))
+                    + sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0 + vec3(0.0, 0.5, 0.0))
+                    + sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0 + vec3(0.25, 0.75, 0.0))
+                    + sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0 + vec3(0.75, 0.25, 0.0))) * 0.25;
+                water = mix(water, mean, 0.6);
+            }
+            return hdInput(water);
+        }
         // 634HD: the ground's texture blended (HD_TERRAIN); the base texture in linear colour too (tonemap)
         if (uHdGround != 0 && hdOn(HD_TERRAIN)) return hdInput(hdTerrainTexture(uTexture0, gUv0, FF_VIEW_POS));
         if (uHdSmooth != 0 && uLogicalScale > 1.0 && uHdScene == 0) return sharpBilinear(uTexture0, gUv0);
@@ -294,7 +309,14 @@ void main() {
         discard;
     }
     if (uHdWater != 0 && hdOn(HD_WATER)) {
-        color = hdWater(color, FF_VIEW_POS, gSrgbWater);
+        float waterDepth = -1.0;
+        if (uHdWaterMap.z > 0.0) {
+            vec3 waterWorld = (hdViewToWorld * vec4(FF_VIEW_POS, 1.0)).xyz;
+            waterDepth = texture(uHdWaterDepth, waterWorld.xz * uHdWaterMap.xy).r;
+            // over dry ground (a water model, the oasis): unknown
+            if (waterDepth <= 0.0) waterDepth = -1.0;
+        }
+        color = hdWater(color, FF_VIEW_POS, gSrgbWater, waterDepth);
     }
     // the water draws are unlit (the game's colour as it is): the area's and the time of day's light
     // would pass them by, and water glowed at night. They take the change in light a lit face takes.

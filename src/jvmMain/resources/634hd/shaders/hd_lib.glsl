@@ -10,6 +10,8 @@
 #define HD_LIGHTS 8
 #define HD_FOG 16
 #define HD_FADE 32
+// the water depth (world units) at which water takes its deep colour (hdWater)
+#define HD_WATER_DEEP 1600.0
 #define HD_SKY 64
 #define HD_AO 128
 #define HD_TERRAIN 256
