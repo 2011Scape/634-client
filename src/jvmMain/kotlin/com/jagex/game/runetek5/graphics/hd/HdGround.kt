@@ -35,9 +35,6 @@ class HdGround : Ground {
 
 	private var tileWaterDepths: Array<Array<IntArray?>>? = null
 
-	/** 634HD: each tile's water colour (the game's seabed fog colour), for the water depth map's colour. */
-	private var tileWaterColours: Array<IntArray>? = null
-
 	private var indexCount: Int = 0
 
 	private var colorBuffer: OpenGlArrayDrawBuffer? = null
@@ -102,10 +99,6 @@ class HdGround : Ground {
 	private var layerTable: IterableHashTable? = null
 
 	private var shadowMap: HdShadowMap? = null
-
-	/** 634HD: this ground's water depth map (buildWaterDepthMap), 0 for none, and world x, z to its u, v. */
-	private var waterDepthTexture: Int = 0
-	private val waterMap: FloatArray = FloatArray(4)
 
 	/** 634HD: the blob shadows of water models only (the oasis's pool), drawn with the sun's shadows on. */
 	private var waterShadowMap: HdShadowMap? = null
@@ -547,13 +540,11 @@ class HdGround : Ground {
 				this.waterShadowMap?.initializeShadowTiles()
 			}
 		}
-		this.buildWaterDepthMap()
 		this.tileHeightOffsets = null
 		this.normalZ = null
 		this.normalY = null
 		this.normalX = null
 		this.tileWaterDepths = null
-		this.tileWaterColours = null
 		this.tileLayers = null
 		this.tileColours = null
 		this.shadowLevels = null
@@ -768,7 +759,6 @@ class HdGround : Ground {
 		val textureSource: MaterialProvider? = this.glToolkit.materialProvider
 		if (waterDepths != null && this.tileWaterDepths == null) {
 			this.tileWaterDepths = Array(super.width) { arrayOfNulls<IntArray>(super.length) }
-			this.tileWaterColours = Array(super.width) { IntArray(super.length) }
 		}
 		this.tileOffsetsX!![x][z] = offsetsX
 		this.tileOffsetsZ!![x][z] = offsetsZ
@@ -776,7 +766,6 @@ class HdGround : Ground {
 		this.tileBlendColours!![x][z] = blendedColours
 		if (this.tileWaterDepths != null) {
 			this.tileWaterDepths!![x][z] = waterDepths
-			this.tileWaterColours!![x][z] = waterColour
 		}
 		if (this.tileHeightOffsets != null) {
 			this.tileHeightOffsets!![x][z] = heightOffsets
@@ -855,161 +844,9 @@ class HdGround : Ground {
 		}
 	}
 
-	/**
-	 * 634HD: the water depth map (HdSettings.water): each tile's mean water depth, one texel a tile,
-	 * filtered, so the water's colour can follow the depth under it (hdWater). Built with the ground,
-	 * when it has water; the water draws (this ground's and the water models after it) read it.
-	 */
-	/**
-	 * 634HD: the water depth map (HdSettings.water): each tile's mean water depth and its water colour
-	 * (the game's seabed fog colour: the colour of the water's body), one texel a tile, filtered and
-	 * blurred over a few tiles, so the water's colour can follow the depth under it and stay continuous
-	 * across the game's tile groups (hdWater, the seabed's murk in ff.frag). Built with the ground, when
-	 * it has water; the water draws (this ground's and the water models after it) read it.
-	 */
-	private fun buildWaterDepthMap() {
-		val depths: Array<Array<IntArray?>> = this.tileWaterDepths ?: return
-		val colours: Array<IntArray> = this.tileWaterColours ?: return
-		// the maps of grounds no longer used
-		var i: Int = waterDepthTextures.size - 1
-		while (i >= 0) {
-			if (waterDepthTextures[i].get() == null) {
-				org.lwjgl.opengl.GL33C.glDeleteTextures(waterDepthTextureIds[i])
-				waterDepthTextures.removeAt(i)
-				waterDepthTextureIds.removeAt(i)
-			}
-			i--
-		}
-		val width: Int = super.width
-		val length: Int = super.length
-		// depth, r, g, b (sRGB 0..1) a tile; the colour only where there is water
-		val raw: FloatArray = FloatArray(width * length * 4)
-		val wet: FloatArray = FloatArray(width * length)
-		var deepest: Float = 0.0f
-		for (tileZ in 0 until length) {
-			for (tileX in 0 until width) {
-				val tile: IntArray? = depths[tileX][tileZ]
-				val at: Int = (tileZ * width + tileX) * 4
-				if (tile != null && tile.size > 0) {
-					var sum: Float = 0.0f
-					for (k in tile.indices) {
-						sum += maxOf(0, tile[k] - 1).toFloat()
-					}
-					sum /= tile.size.toFloat()
-					if (sum > deepest) deepest = sum
-					val colour: Int = colours[tileX][tileZ]
-					raw[at] = sum
-					raw[at + 1] = ((colour shr 16) and 0xFF) / 255.0f
-					raw[at + 2] = ((colour shr 8) and 0xFF) / 255.0f
-					raw[at + 3] = (colour and 0xFF) / 255.0f
-					wet[tileZ * width + tileX] = 1.0f
-				}
-			}
-		}
-		// blurred over a few tiles (twice, 5 wide each way): filtered one texel a tile, the depth's colour
-		// showed each tile's facets; the colour is averaged over the wet tiles only
-		val blurred: FloatArray = FloatArray(width * length * 4)
-		val blurredWet: FloatArray = FloatArray(width * length)
-		for (pass in 0 until 2) {
-			for (tileZ in 0 until length) {
-				for (tileX in 0 until width) {
-					var d: Float = 0.0f
-					var r: Float = 0.0f
-					var g: Float = 0.0f
-					var b: Float = 0.0f
-					var w: Float = 0.0f
-					var count: Int = 0
-					for (k in -2..2) {
-						val sx: Int = tileX + k
-						if (sx < 0 || sx >= width) continue
-						val from: Int = (tileZ * width + sx) * 4
-						d += raw[from]
-						r += raw[from + 1]
-						g += raw[from + 2]
-						b += raw[from + 3]
-						w += wet[tileZ * width + sx]
-						count++
-					}
-					val to: Int = (tileZ * width + tileX) * 4
-					blurred[to] = d / count.toFloat()
-					blurred[to + 1] = r
-					blurred[to + 2] = g
-					blurred[to + 3] = b
-					blurredWet[tileZ * width + tileX] = w
-				}
-			}
-			for (tileZ in 0 until length) {
-				for (tileX in 0 until width) {
-					var d: Float = 0.0f
-					var r: Float = 0.0f
-					var g: Float = 0.0f
-					var b: Float = 0.0f
-					var w: Float = 0.0f
-					var count: Int = 0
-					for (k in -2..2) {
-						val sz: Int = tileZ + k
-						if (sz < 0 || sz >= length) continue
-						val from: Int = (sz * width + tileX) * 4
-						d += blurred[from]
-						r += blurred[from + 1]
-						g += blurred[from + 2]
-						b += blurred[from + 3]
-						w += blurredWet[sz * width + tileX]
-						count++
-					}
-					val to: Int = (tileZ * width + tileX) * 4
-					raw[to] = d / count.toFloat()
-					// the colour sums carry their weights (the wet tiles): normalised on the last pass
-					if (pass == 1) {
-						raw[to + 1] = if (w > 0.0f) r / w else 0.0f
-						raw[to + 2] = if (w > 0.0f) g / w else 0.0f
-						raw[to + 3] = if (w > 0.0f) b / w else 0.0f
-						wet[tileZ * width + tileX] = if (w > 0.0f) 1.0f else 0.0f
-					} else {
-						raw[to + 1] = r
-						raw[to + 2] = g
-						raw[to + 3] = b
-						wet[tileZ * width + tileX] = w
-					}
-				}
-			}
-		}
-		val data: java.nio.FloatBuffer = org.lwjgl.BufferUtils.createFloatBuffer(width * length * 4)
-		data.put(raw)
-		data.flip()
-		if (this.waterDepthTexture == 0) {
-			this.waterDepthTexture = org.lwjgl.opengl.GL33C.glGenTextures()
-			waterDepthTextures.add(java.lang.ref.WeakReference(this))
-			waterDepthTextureIds.add(this.waterDepthTexture)
-		}
-		val active: Int = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_ACTIVE_TEXTURE)
-		org.lwjgl.opengl.GL33C.glActiveTexture(org.lwjgl.opengl.GL33C.GL_TEXTURE0 + WATER_DEPTH_UNIT)
-		org.lwjgl.opengl.GL33C.glBindTexture(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, this.waterDepthTexture)
-		org.lwjgl.opengl.GL33C.glPixelStorei(org.lwjgl.opengl.GL33C.GL_UNPACK_ALIGNMENT, 4)
-		org.lwjgl.opengl.GL33C.glTexImage2D(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, 0, org.lwjgl.opengl.GL33C.GL_RGBA16F, width, length, 0, org.lwjgl.opengl.GL33C.GL_RGBA, org.lwjgl.opengl.GL33C.GL_FLOAT, data)
-		org.lwjgl.opengl.GL33C.glTexParameteri(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, org.lwjgl.opengl.GL33C.GL_TEXTURE_MIN_FILTER, org.lwjgl.opengl.GL33C.GL_LINEAR)
-		org.lwjgl.opengl.GL33C.glTexParameteri(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, org.lwjgl.opengl.GL33C.GL_TEXTURE_MAG_FILTER, org.lwjgl.opengl.GL33C.GL_LINEAR)
-		org.lwjgl.opengl.GL33C.glTexParameteri(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, org.lwjgl.opengl.GL33C.GL_TEXTURE_WRAP_S, org.lwjgl.opengl.GL33C.GL_CLAMP_TO_EDGE)
-		org.lwjgl.opengl.GL33C.glTexParameteri(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, org.lwjgl.opengl.GL33C.GL_TEXTURE_WRAP_T, org.lwjgl.opengl.GL33C.GL_CLAMP_TO_EDGE)
-		org.lwjgl.opengl.GL33C.glActiveTexture(active)
-		this.waterMap[0] = 1.0f / (width * super.tileUnits).toFloat()
-		this.waterMap[1] = 1.0f / (length * super.tileUnits).toFloat()
-		this.waterMap[2] = 1.0f
-		if (WATER_DEBUG) println("HDDEBUG water depth map " + width + "x" + length + ", deepest " + deepest)
-	}
-
 	private fun renderGround(orthoZoom: Int, radius: Int, belowLowestPlane: Boolean, x: Int, skipFlags: Int, visibility: Array<BooleanArray?>?, z: Int) {
 		if (this.layers == null) {
 			return
-		}
-		// 634HD: the water depth map for the water draws (it stays bound for the water models after)
-		// (each ground its own: at a longer draw distance there are several with water)
-		if (this.waterMap[2] > 0.0f) {
-			val active: Int = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_ACTIVE_TEXTURE)
-			org.lwjgl.opengl.GL33C.glActiveTexture(org.lwjgl.opengl.GL33C.GL_TEXTURE0 + WATER_DEPTH_UNIT)
-			org.lwjgl.opengl.GL33C.glBindTexture(org.lwjgl.opengl.GL33C.GL_TEXTURE_2D, this.waterDepthTexture)
-			org.lwjgl.opengl.GL33C.glActiveTexture(active)
-			System.arraycopy(this.waterMap, 0, HdGl.state.hdWaterMap, 0, 4)
 		}
 		RenderStats.category = RenderStats.CATEGORY_GROUND
 		// 634HD: the ground's draws are marked, for its texture blending (HdSettings.terrainBlend); 2 when
@@ -1121,15 +958,6 @@ class HdGround : Ground {
 
 	companion object {
 		private val TALLY_AT: HashMap<Int, String> = HashMap()
-
-		/** 634HD: the texture unit of the water depth map (HdSettings.water: the water's colour by depth). */
-		const val WATER_DEPTH_UNIT: Int = 30
-
-		/** The grounds' water depth maps, deleted once their ground is gone (purged at each build). */
-		private val waterDepthTextures: ArrayList<java.lang.ref.WeakReference<HdGround>> = ArrayList()
-		private val waterDepthTextureIds: ArrayList<Int> = ArrayList()
-
-		private val WATER_DEBUG: Boolean = System.getProperty("client.test.hdDebug") != null
 
 		@JvmField
 		val TALLY: HashMap<Int, Int>? = if (System.getProperty("client.test.hdFloorTally") != null) HashMap() else null

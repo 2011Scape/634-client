@@ -117,8 +117,6 @@ class FfFragmentUniformLocations(gl: WebGL2RenderingContext, program: WebGLProgr
     // 634HD: soft particles - on, and the projection's depth terms (HD_SOFT_PARTICLES)
     val hdSoft: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdSoft")
     val hdBlobWater: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdBlobWater")
-    // 634HD: the water depth map's world to texture scale (HD_WATER)
-    val hdWaterMap: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdWaterMap")
     // 634HD: the slot of the texture's material maps (HD_MATERIALS)
     val hdMapSlot: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdMapSlot")
     // 634HD: the texture id, for the debug panel's texture overlay
@@ -175,7 +173,6 @@ fun uploadFfFragmentUniforms(gl: WebGL2RenderingContext, state: GlState, L: FfFr
     setInt(gl, L, L.hdTexture, SI_HD_TEXTURE, state.hdTexture)
     setInt(gl, L, L.hdSmooth, SI_HD_SMOOTH, if (com.jagex.game.runetek5.client.features.HdSettings.smoothInterface) 1 else 0)
     if (state.hdSoft != 0) setFloat4(gl, L, L.hdDepthParams, SF_HD_DEPTH, state.hdDepthParams)
-    setFloat4(gl, L, L.hdWaterMap, SF_HD_WATER_MAP, state.hdWaterMap)
     for (unit in 0 until 3) {
         val cube = state.textureTarget[unit] == GL_TEXTURE_CUBE_MAP
         val is3d = state.textureTarget[unit] == GL_TEXTURE_3D
@@ -278,5 +275,4 @@ private const val SF_FOG_START = SF_ALPHA_REF + 5
 private const val SF_FOG_END = SF_ALPHA_REF + 6
 private const val SF_LOGICAL_SCALE = SF_ALPHA_REF + 7
 private const val SF_HD_DEPTH = SF_ALPHA_REF + 8
-private const val SF_HD_WATER_MAP = SF_ALPHA_REF + 12
-internal const val FF_SHADOW_FLOATS = SF_ALPHA_REF + 16
+internal const val FF_SHADOW_FLOATS = SF_ALPHA_REF + 12
