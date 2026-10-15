@@ -294,10 +294,13 @@ void main() {
         if (uUseTexture[i]) color = combineStage(i, sampleUnit(i), color);
     }
     // 634HD: the scene mirrored in the water (HD_REFLECTIONS, the water surface on the ground): sampled
-    // at this fragment's screen position, bent a little by the game's wave texture, and mixed in by
-    // the angle of view - a mirror at grazing angles, the game's water looking down - and drawn over
-    // the seabed by as much: the surface's alpha (the game's thin net, which its alpha test below
-    // cuts to the net's ridges) is raised to it, so the reflection covers the water
+    // at this fragment's screen position, bent a little by the game's wave texture, as a layer of its
+    // own under the game's surface (a thin near-white sheet its alpha test cuts to the net's ridges,
+    // the seabed showing between them): the reflection at an opacity set by the angle of view - a
+    // mirror at grazing angles, the game's water looking down - and the sheet over it as it is. The
+    // sheet's opacity is not raised: raised to the reflection's, the near-white sheet made the water
+    // pale whatever the reflection showed (grey at night).
+    bool reflected = false;
     if (uHdWater != 0 && uHdWater != 3 && uHdGround != 0 && hdOn(HD_REFLECTIONS) && uHdReflection.z > 0.0) {
         vec3 up = -vec3(hdViewToWorld[0][1], hdViewToWorld[1][1], hdViewToWorld[2][1]);
         vec3 view = normalize(FF_VIEW_POS);
@@ -309,15 +312,13 @@ void main() {
         vec2 uv = clamp((gl_FragCoord.xy - uHdReflection.xy) / uHdReflection.zw + bend, vec2(0.001), vec2(0.999));
         vec4 mirrored = texture(uHdReflectionMap, uv);
         amount *= mirrored.a;
-        if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
-            // between the net's ridges the game shows the seabed: the reflection alone, over it
-            color = vec4(mirrored.rgb * 0.85, amount);
-        } else {
-            color.rgb = mix(color.rgb, mirrored.rgb * 0.85, amount);
-            color.a = max(color.a, amount);
-        }
+        float sheet = (uAlphaTestEnabled && !alphaTestPasses(color.a)) ? 0.0 : color.a;
+        float outAlpha = sheet + amount * (1.0 - sheet);
+        vec3 outRgb = (color.rgb * sheet + mirrored.rgb * 0.85 * amount * (1.0 - sheet)) / max(outAlpha, 0.001);
+        color = vec4(outRgb, outAlpha);
+        reflected = true;
     }
-    if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
+    if (uAlphaTestEnabled && !reflected && !alphaTestPasses(color.a)) {
         discard;
     }
     // the water draws are unlit (the game's colour as it is): the area's and the time of day's light

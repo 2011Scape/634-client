@@ -8,6 +8,8 @@ in vec2 vUv;
 out vec4 fragColor;
 
 uniform mat4 uInverseProjection;
+// 634HD reflections: the colour left sRGB (the reflection texture holds the game's colours)
+uniform int uSrgbOut;
 
 void main() {
     vec4 eye = uInverseProjection * vec4(vUv * 2.0 - 1.0, 1.0, 1.0);
@@ -33,5 +35,5 @@ void main() {
         float m = dot(d, normalize(hdMoon.xyz));
         colour += vec3(0.85, 0.88, 0.95) * (smoothstep(0.99985, 0.99992, m) + 0.15 * pow(max(m, 0.0), 400.0)) * night;
     }
-    fragColor = vec4(hdColour(vec4(colour, 1.0)).rgb, 1.0);
+    fragColor = vec4(uSrgbOut != 0 ? colour : hdColour(vec4(colour, 1.0)).rgb, 1.0);
 }

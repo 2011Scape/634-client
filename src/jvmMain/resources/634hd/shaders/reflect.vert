@@ -26,15 +26,14 @@ uniform float uPlane;
 uniform vec4 uGlobalAmbient;
 uniform vec4 uDirLight[2];
 uniform vec4 uDirDiffuse[2];
-uniform vec4 uFogColor;
-uniform float uFogStart;
-uniform float uFogEnd;
 
 const int FLAG_UNLIT = 32;
 
 out vec4 vColor;
 out vec2 vTexCoord;
-out float vFog;
+// the eye-space position as the eye sees the object, and as the mirrored eye sees it (the fog)
+out vec3 vViewPos;
+out vec3 vMirroredViewPos;
 flat out int vMaterial;
 
 void main() {
@@ -61,6 +60,6 @@ void main() {
         }
         vColor = vec4(clamp(aColor.rgb * lit.rgb, 0.0, 1.0), aColor.a);
     }
-    float depth = -(uMirroredView * world).z;
-    vFog = 1.0 - clamp((uFogEnd - depth) / max(uFogEnd - uFogStart, 1.0), 0.0, 1.0);
+    vViewPos = (uView * world).xyz;
+    vMirroredViewPos = (uMirroredView * world).xyz;
 }

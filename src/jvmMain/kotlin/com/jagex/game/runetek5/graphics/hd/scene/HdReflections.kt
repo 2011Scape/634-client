@@ -197,7 +197,7 @@ class HdReflections {
         if (PARTS.contains("dynamic")) shadows.drawReflected(dynamic, if (PARTS.contains("nomirror")) Mat4.multiply(projection, view) else worldToClip, view, DYNAMIC_TEXTURE_UNIT, if (PARTS.contains("now")) 1 else if (PARTS.contains("late")) 2 else 0)
         GL33C.glDisable(GL33C.GL_CLIP_DISTANCE0)
         if (HdSettings.sky && PARTS.contains("sky")) {
-            post.drawSky(skyProjection)
+            post.drawSky(skyProjection, true)
         }
 
         // client.test.hdReflectionShot=<png>: the reflection texture saved every 120 frames (debugging)
