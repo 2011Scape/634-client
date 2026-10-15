@@ -100,6 +100,9 @@ class HdGround : Ground {
 
 	private var shadowMap: HdShadowMap? = null
 
+	/** 634HD: the blob shadows of water models only (the oasis's pool), drawn with the sun's shadows on. */
+	private var waterShadowMap: HdShadowMap? = null
+
 	constructor(glToolkit: HdToolkit?, groundFlags: Int, featureFlags: Int, width: Int, length: Int, tileHeights: Array<IntArray?>?, normalHeights: Array<IntArray?>?, scaling: Int) : super(width, length, scaling, tileHeights) {
 		this.glToolkit = glToolkit!!
 		this.quarterTileScale = super.tileScale - 2
@@ -134,6 +137,7 @@ class HdGround : Ground {
 		this.layerTable = IterableHashTable(128)
 		if ((this.featureFlags and 0x10) != 0) {
 			this.shadowMap = HdShadowMap(this.glToolkit, this)
+			this.waterShadowMap = HdShadowMap(this.glToolkit, this)
 		}
 	}
 
@@ -142,6 +146,7 @@ class HdGround : Ground {
 			val shadowX: Int = (x - ((this.glToolkit.sunSlopeX * heightOffset) shr 8)) shr this.glToolkit.shadowScaleShift
 			val shadowZ: Int = (z - ((heightOffset * this.glToolkit.sunSlopeZ) shr 8)) shr this.glToolkit.shadowScaleShift
 			this.shadowMap!!.removeShadow(shadow, shadowX, shadowZ)
+			if ((shadow as? HdShadow)?.hdWater == true) this.waterShadowMap?.removeShadow(shadow, shadowX, shadowZ)
 		}
 	}
 
@@ -206,6 +211,7 @@ class HdGround : Ground {
 	override fun YA() {
 		if (this.totalTileVertexCount <= 0) {
 			this.shadowMap = null
+			this.waterShadowMap = null
 		} else {
 			val smoothedShadowLevels: Array<ByteArray> = Array(super.width + 1) { ByteArray(super.length + 1) }
 			var local28: Int
@@ -531,6 +537,7 @@ class HdGround : Ground {
 			ArrayUtils.quicksort(this.layers as Array<Any?>?, layerPointers)
 			if (this.shadowMap != null) {
 				this.shadowMap!!.initializeShadowTiles()
+				this.waterShadowMap?.initializeShadowTiles()
 			}
 		}
 		this.tileHeightOffsets = null
@@ -583,6 +590,7 @@ class HdGround : Ground {
 			val shadowX: Int = (x - ((heightOffset * this.glToolkit.sunSlopeX) shr 8)) shr this.glToolkit.shadowScaleShift
 			val shadowZ: Int = (z - ((this.glToolkit.sunSlopeZ * heightOffset) shr 8)) shr this.glToolkit.shadowScaleShift
 			this.shadowMap!!.addShadow(shadowX, shadowZ, shadow)
+			if ((shadow as? HdShadow)?.hdWater == true) this.waterShadowMap?.addShadow(shadowX, shadowZ, shadow)
 		}
 	}
 
@@ -923,15 +931,27 @@ class HdGround : Ground {
 			this.glToolkit.setActiveTexture(null)
 			this.glToolkit.L(fogColour, fogDensity, this.glToolkit.fogOffset)
 		}
-		// 634HD: the game's blob shadows under trees and other locs are left out while the sun's shadows
-		// (HdSettings.shadows) draw them for real; both would darken the ground twice
-		if (this.shadowMap == null || HdSettings.shadows != 0) {
+		// 634HD: while the sun's shadows (HdSettings.shadows) are on they draw the shadows of trees and
+		// other locs for real, and the game's blob shadows would darken the ground twice. Kept are those
+		// the sun's shadows do not make as the game did: where the ground is under water, and those of
+		// water models (the oasis's pool at Al Kharid, a model over sand, went pale without them)
+		if (this.shadowMap == null) {
 			return
 		}
+		val sunShadows: Boolean = HdSettings.shadows != 0
 		HdGl.glPushMatrix()
 		HdGl.glTranslatef(0.0f, -1.0f, 0.0f)
 		this.glToolkit.toggleDrawingClientstates(this.vertexBuffer, null, this.textureCoordinatesBuffer, null)
-		this.shadowMap!!.renderShadowOverlay(belowLowestPlane, visibility, radius, z, x)
+		if (!sunShadows) {
+			this.shadowMap!!.renderShadowOverlay(belowLowestPlane, visibility, radius, z, x)
+		} else {
+			if (this.tileWaterDepths != null) {
+				HdGl.state.hdBlobWater = 1
+				this.shadowMap!!.renderShadowOverlay(belowLowestPlane, visibility, radius, z, x)
+				HdGl.state.hdBlobWater = 0
+			}
+			this.waterShadowMap?.renderShadowOverlay(belowLowestPlane, visibility, radius, z, x)
+		}
 		HdGl.glPopMatrix()
 		return
 	}

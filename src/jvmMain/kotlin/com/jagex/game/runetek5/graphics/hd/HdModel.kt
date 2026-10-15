@@ -1408,6 +1408,7 @@ class HdModel : Model {
 		}
 		glShadow2.setDimension(shadowMaxZ, shadowMaxX, shadowMinZ, shadowMinX)
 		this.projectShadow(glShadow2)
+		glShadow2.hdWater = this.hdHasWaterFaces()
 		return glShadow2
 	}
 
@@ -4333,6 +4334,22 @@ class HdModel : Model {
 		out[4] = maxOf(maxX - minX, maxZ - minZ)
 		out[5] = maxY - minY
 		return way
+	}
+
+
+	/** 634HD: whether any face is drawn with a water material (the water effects), for HdShadow.hdWater. */
+	private fun hdHasWaterFaces(): Boolean {
+		val materials: ShortArray = this.facesMaterial ?: return false
+		val provider: MaterialProvider = this.glToolkit!!.materialProvider ?: return false
+		var last: Int = -2
+		for (f in 0 until this.numFaces) {
+			val id: Int = materials[f].toInt()
+			if (id == -1 || id == last) continue
+			last = id
+			val effect: Int = provider.getMetrics(id and 0xFFFF)?.effectType?.toInt() ?: continue
+			if (effect == 2 || effect == 3 || effect == 4 || effect == 5 || effect == 8 || effect == 9) return true
+		}
+		return false
 	}
 
 }

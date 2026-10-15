@@ -42,6 +42,9 @@ uniform int uHdTexture;
 vec2 gUv0;
 // soft particles (HD_SOFT_PARTICLES): on, the scene's depth so far, the projection's depth terms
 uniform int uHdSoft;
+// the game's blob shadows (HdShadowMap) where the ground is under water only (with the sun's shadows):
+// the ground's third texture coordinate is its water depth, carried through the overlay's texture matrix
+uniform int uHdBlobWater;
 uniform sampler2D uHdSceneDepth;
 uniform vec4 uHdDepthParams;
 // the primary colour: the vertex colour, or the per-pixel lit one
@@ -251,6 +254,9 @@ vec4 sampleUnit(int unit) {
 }
 
 void main() {
+    if (uHdBlobWater != 0 && vTexCoord0.z < 0.5) {
+        discard;
+    }
     gSrgbWater = uHdWater != 0 && hdOn(HD_LINEAR);
     hdSetDetail(FF_VIEW_POS);
     gPrimary = vColor;
