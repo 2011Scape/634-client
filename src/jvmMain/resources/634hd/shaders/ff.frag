@@ -325,6 +325,15 @@ void main() {
     if (!modelled) color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
     hdAppliedOcclusion = uHdGround == 3 ? 1.0 : uHdGround == 2 ? hdGroundOcclusion(FF_VIEW_POS, FF_NORMAL) : hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);
     color.rgb *= hdAppliedOcclusion;
+    // the seabed (the game's underwater pass, its still water effect): stage 1 blends it into the water's
+    // colour by depth and distance, but the HD steps after it (material maps, the lighting model, world
+    // textures, caustics) brought its detail back, and the steep seabed's stretched textures showed
+    // through the sea as streaks (Draynor). The blend is made again here, stronger: murkier water.
+    if (uHdUnderwater != 0 && hdOn(HD_WATER) && uUseTexture[1] && uIs3D[1] == 0 && !uCubeMap[1]) {
+        float murk = texture(uTexture1, logicalCentre(vTexCoord1.xy)).a;
+        murk = 1.0 - (1.0 - murk) * (1.0 - murk);
+        color.rgb = hdFogMix(color.rgb, uTexEnvColor[1].rgb, murk);
+    }
     float depth = gl_FragCoord.z / gl_FragCoord.w;
     if (uFogEnabled) {
         color = hdFog(color, FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd);
