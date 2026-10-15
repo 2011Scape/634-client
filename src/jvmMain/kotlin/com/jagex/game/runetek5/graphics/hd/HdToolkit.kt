@@ -946,7 +946,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			this.hdFeatures.shadows.render(this.sceneRenderer)
 			// 634HD: the water's reflection (HdSettings.reflections), in the main pass once the scene is built
 			if (!this.stillWaterToggled && this.sceneRenderer.built) {
-				this.hdFeatures.reflections.render(this, this.sceneRenderer, this.hdPost)
+				this.hdFeatures.reflections.render(this, this.sceneRenderer, this.hdPost, this.hdFeatures.shadows)
 			}
 		}
 		// 634HD: the sky behind everything drawn so far, before the ground and translucent entities

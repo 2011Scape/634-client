@@ -31,6 +31,9 @@ class HdReflections {
 
         /** The unit drawRegion binds the objects' matrices on while the reflection is drawn. */
         private const val MODELS_UNIT: Int = 23
+
+        /** The unit a reflected emulated draw's texture is bound on. */
+        private const val DYNAMIC_TEXTURE_UNIT: Int = 27
     }
 
     private var framebuffer: Int = 0
@@ -39,6 +42,13 @@ class HdReflections {
     private var width: Int = 0
     private var height: Int = 0
     private var program: WebGLProgram? = null
+    private var dynamicProgram: WebGLProgram? = null
+
+    private var debugFrame: Int = 0
+
+    private val SHOT: String? = System.getProperty("client.test.hdReflectionShot")
+    private val PARTS: String = System.getProperty("client.test.hdReflectionParts") ?: "static,dynamic,sky"
+    private var shotFrame: Int = 0
     private val colourMask: ByteBuffer = ByteBuffer.allocateDirect(4)
 
     private fun ensureProgram(): WebGLProgram {
@@ -51,6 +61,15 @@ class HdReflections {
             GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uLargeLinear"), HdMaterials.UNIT_LARGE_LINEAR)
             GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uFineLinear"), HdMaterials.UNIT_FINE_LINEAR)
             this.program = program
+        }
+        return program
+    }
+
+    private fun ensureDynamicProgram(): WebGLProgram {
+        var program: WebGLProgram? = this.dynamicProgram
+        if (program == null) {
+            program = HdShaders.program("reflect_dynamic")
+            this.dynamicProgram = program
         }
         return program
     }
@@ -89,14 +108,19 @@ class HdReflections {
      * Draws the reflection for this frame, in opaqueEntitiesDone (the main pass, after the shadow
      * map): the state's hdReflection carries the viewport it is for (z 0 when there is none).
      */
-    fun render(toolkit: HdToolkit, scene: HdSceneRenderer, post: HdPost) {
+    fun render(toolkit: HdToolkit, scene: HdSceneRenderer, post: HdPost, shadows: HdShadows) {
         val state: GlState = HdGl.state
         state.hdReflection[2] = 0.0f
         if (!HdSettings.reflections || HdSettings.water == 0) return
         val plane: Float = waterPlane()
         if (plane.isNaN()) return
+        if (System.getProperty("client.test.hdDebug") != null && (debugFrame++ % 60) == 0) {
+            val player = com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate.localPlayer
+            println("HDDEBUG reflection plane y " + plane + (if (player != null) " player " + player.x + "," + player.y + "," + player.z else ""))
+        }
         HdGl.flushImmediate()
         val drawFramebuffer: Int = GL33C.glGetInteger(GL33C.GL_DRAW_FRAMEBUFFER_BINDING)
+        val readFramebuffer: Int = GL33C.glGetInteger(GL33C.GL_READ_FRAMEBUFFER_BINDING)
         val viewport = IntArray(4)
         GL33C.glGetIntegerv(GL33C.GL_VIEWPORT, viewport)
         if (viewport[2] < 2 || viewport[3] < 2) return
@@ -153,12 +177,49 @@ class HdReflections {
         GL33C.glUniform1f(GL33C.glGetUniformLocation(program.id, "uFogStart"), if (state.fogEnabled) state.fogStart else 1.0e9f)
         GL33C.glUniform1f(GL33C.glGetUniformLocation(program.id, "uFogEnd"), if (state.fogEnabled) state.fogEnd else 2.0e9f)
         scene.bindMaterials()
-        scene.drawAllForBake(program, MODELS_UNIT)
+        // client.test.hdReflectionParts=static,dynamic,sky: which parts are drawn (debugging)
+        if (PARTS.contains("static")) scene.drawAllForBake(program, MODELS_UNIT)
+        // the players, NPCs and animated locs drawn so far this frame (and last frame's translucent ones)
+        val dynamic: WebGLProgram = ensureDynamicProgram()
+        GL33C.glUseProgram(dynamic.id)
+        GL33C.glUniformMatrix4fv(GL33C.glGetUniformLocation(dynamic.id, "uMirroredView"), false, mirroredView)
+        GL33C.glUniform1f(GL33C.glGetUniformLocation(dynamic.id, "uPlane"), plane)
+        CoreGl.uniform4fv(GL33C.glGetUniformLocation(dynamic.id, "uGlobalAmbient"), state.globalAmbient)
+        for (i in 0 until 2) {
+            val position: FloatArray = state.lightPosition[i]
+            GL33C.glUniform4f(GL33C.glGetUniformLocation(dynamic.id, "uDirLight[" + i + "]"), position[0], position[1], position[2], if (state.lightEnabled[i]) 1.0f else 0.0f)
+            CoreGl.uniform4fv(GL33C.glGetUniformLocation(dynamic.id, "uDirDiffuse[" + i + "]"), state.lightDiffuse[i])
+        }
+        CoreGl.uniform4fv(GL33C.glGetUniformLocation(dynamic.id, "uFogColor"), state.fogColor)
+        GL33C.glUniform1f(GL33C.glGetUniformLocation(dynamic.id, "uFogStart"), if (state.fogEnabled) state.fogStart else 1.0e9f)
+        GL33C.glUniform1f(GL33C.glGetUniformLocation(dynamic.id, "uFogEnd"), if (state.fogEnabled) state.fogEnd else 2.0e9f)
+        // (hdReflectionParts=nomirror: the dynamic draws unmirrored, to check their placement against the frame)
+        if (PARTS.contains("dynamic")) shadows.drawReflected(dynamic, if (PARTS.contains("nomirror")) Mat4.multiply(projection, view) else worldToClip, view, DYNAMIC_TEXTURE_UNIT, if (PARTS.contains("now")) 1 else if (PARTS.contains("late")) 2 else 0)
         GL33C.glDisable(GL33C.GL_CLIP_DISTANCE0)
-        if (HdSettings.sky) {
+        if (HdSettings.sky && PARTS.contains("sky")) {
             post.drawSky(skyProjection)
         }
 
+        // client.test.hdReflectionShot=<png>: the reflection texture saved every 120 frames (debugging)
+        if (SHOT != null && (++shotFrame % 120) == 0) {
+            val pixels: ByteBuffer = org.lwjgl.BufferUtils.createByteBuffer(width * height * 4)
+            GL33C.glBindFramebuffer(GL33C.GL_READ_FRAMEBUFFER, framebuffer)
+            GL33C.glReadPixels(0, 0, width, height, GL33C.GL_RGBA, GL33C.GL_UNSIGNED_BYTE, pixels)
+            GL33C.glBindFramebuffer(GL33C.GL_READ_FRAMEBUFFER, readFramebuffer)
+            val image = java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+            for (y in 0 until height) {
+                for (x in 0 until width) {
+                    val at: Int = ((height - 1 - y) * width + x) * 4
+                    val r: Int = pixels.get(at).toInt() and 0xFF
+                    val g: Int = pixels.get(at + 1).toInt() and 0xFF
+                    val b: Int = pixels.get(at + 2).toInt() and 0xFF
+                    val alpha: Int = pixels.get(at + 3).toInt() and 0xFF
+                    image.setRGB(x, y, (alpha shl 24) or (r shl 16) or (g shl 8) or b)
+                }
+            }
+            javax.imageio.ImageIO.write(image, "png", java.io.File(SHOT))
+            println("HDDEBUG reflection saved " + SHOT + " (" + width + "x" + height + ")")
+        }
         GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, drawFramebuffer)
         GL33C.glViewport(viewport[0], viewport[1], viewport[2], viewport[3])
         if (scissor) GL33C.glEnable(GL33C.GL_SCISSOR_TEST)

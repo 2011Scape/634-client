@@ -19,6 +19,11 @@ package com.jagex.game.runetek5.graphics.hd.scene
 
 import com.jagex.game.runetek5.client.features.HdSettings
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
+import com.jagex.game.runetek5.graphics.hd.gl.GlState
+import com.jagex.game.runetek5.graphics.hd.gl.ClientArrayPointer
+import com.jagex.game.runetek5.graphics.hd.gl.ATTRIB_COLOR
+import com.jagex.game.runetek5.graphics.hd.gl.ATTRIB_TEXCOORD0
+import com.jagex.game.runetek5.graphics.hd.gl.ATTRIB_NORMAL
 import com.jagex.game.runetek5.graphics.hd.gl.HdGl
 import com.jagex.game.runetek5.graphics.hd.gl.HdShaders
 import com.jagex.game.runetek5.graphics.hd.gl.Mat4
@@ -485,6 +490,22 @@ class HdShadows {
         // later in the frame by the next model sharing it)
         var copyBuffer: Int = 0
         var copyUsed: Long = 0L
+        // 634HD reflections: the draw's colour, texture coordinate and normal attributes (their buffer,
+        // 0 for none, offset, layout and the buffer's write count when recorded), the texture on unit 0
+        // (0: untextured) and whether the game's lights were on - the water's reflection replays the
+        // draw in colour (HdReflections). An attribute whose buffer was written since falls back to a
+        // constant (white, untextured, unlit).
+        val attrBuffer: IntArray = IntArray(MAX_CASTERS * 3)
+        val attrOffset: LongArray = LongArray(MAX_CASTERS * 3)
+        val attrVersion: IntArray = IntArray(MAX_CASTERS * 3)
+        val attrSize: IntArray = IntArray(MAX_CASTERS * 3)
+        val attrType: IntArray = IntArray(MAX_CASTERS * 3)
+        val attrStride: IntArray = IntArray(MAX_CASTERS * 3)
+        val attrNormalized: BooleanArray = BooleanArray(MAX_CASTERS * 3)
+        val texture: IntArray = IntArray(MAX_CASTERS)
+        val lit: BooleanArray = BooleanArray(MAX_CASTERS)
+        // a retained model's own emulated draw (its translucent parts): the reflection has it already
+        val retained: BooleanArray = BooleanArray(MAX_CASTERS)
     }
 
     // the opaque entities of this frame; the translucent ones (drawn after the map is made: players
@@ -577,7 +598,8 @@ class HdShadows {
         if (HdSettings.shadows != 0 && sunPresent) {
             beginSun(player.x.toFloat(), player.y.toFloat(), player.z.toFloat(), viewToWorld, sunEye)
         }
-        recording = sun.active || heights.active
+        // recorded for the water's reflection too (HdReflections replays the casters in colour)
+        recording = sun.active || heights.active || (HdSettings.reflections && HdSettings.water != 0)
         if (recording) {
             ensurePrograms()
         }
@@ -692,7 +714,7 @@ class HdShadows {
     }
 
     /** As [record], for indices in client memory at [address] ([bytes] long): they are copied. */
-    fun recordIndices(vertexBuffer: Int, size: Int, type: Int, stride: Int, offset: Long, address: Long, bytes: Int, count: Int, elementType: Int, modelView: FloatArray) {
+    fun recordIndices(vertexBuffer: Int, size: Int, type: Int, stride: Int, offset: Long, address: Long, bytes: Int, count: Int, elementType: Int, modelView: FloatArray, state: GlState? = null) {
         val list: Casters = if (lateMode) late else casters
         if (list.count >= MAX_CASTERS || vertexBuffer == 0) return
         if (list.indices.remaining() < bytes) {
@@ -786,15 +808,38 @@ class HdShadows {
                 GL33C.glBufferData(GL33C.GL_COPY_WRITE_BUFFER, COPY_CAPACITY, GL33C.GL_STREAM_COPY)
             }
             GL33C.glBindBuffer(GL33C.GL_COPY_WRITE_BUFFER, list.copyBuffer)
+            var copiedFrom: Long = -1L
+            var copiedTo: Long = 0L
             if (list.vertexBuffer[i] == buffer) {
-                val bytes: Long = bufferBytes - list.offset[i]
+                // from the lowest of the position's and its attributes' offsets in this buffer, so the
+                // attributes come along (634HD reflections)
+                var from: Long = list.offset[i]
+                for (k in 0 until 3) {
+                    val at3: Int = i * 3 + k
+                    if (list.attrBuffer[at3] == buffer && list.attrOffset[at3] < from) from = list.attrOffset[at3]
+                }
+                val bytes: Long = bufferBytes - from
                 val at: Long = (list.copyUsed + 255L) and 255L.inv()
                 if (bytes > 0L && bytes <= MAX_COPY && at + bytes <= COPY_CAPACITY) {
-                    GL33C.glCopyBufferSubData(GL33C.GL_COPY_READ_BUFFER, GL33C.GL_COPY_WRITE_BUFFER, list.offset[i], at, bytes)
+                    GL33C.glCopyBufferSubData(GL33C.GL_COPY_READ_BUFFER, GL33C.GL_COPY_WRITE_BUFFER, from, at, bytes)
                     list.copyUsed = at + bytes
                     list.vertexBuffer[i] = list.copyBuffer
-                    list.offset[i] = at
+                    list.offset[i] = at + (list.offset[i] - from)
                     list.vertexVersion[i] = 0
+                    copiedFrom = from
+                    copiedTo = at
+                }
+            }
+            for (k in 0 until 3) {
+                val at3: Int = i * 3 + k
+                if (list.attrBuffer[at3] != buffer) continue
+                if (copiedFrom >= 0L) {
+                    list.attrBuffer[at3] = list.copyBuffer
+                    list.attrOffset[at3] = copiedTo + (list.attrOffset[at3] - copiedFrom)
+                    list.attrVersion[at3] = 0
+                } else {
+                    // its buffer rewritten, the position's not copied: the attribute is lost
+                    list.attrBuffer[at3] = 0
                 }
             }
             if (list.elementBuffer[i] == buffer) {
@@ -811,12 +856,14 @@ class HdShadows {
         }
     }
 
-    /** Called by HdGl for an indexed triangle draw while [recording]. */
-    fun record(vertexBuffer: Int, size: Int, type: Int, stride: Int, offset: Long, elementBuffer: Int, count: Int, elementType: Int, elementOffset: Long, modelView: FloatArray) {
+    /** Called by HdGl for an indexed triangle draw while [recording]; [state] for the draw's other attributes. */
+    fun record(vertexBuffer: Int, size: Int, type: Int, stride: Int, offset: Long, elementBuffer: Int, count: Int, elementType: Int, elementOffset: Long, modelView: FloatArray, state: GlState? = null) {
         if (PARTS.contains("norecord")) return
         val list: Casters = if (lateMode) late else casters
         if (list.count >= MAX_CASTERS || vertexBuffer == 0 || elementBuffer == 0) return
         val i: Int = list.count++
+        recordAttributes(list, i, vertexBuffer, offset, state)
+        recordAttributes(list, i, vertexBuffer, offset, state)
         list.vertexBuffer[i] = vertexBuffer
         list.size[i] = size
         list.type[i] = type
@@ -846,6 +893,112 @@ class HdShadows {
         val player = PlayerUpdate.localPlayer
         list.atPlayer[i] = player != null && kotlin.math.abs(list.modelView[at + 12] - player.x) < 48.0f && kotlin.math.abs(list.modelView[at + 14] - player.z) < 48.0f
     }
+
+    /** The draw's colour (0), texture coordinate (1) and normal (2) attributes, for the reflection. */
+    private fun recordAttributes(list: Casters, i: Int, vertexBuffer: Int, offset: Long, state: GlState?) {
+        val attribs: IntArray = intArrayOf(ATTRIB_COLOR, ATTRIB_TEXCOORD0, ATTRIB_NORMAL)
+        for (k in 0 until 3) {
+            val at: Int = i * 3 + k
+            list.attrBuffer[at] = 0
+            if (state == null) continue
+            val p: ClientArrayPointer = state.clientArrays[attribs[k]]
+            val source = p.sourceBuffer
+            if (!p.enabled || source == null) continue
+            list.attrBuffer[at] = source.id
+            list.attrOffset[at] = p.offset
+            list.attrVersion[at] = HdGl.bufferVersion(source.id)
+            if (source.id != vertexBuffer) reference(source.id, list, i)
+            list.attrSize[at] = p.size
+            list.attrType[at] = p.type
+            list.attrStride[at] = p.stride
+            list.attrNormalized[at] = p.normalized || p.type == GL33C.GL_UNSIGNED_BYTE
+        }
+        val bound = if (state != null && state.texturingEnabled[0]) state.boundTexture2D[0] else null
+        list.texture[i] = bound?.id ?: 0
+        list.lit[i] = state != null && state.lightingEnabled
+        list.retained[i] = state != null && state.hdRetainedDraw
+    }
+
+    /**
+     * 634HD reflections: this frame's opaque casters and last frame's translucent ones drawn again in
+     * colour with [program] (reflect_dynamic.vert: uMatrix world to clip through the mirror times the
+     * model's world matrix, uModelView the eye's, uModelWorld, uTextured, the texture on [textureUnit]).
+     */
+    fun drawReflected(program: WebGLProgram, worldToClip: FloatArray, view: FloatArray, textureUnit: Int, which: Int = 0) {
+        if (vao == 0) ensurePrograms()
+        GL33C.glBindVertexArray(vao)
+        val uMatrix: Int = GL33C.glGetUniformLocation(program.id, "uMatrix")
+        val uModelView: Int = GL33C.glGetUniformLocation(program.id, "uModelView")
+        val uModelWorld: Int = GL33C.glGetUniformLocation(program.id, "uModelWorld")
+        val uTextured: Int = GL33C.glGetUniformLocation(program.id, "uTextured")
+        val uLit: Int = GL33C.glGetUniformLocation(program.id, "uLit")
+        GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uTexture"), textureUnit)
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + textureUnit)
+        // this frame's opaque casters and last frame's translucent ones (players are drawn translucent);
+        // not a retained model's own emulated draws (tree canopies): the reflection has them already
+        var drawn: Int = 0
+        var atPlayerDrawn: Int = 0
+        var skippedStale: Int = 0
+        var skippedRetained: Int = 0
+        var skippedIndices: Int = 0
+        var noColour: Int = 0
+        for (list in arrayOf(casters, previous)) {
+            if (list.count == 0) continue
+            if ((which == 1 && list !== casters) || (which == 2 && list !== previous)) continue
+            if (list.indices.position() > 0 && list.indexBuffer == 0) { skippedIndices += list.count; continue }
+            for (i in 0 until list.count) {
+                if (list.retained[i]) { skippedRetained++; continue }
+                if (stale(list.vertexBuffer[i], list.vertexVersion[i]) || (list.elementBuffer[i] > 0 && stale(list.elementBuffer[i], list.elementVersion[i]))) { skippedStale++; continue }
+                drawn++
+                if (list.atPlayer[i]) atPlayerDrawn++
+                if (System.getProperty("client.test.hdDebug") != null && (reflectDebugFrame % 60) == 0 && list.atPlayer[i]) {
+                    println("HDDEBUG reflected player caster: list " + (if (list === casters) "now" else "late") + " at " + list.modelView[i * 16 + 12] + "," + list.modelView[i * 16 + 13] + "," + list.modelView[i * 16 + 14] + " elements " + list.elements[i] + " texture " + list.texture[i] + " lit " + list.lit[i] + " y-scale " + list.modelView[i * 16 + 5])
+                }
+                if (false && stale(list.vertexBuffer[i], list.vertexVersion[i]) || (list.elementBuffer[i] > 0 && stale(list.elementBuffer[i], list.elementVersion[i]))) continue
+                if (list.elementBuffer[i] == -1 && list.indexBuffer == 0) continue
+                for (k in 0 until 16) matrix[k] = list.modelView[i * 16 + k]
+                matrixBuffer.clear()
+                matrixBuffer.put(Mat4.multiply(worldToClip, matrix)).flip()
+                GL33C.glUniformMatrix4fv(uMatrix, false, matrixBuffer)
+                matrixBuffer.clear()
+                matrixBuffer.put(Mat4.multiply(view, matrix)).flip()
+                GL33C.glUniformMatrix4fv(uModelView, false, matrixBuffer)
+                matrixBuffer.clear()
+                matrixBuffer.put(matrix).flip()
+                GL33C.glUniformMatrix4fv(uModelWorld, false, matrixBuffer)
+                GL33C.glBindBuffer(GL33C.GL_ARRAY_BUFFER, list.vertexBuffer[i])
+                GL33C.glVertexAttribPointer(0, list.size[i], list.type[i], false, list.stride[i], list.offset[i])
+                val have: BooleanArray = BooleanArray(3)
+                for (k in 0 until 3) {
+                    val at: Int = i * 3 + k
+                    have[k] = list.attrBuffer[at] != 0 && !stale(list.attrBuffer[at], list.attrVersion[at])
+                    if (!have[k]) {
+                        GL33C.glDisableVertexAttribArray(1 + k)
+                        if (k == 0) GL33C.glVertexAttrib4f(1, 1.0f, 1.0f, 1.0f, 1.0f)
+                        if (k == 2) GL33C.glVertexAttrib3f(3, 0.0f, -1.0f, 0.0f)
+                    } else {
+                        GL33C.glEnableVertexAttribArray(1 + k)
+                        GL33C.glBindBuffer(GL33C.GL_ARRAY_BUFFER, list.attrBuffer[at])
+                        GL33C.glVertexAttribPointer(1 + k, list.attrSize[at], list.attrType[at], list.attrNormalized[at], list.attrStride[at], list.attrOffset[at])
+                    }
+                }
+                if (!have[0]) noColour++
+                val textured: Boolean = list.texture[i] != 0 && have[1]
+                GL33C.glUniform1i(uTextured, if (textured) 1 else 0)
+                GL33C.glUniform1i(uLit, if (list.lit[i] && have[2]) 1 else 0)
+                if (textured) GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, list.texture[i])
+                GL33C.glBindBuffer(GL33C.GL_ELEMENT_ARRAY_BUFFER, if (list.elementBuffer[i] == -1) list.indexBuffer else list.elementBuffer[i])
+                GL33C.glDrawElements(GL33C.GL_TRIANGLES, list.elements[i], list.elementType[i], list.elementOffset[i])
+            }
+        }
+        for (k in 1 until 4) GL33C.glDisableVertexAttribArray(k)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, 0)
+        if (System.getProperty("client.test.hdDebug") != null && (reflectDebugFrame++ % 60) == 0) {
+            println("HDDEBUG reflection dynamic: now " + casters.count + " late " + previous.count + " drawn " + drawn + " (player " + atPlayerDrawn + ") stale " + skippedStale + " retained " + skippedRetained + " no-indices " + skippedIndices + " without colour " + noColour)
+        }
+    }
+
+    private var reflectDebugFrame: Int = 0
 
     /** Draws [list]'s casters from [from] on; their copied indices go up first (all of them, each time). */
     private fun drawCasters(list: Casters, from: Int, map: DepthMap, upload: Boolean) {
@@ -956,7 +1109,10 @@ class HdShadows {
         val first: Boolean = !rendered
         rendered = true
         if (!sun.active && !heights.active) {
-            recording = false
+            // without a map, only the reflection's recording goes on: what is drawn from here on (the
+            // translucent entities) is reflected next frame
+            recording = HdSettings.reflections && HdSettings.water != 0
+            lateMode = true
             lastCasters = 0
             return
         }

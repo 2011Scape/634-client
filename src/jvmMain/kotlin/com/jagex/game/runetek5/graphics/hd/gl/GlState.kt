@@ -85,6 +85,9 @@ class GlState(val gl: WebGL2RenderingContext) {
     /** 634HD: the game's blob shadows drawn only where the ground is under water (HdGround, with sun shadows). */
     var hdBlobWater: Int = 0
 
+    /** 634HD: set while a retained model draws the emulated way (its translucent parts): not a dynamic model (HdShadows.record). */
+    var hdRetainedDraw: Boolean = false
+
     /** 634HD: the viewport the water's reflection (HdReflections, unit 26) was drawn for; z 0 when there is none. */
     val hdReflection: FloatArray = FloatArray(4)
 
