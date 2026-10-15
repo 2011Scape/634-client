@@ -77,7 +77,58 @@ layout(std140) uniform HdFrame {
     vec4 hdDayNight;
     // the moon's world direction (xyz) and the night: w 0 by day, 1 at night (stars, the moon's disc)
     vec4 hdMoon;
+    // the composite's exposure before the tonemap's curve (x; the curve is hdFlags.y: 1 ACES, 2 AgX)
+    vec4 hdTonemap;
 };
+
+// The inverse of the composite's tonemap (post_composite.frag): the linear value that, after the
+// exposure, the curve and the sRGB encode, shows as the sRGB [display] colour. Water draws (ff.frag)
+// use it to show as the game shows them: the curve adds contrast to a surface made for plain sRGB
+// (its net's ridges went white, its blue deep). Clamped at 0.76 (a white ridge shows at about 0.87),
+// so the ridges feed the bloom about as the game's do, not as the bright values the inverse gives.
+vec3 hdAcesInverse(vec3 y) {
+    // Narkowicz's fit solved for x: (2.51 - 2.43y) x^2 + (0.03 - 0.59y) x - 0.14y = 0
+    vec3 a = 2.51 - 2.43 * y;
+    vec3 b = 0.03 - 0.59 * y;
+    vec3 c = -0.14 * y;
+    return (-b + sqrt(max(b * b - 4.0 * a * c, vec3(0.0)))) / (2.0 * a);
+}
+
+float hdAgxSigmoid(float x) {
+    float x2 = x * x;
+    float x4 = x2 * x2;
+    return 15.5 * x4 * x2 - 40.14 * x4 * x + 31.96 * x4 - 6.868 * x2 * x + 0.4298 * x2 + 0.1191 * x - 0.00232;
+}
+
+vec3 hdAgxInverse(vec3 display) {
+    // the composite's steps backwards: the saturation (grey kept), the outset matrix, the sigmoid (by
+    // bisection), the log2 encoding, the inset matrix
+    const mat3 inset = mat3(0.842479, 0.0784336, 0.0792237, 0.0423303, 0.878468, 0.0791661, 0.0423756, 0.0784336, 0.879142);
+    const mat3 outset = mat3(1.19688, -0.0980209, -0.0990297, -0.0528969, 1.15190, -0.0989612, -0.0529716, -0.0980435, 1.15107);
+    vec3 c = pow(max(display, vec3(0.0)), vec3(2.2));
+    float grey = dot(c, vec3(0.2126, 0.7152, 0.0722));
+    c = grey + (c - grey) / 1.12;
+    c = pow(max(c, vec3(0.0)), vec3(1.0 / 2.2));
+    c = inset * c;
+    vec3 encoded;
+    for (int i = 0; i < 3; i++) {
+        float lo = 0.0;
+        float hi = 1.0;
+        for (int k = 0; k < 16; k++) {
+            float mid = 0.5 * (lo + hi);
+            if (hdAgxSigmoid(mid) < c[i]) lo = mid; else hi = mid;
+        }
+        encoded[i] = 0.5 * (lo + hi);
+    }
+    vec3 x = exp2(encoded * 16.5 - 12.47393);
+    return outset * x;
+}
+
+vec3 hdTonemapInverse(vec3 display) {
+    vec3 target = clamp(display, vec3(0.0), vec3(0.999));
+    vec3 x = hdFlags.y == 2 ? hdAgxInverse(target) : hdAcesInverse(pow(target, vec3(2.2)));
+    return min(x, vec3(0.76)) / max(hdTonemap.x, 0.01);
+}
 
 // 1 for a draw that belongs to the 3D view, 0 for the interface and everything else.
 uniform int uHdScene;

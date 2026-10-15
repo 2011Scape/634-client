@@ -336,5 +336,7 @@ void main() {
     if (uFogEnabled) {
         color = hdFog(color, FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd);
     }
+    // a water draw shows as the game shows it, whatever the tonemap (hd_lib.glsl hdTonemapInverse)
+    if (uHdWater != 0 && hdOn(HD_LINEAR)) color.rgb = hdTonemapInverse(hdToSrgb(color.rgb));
     fragColor = hdDebugOverlay(color, FF_VIEW_POS, FF_NORMAL, uUseTexture[0] ? uHdTexture : -1);
 }

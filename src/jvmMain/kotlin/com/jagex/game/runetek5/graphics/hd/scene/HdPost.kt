@@ -35,6 +35,9 @@ class HdPost {
 
         private const val EXPOSURE_ACES: Float = 0.95f
         private const val EXPOSURE_AGX: Float = 1.05f
+
+        /** The exposure the composite applies before the tonemap's curve (HdSettings.tonemap). */
+        fun exposure(): Float = if (HdSettings.tonemap == 2) EXPOSURE_AGX else EXPOSURE_ACES
         private const val BLOOM_THRESHOLD: Float = 0.75f
         private const val BLOOM_STRENGTH: Float = 0.35f
     }
@@ -235,7 +238,7 @@ class HdPost {
         GL33C.glUniform1i(use(compositeProgram, "uLutOn"), if (HdSettings.colourGrading) 1 else 0)
         GL33C.glUniform1f(use(compositeProgram, "uLutSize"), (if (gradingTexture != 0) gradingSize else LUT_SIZE).toFloat())
         GL33C.glUniform1i(use(compositeProgram, "uDither"), if (HdSettings.dither) 1 else 0)
-        GL33C.glUniform1f(use(compositeProgram, "uExposure"), if (HdSettings.tonemap == 2) EXPOSURE_AGX else EXPOSURE_ACES)
+        GL33C.glUniform1f(use(compositeProgram, "uExposure"), exposure())
         GL33C.glUniform1i(use(compositeProgram, "uFrame"), frame)
         bindTexture(UNIT_A, scene)
         bindTexture(UNIT_B, bloomTexture)

@@ -65,7 +65,8 @@ class HdFrameUniforms {
         private const val ACTORS: Int = ACTOR_INFO + 16
         private const val DAY_NIGHT: Int = ACTORS + MAX_ACTORS * 16
         private const val MOON: Int = DAY_NIGHT + 16
-        const val SIZE: Int = MOON + 16
+        private const val TONEMAP: Int = MOON + 16
+        const val SIZE: Int = TONEMAP + 16
     }
 
     private var buffer: Int = 0
@@ -150,6 +151,9 @@ class HdFrameUniforms {
     fun setWater(r: Float, g: Float, b: Float, strength: Float) = putVec4(WATER, r, g, b, strength)
 
     /** Day and night: the sun's or moon's eye-space direction replacing light 0 ([on]), the moon's world direction and the night (0 to 1). */
+    /** The composite's exposure before the tonemap's curve (hdFlags.y): water draws undo both (ff.frag). */
+    fun setTonemap(exposure: Float) = putVec4(TONEMAP, exposure, 0.0f, 0.0f, 0.0f)
+
     fun setDayNight(x: Float, y: Float, z: Float, on: Boolean, moonX: Float, moonY: Float, moonZ: Float, night: Float) {
         putVec4(DAY_NIGHT, x, y, z, if (on) 1.0f else 0.0f)
         putVec4(MOON, moonX, moonY, moonZ, night)
