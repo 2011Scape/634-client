@@ -72,6 +72,13 @@ void main() {
                     lightDir = toLight / max(dist, 0.0001);
                     vec3 k = uLightAttenuation[i];
                     atten = 1.0 / max(k.x + k.y * dist + k.z * dist * dist, 0.0001);
+                    // 634HD: the game's point lights attenuate as 1 / (d / radius)^2 alone (HdToolkit
+                    // copyLights: no constant or linear term), so a vertex at the light itself - a
+                    // lantern's own flame - gets a light of thousands. Fixed-function lighting clamped
+                    // the lit colour at 1; in linear colour the lit colour is kept over 1 for the
+                    // tonemapper (below), so a point light is capped at its own brightness instead:
+                    // the flame reached the half-float ceiling and bloomed into a blob the size of the bank.
+                    if (hdOn(HD_LINEAR)) atten = min(atten, 1.0);
                 }
                 float diff = max(dot(rawEyeNormal, lightDir), 0.0);
                 lit += (uLightAmbient[i] + hdEnvDiffuse(uLightDiffuse[i], i) * diff) * atten;
