@@ -84,6 +84,9 @@ class HdDebugPanel(private val content: HdContent) {
     var overlay: Int = System.getProperty("client.test.hdOverlay")?.toIntOrNull() ?: 0
 
     private var frame: JFrame? = null
+
+    /** The 4 Hz refresh of the stats, stopped with the window. */
+    private var refreshTimer: Timer? = null
     private val labels = HashMap<String, JLabel>()
     private val featureBoxes = ArrayList<Pair<String, javax.swing.JComponent>>()
     private var shownEnvironment: HdContent.EnvironmentDef? = null
@@ -101,6 +104,8 @@ class HdDebugPanel(private val content: HdContent) {
     /** Closes and frees the window: the toolkit it shows is stopping. */
     fun dispose() {
         SwingUtilities.invokeLater {
+            refreshTimer?.stop()
+            refreshTimer = null
             frame?.dispose()
             frame = null
         }
@@ -144,7 +149,9 @@ class HdDebugPanel(private val content: HdContent) {
         window.pack()
         window.setLocation(40, 40)
         frame = window
-        Timer(250) { refresh() }.start()
+        val refreshTimer: Timer = Timer(250) { refresh() }
+        this.refreshTimer = refreshTimer
+        refreshTimer.start()
         // client.test.hdPanelShot=<file.png>: the panel's tabs painted into an image after a few seconds (testing)
         val shot: String? = System.getProperty("client.test.hdPanelShot")
         if (shot != null) {
