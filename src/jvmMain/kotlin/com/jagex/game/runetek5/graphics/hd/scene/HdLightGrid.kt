@@ -103,6 +103,15 @@ class HdLightGrid {
     private val seedStale: BooleanArray = BooleanArray(MAX_SEEDS)
     private var partial: Boolean = false
 
+    // per level, the texel bounds the deposits touched (the blur and the debug map cover only these)
+    private val litMinX: IntArray = IntArray(LEVELS)
+    private val litMinZ: IntArray = IntArray(LEVELS)
+    private val litMaxX: IntArray = IntArray(LEVELS)
+    private val litMaxZ: IntArray = IntArray(LEVELS)
+    private var floodNanos: Long = 0L
+    private var blurNanos: Long = 0L
+    private var uploadNanos: Long = 0L
+
     // the grid: per level, width x height texels of r, g, b, floor y
     private var size: Int = 0
     private var width: Int = 0
@@ -176,6 +185,9 @@ class HdLightGrid {
 
     private fun rebuild(lights: HdLights, uniforms: HdFrameUniforms) {
         val started: Long = System.nanoTime()
+        floodNanos = 0L
+        blurNanos = 0L
+        uploadNanos = 0L
         size = MapRegion.sceneSizeX
         if (size <= 0) return
         width = size * TEXELS_PER_TILE
@@ -195,15 +207,18 @@ class HdLightGrid {
         } else {
             java.util.Arrays.fill(patches, 0.toByte())
         }
+        val flooding: Long = System.nanoTime()
         for (s in 0 until seedCount) {
             seedStale[s] = false
             cacheFlood(s)
         }
         accumulate()
+        floodNanos = System.nanoTime() - flooding
         blur()
         writeFloors()
         upload()
         builds++
+        val totalMs: Double = ((System.nanoTime() - started) / 100000L) / 10.0
         if (DEBUG) {
             val summary: StringBuilder = StringBuilder()
             val texels: Int = width * width
@@ -236,7 +251,8 @@ class HdLightGrid {
                     }
                 }
             }
-            println("HDDEBUG light grid built: " + seedCount + " seeds (" + locs + " locs), " + size + " tiles, " + patchLayers + " patches, " + ((System.nanoTime() - started) / 100000L) / 10.0 + " ms;" + summary)
+            println("HDDEBUG light grid built: " + seedCount + " seeds (" + locs + " locs), " + size + " tiles, " + patchLayers + " patches, " + totalMs + " ms (flood " + floodNanos / 100000L / 10.0 + ", blur " + blurNanos / 100000L / 10.0 + ", upload " + uploadNanos / 100000L / 10.0 + ");" + summary)
+            tileMap()
         }
     }
 
@@ -327,8 +343,9 @@ class HdLightGrid {
         accumulate()
         blur()
         upload()
+        val totalMs: Double = ((System.nanoTime() - started) / 100000L) / 10.0
         if (DEBUG) {
-            println("HDDEBUG light grid refreshed: " + flooded + " seeds flooded again, " + ((System.nanoTime() - started) / 100000L) / 10.0 + " ms")
+            println("HDDEBUG light grid refreshed: " + flooded + " seeds flooded again, " + totalMs + " ms (blur " + blurNanos / 100000L / 10.0 + ", upload " + uploadNanos / 100000L / 10.0 + ")")
         }
     }
 
@@ -350,6 +367,12 @@ class HdLightGrid {
 
     /** Every seed's fill into the (cleared) grid and its visibility patch, from the cached floods. */
     private fun accumulate() {
+        for (level in 0 until LEVELS) {
+            litMinX[level] = width
+            litMinZ[level] = width
+            litMaxX[level] = -1
+            litMaxZ[level] = -1
+        }
         java.util.Arrays.fill(patches, 0.toByte())
         java.util.Arrays.fill(patches, 0, PATCH * PATCH, (-1).toByte())
         for (s in 0 until seedCount) {
@@ -454,6 +477,10 @@ class HdLightGrid {
                 if (tx < 0 || tz < 0 || tx >= size || tz >= size) continue
                 if (d < reach) {
                     val e: Float = 1.0f - d / reach
+                    if (tx * TEXELS_PER_TILE < litMinX[level]) litMinX[level] = tx * TEXELS_PER_TILE
+                    if (tz * TEXELS_PER_TILE < litMinZ[level]) litMinZ[level] = tz * TEXELS_PER_TILE
+                    if (tx * TEXELS_PER_TILE + TEXELS_PER_TILE - 1 > litMaxX[level]) litMaxX[level] = tx * TEXELS_PER_TILE + TEXELS_PER_TILE - 1
+                    if (tz * TEXELS_PER_TILE + TEXELS_PER_TILE - 1 > litMaxZ[level]) litMaxZ[level] = tz * TEXELS_PER_TILE + TEXELS_PER_TILE - 1
                     for (sz in 0 until TEXELS_PER_TILE) {
                         for (sx in 0 until TEXELS_PER_TILE) {
                             val at: Int = layerAt + ((tz * TEXELS_PER_TILE + sz) * width + tx * TEXELS_PER_TILE + sx) * 4
@@ -533,14 +560,22 @@ class HdLightGrid {
 
     /** One 3x3 pass over the fill, in place per level, never averaging across a closed wall. */
     private fun blur() {
+        val started: Long = System.nanoTime()
         val texels: Int = width * width
-        val source: FloatArray = FloatArray(texels * 4)
+        if (blurSource.size != texels * 4) blurSource = FloatArray(texels * 4)
+        val source: FloatArray = blurSource
         for (level in 0 until LEVELS) {
+            if (litMaxX[level] < 0) continue
             val layerAt: Int = level * texels * 4
             System.arraycopy(fill, layerAt, source, 0, texels * 4)
             val map: CollisionMap? = MapRegion.aClass104Array3[level]
-            for (z in 0 until width) {
-                for (x in 0 until width) {
+            // only where something was deposited (and one texel round it): most of a scene is unlit
+            val x0: Int = maxOf(0, litMinX[level] - 1)
+            val z0: Int = maxOf(0, litMinZ[level] - 1)
+            val x1: Int = minOf(width - 1, litMaxX[level] + 1)
+            val z1: Int = minOf(width - 1, litMaxZ[level] + 1)
+            for (z in z0..z1) {
+                for (x in x0..x1) {
                     var r: Float = 0.0f
                     var g: Float = 0.0f
                     var b: Float = 0.0f
@@ -578,6 +613,42 @@ class HdLightGrid {
                 }
             }
         }
+        blurNanos = System.nanoTime() - started
+    }
+
+    private var blurSource: FloatArray = FloatArray(0)
+
+    /** client.test.hdDebug: the fill of level 0 round the player as a tile map ('#' strong, '+' some, '.' faint, ' ' none, 'P' the player). */
+    private fun tileMap() {
+        val player = com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate.localPlayer ?: return
+        val px: Int = player.x shr 9
+        val pz: Int = player.z shr 9
+        val level: Int = player.level.toInt().coerceIn(0, LEVELS - 1)
+        val texels: Int = width * width
+        println("HDDEBUG light grid level " + level + " round the player (" + px + "," + pz + "), north up, one char a tile:")
+        for (tz in pz + 10 downTo pz - 10) {
+            val line: StringBuilder = StringBuilder()
+            for (tx in px - 10..px + 10) {
+                if (tx < 0 || tz < 0 || tx >= size || tz >= size) {
+                    line.append('?')
+                    continue
+                }
+                if (tx == px && tz == pz) {
+                    line.append('P')
+                    continue
+                }
+                var e: Float = 0.0f
+                for (sz in 0 until TEXELS_PER_TILE) {
+                    for (sx in 0 until TEXELS_PER_TILE) {
+                        val at: Int = level * texels * 4 + ((tz * TEXELS_PER_TILE + sz) * width + tx * TEXELS_PER_TILE + sx) * 4
+                        e += fill[at] + fill[at + 1] + fill[at + 2]
+                    }
+                }
+                e /= (TEXELS_PER_TILE * TEXELS_PER_TILE).toFloat()
+                line.append(if (e > 0.6f) '#' else if (e > 0.15f) '+' else if (e > 0.01f) '.' else ' ')
+            }
+            println("HDDEBUG |" + line + "|")
+        }
     }
 
     /**
@@ -606,6 +677,7 @@ class HdLightGrid {
     }
 
     private fun upload() {
+        val started: Long = System.nanoTime()
         val previous: Int = HdGl.state.activeTextureUnit
         val data: ByteBuffer = pixels!!
         data.clear()
@@ -644,6 +716,7 @@ class HdLightGrid {
         }
         GL33C.glPixelStorei(GL33C.GL_UNPACK_ALIGNMENT, 4)
         GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + previous)
+        uploadNanos = System.nanoTime() - started
     }
 
     /** Binds both textures on their units (the emulator tracks the active unit, so it is put back). */
