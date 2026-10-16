@@ -439,8 +439,11 @@ vec4 hdAddPointLights(vec4 color, vec4 base, vec3 viewPos, vec3 normal) {
         if (normalLength > 0.0001) world += mat3(hdViewToWorld) * (normal / normalLength) * 128.0;
         light += hdLightFill(world);
     }
-    // not clamped: the texture multiplies it next, and a lit stone wall is near white already
-    return vec4(color.rgb + base.rgb * light, color.a);
+    vec3 lit = color.rgb + base.rgb * light;
+    // in linear colour no further than the lit colour's ceiling (hdLitColour): the fill and the point
+    // lights together must not push the view past what the game's light may reach
+    if (hdOn(HD_LINEAR)) lit = min(lit, hdToLinear(vec3(HD_LIT_MAX)));
+    return vec4(lit, color.a);
 }
 
 // How much of the sun reaches a fragment at eye-space [viewPos] (HD_SHADOWS): 1 in the open, 0 in

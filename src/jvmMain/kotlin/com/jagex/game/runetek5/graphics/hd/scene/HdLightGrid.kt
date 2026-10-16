@@ -625,16 +625,46 @@ class HdLightGrid {
         val pz: Int = player.z shr 9
         val level: Int = player.level.toInt().coerceIn(0, LEVELS - 1)
         val texels: Int = width * width
-        println("HDDEBUG light grid level " + level + " round the player (" + px + "," + pz + "), north up, one char a tile:")
-        for (tz in pz + 10 downTo pz - 10) {
+        // the player's room: the tiles reached from the player's through edges open to a projectile
+        // (the same rule the flood uses), within the window; a breadth-first walk
+        val half: Int = 14
+        val span: Int = 2 * half + 1
+        val inside: BooleanArray = BooleanArray(span * span)
+        val map: CollisionMap? = MapRegion.aClass104Array3[clipLevel(level, px, pz)]
+        if (map != null) {
+            val queue: IntArray = IntArray(span * span)
+            var head: Int = 0
+            var tail: Int = 0
+            inside[half * span + half] = true
+            queue[tail++] = half * span + half
+            while (head < tail) {
+                val cell: Int = queue[head++]
+                val cx: Int = cell % span
+                val cz: Int = cell / span
+                for (dir in 0 until 4) {
+                    val nx: Int = cx + (if (dir == 0) 1 else if (dir == 1) -1 else 0)
+                    val nz: Int = cz + (if (dir == 2) 1 else if (dir == 3) -1 else 0)
+                    if (nx < 0 || nz < 0 || nx >= span || nz >= span) continue
+                    val next: Int = nz * span + nx
+                    if (inside[next]) continue
+                    if (!open(map, px - half + cx, pz - half + cz, px - half + nx, pz - half + nz)) continue
+                    inside[next] = true
+                    queue[tail++] = next
+                }
+            }
+        }
+        var roomTiles: Int = 0
+        var roomLit: Int = 0
+        var outsideTiles: Int = 0
+        var outsideLit: Int = 0
+        var outsideSolidLit: Int = 0
+        var leaks: Int = 0
+        println("HDDEBUG light grid level " + level + " round the player (" + px + "," + pz + "), north up, one char a tile ('#' strong, '+' some, '.' faint, ' ' none; lower case: outside the player's room):")
+        for (tz in pz + half downTo pz - half) {
             val line: StringBuilder = StringBuilder()
-            for (tx in px - 10..px + 10) {
+            for (tx in px - half..px + half) {
                 if (tx < 0 || tz < 0 || tx >= size || tz >= size) {
                     line.append('?')
-                    continue
-                }
-                if (tx == px && tz == pz) {
-                    line.append('P')
                     continue
                 }
                 var e: Float = 0.0f
@@ -645,10 +675,40 @@ class HdLightGrid {
                     }
                 }
                 e /= (TEXELS_PER_TILE * TEXELS_PER_TILE).toFloat()
-                line.append(if (e > 0.6f) '#' else if (e > 0.15f) '+' else if (e > 0.01f) '.' else ' ')
+                val room: Boolean = inside[(tz - pz + half) * span + (tx - px + half)]
+                if (room) {
+                    roomTiles++
+                    if (e > 0.01f) roomLit++
+                } else {
+                    outsideTiles++
+                    if (e > 0.01f) {
+                        outsideLit++
+                        val solid: Boolean = map != null && (flags(map, tx, tz) and LOS_SOLID) != 0
+                        if (solid) {
+                            outsideSolidLit++
+                        } else {
+                            // a lit open tile next to the room across a closed edge: light through a wall
+                            val wx: Int = tx - px + half
+                            val wz: Int = tz - pz + half
+                            var touchesRoom: Boolean = false
+                            if (wx > 0 && inside[wz * span + wx - 1]) touchesRoom = true
+                            if (wx < span - 1 && inside[wz * span + wx + 1]) touchesRoom = true
+                            if (wz > 0 && inside[(wz - 1) * span + wx]) touchesRoom = true
+                            if (wz < span - 1 && inside[(wz + 1) * span + wx]) touchesRoom = true
+                            if (touchesRoom) leaks++
+                        }
+                    }
+                }
+                if (tx == px && tz == pz) {
+                    line.append('P')
+                    continue
+                }
+                val c: Char = if (e > 0.6f) '#' else if (e > 0.15f) '+' else if (e > 0.01f) '.' else ' '
+                line.append(if (room) c else if (c == '#') 'x' else if (c == '+') 'o' else if (c == '.') ',' else '_')
             }
             println("HDDEBUG |" + line + "|")
         }
+        println("HDDEBUG light grid: the player's room has " + roomTiles + " tiles in the window, " + roomLit + " of them lit; outside it " + outsideTiles + " tiles, " + outsideLit + " lit, of which " + outsideSolidLit + " are solid locs (booths, stalls) and " + leaks + " are open tiles next to the room across a wall (light through a wall)")
     }
 
     /**
