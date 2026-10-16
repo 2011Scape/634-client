@@ -12,7 +12,7 @@ import kotlin.jvm.JvmStatic
 
 /**
  * Not part of the original client: 634HD's settings panel, a window the client draws over the
- * interfaces, opened from the "Settings" button beside the 634HD toggle in Graphics Options
+ * interfaces, opened from the "634HD Settings" button beside the 634HD toggle in Graphics Options
  * (HdOptionsButton) or with ::hdsettings. A row of presets (Off, Low, Medium, High, Ultra) and a row
  * per switch of HdSettings; a click on a row moves it to its next value. Every change applies at
  * once and is saved (HdSettings.save), so the next start begins with it. Desktop only.
