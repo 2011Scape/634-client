@@ -202,7 +202,8 @@ object HdSettings {
 
 	init {
 		var given: Boolean = false
-		for (name in NAMES) {
+		for (i in 0 until NAMES.size + CLIENT_SAVED.size) {
+			val name: String = if (i < NAMES.size) NAMES[i] else CLIENT_SAVED[i - NAMES.size]
 			val value: String? = lang.getProperty("client.hd." + name)
 			if (value != null) {
 				given = true
@@ -261,19 +262,31 @@ object HdSettings {
 		return null
 	}
 
+	// the last answer of currentPreset and the version it was for (the panel asks every frame)
+	private var presetFor: Int = -1
+	private var preset: String? = null
+
 	/** The preset the switches match now, or null when they have been changed one by one. */
 	@JvmStatic
 	fun currentPreset(): String? {
+		if (version == presetFor) {
+			return preset
+		}
 		val saved: Array<String> = values()
-		for (preset in PRESETS) {
-			applyPreset(preset)
+		var found: String? = null
+		for (name in PRESETS) {
+			applyPreset(name)
 			val same: Boolean = sameValues(saved, values())
 			restore(saved)
 			if (same) {
-				return preset
+				found = name
+				break
 			}
 		}
-		return null
+		// applyPreset and restore counted as changes: the version is as it stood afterwards
+		presetFor = version
+		preset = found
+		return found
 	}
 
 	private fun indexOf(array: Array<String>, value: String): Int {

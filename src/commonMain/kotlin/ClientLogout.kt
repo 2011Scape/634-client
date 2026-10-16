@@ -1,3 +1,4 @@
+import com.jagex.game.runetek5.client.features.HdSettingsPanel
 import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.core.constants.MainLogicStep
@@ -22,7 +23,6 @@ import com.jagex.game.runetek5.network.Connection
 import com.jagex.game.runetek5.sound.player.area.AmbientSound
 import com.jagex.game.runetek5.sound.player.song.SongPlayer
 import com.jagex.game.runetek5.vardomain.PlayerVarDomain
-import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.config.TypeLists
 import com.jagex.game.runetek5.network.BufferedConnectionContext
 import kotlin.jvm.JvmStatic
@@ -38,6 +38,7 @@ object ClientLogout {
 		}
 		LoginManager.loginStep = LoginStep.IDLE
 		XpDrops.reset() // Not part of the original client: see XpDrops.
+		HdSettingsPanel.open = false // Not part of the original client: the panel closes only from the game's input tick
 		TypeLists.resetAllCaches()
 		Scene.destroy()
 		for (@Pc(24) i in 0 until 4) {

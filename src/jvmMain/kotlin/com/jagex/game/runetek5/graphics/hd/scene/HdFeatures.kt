@@ -353,5 +353,6 @@ class HdFeatures {
 
     fun release() {
         shadows.release()
+        if (HdGl.shadows === shadows) HdGl.shadows = null
     }
 }

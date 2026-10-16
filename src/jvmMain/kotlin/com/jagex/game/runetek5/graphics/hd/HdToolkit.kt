@@ -666,6 +666,11 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	private var panelFpsStart: Long = 0L
 	private var panelMouseCanvas: java.awt.Canvas? = null
 
+	// the panel's listeners, detached in stop()
+	private var panelMouseListener: java.awt.event.MouseMotionListener? = null
+
+	private var panelKeyDispatcher: java.awt.KeyEventDispatcher? = null
+
 	// the overlay the debug panel asks for (HdFrameUniforms.setDebug), 0 for none
 	// (a test run's client.test.hdOverlay applies without the panel: the walk checks measure occlusion alone)
 	fun debugOverlay(): Int = if (this.debugPanel != null && HdSettings.panel) this.debugPanel!!.overlay else TEST_OVERLAY
@@ -684,7 +689,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		if (panel == null) {
 			panel = HdDebugPanel(this.hdContent)
 			this.debugPanel = panel
-			java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher { e ->
+			val dispatcher: java.awt.KeyEventDispatcher = java.awt.KeyEventDispatcher { e ->
 				if (e.id == java.awt.event.KeyEvent.KEY_PRESSED && e.keyCode == java.awt.event.KeyEvent.VK_F10) {
 					HdSettings.panel = !HdSettings.panel
 					HdSettings.version++
@@ -693,6 +698,8 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 					false
 				}
 			}
+			this.panelKeyDispatcher = dispatcher
+			java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(dispatcher)
 		}
 		if (panel.isOpen() != HdSettings.panel && this.panelOpenRequested != HdSettings.panel) {
 			this.panelOpenRequested = HdSettings.panel
@@ -703,13 +710,16 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		}
 		val canvas: java.awt.Canvas? = this.currentCanvas
 		if (canvas != null && canvas !== this.panelMouseCanvas) {
+			this.detachPanelMouse()
 			this.panelMouseCanvas = canvas
-			canvas.addMouseMotionListener(object : java.awt.event.MouseMotionAdapter() {
+			val listener: java.awt.event.MouseMotionListener = object : java.awt.event.MouseMotionAdapter() {
 				override fun mouseMoved(e: java.awt.event.MouseEvent) {
 					panel.data.mouseX = ClientFeatures.unscale(e.x)
 					panel.data.mouseY = ClientFeatures.unscale(e.y)
 				}
-			})
+			}
+			this.panelMouseListener = listener
+			canvas.addMouseMotionListener(listener)
 		}
 		val d: HdDebugPanel.Data = panel.data
 		val now: Long = System.nanoTime()
@@ -1907,7 +1917,25 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		}
 	}
 
+	private fun detachPanelMouse() {
+		val listener: java.awt.event.MouseMotionListener? = this.panelMouseListener
+		if (listener != null) {
+			this.panelMouseCanvas?.removeMouseMotionListener(listener)
+			this.panelMouseListener = null
+		}
+		this.panelMouseCanvas = null
+	}
+
 	override fun stop() {
+		// the debug panel's window and listeners go with the toolkit (a later one makes its own)
+		this.detachPanelMouse()
+		val dispatcher: java.awt.KeyEventDispatcher? = this.panelKeyDispatcher
+		if (dispatcher != null) {
+			java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(dispatcher)
+			this.panelKeyDispatcher = null
+		}
+		this.debugPanel?.dispose()
+		this.debugPanel = null
 		if (this.activeOpenglInstance != null) {
 			this.hdPost.release()
 			this.softParticles.release()
