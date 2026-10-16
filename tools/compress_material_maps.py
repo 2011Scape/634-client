@@ -9,7 +9,9 @@
 Each file is every mip level from 256x256 down to 1x1 (box filtered), level after level, as raw
 blocks with no header: HdMaterialMaps knows the size. Run after tools/make_material_maps.py or after
 editing a map; HdMaterialMaps uploads these as they are (no compression when the game loads) and
-falls back to the PNGs where they are missing. Needs Pillow and NumPy.
+falls back to the PNGs where they are missing. The jar carries only these blocks (not the PNGs:
+build.gradle.kts, jvmProcessResources), so a map changed without this run is not in a release.
+Needs Pillow and NumPy.
 """
 import os, sys
 import numpy as np
