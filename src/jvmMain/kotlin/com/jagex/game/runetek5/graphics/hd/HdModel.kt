@@ -2629,7 +2629,10 @@ class HdModel : Model {
 		}
 		this.glToolkit.multiMatrix(modelMatrix)
 		RenderStats.category = RenderStats.CATEGORY_MODEL
+		// 634HD: a retained model's emulated draws are its own (the reflection replays dynamic models only)
+		HdGl.state.hdRetainedDraw = this.retainedObject >= 0 && this.glToolkit.sceneRetained()
 		this.drawOpaqueFaces()
+		HdGl.state.hdRetainedDraw = false
 		RenderStats.category = RenderStats.CATEGORY_OTHER
 		this.glToolkit.popMatrix()
 		this.renderBillboards()

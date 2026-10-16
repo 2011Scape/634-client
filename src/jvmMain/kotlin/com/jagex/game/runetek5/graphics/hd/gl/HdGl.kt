@@ -1360,7 +1360,7 @@ object HdGl {
             if (recorder != null && recorder.recording && state.hdScene != 0 && state.hdGround == 0 && arg0 == 4 && arg3 != 0L) {
                 val p = state.clientArrays[ATTRIB_POSITION]
                 if (p.enabled && p.sourceBuffer != null) {
-                    recorder.recordIndices(p.sourceBuffer!!.id, p.size, p.type, p.stride, p.offset, arg3, arg1 * bytesPerIndex, arg1, arg2, state.matrixStack.modelview())
+                    recorder.recordIndices(p.sourceBuffer!!.id, p.size, p.type, p.stride, p.offset, arg3, arg1 * bytesPerIndex, arg1, arg2, state.matrixStack.modelview(), state)
                 }
             }
             gl.bindBuffer(WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER, state.clientElementBuffer)
@@ -1380,7 +1380,7 @@ object HdGl {
             if (recorder != null && recorder.recording && state.hdScene != 0 && state.hdGround == 0 && arg0 == 4) {
                 val p = state.clientArrays[ATTRIB_POSITION]
                 if (p.enabled && p.sourceBuffer != null) {
-                    recorder.record(p.sourceBuffer!!.id, p.size, p.type, p.stride, p.offset, state.boundElementArrayBuffer!!.id, arg1, arg2, arg3, state.matrixStack.modelview())
+                    recorder.record(p.sourceBuffer!!.id, p.size, p.type, p.stride, p.offset, state.boundElementArrayBuffer!!.id, arg1, arg2, arg3, state.matrixStack.modelview(), state)
                 }
             }
         }

@@ -283,7 +283,7 @@ class HdPost {
      * once the opaque entities are down, so only the background is covered. [projection] is the
      * view's projection matrix.
      */
-    fun drawSky(projection: FloatArray) {
+    fun drawSky(projection: FloatArray, srgb: Boolean = false) {
         HdGl.flushImmediate()
         ensure()
         val inverse = Mat4.invert(projection) ?: return
@@ -302,6 +302,7 @@ class HdPost {
         GL33C.glUseProgram(program.id)
         GL33C.glUniformMatrix4fv(use(program, "uInverseProjection"), false, inverse)
         GL33C.glUniform1i(use(program, "uHdScene"), 1)
+        GL33C.glUniform1i(use(program, "uSrgbOut"), if (srgb) 1 else 0)
         GL33C.glDrawArrays(GL33C.GL_TRIANGLES, 0, 3)
         if (blend) GL33C.glEnable(GL33C.GL_BLEND)
         if (!depth) GL33C.glDisable(GL33C.GL_DEPTH_TEST)
