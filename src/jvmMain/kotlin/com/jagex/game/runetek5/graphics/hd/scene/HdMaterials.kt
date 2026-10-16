@@ -5,7 +5,7 @@
  * A layer is a copy of the toolkit's own texture for the material (HdTextureCache), every mip level
  * read back and written into the array, so the retained scene samples the very texels the emulated
  * path does. Two arrays: 64x64 for small materials, the toolkit's texture size for the rest, and a
- * third, 256x256, for fresh textures (HdSettings.textureReplacements, tools/make_fresh_textures.py). Each has
+ * third, 256x256, for fresh textures (HdSettings.textureReplacements). Each has
  * a linear and a nearest sampler; the material's filter, wrap and mipmapping are kept in its flags.
  *
  * A material is "batchable" when the plain combiner draws it (effect types 0 and 6, not HDR, not

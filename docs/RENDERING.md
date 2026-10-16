@@ -164,7 +164,7 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
   toggle the client draws in the Graphics Options title bar (the screen is a cache script that knows
   toolkits 0 to 5 only). Turning it on for the first time, with nothing saved, applies the Medium
   preset.
-- **Settings panel** (`client/features/HdSettingsPanel`): the "Settings" button at the right of that
+- **Settings panel** (`client/features/HdSettingsPanel`): the "634HD Settings" button at the right of that
   title bar, or `::hdsettings`, opens a window the client draws over the interfaces: presets (Off,
   Low, Medium, High, Ultra; `HdSettings.applyPreset`, also `::hd preset <name>`) and a row per
   switch, each click stepping to its next value. Changes apply at once and are saved to
@@ -312,14 +312,15 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   75, 387, 163 and 159) got normal, occlusion/roughness and height maps from
   `tools/make_material_maps.py` (which now keeps the entries it does not make, such as 634HD's own
   materials); 42 sets in all.
-- **Fresh textures.** The 10 kept textures now use painterly-realistic art (`634hd_pt-<id>`,
-  `tools/pt_prompt.txt`: clean readable shapes with soft painted shading, no photographic speckle, in
-  the 117HD middle ground), fitted with contrast 1.0-1.3 times the game's and no ground sharpening;
+- **Fresh textures.** (The art was generated and fitted by tooling that is not in the repository;
+  what it made is committed as each set's `albedo.png` and `fresh/` maps.) The 10 kept textures now
+  use painterly-realistic art (a prompt asking for clean readable shapes with soft painted shading,
+  no photographic speckle, in the 117HD middle ground), fitted with contrast 1.0-1.3 times the game's
+  and no ground sharpening;
   their `fresh/` relief is softened (wider blur, half the strength), since full-strength relief from
   the new art lit as speckle. The photoreal art below stays as the fallback.
-  `tools/make_fresh_textures.py`, realistic mode (used for every texture with a
-  `634hd_hd-<id>` generation): photoreal art from `/generate` (nano-banana-2 at 2K, prompt
-  `tools/hd_prompt.txt`; the reference is the game texture scaled up and blurred, so it sets only scale
+  The realistic mode (used for every texture with a photoreal generation): photoreal art from
+  `/generate` (nano-banana-2 at 2K, a photoscan-style prompt; the reference is the game texture scaled up and blurred, so it sets only scale
   and layout and the art is not a repaint of the old pixels) is the texture itself, fitted to the
   game: grey with the game texture's mean hue (the face tints still colour it), its own broad light and
   dark flattened and the game texture's laid over it (90's darker bottom), the game texture's mean
@@ -331,18 +332,18 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   Kept: the 10 that looked clearly sharper and more realistic in game, side by side with the original
   at the same camera with 16x anisotropic filtering - Varrock's street 505, its stone 70, 96, 309 and
   house walls 82, Lumbridge's dirt and paths 66, 91, 90, sand 154 and rocky ground 181. Where fine
-  photo detail vanished at its size on screen the art was made again with `tools/hd_prompt_bold.txt`
+  photo detail vanished at its size on screen the art was made again with a bolder prompt
   (bold mid-scale shapes: ripples, distinct stones); dropped: the textures under about 3% of every
   view tried (clothing, reeds, hidden faces), too small to judge. Nano-banana-2 seam repairs (the art shifted by half, the centre cross
   inpainted) worked twice in eleven tries, so they are not used. An earlier detail-only mode (the
   game texture with generated grain under one texel) still runs for any listed texture without
   realistic art.
-- **The world's textures (in progress).** `tools/fresh_catalogue.json` lists the most drawn surface
-  textures across the world (a tour of 27 places with `HDDEBUG textures used`; effects, cut-outs,
-  scrolling and blank textures and non-materials left out; textures that are another with a gradient
-  over it share its art), each with a name, a material class and the texture whose art it takes.
-  `make_fresh_textures.py` reads it and adds `materials.json` entries for new ones; their art is
-  painterly (`tools/pt_prompt.txt`) on nano-banana-2-lite. Limits for it: 448 map sets (the uniform
+- **The world's textures (in progress).** A catalogue (kept with the generation tooling, outside the
+  repository) lists the most drawn surface textures across the world (a tour of 27 places with
+  `HDDEBUG textures used`; effects, cut-outs, scrolling and blank textures and non-materials left
+  out; textures that are another with a gradient over it share its art), each with a name, a material
+  class and the texture whose art it takes; it is what adds `materials.json` entries for new ones,
+  their art painterly on nano-banana-2-lite. Limits for it: 448 map sets (the uniform
   block's 16 KB), an emissive array only for the textures that glow (lava), 128 fresh-texture layers
   started afresh at a region build once three quarters full, and `compress_material_maps.py`
   compressing the `fresh/` sets too, only what changed.
@@ -362,17 +363,20 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   world space (`uv`, `uvScale` tiles a repeat); tile overrides take `scale` tiles a repeat.
 - **Materials.** `tools/make_material_maps.py` builds map sets from the cache textures (dumped
   with `client.test.findText=textures:`) into `634hd/materials/<texture>/` with a `recipe.txt` each.
-  Fine relief comes from height maps made with `/generate` (nano-banana-2-lite, the cache texture
-  as the reference; output and sidecar in `~/Pictures/generations/634hd_height-<id>_*`, prompt in
-  `prompt.txt` and the sidecar in `generate.json` beside each set): their high frequencies over the
+  Fine relief on 23 sets came from height maps made with `/generate` (nano-banana-2-lite, the cache
+  texture as the reference; the prompt in `prompt.txt` beside each set; the generation tooling is not
+  in the repository, and the script now remakes a set from the albedo alone): their high frequencies over the
   albedo's own shapes, normals then computed from that (plan rule 3), every height made to tile
   (checked: no edge seam left in any of the 23). It
   and writes `materials.json`. `./gradlew compressMaterialMaps` (`tools/compress_material_maps.py`)
   precompresses them at build time - BC5 normals, BC7 (mode 6) packed maps with the height in alpha,
   BC7 emissive maps, every mip level - and `HdMaterialMaps` uploads those blocks as they are (23 sets,
   5 MB; GPU decode within 1.8/255 of the PNGs for BC5, 3.3 for BC7, checked with
-  `client.test.hdDebug`). Without a precompressed file the driver compresses the PNG at load; without
-  BC7 the arrays are RGBA8.
+  `client.test.hdDebug`). The jar carries only the blocks and `albedo.png`: `jvmProcessResources`
+  leaves out the other PNGs and the provenance files (`recipe.txt`, `prompt.txt`).
+  Without BC7, or when the driver refuses to compress (`client.hd.uncompressedMaps`), the RGBA8 arrays
+  are filled by decoding the blocks on the CPU (`decodeBc5`, `decodeBc7`: mode 6). A set in the data
+  folder without blocks yet is read from its PNGs and compressed by the driver.
 - **Debug panel** (`HdDebugPanel`, `client.debug` only; F10 or `::hdpanel`): stats with GPU time,
   every switch, overlays, live editing of the current environment and nearest light with Save to
   the JSON file, texture and mini-menu inspection, content warnings.

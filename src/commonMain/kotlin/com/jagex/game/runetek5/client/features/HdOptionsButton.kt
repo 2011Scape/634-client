@@ -13,11 +13,11 @@ import ToolkitSwitch
 /**
  * Not part of the original client: 634HD in the Graphics Options screen. The screen (interface 742)
  * is built by cache scripts that only know toolkits 0 to 5, and the cache is not edited, so the
- * client draws a toggle of its own in the screen's title bar, "634HD (requires OpenGL 3.3)", ticked
+ * client draws a toggle of its own in the screen's title bar, "634HD (Experimental)", ticked
  * while toolkit 6 draws. A left click on it switches to 634HD, or back to the toolkit before it
  * (OpenGL if none), and saves the choice as ::tk6 does. The first time 634HD is turned on with no
  * settings saved, the Medium preset is applied, so the switch changes something visible. A
- * "Settings" button beside it opens HdSettingsPanel. A failed switch falls back and says why
+ * "634HD Settings" button beside it opens HdSettingsPanel. A failed switch falls back and says why
  * (HdFallback). Desktop only (hdAvailable).
  */
 object HdOptionsButton {
@@ -25,14 +25,14 @@ object HdOptionsButton {
 	/** The title of the Graphics Options screen (742:15), beside which the toggle sits. */
 	private const val TITLE: Int = (742 shl 16) or 15
 
-	private const val LABEL: String = "634HD (requires OpenGL 3.3)"
+	private const val LABEL: String = "634HD (Experimental)"
 
 	private const val WIDTH: Int = 172
 
 	private const val HEIGHT: Int = 16
 
-	/** The "Settings" button after the toggle. */
-	private const val BUTTON_WIDTH: Int = 62
+	/** The "634HD Settings" button after the toggle. */
+	private const val BUTTON_WIDTH: Int = 96
 
 	/** The mouse, for the hover highlight (InterfaceComponentDraw passes it). */
 	@JvmField
@@ -48,7 +48,7 @@ object HdOptionsButton {
 	@JvmField
 	var y: Int = 0
 
-	/** Where the "Settings" button was last drawn (same row as the toggle). */
+	/** Where the "634HD Settings" button was last drawn (same row as the toggle). */
 	@JvmField
 	var buttonX: Int = 0
 
@@ -84,7 +84,7 @@ object HdOptionsButton {
 		val buttonHover: Boolean = mouseX >= bx && mouseY >= y && mouseX < bx + BUTTON_WIDTH && mouseY < y + HEIGHT
 		toolkit.aa(bx, y, BUTTON_WIDTH, HEIGHT, if (buttonHover || HdSettingsPanel.open) -0xc5cfd8 else -16777216, 1)
 		toolkit.outlineRect(bx, y, BUTTON_WIDTH, HEIGHT, -7566196, 1)
-		FontManager.aClass68_4!!.renderCentered(bx + BUTTON_WIDTH / 2, if (buttonHover) -1 else -256, "Settings", -16777216, y + 12)
+		FontManager.aClass68_4!!.renderCentered(bx + BUTTON_WIDTH / 2, if (buttonHover) -1 else -256, "634HD Settings", -16777216, y + 12)
 	}
 
 	/** Called on a left press before the mini-menu acts; true when it hit the toggle and was handled. */

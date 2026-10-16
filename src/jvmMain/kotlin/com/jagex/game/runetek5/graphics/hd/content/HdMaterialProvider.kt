@@ -108,7 +108,7 @@ class HdMaterialProvider(private val game: MaterialProvider?) : MaterialProvider
     }
 
     /**
-     * A mask that follows the new art: an albedo with alpha (tools/make_fresh_textures.py writes one
+     * A mask that follows the new art: an albedo with alpha (the fresh-texture tooling wrote one
      * for effect 1's shine mask) holds a pattern about 128, 40 a standard deviation; it is scaled to
      * the game's own mask ([pixels], [size] square): the same mean and spread, the new art's shapes.
      */
