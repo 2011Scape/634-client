@@ -23,6 +23,7 @@
 #define HD_GRASS 65536
 #define HD_LIGHTING_MODEL 131072
 #define HD_REFLECTIONS 262144
+#define HD_LIGHT_GRID 524288
 #define HD_MAX_ACTORS 8
 #define HD_MAX_LIGHTS 64
 
@@ -59,7 +60,7 @@ layout(std140) uniform HdFrame {
     // water's tint (sRGB), w: how much of the game's water colour it replaces (HD_WATER)
     vec4 hdWaterTint;
     // x: the debug panel's overlay (0 none, 1 normals, 2 texture ids, 3 lights, 4 shadow map,
-    // 5 chunk bounds, 6 occlusion, 7 shadows)
+    // 5 chunk bounds, 6 occlusion, 7 shadows, 8 light grid)
     ivec4 hdDebug;
     // the region's baked occlusion height map (HD_AO): world to (u, v, depth); x top, y height range,
     // z 1 once baked
@@ -82,6 +83,10 @@ layout(std140) uniform HdFrame {
     vec4 hdTonemap;
     // the loaded scene's size in world units (x, z): the fade near its edge (HD_FADE)
     vec4 hdSceneSize;
+    // the room fill (HD_LIGHT_GRID, HdLightGrid): x strength this frame, y the grid's texels per tile
+    vec4 hdGridParams;
+    // each point light's wall visibility patch (HD_LIGHT_GRID): x its layer (0 none), y, z the light's world x, z
+    vec4 hdLightGrid[HD_MAX_LIGHTS];
 };
 
 // The inverse of the composite's tonemap (post_composite.frag): the linear value that, after the
@@ -147,6 +152,14 @@ uniform sampler2D uHdAoBake;
 // The ground's baked occlusion (HD_AO), on unit 25: one texel per quarter tile of the ground drawing
 // (HdShadows.bindGroundOcclusion), from the static scene only.
 uniform sampler2D uHdGroundAo;
+
+// The room fill (HD_LIGHT_GRID, HdLightGrid) on unit 24: one layer per level, the fill's colour at
+// each sub-tile texel, the tile's floor y (the game's y, down) in alpha (60000: no tile on that level).
+uniform sampler2DArray uHdLightGrid;
+
+// The point lights' wall visibility patches (HD_LIGHT_GRID) on unit 30: one layer per static light,
+// 32 x 32 tiles about it, 1 where the light reaches round the walls, 0 behind them; layer 0 all 1.
+uniform sampler2DArray uHdLightVisibility;
 
 // The world y (the game's: smaller is higher) of the highest occluder over world ([x], [z]): from the
 // moving models' map when [moving], and from the baked static scene when [baked].
@@ -223,12 +236,22 @@ vec3 hdSunLight(vec3 normal) {
     return light;
 }
 
+// The game's point lights attenuate as 1 / (d / radius)^2 and never end; the entity's light footprint
+// cuts them in a box. With the room light (HD_LIGHT_GRID) they are windowed to nothing at the radius
+// instead, so the cut is soft; [quadratic] is the light's 1 / radius^2.
+float hdGameLightWindow(float dist, float quadratic) {
+    if (!hdOn(HD_LIGHT_GRID) || quadratic <= 0.0) return 1.0;
+    float w = clamp(1.0 - pow(dist * sqrt(quadratic), 4.0), 0.0, 1.0);
+    return w * w;
+}
+
 // One point light as fixed-function lighting has it (quadratic attenuation), for per-pixel lighting.
 vec4 hdPointLight(vec3 normal, vec3 viewPos, vec3 lightPos, vec3 attenuation, vec3 diffuse) {
     vec3 toLight = lightPos - viewPos;
     float dist = length(toLight);
     vec3 lightDir = toLight / max(dist, 0.0001);
     float atten = 1.0 / max(attenuation.x + attenuation.y * dist + attenuation.z * dist * dist, 0.0001);
+    atten *= hdGameLightWindow(dist, attenuation.z);
     return vec4(diffuse * max(dot(normal, lightDir), 0.0) * atten, 0.0);
 }
 
@@ -330,28 +353,87 @@ vec4 hdFog(vec4 color, vec3 viewPos, float depth, vec4 fogColour, float start, f
 // The point lights of lights.json (HD_LIGHTS) on a fragment at eye-space [viewPos] with the game's
 // eye-space [normal] (any scale; a zero normal, as on the ground's unlit draws, takes light from every
 // side): the light to multiply the unlit colour by, in the space the scene is lit in.
+// A point light's falloff at [dist] from it with [radius]: an inverse square with its knee a third
+// of the way out, windowed to nothing at the radius. 1 at the light, as the old (1 - d/r)^2 was, but
+// a lamp reads across its room instead of dying by half way.
+float hdPointFalloff(float dist, float radius) {
+    float k = radius / 3.0;
+    float window = clamp(1.0 - pow(dist / radius, 4.0), 0.0, 1.0);
+    return window * window / (1.0 + (dist / k) * (dist / k));
+}
+
+// How much of point light [i] gets round the walls to world position [world] (HD_LIGHT_GRID): its
+// visibility patch (HdLightGrid), 32 x 32 tiles about the light; 1 for a light without one.
+float hdLightVisibility(int i, vec3 world) {
+    float layer = hdLightGrid[i].x;
+    if (layer < 0.5) return 1.0;
+    vec2 uv = (world.xz / 512.0 - floor(hdLightGrid[i].yz / 512.0) + 16.0) / 32.0;
+    return texture(uHdLightVisibility, vec3(uv, layer)).r;
+}
+
 vec3 hdPointLights(vec3 viewPos, vec3 normal) {
     vec3 sum = vec3(0.0);
     float normalLength = length(normal);
     vec3 n = normalLength > 0.0001 ? normal / normalLength : vec3(0.0);
+    bool walls = hdOn(HD_LIGHT_GRID);
+    vec3 world = walls ? (hdViewToWorld * vec4(viewPos, 1.0)).xyz : vec3(0.0);
     for (int i = 0; i < hdLightInfo.x; i++) {
         vec3 toLight = hdLightPosition[i].xyz - viewPos;
         float dist = length(toLight);
         float radius = hdLightPosition[i].w;
         if (dist >= radius) continue;
-        float falloff = 1.0 - dist / radius;
-        falloff *= falloff;
+        float falloff = hdPointFalloff(dist, radius);
+        if (walls) falloff *= hdLightVisibility(i, world);
         float facing = normalLength > 0.0001 ? max(dot(n, toLight / max(dist, 0.0001)), 0.0) * 0.8 + 0.2 : 1.0;
         sum += hdLightColour[i].rgb * falloff * facing;
     }
     return hdOn(HD_LINEAR) ? sum : sum * 0.8;
 }
 
-// [color] with the point lights added on its unlit colour [base] (HD_LIGHTS). The frame clamps the result.
+// The room fill (HD_LIGHT_GRID, HdLightGrid) at world position [world]: the lamps' light carried
+// through the room on the tile grid, read from the level whose floor the fragment stands on (the
+// highest floor at or below it; the game's y grows downwards) at this frame's strength.
+// The grid level whose floor a fragment at world position [world] stands on (the highest floor at
+// or below it; the game's y grows downwards), or -1 when no level has a floor there.
+int hdLightFillLevel(vec3 world) {
+    ivec3 gridSize = textureSize(uHdLightGrid, 0);
+    vec2 uv = world.xz * hdGridParams.y / (512.0 * vec2(gridSize.xy));
+    ivec2 texel = clamp(ivec2(uv * vec2(gridSize.xy)), ivec2(0), gridSize.xy - 1);
+    int level = -1;
+    float best = 1.0e9;
+    for (int l = 0; l < gridSize.z; l++) {
+        float floorY = texelFetch(uHdLightGrid, ivec3(texel, l), 0).a;
+        if (floorY < 59000.0 && floorY >= world.y - 96.0 && floorY < best) {
+            best = floorY;
+            level = l;
+        }
+    }
+    return level;
+}
+
+// The grid's texel of [level] at [world], as uploaded (the overlay's raw view).
+vec4 hdLightGridRaw(vec3 world, int level) {
+    ivec3 gridSize = textureSize(uHdLightGrid, 0);
+    vec2 uv = world.xz * hdGridParams.y / (512.0 * vec2(gridSize.xy));
+    return texture(uHdLightGrid, vec3(uv, float(level)));
+}
+
+vec3 hdLightFill(vec3 world) {
+    int level = hdLightFillLevel(world);
+    if (level < 0) return vec3(0.0);
+    ivec3 gridSize = textureSize(uHdLightGrid, 0);
+    vec2 uv = world.xz * hdGridParams.y / (512.0 * vec2(gridSize.xy));
+    return texture(uHdLightGrid, vec3(uv, float(level))).rgb * hdGridParams.x;
+}
+
+// [color] with the point lights added on its unlit colour [base] (HD_LIGHTS), and the room fill
+// (HD_LIGHT_GRID). The frame clamps the result.
 vec4 hdAddPointLights(vec4 color, vec4 base, vec3 viewPos, vec3 normal) {
-    if (!hdOn(HD_LIGHTS) || hdLightInfo.x == 0) return color;
+    if (!hdOn(HD_LIGHTS)) return color;
+    vec3 light = hdLightInfo.x > 0 ? hdPointLights(viewPos, normal) : vec3(0.0);
+    if (hdOn(HD_LIGHT_GRID)) light += hdLightFill((hdViewToWorld * vec4(viewPos, 1.0)).xyz);
     // not clamped: the texture multiplies it next, and a lit stone wall is near white already
-    return vec4(color.rgb + base.rgb * hdPointLights(viewPos, normal), color.a);
+    return vec4(color.rgb + base.rgb * light, color.a);
 }
 
 // How much of the sun reaches a fragment at eye-space [viewPos] (HD_SHADOWS): 1 in the open, 0 in

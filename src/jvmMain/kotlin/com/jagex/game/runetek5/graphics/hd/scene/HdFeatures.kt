@@ -67,6 +67,9 @@ class HdFeatures {
     /** The water's planar reflection (HdSettings.reflections), drawn in HdToolkit.opaqueEntitiesDone. */
     val reflections: HdReflections = HdReflections()
 
+    /** The room fill and the lights' wall visibility (HdSettings.lightGrid). */
+    val lightGrid: HdLightGrid = HdLightGrid()
+
     private var viewX: Int = 0
     private var viewY: Int = 0
     private var viewWidth: Int = 1
@@ -155,6 +158,7 @@ class HdFeatures {
         val lut: String? = this.environment?.lut
         toolkit.hdPost.useGrading(if (lut != null && HdSettings.colourGrading) toolkit.hdPost.gradingTable(lut) else 0)
         this.lights.prepare(toolkit.hdContent, uniforms, worldToView, seconds, if (HdSettings.dayNight != 0) nightness else 0.0f)
+        this.lightGrid.prepare(uniforms, this.lights, if (HdSettings.dayNight != 0) nightness else -1.0f)
         uniforms.setDebug(toolkit.debugOverlay())
     }
 
@@ -353,6 +357,7 @@ class HdFeatures {
 
     fun release() {
         shadows.release()
+        lightGrid.release()
         if (HdGl.shadows === shadows) HdGl.shadows = null
     }
 }

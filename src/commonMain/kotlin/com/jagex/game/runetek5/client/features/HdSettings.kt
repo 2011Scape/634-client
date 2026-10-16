@@ -147,6 +147,13 @@ object HdSettings {
 	var caustics: Boolean = false
 
 	/**
+	 * Room light: the lamps' light carried through their rooms on the tile grid, stopped by walls
+	 * (HdLightGrid), and each lamp's own light kept behind the walls round it.
+	 */
+	@JvmField
+	var lightGrid: Boolean = false
+
+	/**
 	 * Lighting model: surfaces lit per pixel as a sum of terms (sun on the mapped normal with shadows, a
 	 * hemisphere of sky and ground light, the occlusion map, highlights from the roughness map) instead
 	 * of the game's light scaled by a clamped ratio.
@@ -177,7 +184,7 @@ object HdSettings {
 		"tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting",
 		"shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom",
 		"colourGrading", "interfaceScale", "smoothInterface", "materials", "particles", "panel",
-		"cutoutShadows", "worldTextures", "environmentLighting", "caustics", "grassDisplacement", "dayNight", "textureReplacements", "lightingModel", "playerLight", "reflections",
+		"cutoutShadows", "worldTextures", "environmentLighting", "caustics", "grassDisplacement", "dayNight", "textureReplacements", "lightingModel", "playerLight", "reflections", "lightGrid",
 	)
 
 	/** The switches a player sets in the 634HD settings panel (HdSettingsPanel) and that are saved. */
@@ -185,7 +192,7 @@ object HdSettings {
 	val SAVED: Array<String> = arrayOf(
 		"tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting",
 		"shadows", "lights", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom",
-		"colourGrading", "materials", "particles", "cutoutShadows", "worldTextures", "environmentLighting", "caustics", "grassDisplacement", "dayNight", "textureReplacements", "lightingModel", "playerLight", "reflections",
+		"colourGrading", "materials", "particles", "cutoutShadows", "worldTextures", "environmentLighting", "caustics", "grassDisplacement", "dayNight", "textureReplacements", "lightingModel", "playerLight", "reflections", "lightGrid",
 	)
 
 	/** Saved too, but not part of the presets: the whole client's draw distance and interface scale. */
@@ -253,6 +260,7 @@ object HdSettings {
 		worldTextures = level >= 3
 		environmentLighting = level >= 2
 		caustics = level >= 3
+		lightGrid = level >= 3
 		reflections = level >= 3
 		playerLight = level >= 2
 		grassDisplacement = level >= 3
@@ -350,6 +358,7 @@ object HdSettings {
 		"worldTextures" -> onOff(worldTextures)
 		"environmentLighting" -> onOff(environmentLighting)
 		"caustics" -> onOff(caustics)
+		"lightGrid" -> onOff(lightGrid)
 		"playerLight" -> onOff(playerLight)
 		"reflections" -> onOff(reflections)
 		"grassDisplacement" -> onOff(grassDisplacement)
@@ -476,6 +485,7 @@ object HdSettings {
 			"worldtextures" -> worldTextures = flag(on, off) ?: return "takes on or off"
 			"environmentlighting" -> environmentLighting = flag(on, off) ?: return "takes on or off"
 			"caustics" -> caustics = flag(on, off) ?: return "takes on or off"
+			"lightgrid" -> lightGrid = flag(on, off) ?: return "takes on or off"
 			"playerlight" -> playerLight = flag(on, off) ?: return "takes on or off"
 			"reflections" -> reflections = flag(on, off) ?: return "takes on or off"
 			"grassdisplacement" -> grassDisplacement = flag(on, off) ?: return "takes on or off"
@@ -518,6 +528,7 @@ object HdSettings {
 				worldTextures = enable
 				environmentLighting = enable
 				caustics = enable
+				lightGrid = enable
 				playerLight = enable
 				reflections = enable
 				grassDisplacement = enable
@@ -542,7 +553,7 @@ object HdSettings {
 		"terrainBlend " + onOff(terrainBlend) + ", water " + water + ", foliage " + onOff(foliage) + ", softParticles " + onOff(softParticles),
 		"fxaa " + onOff(fxaa) + ", bloom " + onOff(bloom) + ", colourGrading " + onOff(colourGrading),
 		"interfaceScale " + interfaceScale + ", smoothInterface " + onOff(smoothInterface) + ", materials " + onOff(materials) + ", particles " + onOff(particles),
-		"cutoutShadows " + onOff(cutoutShadows) + ", worldTextures " + onOff(worldTextures) + ", environmentLighting " + onOff(environmentLighting) + ", caustics " + onOff(caustics) + ", playerLight " + onOff(playerLight) + ", reflections " + onOff(reflections) + ", grassDisplacement " + onOff(grassDisplacement) + ", textureReplacements " + onOff(textureReplacements) + ", lightingModel " + onOff(lightingModel) + ", dayNight " + valueOf("dayNight"),
+		"cutoutShadows " + onOff(cutoutShadows) + ", worldTextures " + onOff(worldTextures) + ", environmentLighting " + onOff(environmentLighting) + ", caustics " + onOff(caustics) + ", lightGrid " + onOff(lightGrid) + ", playerLight " + onOff(playerLight) + ", reflections " + onOff(reflections) + ", grassDisplacement " + onOff(grassDisplacement) + ", textureReplacements " + onOff(textureReplacements) + ", lightingModel " + onOff(lightingModel) + ", dayNight " + valueOf("dayNight"),
 		"renderDistance " + valueOf("renderDistance") + ", scale " + valueOf("scale") + " (from the next start)",
 	)
 

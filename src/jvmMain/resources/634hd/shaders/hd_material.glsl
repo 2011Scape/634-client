@@ -130,14 +130,17 @@ vec3 hdPointHighlights(vec3 viewPos, vec3 normal, float gloss) {
     vec3 sum = vec3(0.0);
     if (!hdOn(HD_LIGHTS)) return sum;
     vec3 view = normalize(-viewPos);
+    bool walls = hdOn(HD_LIGHT_GRID);
+    vec3 world = walls ? (hdViewToWorld * vec4(viewPos, 1.0)).xyz : vec3(0.0);
     for (int i = 0; i < hdLightInfo.x; i++) {
         vec3 toLight = hdLightPosition[i].xyz - viewPos;
         float dist = length(toLight);
         float radius = hdLightPosition[i].w;
         if (dist >= radius) continue;
-        float falloff = 1.0 - dist / radius;
+        float falloff = hdPointFalloff(dist, radius);
+        if (walls) falloff *= hdLightVisibility(i, world);
         vec3 reflected = reflect(-toLight / max(dist, 0.0001), normal);
-        sum += hdLightColour[i].rgb * falloff * falloff * pow(max(dot(view, reflected), 0.0), gloss);
+        sum += hdLightColour[i].rgb * falloff * pow(max(dot(view, reflected), 0.0), gloss);
     }
     return sum;
 }
@@ -257,6 +260,24 @@ vec4 hdDebugOverlay(vec4 color, vec3 viewPos, vec3 normal, int texture) {
     }
     if (mode == 6) return vec4(vec3(hdAppliedOcclusion), 1.0);
     if (mode == 7) return vec4(vec3(hdShadow(viewPos)), 1.0);
+    if (mode == 8) {
+        // the room fill per tile (HdLightGrid) over the dimmed scene, tile edges faintly
+        // red where no level's floor is found at or below the fragment (hdLightFill)
+        vec3 fill = hdOn(HD_LIGHT_GRID) ? hdLightFill(world) / max(hdGridParams.x, 0.01) : vec3(0.0);
+        if (hdOn(HD_LIGHT_GRID) && hdLightFillLevel(world) < 0) fill = vec3(0.4, 0.0, 0.0);
+        if (hdDebug.y == 1) {
+            // raw: green the layer-0 fill x20, red the alpha's presence, blue the texture's width / 512
+            // red: the level picked (0.2 per level, 0.9 none); green: the real fill x20; blue: layer-0 floor y / -1024
+            int picked = hdLightFillLevel(world);
+            vec3 real = hdLightFill(world);
+            return vec4(picked < 0 ? 0.9 : 0.2 * float(picked + 1), (real.r + real.g + real.b) * 2.0, hdLightGridRaw(world, 0).a / -1024.0, 1.0);
+        }
+        vec2 tile = world.xz / 512.0;
+        vec2 cell = fract(tile);
+        vec2 cellWidth = fwidth(tile);
+        float tileEdge = (cell.x < cellWidth.x || cell.y < cellWidth.y) ? 0.25 : 0.0;
+        return vec4(mix(color.rgb * 0.25 + fill, vec3(1.0, 0.85, 0.0), tileEdge), 1.0);
+    }
     return color;
 }
 

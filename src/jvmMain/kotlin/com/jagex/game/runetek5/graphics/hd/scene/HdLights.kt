@@ -74,6 +74,8 @@ class HdLights {
     private val distance: FloatArray = FloatArray(MAX_CANDIDATES)
     private val def: Array<HdContent.LightDef?> = arrayOfNulls(MAX_CANDIDATES)
     private val phase: FloatArray = FloatArray(MAX_CANDIDATES)
+    // the loc light each candidate is (its index among the loc lights), -1 for the others
+    private val locIndex: IntArray = IntArray(MAX_CANDIDATES)
 
     /** Set when the scene's entities change; the loc lights are found again on the next frame. */
     @JvmField
@@ -244,13 +246,13 @@ class HdLights {
             playerLight.green = carriedGreen
             playerLight.blue = carriedBlue
             playerLight.flicker = if (carriedFlame) 1 else 0
-            add(px, player.y, pz, playerLight, px, pz, 0.0f)
+            add(px, player.y, pz, playerLight, px, pz, 0.0f, -1)
             distance[0] = -1.0f
         }
         for (i in 0 until locCount) {
             if (!HdSettings.lights && !HdSettings.particles) break
             if (locLevel[i] != level) continue
-            if (add(locX[i], locY[i], locZ[i], locDef[i]!!, px, pz, (i * 7919 % 1000).toFloat()) && locFlameFound[i]) {
+            if (add(locX[i], locY[i], locZ[i], locDef[i]!!, px, pz, (i * 7919 % 1000).toFloat(), i) && locFlameFound[i]) {
                 // the light and its embers at the loc's own flame, the embers sized to it
                 val at: Int = count - 1
                 emitX[at] = locFlameX[i].toFloat()
@@ -271,7 +273,7 @@ class HdLights {
                 val npc = node.npc ?: continue
                 val type = npc.npcType ?: continue
                 val light: HdContent.LightDef = content.lightsByNpc[type.id] ?: continue
-                add(npc.x, npc.y, npc.z, light, px, pz, ids[i].toFloat())
+                add(npc.x, npc.y, npc.z, light, px, pz, ids[i].toFloat(), -1)
             }
         }
         if (HdSettings.lights && content.lightsByProjectile.isNotEmpty()) {
@@ -281,7 +283,7 @@ class HdLights {
                 val projectile: ProjectileAnimation? = (node as? ProjectileAnimationNode)?.projectileAnimation
                 if (projectile != null) {
                     val light: HdContent.LightDef? = content.lightsByProjectile[projectile.hdId()]
-                    if (light != null) add(projectile.x, projectile.y, projectile.z, light, px, pz, 0.0f)
+                    if (light != null) add(projectile.x, projectile.y, projectile.z, light, px, pz, 0.0f, -1)
                 }
                 node = node.next
             }
@@ -293,7 +295,7 @@ class HdLights {
                 val gfx = (node as? PositionedGfx)?.objectGfx
                 if (gfx != null && !gfx.finished) {
                     val light: HdContent.LightDef? = content.lightsBySpotAnimation[gfx.hdId()]
-                    if (light != null) add(gfx.x, gfx.y, gfx.z, light, px, pz, 0.0f)
+                    if (light != null) add(gfx.x, gfx.y, gfx.z, light, px, pz, 0.0f, -1)
                 }
                 node = node.next
             }
@@ -353,9 +355,22 @@ class HdLights {
         }
     }
 
+    /** The lights written this frame (used of them), for HdLightGrid: which loc light each is (-1 none) and its world x, z. */
+    fun usedLocIndex(i: Int): Int = locIndex[i]
+    fun usedX(i: Int): Float = x[i]
+    fun usedZ(i: Int): Float = z[i]
+
+    /** The loc lights found in the scene (HdLightGrid seeds its flood from them): how many, and each one's world position, level and definition. */
+    fun locLightCount(): Int = locCount
+    fun locLightX(i: Int): Int = locX[i]
+    fun locLightZ(i: Int): Int = locZ[i]
+    fun locLightLevel(i: Int): Int = locLevel[i]
+    fun locLightDef(i: Int): HdContent.LightDef? = locDef[i]
+
     /** Adds a light candidate; false when it is out of range (or there is no room). */
-    private fun add(wx: Int, wy: Int, wz: Int, light: HdContent.LightDef, px: Int, pz: Int, phase: Float): Boolean {
+    private fun add(wx: Int, wy: Int, wz: Int, light: HdContent.LightDef, px: Int, pz: Int, phase: Float, loc: Int): Boolean {
         if (count >= MAX_CANDIDATES) return false
+        this.locIndex[count] = loc
         val dx: Int = wx - px
         val dz: Int = wz - pz
         if (dx > RANGE || dx < -RANGE || dz > RANGE || dz < -RANGE) return false
@@ -381,6 +396,7 @@ class HdLights {
         f = z[a]; z[a] = z[b]; z[b] = f
         f = distance[a]; distance[a] = distance[b]; distance[b] = f
         f = phase[a]; phase[a] = phase[b]; phase[b] = f
+        val l: Int = locIndex[a]; locIndex[a] = locIndex[b]; locIndex[b] = l
         val d: HdContent.LightDef? = def[a]; def[a] = def[b]; def[b] = d
     }
 

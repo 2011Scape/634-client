@@ -130,6 +130,17 @@ object HdShaders {
             org.lwjgl.opengl.GL33C.glUniform1i(aoMap, com.jagex.game.runetek5.graphics.hd.scene.HdShadows.AO_UNIT)
             org.lwjgl.opengl.GL33C.glUseProgram(previous)
         }
+        val gridNames = arrayOf("uHdLightGrid", "uHdLightVisibility")
+        val gridUnits = intArrayOf(com.jagex.game.runetek5.graphics.hd.scene.HdLightGrid.GRID_UNIT, com.jagex.game.runetek5.graphics.hd.scene.HdLightGrid.VIS_UNIT)
+        for (i in gridNames.indices) {
+            val location = org.lwjgl.opengl.GL33C.glGetUniformLocation(program.id, gridNames[i])
+            if (location >= 0) {
+                val previous = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_CURRENT_PROGRAM)
+                org.lwjgl.opengl.GL33C.glUseProgram(program.id)
+                org.lwjgl.opengl.GL33C.glUniform1i(location, gridUnits[i])
+                org.lwjgl.opengl.GL33C.glUseProgram(previous)
+            }
+        }
         return program
     }
 

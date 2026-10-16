@@ -936,11 +936,15 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	override fun sceneBuilt() {
 		this.buildRegion()
 		this.hdFeatures.lights.dirty = true
+		// 634HD: the room fill is flooded again from the new region (scene/HdLightGrid)
+		this.hdFeatures.lightGrid.dirty = true
 	}
 
 	override fun sceneChanged(level: Int, x: Int, z: Int) {
 		this.sceneRenderer.sceneChanged(x, z)
 		this.hdFeatures.lights.dirty = true
+		// 634HD: a wall or loc changed here (a door): the lights round it are flooded again next frame
+		this.hdFeatures.lightGrid.changed(level, x, z)
 	}
 
 	override fun transparentEntitiesDone() {
