@@ -170,13 +170,27 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
   switch, each click stepping to its next value. Changes apply at once and are saved to
   `~/.634hd-settings.txt`, read at the next start unless `client.hd.*` switches are given. Two rows
   are the whole client's, outside the presets: draw distance (1x, 1.5x, 2x; `ClientFeatures.RENDER_DISTANCE`,
-  live: the map is built again) and interface scale (auto or 1x-3x; `ClientFeatures.SCALE`, from the
+  live: the map is built again; see below) and interface scale (auto or 1x-3x; `ClientFeatures.SCALE`, from the
   next start, since the window's layout is made at start). Saved, they win over the launcher's
   defaults (`LauncherDefaults` marks what it set with `<name>.default`) but not over `--render-distance`
   or `--scale`; also `::hd renderDistance <n>` and `::hd scale <n>`. The smoke test neither reads nor
   writes that file; `client.test.findText=open:742` checks the toggle, the Medium preset, the panel's
   presets, rows (the draw distance's map rebuild too) and Close.
+- **Draw distance:** the game's own longer view, a bigger scene. The scene the client builds is
+  sized from the last region packet (`StaticRegionInit.hdApplySceneSize`): 136 tiles at 1.5x, 168 at
+  2x, never smaller than the server's (Void sends 104). The server's keys are matched to the regions
+  by position and the rest get zero keys (Void's maps are not encrypted); the map data comes from the
+  cache. The fog's end and the ground's draw radius then come from the game's own tables for the size
+  (46 and 47 tiles at 168, against 29 and 32 at 104), so the loaded world extends well past the fog.
+  (Scaling the fog and the draw radius of the 104-tile scene instead put the fog's end on the scene's
+  edge: the sea stopped in a wall, the ground in a cliff, nothing beyond.) NPCs, players and the
+  server's own locs beyond the server's 104 tiles are not there until the server's view moves. A
+  168-tile scene needs about twice the heap of a 104 one; `clientJvmArgs` gives 512 MB; under 448 MB
+  the client builds 136 instead and under 320 MB only the server's scene (`ClientFeatures.sceneMapSize`;
+  168 and 136 both went out of memory at 256 MB).
 - **Checks:**
+  - unit tests in `src/jvmTest` (`./gradlew jvmTest`, part of `build` and so of CI): the logic that
+    needs no running client, `ClientFeatures.sceneMapSize` so far;
   - the scene harness against toolkit 1's references (`-Pclient.test.toolkit=6
     -Pclient.test.scenes=default -Pclient.test.sceneReferenceToolkit=1`): every scene, the reload, the
     relog and a loc change within the noise of toolkit 1 against itself (40 per 1000; the cow
@@ -226,7 +240,7 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
 | `shadows` (1024/2048/4096) | sun shadow map, PCF | `scene/HdShadows`, `hdShadow` |
 | `cutoutShadows` | static casters drawn with their textures: texels (or faces) under half opaque cast nothing, so leaves, wheat and fences cast their shape | `caster_cutout.vert`/`.frag` |
 | `ambientOcclusion` | baked: the region's static scene into a height map when its chunks change or the player changes floor - roofs and the floors above the player left out, as the game hides them indoors - then (a few ms a frame) into every retained vertex and into a texture per ground level, four samples a tile side; a ground pixel reads one texel, and measures the moving models' map (the player left out; walls only, never cover overhead) itself only near the player; other moving models measure per pixel. A new bake never changes the look before it is complete (a ground keeps its previous texture; a rebuilt chunk is shaded at once from the last bake); after a region load occlusion fades in once everything is baked | `scene/HdShadows` (`bindGroundOcclusion`), `HdSceneRenderer.skyVisibility`, `hdGroundOcclusion`, `hdAmbientOcclusion` |
-| `fog`, `fade`, `sky` | environment fog, dithered fade at the edge, gradient sky and height fog; water and the seabed fade into a sea horizon, their own colour with 30% of the sky's (`hdFogWater`), not into the sky | `scene/HdFeatures`, `hdFog`, `sky.frag` |
+| `fog`, `fade`, `sky` | environment fog, dithered fade at the edge, gradient sky and height fog; with `client.renderDistance` above 1 the fade's band is a quarter of the fog's end (3 tiles otherwise), so the far sea and shore fade into the sky over a long way; everything also fades into the sky within 8 tiles of the loaded scene's edge whatever the distance (`hdSceneSize`): at a long draw distance the view reaches past it | `scene/HdFeatures`, `hdFog`, `sky.frag` |
 | `water` | the game's water as the standard OpenGL toolkit draws it (its animated net over the fogged seabed), kept right under 634HD's other features: the seabed's fog (the still water effect's stage 1, by depth and distance) is made once more after the HD steps (material maps, the lighting model, world textures, caustics), which brought the seabed's stretched textures back through the sea as streaks. Water draws are composed in sRGB under the tonemap and shown as the game shows them, the tonemap's exposure and curve undone (`hdTonemapInverse`: the curve added contrast to a surface made for plain sRGB), and take the time of day's light (`hdUnlitLight`); with the fade on, water fades into a sea horizon. environments.json `water` (tint, waves, speed, size, glint) is kept for a later water, only `speed` is read (the caustics) | `ff.frag`; `GlState.hdWater` (the effect's number)
 | `reflections` (on in High and Ultra) | the scene mirrored in the water: once a frame, before the ground and the water, the retained static scene (`drawAllForBake`, a colour program `reflect.vert/frag`: lit as the scene is, fogged, clipped to above the water) and the sky are drawn mirrored about the water plane (the mean height of the player's ground's water tiles, `HdGround.hdWaterPlaneY`) into a half-size texture (unit 26); the water surface draws sample it at their screen position, bent by the game's wave texture, as a layer of its own under the game's surface sheet, at an opacity set by the angle of view (3% looking down to 45% at grazing angles); the sheet keeps its own opacity (raised to the reflection's, the near-white sheet made the water pale, grey at night). The reflection is fogged as the view is (`hdFog`, from the direction the eye sees the object in at the mirrored distance) and its sky is drawn sRGB (`uSrgbOut`), so it stays right at dusk and at night. Players, NPCs and animated locs are reflected from their recorded draws (`HdShadows.drawReflected`: the shadow recorder keeps each emulated draw's attributes, texture and lighting for it; the translucent ones, drawn after the pass, a frame late; a retained model's own emulated draws are left out, `GlState.hdRetainedDraw`); the ground and water models are not. Debugging: `client.test.hdReflectionShot=<png>` saves the reflection texture every 120 frames, `client.test.hdReflectionParts=static,dynamic,sky[,nomirror][,now|late]` picks what it holds | `scene/HdReflections`; `HdShadows.drawReflected`; `ff.frag` |
 | `terrainBlend` | triplanar on slopes, anti-tiling blend, broad variation on the ground | `hdTerrainTexture`; `GlState.hdGround` |

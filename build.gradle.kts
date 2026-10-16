@@ -37,6 +37,11 @@ kotlin {
     }
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
+        /*
+         * The deobfuscated classes keep the 2010 jar's parameter names where they override a supertype's
+         * (2,856 warnings that hide the rest); the remaining warnings are the ones worth reading.
+         */
+        freeCompilerArgs.add("-Xsuppress-warning=PARAMETER_NAME_CHANGED_ON_OVERRIDE")
     }
     sourceSets {
         jvmMain.dependencies {
@@ -59,6 +64,10 @@ kotlin {
         jsMain.dependencies {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
         }
+        /* Unit tests of the JVM target (src/jvmTest): ./gradlew jvmTest, part of build. */
+        jvmTest.dependencies {
+            implementation(kotlin("test"))
+        }
     }
 }
 
@@ -67,9 +76,10 @@ val jvmRuntimeClasspath = configurations.named("jvmRuntimeClasspath")
 val clientClasspath = files(jvmJar, jvmRuntimeClasspath)
 val clientLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
 
-/* The JVM options of the launcher, the client and the start scripts. */
+/* The JVM options of the launcher, the client and the start scripts (512m: 634HD's draw distance 2x builds
+   a 168-tile scene, which needs about twice the game's 104-tile one). */
 val clientJvmArgs = listOf(
-    "-Xmx256m",
+    "-Xmx512m",
     "-Dsun.java2d.noddraw=true",
     "--add-opens",
     "java.base/java.lang=ALL-UNNAMED",

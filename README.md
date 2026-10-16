@@ -153,7 +153,7 @@ Open the folder as a Gradle project with a Java 21 SDK. Then either run the Grad
 `runetek5-634.main` classpath, the options as program arguments, and these VM options:
 
 ```
---add-opens java.base/java.lang=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -Xmx256m
+--add-opens java.base/java.lang=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -Xmx512m
 ```
 
 </details>

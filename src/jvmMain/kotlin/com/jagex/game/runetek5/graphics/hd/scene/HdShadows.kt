@@ -814,8 +814,8 @@ class HdShadows {
                 // from the lowest of the position's and its attributes' offsets in this buffer, so the
                 // attributes come along (634HD reflections)
                 var from: Long = list.offset[i]
-                for (k in 0 until 3) {
-                    val at3: Int = i * 3 + k
+                for (attribute in 0 until 3) {
+                    val at3: Int = i * 3 + attribute
                     if (list.attrBuffer[at3] == buffer && list.attrOffset[at3] < from) from = list.attrOffset[at3]
                 }
                 val bytes: Long = bufferBytes - from
@@ -830,8 +830,8 @@ class HdShadows {
                     copiedTo = at
                 }
             }
-            for (k in 0 until 3) {
-                val at3: Int = i * 3 + k
+            for (attribute in 0 until 3) {
+                val at3: Int = i * 3 + attribute
                 if (list.attrBuffer[at3] != buffer) continue
                 if (copiedFrom >= 0L) {
                     list.attrBuffer[at3] = list.copyBuffer

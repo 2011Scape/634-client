@@ -27,7 +27,9 @@ node tools/relay.mjs                       # WebSocket relay ws://localhost:8081
 node tools/serve.mjs                       # serves the dev bundle on :8080 (and the browser smoke refs)
 ```
 
-There are no unit tests and no linter. Beyond `checkClasses` (every class loads and verifies from
+Unit tests live in `src/jvmTest` (`./gradlew jvmTest`, part of `build`; kotlin-test on JUnit 4) and
+cover the 634HD additions that are plain logic (`ClientFeaturesTest`: the draw distance's scene size).
+There is no linter. Beyond `checkClasses` (every class loads and verifies from
 the release jar; no method over the JIT limit unless `config/huge-methods.txt` lists it), the check
 is the in-client smoke test (`client/features/SmokeTest`), which needs a Void server running locally
 with a `smoketest` / `smoketest1` account:
@@ -81,7 +83,7 @@ Windows and macOS, x64 and arm64, plus Windows x86, in the jar). Toolkits 0 and 
 to `LD_LIBRARY_PATH`, because `libhw3d.so` (toolkit 5) links `libjaclib.so` by name. Without it,
 toolkit 5 fails and the client silently falls back to the software toolkit (looks like safe mode).
 LWJGL unpacks its natives into `~/.lwjgl/634-client`. In an IDE, also pass
-`--add-opens java.base/java.lang=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -Xmx256m`.
+`--add-opens java.base/java.lang=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -Xmx512m`.
 
 ## Architecture
 

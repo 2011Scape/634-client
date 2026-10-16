@@ -359,12 +359,14 @@ void main() {
         float murk = texture(uTexture1, logicalCentre(vTexCoord1.xy)).a;
         color.rgb = hdFogMix(color.rgb, uTexEnvColor[1].rgb, murk);
     }
+    // a water draw shows as the game shows it, whatever the tonemap (hd_lib.glsl hdTonemapInverse):
+    // before the fog, so the fog's colour mixed in is the sky's as the sky and the land show it (undone
+    // after the fog, fully fogged water came out a shade off the sky, and the game's water sheet, which
+    // goes opaque near the fog's end through a per-vertex ramp, showed as a pale, tile-stepped patch)
+    if (uHdWater != 0 && hdOn(HD_LINEAR)) color.rgb = hdTonemapInverse(hdToSrgb(color.rgb));
     float depth = gl_FragCoord.z / gl_FragCoord.w;
-    hdFogWater = uHdWater != 0 || uHdUnderwater != 0;
     if (uFogEnabled) {
         color = hdFog(color, FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd);
     }
-    // a water draw shows as the game shows it, whatever the tonemap (hd_lib.glsl hdTonemapInverse)
-    if (uHdWater != 0 && hdOn(HD_LINEAR)) color.rgb = hdTonemapInverse(hdToSrgb(color.rgb));
     fragColor = hdDebugOverlay(color, FF_VIEW_POS, FF_NORMAL, uUseTexture[0] ? uHdTexture : -1);
 }

@@ -172,10 +172,6 @@ object MapBuildStep {
 		if (ClientState.activeToolkit!!.extendBuildArea()) {
 			visibleTiles++
 		}
-		if (ClientFeatures.RENDER_DISTANCE != 1.0) {
-			// Not part of the original client: the scene is drawn further out.
-			visibleTiles = (ClientFeatures.RENDER_DISTANCE * visibleTiles.toDouble()).toInt()
-		}
 		SceneInitializer.initializeScene(ClientState.activeToolkit, Scene.renderCores, MapRegion.sceneSizeX, MapRegion.sceneSizeY, visibleTiles, hasUnderwaterMap, ClientState.activeToolkit!!.getMaxLights() > 0)
 		W2DebugMode.setW2DebugMode(W2DebugMode.w2DebugMode)
 		if (W2DebugMode.w2DebugMode == 0) {
