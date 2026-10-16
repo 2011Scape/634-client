@@ -11,6 +11,7 @@
 !.claude/
 .claude/*
 !.claude/skills/
+CLAUDE.md
 
 # EditorConfig
 !.editorconfig
