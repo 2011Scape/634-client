@@ -100,6 +100,10 @@ class HdGround : Ground {
 
 	private var shadowMap: HdShadowMap? = null
 
+	/** 634HD: the mean height of this ground's water tiles' vertices (world y), NaN with none: the reflection's plane. */
+	@JvmField
+	var hdWaterPlaneY: Float = Float.NaN
+
 	/** 634HD: the blob shadows of water models only (the oasis's pool), drawn with the sun's shadows on. */
 	private var waterShadowMap: HdShadowMap? = null
 
@@ -233,6 +237,8 @@ class HdGround : Ground {
 			if ((this.featureFlags and 0x7) != 0) {
 				vertexStride += 12
 			}
+			var waterPlaneSum: Double = 0.0
+			var waterPlaneCount: Int = 0
 			val nativeHeapBuffer: NativeHeapBuffer = this.glToolkit.nativeHeap!!.a(this.totalTileVertexCount * vertexStride, false)
 			val stream: Stream = Stream(nativeHeapBuffer)
 			val glGroundLayers: Array<HdGroundLayer?> = arrayOfNulls<HdGroundLayer>(this.totalTileVertexCount)
@@ -398,6 +404,11 @@ class HdGround : Ground {
 										blendedRgb = (red shl 16) or (green shl 8) or blue
 									}
 								}
+								// 634HD: the water plane (hdWaterPlaneY)
+								if (waterDepths != null && waterDepths[tileVertex] > 1) {
+									waterPlaneSum += (this.averageHeight(vertexX, vertexZ) + heightOffset).toDouble()
+									waterPlaneCount++
+								}
 								if (this.glToolkit.bigEndianess) {
 									stream.a(vertexX.toFloat())
 									stream.a((this.averageHeight(vertexX, vertexZ) + heightOffset).toFloat())
@@ -539,6 +550,7 @@ class HdGround : Ground {
 				this.shadowMap!!.initializeShadowTiles()
 				this.waterShadowMap?.initializeShadowTiles()
 			}
+			this.hdWaterPlaneY = if (waterPlaneCount > 0) (waterPlaneSum / waterPlaneCount).toFloat() else Float.NaN
 		}
 		this.tileHeightOffsets = null
 		this.normalZ = null

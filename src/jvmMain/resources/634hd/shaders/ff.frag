@@ -34,6 +34,9 @@ uniform int uHdWater;
 uniform int uHdGround;
 // 1 while the game's underwater pass draws (the riverbed): caustics there (HD_CAUSTICS)
 uniform int uHdUnderwater;
+// 634HD: the water's reflection (HdReflections): the viewport it is for (z 0: none), and the texture
+uniform vec4 uHdReflection;
+uniform sampler2D uHdReflectionMap;
 // the slot of the texture's 634HD maps (HD_MATERIALS), -1 without
 uniform int uHdMapSlot;
 // the 634 texture id of unit 0 (the debug panel's texture overlay), -1 for none
@@ -289,6 +292,30 @@ void main() {
     if (mapped) gUv0 = hdParallaxUv(uHdMapSlot, gUv0, FF_VIEW_POS);
     for (int i = 0; i < 3; i++) {
         if (uUseTexture[i]) color = combineStage(i, sampleUnit(i), color);
+    }
+    // 634HD: the scene mirrored in the water (HD_REFLECTIONS, the water surface on the ground): sampled
+    // at this fragment's screen position, bent a little by the game's wave texture, and mixed in by
+    // the angle of view - a mirror at grazing angles, the game's water looking down - and drawn over
+    // the seabed by as much: the surface's alpha (the game's thin net, which its alpha test below
+    // cuts to the net's ridges) is raised to it, so the reflection covers the water
+    if (uHdWater != 0 && uHdWater != 3 && uHdGround != 0 && hdOn(HD_REFLECTIONS) && uHdReflection.z > 0.0) {
+        vec3 up = -vec3(hdViewToWorld[0][1], hdViewToWorld[1][1], hdViewToWorld[2][1]);
+        vec3 view = normalize(FF_VIEW_POS);
+        float cosine = max(dot(-view, normalize(up)), 0.0);
+        float grazing = pow(1.0 - cosine, 3.0);
+        float amount = clamp(mix(0.03, 0.5, grazing), 0.0, 0.45);
+        float net = uIs3D[1] != 0 ? sampleLuminanceAlpha3D(uTexture3D1, vTexCoord1).r : uIs3D[0] != 0 ? sampleLuminanceAlpha3D(uTexture3D0, vTexCoord0).r : 0.035;
+        vec2 bend = vec2(net - 0.035) * vec2(0.12, 0.25);
+        vec2 uv = clamp((gl_FragCoord.xy - uHdReflection.xy) / uHdReflection.zw + bend, vec2(0.001), vec2(0.999));
+        vec4 mirrored = texture(uHdReflectionMap, uv);
+        amount *= mirrored.a;
+        if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
+            // between the net's ridges the game shows the seabed: the reflection alone, over it
+            color = vec4(mirrored.rgb * 0.85, amount);
+        } else {
+            color.rgb = mix(color.rgb, mirrored.rgb * 0.85, amount);
+            color.a = max(color.a, amount);
+        }
     }
     if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
         discard;

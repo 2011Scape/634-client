@@ -63,6 +63,9 @@ class HdFeatures {
     /** The point lights from lights.json (HdSettings.lights). */
     val lights: HdLights = HdLights()
 
+    /** The water's planar reflection (HdSettings.reflections), drawn in HdToolkit.opaqueEntitiesDone. */
+    val reflections: HdReflections = HdReflections()
+
     private var viewX: Int = 0
     private var viewY: Int = 0
     private var viewWidth: Int = 1
@@ -74,6 +77,8 @@ class HdFeatures {
         viewY = y
         viewWidth = maxOf(1, width)
         viewHeight = maxOf(1, height)
+        // no reflection until this frame's is drawn
+        HdGl.state.hdReflection[2] = 0.0f
     }
 
     /** Once the camera is set: everything the frame's uniform block holds, then uploaded. */

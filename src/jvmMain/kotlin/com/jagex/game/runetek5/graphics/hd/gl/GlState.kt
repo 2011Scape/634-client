@@ -85,6 +85,9 @@ class GlState(val gl: WebGL2RenderingContext) {
     /** 634HD: the game's blob shadows drawn only where the ground is under water (HdGround, with sun shadows). */
     var hdBlobWater: Int = 0
 
+    /** 634HD: the viewport the water's reflection (HdReflections, unit 26) was drawn for; z 0 when there is none. */
+    val hdReflection: FloatArray = FloatArray(4)
+
     // 634HD: the slot of the drawn texture's material maps (HdMaterialMaps), -1 for none
     var hdMapSlot: Int = -1
 
