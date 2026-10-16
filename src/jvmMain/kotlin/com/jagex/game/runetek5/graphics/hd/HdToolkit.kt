@@ -1246,8 +1246,12 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			// 634HD: the texture's material maps (client.hd.materials)
 			HdGl.state.hdMapSlot = this.materialMaps.slotOf(materialId)
 			HdGl.state.hdTexture = materialId
-			// 634HD: water materials (the water effects) get 634HD's water shading with client.hd.water
-			HdGl.state.hdWater = if (effectType == 2 || effectType == 3 || effectType == 4 || effectType == 5 || effectType == 8 || effectType == 9) 1 else 0
+			// 634HD: water materials (the water effects) get 634HD's water shading with client.hd.water; the
+			// effect's number, so the shader can tell the seabed (3) from the surface (2 lapping, 4 rippling)
+			HdGl.state.hdWater = if (effectType == 2 || effectType == 3 || effectType == 4 || effectType == 5 || effectType == 8 || effectType == 9) effectType else 0
+			if (HdToolkit.DEBUG_EFFECTS != null && materialId >= 0 && !this.stillWaterToggled) {
+				HdToolkit.DEBUG_EFFECTS!![materialId] = effectType or (combineMode shl 8) or ((effectParam1.toInt() and 0xFF) shl 16) or (effectParam2 shl 24)
+			}
 			if (!this.effectManager.bindTexture(combineMode, texture)) {
 				this.setActiveTexture(texture)
 				this.setColourOp(combineMode)
@@ -3881,11 +3885,16 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 
 		private var debugMaterialFrames: Int = 0
 
+		/** 634HD debugging: each material's effect type (bits 0-7), combine mode (8-15), params (16-23, 24-31). */
+		val DEBUG_EFFECTS: HashMap<Int, Int>? = if (System.getProperty("client.test.hdDebug") != null) HashMap() else null
+
 		fun printDebugMaterials() {
 			val counts: HashMap<Int, Int> = DEBUG_MATERIALS ?: return
 			if (debugMaterialFrames++ % 300 != 0) return
 			val sorted = counts.entries.sortedByDescending { it.value }
 			println("HDDEBUG textures used: " + sorted.joinToString(" ") { it.key.toString() + ":" + it.value })
+			val effects: HashMap<Int, Int> = DEBUG_EFFECTS ?: return
+			println("HDDEBUG water effects: " + effects.entries.filter { (it.value and 0xFF) != 0 }.joinToString(" ") { it.key.toString() + ":effect" + (it.value and 0xFF) + "/combine" + ((it.value shr 8) and 0xFF) + "/p1=" + ((it.value shr 16) and 0xFF) + "/p2=" + ((it.value shr 24) and 0xFF) })
 		}
 
 

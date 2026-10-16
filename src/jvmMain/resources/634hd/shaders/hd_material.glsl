@@ -300,11 +300,13 @@ vec3 hdWaterNoise(vec2 p) {
     return vec3(a + (b - a) * u.x + (c - a) * u.y + k * u.x * u.y, du * (vec2(b - a, c - a) + k * u.yx));
 }
 
-// The water's slope at world ([x], [z]) at time [t]: three layers of irregular ripples, from swells a
-// couple of tiles long to fine chop, drifting different ways. A layer fades out where a pixel spans a
-// good part of its wavelength ([footprint]), so the far sea does not shimmer.
-vec2 hdWaveSlope(vec2 p, float t, float footprint) {
-    vec2 slope = vec2(0.0);
+// The water's waves at world ([x], [z]) at time [t]: (height, slope x, slope z) from three layers of
+// irregular ripples, from swells a couple of tiles long to fine chop, drifting different ways. The
+// height (-0.5..0.5, the two coarse layers) lights crests and darkens troughs; the slopes tilt the
+// normal. A layer fades out where a pixel spans a part of its wavelength ([footprint]): a slope is
+// the highest frequency a layer has, so it goes early, and the far sea does not shimmer.
+vec3 hdWaveField(vec2 p, float t, float footprint) {
+    vec3 field = vec3(0.0);
     // wavelength in world units (512 a tile), drift, strength
     const vec3 LAYER0 = vec3(1150.0, 0.06, 0.40);
     const vec3 LAYER1 = vec3(430.0, 0.11, 0.18);
@@ -313,51 +315,99 @@ vec2 hdWaveSlope(vec2 p, float t, float footprint) {
     vec2 dirs[3] = vec2[3](vec2(0.8, 0.6), vec2(-0.5, 0.86), vec2(0.3, -0.95));
     for (int i = 0; i < 3; i++) {
         float wavelength = layers[i].x;
-        float fade = 1.0 - smoothstep(wavelength * 0.25, wavelength * 0.8, footprint);
+        float fade = 1.0 - smoothstep(wavelength * 0.1, wavelength * 0.35, footprint);
         if (fade <= 0.0) continue;
         vec3 n = hdWaterNoise(p / wavelength + dirs[i] * t * layers[i].y);
-        slope += n.yz * layers[i].z * fade;
+        field.yz += n.yz * layers[i].z * fade;
+        if (i > 0) field.x += (n.x - 0.5) * layers[i].z * fade;
     }
-    return slope;
+    return field;
 }
 
-// Water (HD_WATER, on a water material): the game's water, kept as the base, gently tinted towards
-// the environment's colour and coloured by the [depth] under it (world units; negative: unknown, a
-// water model): lighter and greener in the shallows, darker and bluer deep. Irregular ripples
-// (hdWaveSlope) catch the light; a Fresnel reflection of the sky grows towards grazing angles, as on
-// real water; the sun makes a sharp highlight with a soft halo. With [srgb] the colour and the result
-// are sRGB (ff.frag's water draws in linear mode: mixed in linear light the sky washed the water out).
-vec4 hdWater(vec4 color, vec3 viewPos, bool srgb, float depth) {
+// The sky a water surface reflects, towards [dir]: the band near the horizon (a surface sees little of
+// the zenith), its brightness capped and a little greyed, so a near-white noon sky does not wash the
+// water out. sRGB.
+vec3 hdWaterSky(vec3 dir) {
+    float up = clamp(-dir.y / max(length(dir), 0.0001), 0.0, 1.0);
+    vec3 sky = mix(hdSkyHorizon.rgb, hdSkyTop.rgb, pow(up, 0.9));
+    float lum = dot(sky, vec3(0.299, 0.587, 0.114));
+    sky *= min(1.0, 0.55 / max(lum, 0.001));
+    return mix(sky, vec3(min(lum, 0.55)), 0.15);
+}
+
+// The colour of a body of water whose bed is [depth] units down, from the map's water colour [mapRgb]
+// (the game's seabed fog colour, sRGB; zero: unknown, the area's tint) tinted towards the area's
+// (environments.json water): lighter and greener in the shallows, darker and bluer deep. sRGB.
+vec3 hdWaterBody(vec3 mapRgb, float depth) {
+    vec3 rgb = dot(mapRgb, vec3(1.0)) > 0.0 ? mapRgb : hdWaterTint.rgb * 0.5;
+    float strength = dot(mapRgb, vec3(1.0)) > 0.0 ? hdWaterTint.w * 0.5 : 0.0;
+    vec3 tint = mix(rgb, hdWaterTint.rgb * max(max(rgb.r, rgb.g), rgb.b), strength);
+    float deep = smoothstep(0.0, HD_WATER_DEEP, depth);
+    return mix(tint * vec3(1.0, 1.12, 1.05), tint * vec3(0.7, 0.8, 0.95), deep);
+}
+
+// Water (HD_WATER, on a water material). The game's water surface is a near-white sheet whose alpha is
+// its animated texture (a few percent, so the fogged seabed shows through): here a [surface] draw on
+// the ground ([ground]) is drawn as the body of water instead, its colour from the map's water colour
+// [mapRgb] and the [depth] under it (hdWaterBody), with its own alpha. A water model (the oasis, depth
+// below 0) keeps the game's colour as its base. On it: irregular ripples (hdWaveField) that light
+// crests and tilt the normal, a Fresnel reflection of the sky's horizon band growing towards grazing
+// angles, and the sun's highlight, sharp near and broad far (band-limited to the pixel's footprint).
+// With [srgb] the colour and the result are sRGB (ff.frag's water draws in linear mode: mixed in
+// linear light the sky washed the water out).
+vec4 hdWater(vec4 color, vec3 viewPos, bool srgb, float depth, vec3 mapRgb, bool surface, bool ground) {
     vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
     vec3 camera = hdViewToWorld[3].xyz;
     // the area's water (environments.json water): wave height, speed and size
     float t = hdTime.x * hdWaterParams.y;
+    float size = max(hdWaterParams.w, 0.25);
     float footprint = length(fwidth(world));
-    vec2 slope = hdWaveSlope(world.xz / max(hdWaterParams.w, 0.25), t, footprint / max(hdWaterParams.w, 0.25)) * hdWaterParams.x;
+    vec3 field = hdWaveField(world.xz / size, t, footprint / size);
+    vec2 slope = field.yz * hdWaterParams.x;
     // world up is -y
     vec3 n = normalize(vec3(-slope.x, -1.0, -slope.y));
     vec3 view = normalize(world - camera);
     float cosine = max(dot(-view, n), 0.0);
     float fresnel = 0.02 + 0.98 * pow(1.0 - cosine, 5.0);
     vec3 reflected = reflect(view, n);
-    vec3 sky = srgb ? hdSkyColour(reflected) : hdColour(vec4(hdSkyColour(reflected), 1.0)).rgb;
-    vec3 tint = srgb ? hdWaterTint.rgb : hdColour(vec4(hdWaterTint.rgb, 1.0)).rgb;
-    vec3 base = mix(color.rgb, tint * max(max(color.r, color.g), color.b) * 1.4, hdWaterTint.w * 0.6);
-    // the depth: shallows lighter and greener, deep water darker and bluer
-    float deep = depth < 0.0 ? 0.5 : smoothstep(0.0, HD_WATER_DEEP, depth);
-    vec3 shallow = base * vec3(1.05, 1.25, 1.15);
-    vec3 deepColour = base * vec3(0.62, 0.74, 0.92);
-    base = mix(shallow, deepColour, deep);
+    vec3 sky = srgb ? hdWaterSky(reflected) : hdColour(vec4(hdWaterSky(reflected), 1.0)).rgb;
+    bool known = depth >= 0.0 || (ground && surface);
+    float deep = depth < 0.0 ? (ground ? 1.0 : 0.5) : smoothstep(0.0, HD_WATER_DEEP, depth);
+    vec3 base;
+    if (surface && ground) {
+        vec3 body = hdWaterBody(mapRgb, depth < 0.0 ? HD_WATER_DEEP : depth);
+        base = srgb ? body : hdColour(vec4(body, 1.0)).rgb;
+    } else {
+        vec3 tint = srgb ? hdWaterTint.rgb : hdColour(vec4(hdWaterTint.rgb, 1.0)).rgb;
+        base = mix(color.rgb, tint * max(max(color.r, color.g), color.b) * 1.4, hdWaterTint.w * 0.6);
+        base = mix(base * vec3(1.05, 1.25, 1.15), base * vec3(0.62, 0.74, 0.92), deep);
+    }
+    // crests lighter, troughs darker
+    base *= 1.0 + field.x * 1.2 * hdWaterParams.x;
     vec3 sunWorld = hdSunDirection.w > 0.5 ? normalize(mat3(hdViewToWorld) * hdSunDirection.xyz) : vec3(0.0, -1.0, 0.0);
     base *= 0.82 + 0.36 * max(dot(n, sunWorld), 0.0);
-    vec3 result = mix(base, sky, clamp(fresnel, 0.0, 0.7));
+    vec3 result = mix(base, sky, clamp(fresnel, 0.0, 0.45));
+    float glint = 0.0;
     if (hdSunDirection.w > 0.5) {
-        // a sharp highlight, gone where a pixel spans more than a few units of water, and a soft halo
-        float distanceFade = 1.0 - smoothstep(18.0, 60.0, footprint);
+        // the highlight: sharp where a pixel spans little water, broad and dim (the same energy) where it
+        // spans much, and a soft halo that shimmers slowly across the water
+        float lod = clamp(footprint / 8.0, 0.0, 1.0);
+        float e = mix(400.0, 24.0, lod);
         float facing = max(dot(reflected, sunWorld), 0.0);
-        float glint = pow(facing, 400.0) * 3.0 * distanceFade + pow(facing, 24.0) * 0.12;
-        glint *= hdShadow(viewPos) * hdWaterParams.z * hdSunStrength();
+        float sharp = pow(facing, e) * ((e + 2.0) / 402.0) * 3.0;
+        float shimmer = 0.6 + 0.8 * hdWaterNoise(world.xz / 900.0 + vec2(0.3, 0.7) * t * 0.05).x;
+        float halo = pow(facing, 24.0) * 0.12 * shimmer;
+        glint = (sharp + halo) * hdShadow(viewPos) * hdWaterParams.z * hdSunStrength();
         result += hdSunColour.rgb * glint * (hdOn(HD_LINEAR) && !srgb ? 1.0 : 0.35);
     }
-    return vec4(result, color.a);
+    float alpha = color.a;
+    if (surface && ground) {
+        // the body's own opacity: more where deep, more at grazing angles, the highlights punch through;
+        // a ground tile with no seabed under it (no underwater data) is opaque
+        alpha = depth < 0.0 ? 0.8 : mix(0.2, 0.8, smoothstep(0.0, 900.0, depth));
+        alpha = max(alpha, clamp(fresnel, 0.0, 0.45));
+        alpha = clamp(alpha + glint * 0.5, 0.0, 1.0);
+        if (ground && depth < 0.0) alpha = 1.0;
+    }
+    return vec4(result, alpha);
 }
