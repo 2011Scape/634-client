@@ -39,7 +39,7 @@ class HdPost {
         /** The exposure the composite applies before the tonemap's curve (HdSettings.tonemap). */
         fun exposure(): Float = if (HdSettings.tonemap == 2) EXPOSURE_AGX else EXPOSURE_ACES
         private const val BLOOM_THRESHOLD: Float = 0.75f
-        private const val BLOOM_STRENGTH: Float = 0.35f
+        private const val BLOOM_STRENGTH: Float = 0.175f
         private val PROBE: Boolean = System.getProperty("client.test.hdSceneMax") != null
     }
 
