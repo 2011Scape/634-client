@@ -229,9 +229,6 @@ vec4 hdPointLight(vec3 normal, vec3 viewPos, vec3 lightPos, vec3 attenuation, ve
     float dist = length(toLight);
     vec3 lightDir = toLight / max(dist, 0.0001);
     float atten = 1.0 / max(attenuation.x + attenuation.y * dist + attenuation.z * dist * dist, 0.0001);
-    // capped at the light's own brightness in linear colour, as ff.vert caps it: the game's lights
-    // have no constant term, and a lantern's own flame sits at the light
-    if (hdOn(HD_LINEAR)) atten = min(atten, 1.0);
     return vec4(diffuse * max(dot(normal, lightDir), 0.0) * atten, 0.0);
 }
 
@@ -246,12 +243,27 @@ vec3 hdScaleLight(vec3 rgb, float f) {
     return hdScaleLight(rgb, vec3(f));
 }
 
+// The ceiling of a lit colour in linear colour (HD_LINEAR), on the sRGB colour x light product that
+// fixed-function lighting clamped at 1 per channel (so any strong enough light made a face white).
+// Here the product is kept over 1 for the tonemapper, but no further than this, per channel as the
+// game's clamp was: a strong light still makes a face white (2 is 4.6 in linear colour, white under
+// the tonemap), with the excess the bloom glows from, and daylight (at most about 2) is untouched.
+// Without it the game's point lights, which attenuate as 1 / (d / radius)^2 with no constant term
+// (HdToolkit copyLights), ran to thousands on a lantern's own flame, which sits at its light: it
+// reached the half-float ceiling and bloomed into a blob the size of Edgeville bank.
+const float HD_LIT_MAX = 2.0;
+
+// The game's light [lit] on the sRGB colour [srgb], in linear colour (HD_LINEAR).
+vec3 hdLitColour(vec3 srgb, vec3 lit) {
+    return hdToLinear(min(srgb * lit, vec3(HD_LIT_MAX)));
+}
+
 // The game's light on [base] (in the scene's space). With tonemapping (HD_LINEAR) the light multiplies
 // the sRGB colour, as the game's does, before it is made linear: multiplying the linear colour by the
 // same factor flattened the shading (a lit face only lit^(1/2.2) brighter), which with the tonemap's
-// curve read as plastic. Not clamped there, so light over 1 reaches the tonemap.
+// curve read as plastic. Not clamped at 1 there, so light over 1 reaches the tonemap (up to HD_LIT_MAX).
 vec4 hdApplyLight(vec4 base, vec4 lit) {
-    return hdOn(HD_LINEAR) ? vec4(hdToLinear(hdToSrgb(base.rgb) * lit.rgb), base.a) : vec4(clamp(base.rgb * lit.rgb, 0.0, 1.0), base.a);
+    return hdOn(HD_LINEAR) ? vec4(hdLitColour(hdToSrgb(base.rgb), lit.rgb), base.a) : vec4(clamp(base.rgb * lit.rgb, 0.0, 1.0), base.a);
 }
 
 // The sky's colour (sRGB) in world direction [dir] (the game's axes: y points down).
