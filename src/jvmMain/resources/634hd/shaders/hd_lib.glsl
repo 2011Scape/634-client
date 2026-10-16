@@ -431,7 +431,14 @@ vec3 hdLightFill(vec3 world) {
 vec4 hdAddPointLights(vec4 color, vec4 base, vec3 viewPos, vec3 normal) {
     if (!hdOn(HD_LIGHTS)) return color;
     vec3 light = hdLightInfo.x > 0 ? hdPointLights(viewPos, normal) : vec3(0.0);
-    if (hdOn(HD_LIGHT_GRID)) light += hdLightFill((hdViewToWorld * vec4(viewPos, 1.0)).xyz);
+    if (hdOn(HD_LIGHT_GRID)) {
+        // the fill a quarter tile out along the surface's normal: a wall's two faces share a position
+        // on the tile edge, so without this the outside face read the room's fill
+        vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
+        float normalLength = length(normal);
+        if (normalLength > 0.0001) world += mat3(hdViewToWorld) * (normal / normalLength) * 128.0;
+        light += hdLightFill(world);
+    }
     // not clamped: the texture multiplies it next, and a lit stone wall is near white already
     return vec4(color.rgb + base.rgb * light, color.a);
 }
