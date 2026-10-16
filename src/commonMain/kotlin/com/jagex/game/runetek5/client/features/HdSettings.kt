@@ -62,7 +62,7 @@ object HdSettings {
 	@JvmField
 	var terrainBlend: Boolean = false
 
-	/** Water: 0 as the game draws it, 1 animated normals, fresnel, depth colour and foam. */
+	/** Water: 0 as the game draws it, 1 the seabed re-fogged after the HD steps, shown right under the tonemap, with caustics at the area's speed. */
 	@JvmField
 	var water: Int = 0
 
@@ -420,7 +420,7 @@ object HdSettings {
 
 	/** Whether the 3D view needs its own framebuffer for these settings (post-processing). */
 	@JvmStatic
-	fun postProcessing(): Boolean = tonemap != 0 || fxaa || bloom || colourGrading || softParticles || water != 0
+	fun postProcessing(): Boolean = tonemap != 0 || fxaa || bloom || colourGrading || softParticles
 
 	/** Sets [name] to [value]; null when it worked, else what was wrong. */
 	@JvmStatic

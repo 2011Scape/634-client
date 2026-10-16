@@ -24,6 +24,15 @@ class ClientFeaturesTest {
     }
 
     @Test
+    fun zoneOffsetsShiftByHalfTheSizeDifference() {
+        assertEquals(0, ClientFeatures.serverZoneShift(104, 104))
+        assertEquals(16, ClientFeatures.serverZoneShift(136, 104))
+        assertEquals(32, ClientFeatures.serverZoneShift(168, 104))
+        assertEquals(24, ClientFeatures.serverZoneShift(168, 120))
+        assertEquals(0, ClientFeatures.serverZoneShift(168, 168))
+    }
+
+    @Test
     fun theServersSceneAtDrawDistanceOne() {
         assertEquals(0, sceneMapSize(1.0, 512, 0))
         assertEquals(1, sceneMapSize(1.0, 512, 1))

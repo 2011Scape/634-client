@@ -327,7 +327,7 @@ void main() {
     // would pass them by, and water glowed at night. They take the change in light a lit face takes.
     if (uHdWater != 0 && !lightsApplied && hdOn(HD_ENV_LIGHT)) {
         vec3 light = hdUnlitLight(hdAmbientColour.rgb, hdSunColour.rgb);
-        color.rgb = gSrgbWater || !hdOn(HD_LINEAR) ? color.rgb * light : hdToLinear(hdToSrgb(color.rgb) * light);
+        color.rgb *= light; // in sRGB terms: gSrgbWater holds whenever HD_LINEAR does
     }
     if (gSrgbWater) color.rgb = hdToLinear(color.rgb);
     if (uHdSoft != 0 && hdOn(HD_SOFT_PARTICLES)) {

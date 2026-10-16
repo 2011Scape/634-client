@@ -2,9 +2,6 @@
  * Not part of the original client: 634HD (toolkit 6), copied from GlToolkit (the Java OpenGL toolkit,
  * toolkit 1) and moved onto HdGl, the GL 3.3 core emulator. The original stays as it was.
  */
-// The warnings of the original (deobfuscated) code, left as it was: the build treats warnings as errors.
-@file:Suppress("SENSELESS_COMPARISON")
-
 package com.jagex.game.runetek5.graphics.hd
 
 import com.jagex.game.runetek5.graphics.hd.gl.CoreGl
@@ -77,7 +74,6 @@ import awt.Rectangle
 import lang.reflect.Method
 import util.Enumeration
 import util.Hashtable
-import util.Locale
 import com.jagex.game.runetek5.client.features.ClientFeatures
 import com.jagex.game.runetek5.buffer.ArrayBufferGL
 import com.jagex.game.runetek5.buffer.ElementsBufferGL
@@ -800,7 +796,6 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		val level: Int = com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate.localPlayer?.level?.toInt() ?: 0
 		var node = sentinel.next
 		val seen: HashSet<Long> = HashSet()
-		if (sentinel == null) return
 		while (node != null && node !== sentinel) {
 			val entry = node as? com.jagex.game.runetek5.client.menu.MiniMenuEntry
 			node = node.next

@@ -155,7 +155,8 @@ class HdGround : Ground {
 			val shadowX: Int = (x - ((this.glToolkit.sunSlopeX * heightOffset) shr 8)) shr this.glToolkit.shadowScaleShift
 			val shadowZ: Int = (z - ((heightOffset * this.glToolkit.sunSlopeZ) shr 8)) shr this.glToolkit.shadowScaleShift
 			this.shadowMap!!.removeShadow(shadow, shadowX, shadowZ)
-			if ((shadow as? HdShadow)?.hdWater == true) this.waterShadowMap?.removeShadow(shadow, shadowX, shadowZ)
+			val waterFaces: HdShadow? = (shadow as? HdShadow)?.hdWaterFaces
+			if (waterFaces != null) this.waterShadowMap?.removeShadow(waterFaces, shadowX, shadowZ)
 		}
 	}
 
@@ -609,12 +610,13 @@ class HdGround : Ground {
 			val shadowX: Int = (x - ((heightOffset * this.glToolkit.sunSlopeX) shr 8)) shr this.glToolkit.shadowScaleShift
 			val shadowZ: Int = (z - ((this.glToolkit.sunSlopeZ * heightOffset) shr 8)) shr this.glToolkit.shadowScaleShift
 			this.shadowMap!!.addShadow(shadowX, shadowZ, shadow)
-			if ((shadow as? HdShadow)?.hdWater == true) {
+			val waterFaces: HdShadow? = (shadow as? HdShadow)?.hdWaterFaces
+			if (waterFaces != null) {
 				if (this.waterShadowMap == null) {
 					this.waterShadowMap = HdShadowMap(this.glToolkit, this)
 					if (this.hdShadowTilesReady) this.waterShadowMap!!.initializeShadowTiles()
 				}
-				this.waterShadowMap!!.addShadow(shadowX, shadowZ, shadow)
+				this.waterShadowMap!!.addShadow(shadowX, shadowZ, waterFaces)
 			}
 		}
 	}

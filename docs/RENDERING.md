@@ -180,7 +180,10 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
   sized from the last region packet (`StaticRegionInit.hdApplySceneSize`): 136 tiles at 1.5x, 168 at
   2x, never smaller than the server's (Void sends 104). The server's keys are matched to the regions
   by position and the rest get zero keys (Void's maps are not encrypted); the map data comes from the
-  cache. The fog's end and the ground's draw radius then come from the game's own tables for the size
+  cache. The zone offsets the server sends (loc changes, ground items, spot animations) are from the
+  base of its own scene, so the client adds half the size difference (`ClientFeatures.serverZoneShift`,
+  `UpdateZonePacket.hdServerZoneShift`); a live size change moves the base and the entities as a
+  region packet does (`MapRebuild`). The fog's end and the ground's draw radius then come from the game's own tables for the size
   (46 and 47 tiles at 168, against 29 and 32 at 104), so the loaded world extends well past the fog.
   (Scaling the fog and the draw radius of the 104-tile scene instead put the fog's end on the scene's
   edge: the sea stopped in a wall, the ground in a cliff, nothing beyond.) NPCs, players and the

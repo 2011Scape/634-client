@@ -4,7 +4,6 @@
  */
 package com.jagex.game.runetek5.graphics.hd
 
-import com.jagex.game.runetek5.client.features.HdSettings
 import com.jagex.game.runetek5.client.features.RenderStats
 import com.jagex.game.runetek5.graphics.hd.scene.HdDynamicStream
 import com.jagex.game.runetek5.graphics.hd.scene.HdSceneRenderer
@@ -1406,11 +1405,25 @@ class HdModel : Model {
 			glShadow2 = HdShadow(this.glToolkit, width, height)
 		}
 		glShadow2.setDimension(shadowMaxZ, shadowMaxX, shadowMinZ, shadowMinX)
-		// 634HD: a water model's blob shadow (kept with the sun's shadows on, HdGround) is cast by its
-		// water faces only; its rim and stonework cast the sun's shadow instead
+		this.projectShadow(glShadow2)
+		// 634HD: a water model's blob shadow on dry ground (kept with the sun's shadows on, HdGround) is
+		// cast by its water faces only; its rim and stonework cast the sun's shadow instead. Cast here,
+		// not on the switch: the shadow may be cached past a change of the switch
 		val water: Boolean = this.hdHasWaterFaces()
-		this.projectShadow(glShadow2, water && HdSettings.shadows != 0)
 		glShadow2.hdWater = water
+		if (water) {
+			var waterFaces: HdShadow? = glShadow2.hdWaterFaces
+			if (waterFaces != null && waterFaces.fitsDimension(height, width)) {
+				waterFaces.reset()
+			} else {
+				waterFaces = HdShadow(this.glToolkit, width, height)
+				glShadow2.hdWaterFaces = waterFaces
+			}
+			waterFaces.setDimension(shadowMaxZ, shadowMaxX, shadowMinZ, shadowMinX)
+			this.projectShadow(waterFaces, true)
+		} else {
+			glShadow2.hdWaterFaces = null
+		}
 		return glShadow2
 	}
 

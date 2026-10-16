@@ -375,9 +375,10 @@ object PacketDecoder {
 							BufferedConnectionContext.currentPacket = null
 							return true
 						} else if (BufferedConnectionContext.currentPacket === ServerProt.UPDATE_ZONE_PARTIAL_FOLLOWS) {
-							UpdateZonePacket.updateZoneY = BufferedConnectionContext.receivedBuffer.readByteInverse().toInt() shl 3
+							// Not part of the original client: the zone from the server's scene base (hdServerZoneShift)
+							UpdateZonePacket.updateZoneY = (BufferedConnectionContext.receivedBuffer.readByteInverse().toInt() shl 3) + UpdateZonePacket.hdServerZoneShift()
 							UpdateZonePacketDecoder.updateZonePlane = BufferedConnectionContext.receivedBuffer.readUByteAdd()
-							UpdateZonePacket.updateZoneX = BufferedConnectionContext.receivedBuffer.readByteAdd().toInt() shl 3
+							UpdateZonePacket.updateZoneX = (BufferedConnectionContext.receivedBuffer.readByteAdd().toInt() shl 3) + UpdateZonePacket.hdServerZoneShift()
 							BufferedConnectionContext.currentPacket = null
 							return true
 						} else if (BufferedConnectionContext.currentPacket === ServerProt.DYNAMIC_MAP_REGION) {
@@ -1097,9 +1098,10 @@ object PacketDecoder {
 												BufferedConnectionContext.currentPacket = null
 												return true
 											} else if (ServerProt.UPDATE_ZONE_PARTIAL_ENCLOSED === BufferedConnectionContext.currentPacket) {
-												UpdateZonePacket.updateZoneX = BufferedConnectionContext.receivedBuffer.readByteInverse().toInt() shl 3
+												// Not part of the original client: the zone from the server's scene base (hdServerZoneShift)
+												UpdateZonePacket.updateZoneX = (BufferedConnectionContext.receivedBuffer.readByteInverse().toInt() shl 3) + UpdateZonePacket.hdServerZoneShift()
 												UpdateZonePacketDecoder.updateZonePlane = BufferedConnectionContext.receivedBuffer.readUByteSubtract()
-												UpdateZonePacket.updateZoneY = BufferedConnectionContext.receivedBuffer.readByteSubtract().toInt() shl 3
+												UpdateZonePacket.updateZoneY = (BufferedConnectionContext.receivedBuffer.readByteSubtract().toInt() shl 3) + UpdateZonePacket.hdServerZoneShift()
 												while (BufferedConnectionContext.currentPacketSize > BufferedConnectionContext.receivedBuffer.currentPosition) {
 													@Pc(3460) val subPacket: UpdateZonePacket? = UpdateZonePacket.updateZonePacketValues()[BufferedConnectionContext.receivedBuffer.readUByte()]
 													UpdateZonePacketDecoder.decodeUpdateZonePacket(subPacket)
@@ -1637,8 +1639,9 @@ object PacketDecoder {
 													return true
 												} else if (UpdateZoneFullFollowsProt.UPDATE_ZONE_FULL_FOLLOWS === BufferedConnectionContext.currentPacket) {
 													UpdateZonePacketDecoder.updateZonePlane = BufferedConnectionContext.receivedBuffer.readUByteAdd()
-													UpdateZonePacket.updateZoneY = BufferedConnectionContext.receivedBuffer.readByteInverse().toInt() shl 3
-													UpdateZonePacket.updateZoneX = BufferedConnectionContext.receivedBuffer.readByteInverse().toInt() shl 3
+													// Not part of the original client: the zone from the server's scene base (hdServerZoneShift)
+													UpdateZonePacket.updateZoneY = (BufferedConnectionContext.receivedBuffer.readByteInverse().toInt() shl 3) + UpdateZonePacket.hdServerZoneShift()
+													UpdateZonePacket.updateZoneX = (BufferedConnectionContext.receivedBuffer.readByteInverse().toInt() shl 3) + UpdateZonePacket.hdServerZoneShift()
 													@Pc(5400) var objStack: ObjStack? = ObjStack.GROUND_ITEMS.first() as ObjStack?
 													while (objStack != null) {
 														val stackPlane: Int = ((objStack.key shr 28) and 0x3L).toInt()

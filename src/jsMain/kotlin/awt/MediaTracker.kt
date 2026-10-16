@@ -7,8 +7,8 @@ actual class MediaTracker() {
     private val errored = mutableSetOf<Int>()
 
     actual fun addImage(image: Image, id: Int) {
-        // an Image wraps an HTMLImageElement or a canvas; only the element loads (the check was on the
-        // wrapper itself, never an element, and threw for every image)
+        // an Image wraps an HTMLImageElement or a canvas; only the element loads. (The browser never
+        // reaches this today: Toolkit.createImage throws first and the sprites fall back to raw loading.)
         val element: HTMLImageElement = image.source as? HTMLImageElement ?: return
         tracked[id] = element
         element.addEventListener("error", { _ -> errored += id })

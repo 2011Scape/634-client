@@ -1,5 +1,7 @@
 package com.jagex.game.runetek5
 
+import com.jagex.game.runetek5.client.features.ClientFeatures
+import com.jagex.game.runetek5.core.constants.AreaMode
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
@@ -61,6 +63,19 @@ class UpdateZonePacket @OriginalMember(owner = "client!kn", name = "<init>", des
 		@OriginalMember(owner = "client!vda", name = "f", descriptor = "I")
 		@JvmField
 		var updateZoneX: Int = 0
+
+		/**
+		 * Not part of the original client: added to the zone offsets a packet carries. The server sends
+		 * them from the base of its own scene (MapRegion.hdServerMapSize); the client's may be bigger
+		 * (StaticRegionInit.hdApplySceneSize), with its base further south-west.
+		 */
+		@JvmStatic
+		fun hdServerZoneShift(): Int {
+			if (MapRegion.areaMode != AreaMode.STATIC_AREA) {
+				return 0
+			}
+			return ClientFeatures.serverZoneShift(MapRegion.sceneSizeX, MapRegion.MAP_SIZES[MapRegion.hdServerMapSize])
+		}
 
 		@OriginalMember(owner = "client!an", name = "w", descriptor = "Lclient!kn;")
 		@JvmField

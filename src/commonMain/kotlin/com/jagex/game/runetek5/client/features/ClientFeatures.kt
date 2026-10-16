@@ -46,6 +46,14 @@ object ClientFeatures {
 	var ZOOM: Boolean = lang.getBoolean("client.zoom")
 
 	/**
+	 * How far (in tiles) the zone offsets the server sends (UPDATE_ZONE packets, from the base of its
+	 * own [serverSize]-tile scene) sit from the base of the client's [sceneSize]-tile scene: the two
+	 * are centred alike, so the bigger one's base is further south-west by half the difference.
+	 */
+	@JvmStatic
+	fun serverZoneShift(sceneSize: Int, serverSize: Int): Int = ((sceneSize - serverSize) shr 4) shl 3
+
+	/**
 	 * The scene size (an index into MapRegion.MAP_SIZES) the client builds for the server's
 	 * [serverMapSize] at RENDER_DISTANCE: the game's own way to a longer view, its fog and draw radius
 	 * sized from the scene (1.5: 136 tiles, 2: 168; never smaller than the server's).
@@ -90,7 +98,6 @@ object ClientFeatures {
 
 	/** The interface of the inventory tab. */
 	private const val INVENTORY: Int = 149
-
 
 	/**
 	 * The server the client talks to: `void` (the default) for a Void server, or `jagex`
