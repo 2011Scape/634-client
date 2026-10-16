@@ -131,6 +131,9 @@ void main() {
             float dist = length(toLight);
             vec3 lightDir = toLight / max(dist, 0.0001);
             float atten = 1.0 / max(diffuse.w + light.w * dist * dist, 0.0001);
+            // capped at the light's own brightness in linear colour, as ff.vert caps it (a lantern's
+            // own flame sits at its light; unclamped it reached the half-float ceiling and bloomed)
+            if (hdOn(HD_LINEAR)) atten = min(atten, 1.0);
             float diff = max(dot(rawEyeNormal, lightDir), 0.0);
             lit += (vec4(0.0, 0.0, 0.0, 1.0) + vec4(diffuse.rgb, 1.0) * diff) * atten;
         }

@@ -229,6 +229,9 @@ vec4 hdPointLight(vec3 normal, vec3 viewPos, vec3 lightPos, vec3 attenuation, ve
     float dist = length(toLight);
     vec3 lightDir = toLight / max(dist, 0.0001);
     float atten = 1.0 / max(attenuation.x + attenuation.y * dist + attenuation.z * dist * dist, 0.0001);
+    // capped at the light's own brightness in linear colour, as ff.vert caps it: the game's lights
+    // have no constant term, and a lantern's own flame sits at the light
+    if (hdOn(HD_LINEAR)) atten = min(atten, 1.0);
     return vec4(diffuse * max(dot(normal, lightDir), 0.0) * atten, 0.0);
 }
 
