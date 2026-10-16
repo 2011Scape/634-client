@@ -1246,8 +1246,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			// 634HD: the texture's material maps (client.hd.materials)
 			HdGl.state.hdMapSlot = this.materialMaps.slotOf(materialId)
 			HdGl.state.hdTexture = materialId
-			// 634HD: water materials (the water effects) get 634HD's water shading with client.hd.water; the
-			// effect's number, so the shader can tell the seabed (3) from the surface (2 lapping, 4 rippling)
+			// 634HD: water materials (the water effects): their draws are composed as the game composes them
+			// under the tonemap, and the seabed (3) is fogged again after the HD steps (ff.frag); the effect's
+			// number, for the debug report
 			HdGl.state.hdWater = if (effectType == 2 || effectType == 3 || effectType == 4 || effectType == 5 || effectType == 8 || effectType == 9) effectType else 0
 			if (HdToolkit.DEBUG_EFFECTS != null && materialId >= 0 && !this.stillWaterToggled) {
 				HdToolkit.DEBUG_EFFECTS!![materialId] = effectType or (combineMode shl 8) or ((effectParam1.toInt() and 0xFF) shl 16) or (effectParam2 shl 24)
