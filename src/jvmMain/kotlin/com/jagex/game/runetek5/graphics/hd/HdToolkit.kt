@@ -1256,7 +1256,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			// 634HD: water materials (the water effects): their draws are composed as the game composes them
 			// under the tonemap, and the seabed (3) is fogged again after the HD steps (ff.frag); the effect's
 			// number, for the debug report
-			HdGl.state.hdWater = if (effectType == 2 || effectType == 3 || effectType == 4 || effectType == 5 || effectType == 8 || effectType == 9) effectType else 0
+			HdGl.state.hdWater = if (isWaterEffect(effectType)) effectType else 0
 			if (HdToolkit.DEBUG_EFFECTS != null && materialId >= 0 && !this.stillWaterToggled) {
 				HdToolkit.DEBUG_EFFECTS!![materialId] = effectType or (combineMode shl 8) or ((effectParam1.toInt() and 0xFF) shl 16) or (effectParam2 shl 24)
 			}
@@ -3891,6 +3891,10 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		@JvmField
 		val DEBUG_MATERIALS: HashMap<Int, Int>? = if (System.getProperty("client.test.hdDebug") != null) HashMap() else null
 
+		/** 634HD: whether a material effect draws water (lapping, still, rippling, waterfall, reflective, breaking). */
+		@JvmStatic
+		fun isWaterEffect(effect: Int): Boolean = effect == 2 || effect == 3 || effect == 4 || effect == 5 || effect == 8 || effect == 9
+
 		private var debugMaterialFrames: Int = 0
 
 		/** 634HD debugging: each material's effect type (bits 0-7), combine mode (8-15), params (16-23, 24-31). */
@@ -3904,7 +3908,6 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			val effects: HashMap<Int, Int> = DEBUG_EFFECTS ?: return
 			println("HDDEBUG water effects: " + effects.entries.filter { (it.value and 0xFF) != 0 }.joinToString(" ") { it.key.toString() + ":effect" + (it.value and 0xFF) + "/combine" + ((it.value shr 8) and 0xFF) + "/p1=" + ((it.value shr 16) and 0xFF) + "/p2=" + ((it.value shr 24) and 0xFF) })
 		}
-
 
 		@JvmField
 		val SOUND_EFFECT_MUSIC_ENDED: ClientPacket = ClientPacket(52, 4)

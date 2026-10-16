@@ -5,7 +5,8 @@
 #include "hd_lib.glsl"
 layout(location = 0) in vec4 aPosition;
 layout(location = 1) in vec4 aColor;
-layout(location = 2) in vec2 aTexCoord0;
+// three components: the ground's third is its water depth (HdGround), read by the blob shadows' overlay
+layout(location = 2) in vec3 aTexCoord0;
 layout(location = 3) in vec3 aNormal;
 layout(location = 4) in vec3 aTexCoord1;
 
@@ -89,7 +90,7 @@ void main() {
                                (reflected.z + 1.0) * (reflected.z + 1.0));
     vec4 sphere = vec4(reflected.x / sphereM + 0.5, reflected.y / sphereM + 0.5, 0.0, 1.0);
     for (int i = 0; i < 3; i++) {
-        vec4 gen = i == 0 ? vec4(aTexCoord0, 0.0, 1.0) : vec4(aTexCoord1, 1.0);
+        vec4 gen = i == 0 ? vec4(aTexCoord0, 1.0) : vec4(aTexCoord1, 1.0);
         ivec4 mode = uTexGenMode[i];
         for (int c = 0; c < 4; c++) {
             int m = mode[c];

@@ -104,8 +104,14 @@ class HdGround : Ground {
 	@JvmField
 	var hdWaterPlaneY: Float = Float.NaN
 
-	/** 634HD: the blob shadows of water models only (the oasis's pool), drawn with the sun's shadows on. */
+	/** 634HD: the blob shadows of water models only (the oasis's pool), drawn with the sun's shadows on; made when the first is added. */
 	private var waterShadowMap: HdShadowMap? = null
+
+	/** 634HD: whether the vertices carry their water depth (the third texture coordinate), set when the ground is built. */
+	private var hdHasWaterDepths: Boolean = false
+
+	/** 634HD: whether the shadow maps' tiles exist (the ground is built), so one made later makes its own. */
+	private var hdShadowTilesReady: Boolean = false
 
 	constructor(glToolkit: HdToolkit?, groundFlags: Int, featureFlags: Int, width: Int, length: Int, tileHeights: Array<IntArray?>?, normalHeights: Array<IntArray?>?, scaling: Int) : super(width, length, scaling, tileHeights) {
 		this.glToolkit = glToolkit!!
@@ -141,7 +147,6 @@ class HdGround : Ground {
 		this.layerTable = IterableHashTable(128)
 		if ((this.featureFlags and 0x10) != 0) {
 			this.shadowMap = HdShadowMap(this.glToolkit, this)
-			this.waterShadowMap = HdShadowMap(this.glToolkit, this)
 		}
 	}
 
@@ -534,6 +539,7 @@ class HdGround : Ground {
 			} else {
 				normalsOffset = 28
 				this.textureCoordinatesBuffer = OpenGlArrayDrawBuffer(this.dataArrayBuffer, 5126, 3, 16)
+				this.hdHasWaterDepths = true
 			}
 			if ((this.featureFlags and 0x7) != 0) {
 				this.normalsBuffer = OpenGlArrayDrawBuffer(this.dataArrayBuffer, 5126, 3, normalsOffset.toInt())
@@ -549,6 +555,7 @@ class HdGround : Ground {
 			if (this.shadowMap != null) {
 				this.shadowMap!!.initializeShadowTiles()
 				this.waterShadowMap?.initializeShadowTiles()
+				this.hdShadowTilesReady = true
 			}
 			this.hdWaterPlaneY = if (waterPlaneCount > 0) (waterPlaneSum / waterPlaneCount).toFloat() else Float.NaN
 		}
@@ -602,7 +609,13 @@ class HdGround : Ground {
 			val shadowX: Int = (x - ((heightOffset * this.glToolkit.sunSlopeX) shr 8)) shr this.glToolkit.shadowScaleShift
 			val shadowZ: Int = (z - ((this.glToolkit.sunSlopeZ * heightOffset) shr 8)) shr this.glToolkit.shadowScaleShift
 			this.shadowMap!!.addShadow(shadowX, shadowZ, shadow)
-			if ((shadow as? HdShadow)?.hdWater == true) this.waterShadowMap?.addShadow(shadowX, shadowZ, shadow)
+			if ((shadow as? HdShadow)?.hdWater == true) {
+				if (this.waterShadowMap == null) {
+					this.waterShadowMap = HdShadowMap(this.glToolkit, this)
+					if (this.hdShadowTilesReady) this.waterShadowMap!!.initializeShadowTiles()
+				}
+				this.waterShadowMap!!.addShadow(shadowX, shadowZ, shadow)
+			}
 		}
 	}
 
@@ -957,12 +970,17 @@ class HdGround : Ground {
 		if (!sunShadows) {
 			this.shadowMap!!.renderShadowOverlay(belowLowestPlane, visibility, radius, z, x)
 		} else {
-			if (this.tileWaterDepths != null) {
+			// the game's blob shadows where the ground is under water (1: the rest discarded), and the water
+			// models' where it is dry (2): each place darkened by one map
+			if (this.hdHasWaterDepths) {
 				HdGl.state.hdBlobWater = 1
 				this.shadowMap!!.renderShadowOverlay(belowLowestPlane, visibility, radius, z, x)
-				HdGl.state.hdBlobWater = 0
 			}
-			this.waterShadowMap?.renderShadowOverlay(belowLowestPlane, visibility, radius, z, x)
+			if (this.waterShadowMap != null) {
+				HdGl.state.hdBlobWater = 2
+				this.waterShadowMap!!.renderShadowOverlay(belowLowestPlane, visibility, radius, z, x)
+			}
+			HdGl.state.hdBlobWater = 0
 		}
 		HdGl.glPopMatrix()
 		return
