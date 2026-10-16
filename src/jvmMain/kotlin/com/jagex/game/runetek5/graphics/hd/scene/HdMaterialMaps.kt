@@ -242,7 +242,10 @@ class HdMaterialMaps {
                 // PNG of a set not compressed yet
                 val blocks: ByteArray? = if (blocksFile != null && formats[type] == GL33C.GL_RGBA8) readBytes(content, m.texture, blocksFile) else null
                 has[type] = blocks != null && (if (type == 0) decodeBc5(blocks, pixels) else decodeBc7(blocks, pixels))
-                val fromPng: Boolean = !has[type] && files[type] != null && read(content, m.texture, files[type]!!, pixels, blocks != null)
+                // a missing PNG is only worth reporting when the set has no blocks in any form either:
+                // the jar carries no PNG, and a set with fresh/ maps only has no root maps by design
+                val quiet: Boolean = precompressed != null || blocks != null || (blocksFile != null && content.materialFile(m.texture, "fresh/" + blocksFile) != null)
+                val fromPng: Boolean = !has[type] && files[type] != null && read(content, m.texture, files[type]!!, pixels, quiet)
                 if (fromPng) has[type] = true
                 if (!has[type]) {
                     // the neutral map of this type
