@@ -266,6 +266,7 @@ class HdLightGrid {
                 }
             }
             roomCensus(0)
+            dump()
             println("HDDEBUG light grid built: " + seedCount + " seeds (" + locs + " locs), " + size + " tiles, " + patchLayers + " patches, " + totalMs + " ms (flood " + floodNanos / 100000L / 10.0 + ", blur " + blurNanos / 100000L / 10.0 + ", upload " + uploadNanos / 100000L / 10.0 + ");" + summary)
             tileMap()
         }
@@ -651,6 +652,63 @@ class HdLightGrid {
             }
         }
     }
+
+    /**
+     * client.test.hdGridDump=<file>: the level-0 seeds, the tiles' line-of-sight wall bits and the
+     * fill per tile, written once as JSON for an outside check of the fill against a one-bounce
+     * reference (tools, not part of the client).
+     */
+    private fun dump() {
+        val path: String = System.getProperty("client.test.hdGridDump") ?: return
+        if (dumped) return
+        dumped = true
+        val map: CollisionMap = MapRegion.aClass104Array3[0] ?: return
+        val texels: Int = width * width
+        val out: StringBuilder = StringBuilder()
+        out.append("{\"size\":").append(size).append(",\"seeds\":[")
+        var first: Boolean = true
+        for (s in 0 until seedCount) {
+            if (seedLevel[s] != 0) continue
+            if (!first) out.append(',')
+            first = false
+            out.append('[').append(seedX[s]).append(',').append(seedZ[s]).append(',').append(seedRed[s]).append(',').append(seedGreen[s]).append(',').append(seedBlue[s]).append(',').append(seedReach[s]).append(']')
+        }
+        out.append("],\"walls\":[")
+        for (z in 0 until size) {
+            if (z > 0) out.append(',')
+            out.append('[')
+            for (x in 0 until size) {
+                if (x > 0) out.append(',')
+                val f: Int = flags(map, x, z)
+                // bit 0 north, 1 east, 2 south, 3 west wall, 4 solid; 31 off the map
+                val bits: Int = if (f == -1) 31 else ((if ((f and LOS_NORTH) != 0) 1 else 0) or (if ((f and LOS_EAST) != 0) 2 else 0) or (if ((f and LOS_SOUTH) != 0) 4 else 0) or (if ((f and LOS_WEST) != 0) 8 else 0) or (if ((f and LOS_SOLID) != 0) 16 else 0))
+                out.append(bits)
+            }
+            out.append(']')
+        }
+        out.append("],\"fill\":[")
+        for (z in 0 until size) {
+            if (z > 0) out.append(',')
+            out.append('[')
+            for (x in 0 until size) {
+                if (x > 0) out.append(',')
+                var e: Float = 0.0f
+                for (sz in 0 until TEXELS_PER_TILE) {
+                    for (sx in 0 until TEXELS_PER_TILE) {
+                        val at: Int = ((z * TEXELS_PER_TILE + sz) * width + x * TEXELS_PER_TILE + sx) * 4
+                        e += fill[at] + fill[at + 1] + fill[at + 2]
+                    }
+                }
+                out.append(String.format(java.util.Locale.ROOT, "%.4f", e / (TEXELS_PER_TILE * TEXELS_PER_TILE)))
+            }
+            out.append(']')
+        }
+        out.append("]}")
+        java.io.File(path).writeText(out.toString())
+        println("HDDEBUG light grid dumped level 0 to " + path + " (" + texels + " texels)")
+    }
+
+    private var dumped: Boolean = false
 
     /** Whether seed [s] stands in component [c] of [component]: on one of its tiles, or on a wall or solid loc beside one. */
     private fun seedInComponent(s: Int, c: Int, component: IntArray): Boolean {
