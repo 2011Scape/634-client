@@ -981,6 +981,66 @@ class HdLightGrid {
             println("HDDEBUG |" + line + "|")
         }
         println("HDDEBUG light grid: the player's room has " + roomTiles + " tiles in the window, " + roomLit + " of them lit; outside it " + outsideTiles + " tiles, " + outsideLit + " lit, of which " + outsideSolidLit + " are solid locs (booths, stalls) and " + leaks + " are open tiles next to the room across a wall (light through a wall)")
+        // the fill's profile from the room's strongest lamp along its longest open run: tile by tile,
+        // the energy and the colour's ratio to the lamp's (a bounce term falls off smoothly and keeps
+        // the lamp's hue)
+        var strongest: Int = -1
+        for (s in 0 until seedCount) {
+            if (seedLevel[s] != level) continue
+            val wx: Int = seedX[s] - px + half
+            val wz: Int = seedZ[s] - pz + half
+            if (wx !in 0 until span || wz !in 0 until span || !inside[wz * span + wx]) continue
+            if (strongest < 0 || seedRed[s] + seedGreen[s] + seedBlue[s] > seedRed[strongest] + seedGreen[strongest] + seedBlue[strongest]) strongest = s
+        }
+        if (strongest >= 0 && map != null) {
+            var bestDir: Int = 0
+            var bestRun: Int = 0
+            for (dir in 0 until 4) {
+                var run: Int = 0
+                var cx: Int = seedX[strongest]
+                var cz: Int = seedZ[strongest]
+                while (run < 12) {
+                    val nx: Int = cx + (if (dir == 0) 1 else if (dir == 1) -1 else 0)
+                    val nz: Int = cz + (if (dir == 2) 1 else if (dir == 3) -1 else 0)
+                    if (!open(map, cx, cz, nx, nz)) break
+                    cx = nx
+                    cz = nz
+                    run++
+                }
+                if (run > bestRun) {
+                    bestRun = run
+                    bestDir = dir
+                }
+            }
+            val lampSum: Float = seedRed[strongest] + seedGreen[strongest] + seedBlue[strongest]
+            val line: StringBuilder = StringBuilder()
+            var cx: Int = seedX[strongest]
+            var cz: Int = seedZ[strongest]
+            for (step in 0..bestRun) {
+                var r: Float = 0.0f
+                var g: Float = 0.0f
+                var b: Float = 0.0f
+                for (sz in 0 until TEXELS_PER_TILE) {
+                    for (sx in 0 until TEXELS_PER_TILE) {
+                        val at: Int = level * texels * 4 + ((cz * TEXELS_PER_TILE + sz) * width + cx * TEXELS_PER_TILE + sx) * 4
+                        r += fill[at]
+                        g += fill[at + 1]
+                        b += fill[at + 2]
+                    }
+                }
+                val n: Float = (TEXELS_PER_TILE * TEXELS_PER_TILE).toFloat()
+                r /= n
+                g /= n
+                b /= n
+                val sum: Float = r + g + b
+                // the hue as the red share of the sum, against the lamp's
+                val hue: String = if (sum > 0.001f) String.format(java.util.Locale.ROOT, "%.2f", r / sum) else "-"
+                line.append(" ").append(step).append(":").append(String.format(java.util.Locale.ROOT, "%.2f", sum)).append("/").append(hue)
+                cx += if (bestDir == 0) 1 else if (bestDir == 1) -1 else 0
+                cz += if (bestDir == 2) 1 else if (bestDir == 3) -1 else 0
+            }
+            println("HDDEBUG light grid: fill from the room's strongest lamp (" + String.format(java.util.Locale.ROOT, "%.2f", lampSum * FILL_SCALE) + " at red share " + String.format(java.util.Locale.ROOT, "%.2f", seedRed[strongest] / lampSum) + ") along " + bestRun + " open tiles, tile:energy/red share:" + line)
+        }
         println("HDDEBUG light grid: lamps in the room " + roomSeeds + ", the room's faintest tile " + String.format(java.util.Locale.ROOT, "%.2f", if (roomFaintest == Float.MAX_VALUE) 0.0f else roomFaintest) + ", its farthest lit tile " + String.format(java.util.Locale.ROOT, "%.1f", farTile) + " tiles from a lamp at " + String.format(java.util.Locale.ROOT, "%.2f", farFill) + "; lit tiles in the window over 6 tiles from any lamp " + beyondSix + ", of them readable (over 0.15) " + beyondSixReadable)
     }
 
