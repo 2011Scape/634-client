@@ -17,7 +17,7 @@ class HdFlicker {
 
     companion object {
         /** Seconds for the smoothed intensity to cover 63 % of a step in the game's value. */
-        private const val TAU: Float = 0.12f
+        private const val TAU: Float = 0.6f
 
         /** The least a flickering light falls to, as a share of its full brightness. */
         private const val FLOOR: Float = 0.6f
