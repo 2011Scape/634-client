@@ -2650,7 +2650,11 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		return true
 	}
 
+	// 634HD: the game's map lights' flicker, smoothed (scene/HdFlicker)
+	private val flicker: com.jagex.game.runetek5.graphics.hd.scene.HdFlicker = com.jagex.game.runetek5.graphics.hd.scene.HdFlicker()
+
 	private fun updatePointLights() {
+		val lightNow: Long = System.nanoTime()
 		var lightIndex: Int = 0
 		while (lightIndex < this.lastSceneLightCount) {
 			val pointLight: PointLight? = this.lightNodes[lightIndex]
@@ -2661,7 +2665,8 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			OpenGlToolkit.LIGHT_MATRIX[3] = 1.0f
 			HdGl.glLightfv(glLight, OpenGLConstants.GL_POSITION, OpenGlToolkit.LIGHT_MATRIX, 0)
 			val range: Int = pointLight.getColour()
-			val intensityScale: Float = pointLight.getIntensity() / 255.0f
+			// Not part of the original client: the game's flicker low-passed and floored (scene/HdFlicker)
+			val intensityScale: Float = this.flicker.intensity(pointLight, lightNow) / 255.0f
 			OpenGlToolkit.LIGHT_MATRIX[2] = (range and 0xFF).toFloat() * intensityScale
 			OpenGlToolkit.LIGHT_MATRIX[0] = (range shr 16 and 0xFF).toFloat() * intensityScale
 			OpenGlToolkit.LIGHT_MATRIX[1] = (range shr 8 and 0xFF).toFloat() * intensityScale

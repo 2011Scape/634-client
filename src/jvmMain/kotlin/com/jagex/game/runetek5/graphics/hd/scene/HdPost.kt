@@ -39,7 +39,8 @@ class HdPost {
         /** The exposure the composite applies before the tonemap's curve (HdSettings.tonemap). */
         fun exposure(): Float = if (HdSettings.tonemap == 2) EXPOSURE_AGX else EXPOSURE_ACES
         private const val BLOOM_THRESHOLD: Float = 0.75f
-        private const val BLOOM_STRENGTH: Float = 0.35f
+        private const val BLOOM_STRENGTH: Float = 0.175f
+        private val PROBE: Boolean = System.getProperty("client.test.hdSceneMax") != null
     }
 
     private class Target(val width: Int, val height: Int, val format: Int) {
@@ -162,6 +163,7 @@ class HdPost {
     fun compose(scene: Int, width: Int, height: Int, x: Int, y: Int, viewWidth: Int, viewHeight: Int, frame: Int) {
         HdGl.flushImmediate()
         ensure()
+        if (PROBE && frame % 30 == 0) probe(scene, width, height, frame)
         // what the toolkit and the emulator expect to find afterwards
         val drawFramebuffer = GL33C.glGetInteger(GL33C.GL_DRAW_FRAMEBUFFER_BINDING)
         val readFramebuffer = GL33C.glGetInteger(GL33C.GL_READ_FRAMEBUFFER_BINDING)
@@ -351,6 +353,35 @@ class HdPost {
         }
         gradingTables[name] = texture
         return texture
+    }
+
+    /**
+     * client.test.hdSceneMax: every 30 frames, the brightest value of the half-float view and where
+     * it is (window coordinates, y down), and how many pixels are over 4, printed. A real scene peaks
+     * around 2 to 5; 65504 is the half-float ceiling, and anything near it blooms into a blob.
+     */
+    private fun probe(scene: Int, width: Int, height: Int, frame: Int) {
+        val pixels = ByteBuffer.allocateDirect(width * height * 16).order(ByteOrder.nativeOrder()).asFloatBuffer()
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT_A)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, scene)
+        GL33C.glGetTexImage(GL33C.GL_TEXTURE_2D, 0, GL33C.GL_RGBA, GL33C.GL_FLOAT, pixels)
+        var best = -1.0f
+        var bestX = 0
+        var bestY = 0
+        var over4 = 0
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                val i = (y * width + x) * 4
+                val m = maxOf(pixels.get(i), maxOf(pixels.get(i + 1), pixels.get(i + 2)))
+                if (m > 4.0f) over4++
+                if (m > best) {
+                    best = m
+                    bestX = x
+                    bestY = y
+                }
+            }
+        }
+        println("HDPROBE frame " + frame + " max " + best + " at " + bestX + "," + (height - 1 - bestY) + " over4 " + over4)
     }
 
     private fun draw(target: Target) {

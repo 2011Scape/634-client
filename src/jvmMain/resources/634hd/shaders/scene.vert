@@ -135,8 +135,9 @@ void main() {
             lit += (vec4(0.0, 0.0, 0.0, 1.0) + vec4(diffuse.rgb, 1.0) * diff) * atten;
         }
         vec4 base = hdColour(aColor);
-        // with tonemapping the light multiplies the sRGB colour, then made linear (hd_lib.glsl hdApplyLight)
-        vColor = hdOn(HD_LINEAR) ? vec4(hdToLinear(aColor.rgb * lit.rgb), base.a) : vec4(clamp(aColor.rgb * lit.rgb, 0.0, 1.0), aColor.a);
+        // with tonemapping the light multiplies the sRGB colour, then made linear, no higher than
+        // HD_LIT_MAX (hd_lib.glsl hdLitColour, hdApplyLight)
+        vColor = hdOn(HD_LINEAR) ? vec4(hdLitColour(aColor.rgb, lit.rgb), base.a) : vec4(clamp(aColor.rgb * lit.rgb, 0.0, 1.0), aColor.a);
     } else {
         vColor = hdColour(aColor);
     }

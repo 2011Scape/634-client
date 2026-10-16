@@ -77,10 +77,12 @@ void main() {
                 lit += (uLightAmbient[i] + hdEnvDiffuse(uLightDiffuse[i], i) * diff) * atten;
             }
         }
-        // 634HD: in linear (HDR) colour the lit colour is not clamped; the tonemapper takes it down
+        // 634HD: in linear (HDR) colour the lit colour is not clamped at 1; the tonemapper takes it
+        // down, from no higher than HD_LIT_MAX (hd_lib.glsl hdLitColour: a lantern's own flame sits at
+        // its light, where the game's attenuation runs to thousands)
         vec4 base = hdColour(aColor);
         // with tonemapping the light multiplies the sRGB colour, then made linear (hd_lib.glsl hdApplyLight)
-        vColor = hdOn(HD_LINEAR) ? vec4(hdToLinear(aColor.rgb * lit.rgb), base.a) : vec4(clamp(aColor.rgb * lit.rgb, 0.0, 1.0), aColor.a);
+        vColor = hdOn(HD_LINEAR) ? vec4(hdLitColour(aColor.rgb, lit.rgb), base.a) : vec4(clamp(aColor.rgb * lit.rgb, 0.0, 1.0), aColor.a);
     } else {
         vColor = hdColour(aColor);
     }

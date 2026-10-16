@@ -4,6 +4,7 @@
  */
 package com.jagex.game.runetek5.graphics.hd
 
+import com.jagex.game.runetek5.client.features.HdSettings
 import com.jagex.game.runetek5.client.features.RenderStats
 import com.jagex.game.runetek5.graphics.hd.scene.HdDynamicStream
 import com.jagex.game.runetek5.graphics.hd.scene.HdSceneRenderer
@@ -1145,7 +1146,9 @@ class HdModel : Model {
 		for (i in 0 until this.billboardCount) {
 			val glBillboardFace: GlBillboardFace = this.billboardFaces!![i]!!
 			val glBillboardAttributes: BillboardSurfaceGL = this.billboardAttributes!![i]!!
-			if (!glBillboardFace.hideWithBloom || !this.glToolkit.bloom()) {
+			// Not part of the original client: 634HD's bloom (HdSettings.bloom) hides the halos the cache
+			// marks hide-with-bloom, as the game's own bloom does (the bloom is their glow).
+			if (!glBillboardFace.hideWithBloom || !(this.glToolkit.bloom() || HdSettings.bloom)) {
 				val centerX: Float = (this.verticesX!![glBillboardFace.vertexC] + this.verticesX!![glBillboardFace.vertexA] + this.verticesX!![glBillboardFace.vertexB]).toFloat() * 0.3333333f
 				val centerY: Float = (this.verticesY!![glBillboardFace.vertexA] + this.verticesY!![glBillboardFace.vertexB] + this.verticesY!![glBillboardFace.vertexC]).toFloat() * 0.3333333f
 				val centerZ: Float = (this.verticesZ!![glBillboardFace.vertexA] + this.verticesZ!![glBillboardFace.vertexB] + this.verticesZ!![glBillboardFace.vertexC]).toFloat() * 0.3333333f
