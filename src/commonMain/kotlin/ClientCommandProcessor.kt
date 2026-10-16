@@ -427,7 +427,7 @@ object ClientCommandProcessor {
 					Console.printToConsole("634HD settings " + (if (HdSettingsPanel.open) "open" else "closed"))
 					return
 				}
-				// ::hd preset <off|low|medium|high|ultra> (see HdSettings.applyPreset)
+				// Not part of the original client: ::hd preset <off|low|medium|high|ultra> (see HdSettings.applyPreset)
 				if (string.lowercase().startsWith("hd preset ")) {
 					val error: String? = HdSettings.applyPreset(string.substring(10).javaTrim())
 					if (error == null) {

@@ -98,6 +98,14 @@ class HdDebugPanel(private val content: HdContent) {
 
     fun isOpen(): Boolean = frame?.isVisible == true
 
+    /** Closes and frees the window: the toolkit it shows is stopping. */
+    fun dispose() {
+        SwingUtilities.invokeLater {
+            frame?.dispose()
+            frame = null
+        }
+    }
+
     fun setOpen(open: Boolean) {
         SwingUtilities.invokeLater {
             if (open) {
