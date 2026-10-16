@@ -652,6 +652,19 @@ class HdLightGrid {
         }
     }
 
+    /** Whether seed [s] stands in component [c] of [component]: on one of its tiles, or on a wall or solid loc beside one. */
+    private fun seedInComponent(s: Int, c: Int, component: IntArray): Boolean {
+        val x: Int = seedX[s]
+        val z: Int = seedZ[s]
+        if (x < 0 || z < 0 || x >= size || z >= size) return false
+        if (component[z * size + x] == c) return true
+        if (x > 0 && component[z * size + x - 1] == c) return true
+        if (x < size - 1 && component[z * size + x + 1] == c) return true
+        if (z > 0 && component[(z - 1) * size + x] == c) return true
+        if (z < size - 1 && component[(z + 1) * size + x] == c) return true
+        return false
+    }
+
     /**
      * client.test.hdDebug: every room of the player's level (the tiles joined by edges open to a
      * projectile, 9 to 120 of them, so halls and houses, not the outdoors), with its lamps, lit
@@ -665,6 +678,9 @@ class HdLightGrid {
         val queue: IntArray = IntArray(size * size)
         var rooms: Int = 0
         var oneLamp: Int = 0
+        var lampless: Int = 0
+        var lamplessLit: Int = 0
+        var lamplessReadable: Int = 0
         for (startZ in 0 until size) {
             for (startX in 0 until size) {
                 val start: Int = startZ * size + startX
@@ -713,12 +729,71 @@ class HdLightGrid {
                         queue[tail++] = next
                     }
                 }
-                if (tiles < 9 || tiles > 120) continue
+                if (tiles > 120) {
+                    // the outdoors (or a very large hall): every lit tile must be near a lamp of its own
+                    var outLit: Int = 0
+                    var outFar: Int = 0
+                    var outFarReadable: Int = 0
+                    for (i in 0 until tail) {
+                        val cell: Int = queue[i]
+                        val cx: Int = cell % size
+                        val cz: Int = cell / size
+                        var e: Float = 0.0f
+                        for (sz in 0 until TEXELS_PER_TILE) {
+                            for (sx in 0 until TEXELS_PER_TILE) {
+                                val at: Int = level * texels * 4 + ((cz * TEXELS_PER_TILE + sz) * width + cx * TEXELS_PER_TILE + sx) * 4
+                                e += fill[at] + fill[at + 1] + fill[at + 2]
+                            }
+                        }
+                        e /= (TEXELS_PER_TILE * TEXELS_PER_TILE).toFloat()
+                        if (e <= 0.01f) continue
+                        outLit++
+                        // within some lamp's own reach (and the blur's tile)? else the light came from elsewhere
+                        var covered: Boolean = false
+                        for (s in 0 until seedCount) {
+                            if (seedLevel[s] != level || !seedInComponent(s, rooms, component)) continue
+                            val dx: Float = (seedX[s] - cx).toFloat()
+                            val dz: Float = (seedZ[s] - cz).toFloat()
+                            if (kotlin.math.sqrt(dx * dx + dz * dz) <= seedReach[s] + 1.5f) {
+                                covered = true
+                                break
+                            }
+                        }
+                        if (!covered) {
+                            outFar++
+                            if (e > 0.15f) outFarReadable++
+                        }
+                    }
+                    println("HDDEBUG open area of " + tiles + " tiles: " + outLit + " lit, of them " + outFar + " beyond the reach of every lamp of the area (" + outFarReadable + " readable): light through a wall would show here")
+                    continue
+                }
+                if (tiles < 9) continue
                 var lamps: Int = 0
                 for (s in 0 until seedCount) {
-                    if (seedLevel[s] == level && seedX[s] in 0 until size && seedZ[s] in 0 until size && component[seedZ[s] * size + seedX[s]] == rooms) lamps++
+                    if (seedLevel[s] == level && seedInComponent(s, rooms, component)) lamps++
                 }
-                if (lamps == 0) continue
+                if (lamps == 0) {
+                    // a room with no lamp: dark, but for faint spill through an open door
+                    var brightest: Float = 0.0f
+                    for (i in 0 until tail) {
+                        val cell: Int = queue[i]
+                        val cx: Int = cell % size
+                        val cz: Int = cell / size
+                        var e: Float = 0.0f
+                        for (sz in 0 until TEXELS_PER_TILE) {
+                            for (sx in 0 until TEXELS_PER_TILE) {
+                                val at: Int = level * texels * 4 + ((cz * TEXELS_PER_TILE + sz) * width + cx * TEXELS_PER_TILE + sx) * 4
+                                e += fill[at] + fill[at + 1] + fill[at + 2]
+                            }
+                        }
+                        e /= (TEXELS_PER_TILE * TEXELS_PER_TILE).toFloat()
+                        if (e > brightest) brightest = e
+                    }
+                    lampless++
+                    if (brightest > 0.01f) lamplessLit++
+                    if (brightest > 0.15f) lamplessReadable++
+                    continue
+                }
                 // the tile farthest from any lamp of the room, and its fill
                 var farTile: Float = 0.0f
                 var farFill: Float = 0.0f
@@ -728,7 +803,7 @@ class HdLightGrid {
                     val cz: Int = cell / size
                     var nearest: Float = Float.MAX_VALUE
                     for (s in 0 until seedCount) {
-                        if (seedLevel[s] != level || component[seedZ[s] * size + seedX[s]] != rooms) continue
+                        if (seedLevel[s] != level || !seedInComponent(s, rooms, component)) continue
                         val dx: Float = (seedX[s] - cx).toFloat()
                         val dz: Float = (seedZ[s] - cz).toFloat()
                         val dist: Float = kotlin.math.sqrt(dx * dx + dz * dz)
@@ -779,7 +854,7 @@ class HdLightGrid {
                 println("HDDEBUG room at " + minX + ".." + maxX + "," + minZ + ".." + maxZ + " (" + (maxX - minX + 1) + "x" + (maxZ - minZ + 1) + ", " + tiles + " tiles): lamps " + lamps + ", lit " + lit + "/" + tiles + ", faintest " + String.format(java.util.Locale.ROOT, "%.2f", faintest) + ", farthest tile " + String.format(java.util.Locale.ROOT, "%.1f", farTile) + " from a lamp at " + String.format(java.util.Locale.ROOT, "%.2f", farFill))
             }
         }
-        println("HDDEBUG rooms with lamps on level " + level + ": " + oneLamp + " with one lamp")
+        println("HDDEBUG rooms on level " + level + ": " + oneLamp + " with one lamp; " + lampless + " rooms with no lamp, " + lamplessLit + " of them with any light (" + lamplessReadable + " with readable light): a room with no lamp stays dark but for spill through an open door")
     }
 
     /** client.test.hdDebug: the fill of level 0 round the player as a tile map ('#' strong, '+' some, '.' faint, ' ' none, 'P' the player). */
