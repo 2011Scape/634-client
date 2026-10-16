@@ -278,31 +278,64 @@ float hdCaustics(vec2 p, float t) {
     return total * 0.5;
 }
 
-// The height of 634HD's water waves (any units) at world ([x], [z]): long, slow swells, a tile or
-// more from crest to crest, so the surface moves without going grainy.
-float hdWaveHeight(vec2 p, float t) {
-    return sin(dot(p, vec2(0.0021, 0.0009)) + t * 0.9) * 0.5
-        + sin(dot(p, vec2(-0.0012, 0.0026)) + t * 1.1) * 0.35
-        + sin(dot(p, vec2(0.0043, -0.0031)) + t * 1.7) * 0.15;
+// A hash of a 2D lattice point, 0 to 1 (the water's waves).
+float hdWaterHash(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+// Value noise at [p] with its derivatives: (value, d/dx, d/dy).
+vec3 hdWaterNoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    // quintic: smooth slopes, no creases along the lattice
+    vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+    vec2 du = 30.0 * f * f * (f * (f - 2.0) + 1.0);
+    float a = hdWaterHash(i);
+    float b = hdWaterHash(i + vec2(1.0, 0.0));
+    float c = hdWaterHash(i + vec2(0.0, 1.0));
+    float d = hdWaterHash(i + vec2(1.0, 1.0));
+    float k = a - b - c + d;
+    return vec3(a + (b - a) * u.x + (c - a) * u.y + k * u.x * u.y, du * (vec2(b - a, c - a) + k * u.yx));
+}
+
+// The water's slope at world ([x], [z]) at time [t]: three layers of irregular ripples, from swells a
+// couple of tiles long to fine chop, drifting different ways. A layer fades out where a pixel spans a
+// good part of its wavelength ([footprint]), so the far sea does not shimmer.
+vec2 hdWaveSlope(vec2 p, float t, float footprint) {
+    vec2 slope = vec2(0.0);
+    // wavelength in world units (512 a tile), drift, strength
+    const vec3 LAYER0 = vec3(1150.0, 0.06, 0.40);
+    const vec3 LAYER1 = vec3(430.0, 0.11, 0.18);
+    const vec3 LAYER2 = vec3(170.0, 0.17, 0.11);
+    vec3 layers[3] = vec3[3](LAYER0, LAYER1, LAYER2);
+    vec2 dirs[3] = vec2[3](vec2(0.8, 0.6), vec2(-0.5, 0.86), vec2(0.3, -0.95));
+    for (int i = 0; i < 3; i++) {
+        float wavelength = layers[i].x;
+        float fade = 1.0 - smoothstep(wavelength * 0.25, wavelength * 0.8, footprint);
+        if (fade <= 0.0) continue;
+        vec3 n = hdWaterNoise(p / wavelength + dirs[i] * t * layers[i].y);
+        slope += n.yz * layers[i].z * fade;
+    }
+    return slope;
 }
 
 // Water (HD_WATER, on a water material): the game's water, kept as the base, gently tinted towards
-// the environment's colour, with slow swells that catch the light a little, a Fresnel reflection of
-// the sky that only shows at grazing angles, and a soft sun glint that fades out at a distance,
-// where it would only sparkle. With [srgb] the colour and the result are sRGB (ff.frag's water draws
-// in linear mode: mixed in linear light the sky reflection washed dark water out to pale).
-vec4 hdWater(vec4 color, vec3 viewPos, bool srgb) {
+// the environment's colour and coloured by the [depth] under it (world units; negative: unknown, a
+// water model): lighter and greener in the shallows, darker and bluer deep. Irregular ripples
+// (hdWaveSlope) catch the light; a Fresnel reflection of the sky grows towards grazing angles, as on
+// real water; the sun makes a sharp highlight with a soft halo. With [srgb] the colour and the result
+// are sRGB (ff.frag's water draws in linear mode: mixed in linear light the sky washed the water out).
+vec4 hdWater(vec4 color, vec3 viewPos, bool srgb, float depth) {
     vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
     vec3 camera = hdViewToWorld[3].xyz;
     // the area's water (environments.json water): wave height, speed and size
     float t = hdTime.x * hdWaterParams.y;
-    vec2 p = world.xz / max(hdWaterParams.w, 0.25);
-    float e = 24.0;
-    float h = hdWaveHeight(p, t);
-    float hx = hdWaveHeight(p + vec2(e, 0.0), t) - h;
-    float hz = hdWaveHeight(p + vec2(0.0, e), t) - h;
-    // world up is -y; the slopes give a tilt of a few degrees at most
-    vec3 n = normalize(vec3(-hx * 1.2 * hdWaterParams.x, -1.0, -hz * 1.2 * hdWaterParams.x));
+    float footprint = length(fwidth(world));
+    vec2 slope = hdWaveSlope(world.xz / max(hdWaterParams.w, 0.25), t, footprint / max(hdWaterParams.w, 0.25)) * hdWaterParams.x;
+    // world up is -y
+    vec3 n = normalize(vec3(-slope.x, -1.0, -slope.y));
     vec3 view = normalize(world - camera);
     float cosine = max(dot(-view, n), 0.0);
     float fresnel = 0.02 + 0.98 * pow(1.0 - cosine, 5.0);
@@ -310,15 +343,21 @@ vec4 hdWater(vec4 color, vec3 viewPos, bool srgb) {
     vec3 sky = srgb ? hdSkyColour(reflected) : hdColour(vec4(hdSkyColour(reflected), 1.0)).rgb;
     vec3 tint = srgb ? hdWaterTint.rgb : hdColour(vec4(hdWaterTint.rgb, 1.0)).rgb;
     vec3 base = mix(color.rgb, tint * max(max(color.r, color.g), color.b) * 1.4, hdWaterTint.w * 0.6);
+    // the depth: shallows lighter and greener, deep water darker and bluer
+    float deep = depth < 0.0 ? 0.5 : smoothstep(0.0, HD_WATER_DEEP, depth);
+    vec3 shallow = base * vec3(1.05, 1.25, 1.15);
+    vec3 deepColour = base * vec3(0.62, 0.74, 0.92);
+    base = mix(shallow, deepColour, deep);
     vec3 sunWorld = hdSunDirection.w > 0.5 ? normalize(mat3(hdViewToWorld) * hdSunDirection.xyz) : vec3(0.0, -1.0, 0.0);
-    base *= 0.94 + 0.12 * max(dot(n, sunWorld), 0.0);
-    vec3 result = mix(base, sky, clamp(fresnel * 0.6, 0.0, 0.45));
+    base *= 0.82 + 0.36 * max(dot(n, sunWorld), 0.0);
+    vec3 result = mix(base, sky, clamp(fresnel, 0.0, 0.7));
     if (hdSunDirection.w > 0.5) {
-        // a broad, soft glint, gone where a pixel spans more than a few units of water
-        float footprint = length(fwidth(world));
+        // a sharp highlight, gone where a pixel spans more than a few units of water, and a soft halo
         float distanceFade = 1.0 - smoothstep(18.0, 60.0, footprint);
-        float glint = pow(max(dot(reflected, sunWorld), 0.0), 48.0) * hdShadow(viewPos) * distanceFade;
-        result += hdSunColour.rgb * glint * hdWaterParams.z * (hdOn(HD_LINEAR) && !srgb ? 0.8 : 0.25);
+        float facing = max(dot(reflected, sunWorld), 0.0);
+        float glint = pow(facing, 400.0) * 3.0 * distanceFade + pow(facing, 24.0) * 0.12;
+        glint *= hdShadow(viewPos) * hdWaterParams.z * hdSunStrength();
+        result += hdSunColour.rgb * glint * (hdOn(HD_LINEAR) && !srgb ? 1.0 : 0.35);
     }
     return vec4(result, color.a);
 }

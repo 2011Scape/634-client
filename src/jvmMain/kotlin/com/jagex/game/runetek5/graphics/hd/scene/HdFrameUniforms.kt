@@ -83,7 +83,7 @@ class HdFrameUniforms {
         if (HdSettings.tonemap != 0) bits = bits or HD_LINEAR
         if (HdSettings.pixelLighting) bits = bits or HD_PIXEL_LIGHTING
         if (HdSettings.shadows != 0) bits = bits or HD_SHADOWS
-        if (HdSettings.lights) bits = bits or HD_LIGHTS
+        if (HdSettings.lights || HdSettings.playerLight) bits = bits or HD_LIGHTS
         if (HdSettings.fog) bits = bits or HD_FOG
         if (HdSettings.fade) bits = bits or HD_FADE
         if (HdSettings.sky) bits = bits or HD_SKY

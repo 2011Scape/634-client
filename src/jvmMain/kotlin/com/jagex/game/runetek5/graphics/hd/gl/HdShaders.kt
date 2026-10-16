@@ -102,6 +102,13 @@ object HdShaders {
                 org.lwjgl.opengl.GL33C.glUseProgram(previous)
             }
         }
+        val waterDepth = org.lwjgl.opengl.GL33C.glGetUniformLocation(program.id, "uHdWaterDepth")
+        if (waterDepth >= 0) {
+            val previous = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_CURRENT_PROGRAM)
+            org.lwjgl.opengl.GL33C.glUseProgram(program.id)
+            org.lwjgl.opengl.GL33C.glUniform1i(waterDepth, com.jagex.game.runetek5.graphics.hd.HdGround.WATER_DEPTH_UNIT)
+            org.lwjgl.opengl.GL33C.glUseProgram(previous)
+        }
         val groundAo = org.lwjgl.opengl.GL33C.glGetUniformLocation(program.id, "uHdGroundAo")
         if (groundAo >= 0) {
             val previous = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_CURRENT_PROGRAM)

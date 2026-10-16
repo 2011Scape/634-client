@@ -20,6 +20,14 @@ import com.jagex.game.runetek5.graphics.hd.content.HdContent
 
 class HdFeatures {
 
+    private companion object {
+        /** The time of day's shadow sun moves in steps of this many degrees. */
+        const val SHADOW_STEP: Float = 0.5f
+
+        /** The shadow sun's lowest pitch in degrees with the time of day. */
+        const val SHADOW_MIN_PITCH: Float = 12.0f
+    }
+
     private val start: Long = System.nanoTime()
 
     /** Eye space to world space, this frame. */
@@ -107,8 +115,12 @@ class HdFeatures {
         }
         // the sun's shadow map: where it looks from, and the matrix the receivers use
         HdGl.shadows = this.shadows
-        this.shadows.sunPitch = if (time) lightPitch else sunPitch
-        this.shadows.sunYaw = if (time) lightYaw else sunYaw
+        // with the time of day the shadow sun moves in steps of SHADOW_STEP degrees: moved a little every
+        // frame, the map's texels fell differently each frame and shadow edges and shadowed ground
+        // flickered (and the static casters were drawn again every frame). Kept SHADOW_MIN_PITCH up, as
+        // near the horizon the shadows stretch over many texels each (and the sun is faint there).
+        this.shadows.sunPitch = if (time) shadowStep(maxOf(lightPitch, SHADOW_MIN_PITCH)) else sunPitch
+        this.shadows.sunYaw = if (time) shadowStep(lightYaw) % 360.0f else sunYaw
         this.shadows.beginFrame(viewToWorld, state.lightPosition[0], state.lightEnabled[0] && length > 0.0f)
         if (this.shadows.active) {
             uniforms.setShadowMatrix(this.shadows.shadowMatrix)
@@ -130,7 +142,7 @@ class HdFeatures {
         // the grading table of the environment (HdSettings.colourGrading)
         val lut: String? = this.environment?.lut
         toolkit.hdPost.useGrading(if (lut != null && HdSettings.colourGrading) toolkit.hdPost.gradingTable(lut) else 0)
-        this.lights.prepare(toolkit.hdContent, uniforms, worldToView, seconds)
+        this.lights.prepare(toolkit.hdContent, uniforms, worldToView, seconds, if (HdSettings.dayNight != 0) nightness else 0.0f)
         uniforms.setDebug(toolkit.debugOverlay())
     }
 
@@ -240,6 +252,11 @@ class HdFeatures {
     private val lightEye: FloatArray = FloatArray(3)
     private val moonWorld: FloatArray = FloatArray(3)
     private var nightness: Float = 0.0f
+
+    private var testTimeStart: Long = 0L
+
+    /** An angle in degrees rounded to a whole SHADOW_STEP. */
+    private fun shadowStep(degrees: Float): Float = Math.round(degrees / SHADOW_STEP) * SHADOW_STEP
     private var sunElevationNow: Float = 45.0f
     private var lightPitch: Float = Float.NaN
     private var lightYaw: Float = Float.NaN
@@ -253,7 +270,10 @@ class HdFeatures {
     private fun dayNight(worldToView: FloatArray): Boolean {
         // a smoke test can fix the time (client.test.timeOfDay: 0 midnight, 0.5 noon)
         val forced: Double? = if (System.getProperty("client.test") != null) System.getProperty("client.test.timeOfDay")?.toDoubleOrNull() else null
-        val day: Double = if (forced != null) forced else if (HdSettings.dayNight < 0) {
+        // client.test.timeRuns: from there the time runs on at the cycle's speed (shadow flicker checks)
+        if (forced != null && testTimeStart == 0L && System.getProperty("client.test.timeRuns") != null) testTimeStart = System.currentTimeMillis()
+        val run: Double = if (testTimeStart == 0L || HdSettings.dayNight <= 0) 0.0 else (System.currentTimeMillis() - testTimeStart) / (HdSettings.dayNight * 60000.0)
+        val day: Double = if (forced != null) (forced + run) % 1.0 else if (HdSettings.dayNight < 0) {
             val now = java.time.LocalTime.now()
             now.toSecondOfDay() / 86400.0
         } else {
