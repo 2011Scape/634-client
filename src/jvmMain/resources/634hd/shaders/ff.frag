@@ -42,6 +42,9 @@ uniform int uHdTexture;
 vec2 gUv0;
 // soft particles (HD_SOFT_PARTICLES): on, the scene's depth so far, the projection's depth terms
 uniform int uHdSoft;
+// the game's blob shadows (HdShadowMap) where the ground is under water only (with the sun's shadows):
+// the ground's third texture coordinate is its water depth, carried through the overlay's texture matrix
+uniform int uHdBlobWater;
 uniform sampler2D uHdSceneDepth;
 uniform vec4 uHdDepthParams;
 // the primary colour: the vertex colour, or the per-pixel lit one
@@ -211,10 +214,10 @@ vec4 hdTerrainTexture(sampler2D tex, vec2 uv, vec3 viewPos) {
     vec3 dx = dFdx(world);
     vec3 dy = dFdy(world);
     vec3 n = normalize(cross(dx, dy));
-    vec4 base = texture(tex, uv, hdDetailBias);
+    vec4 base = texture(tex, uv);
     float mask = smoothstep(0.45, 0.75, hdNoise(world.xz / 3072.0 + vec2(5.3, 1.7)));
     if (mask > 0.0) {
-        base = mix(base, texture(tex, uv + vec2(0.37, 0.61), hdDetailBias), mask * 0.45);
+        base = mix(base, texture(tex, uv + vec2(0.37, 0.61)), mask * 0.45);
     }
     float slope = 1.0 - abs(n.y);
     float steep = smoothstep(0.42, 0.6, slope);
@@ -222,7 +225,7 @@ vec4 hdTerrainTexture(sampler2D tex, vec2 uv, vec3 viewPos) {
         // uv per world unit along the ground, as the game maps it on the flat
         float scale = length(dFdx(uv)) / max(length(dx.xz), 0.0001);
         vec2 side = abs(n.x) > abs(n.z) ? world.zy : world.xy;
-        base = mix(base, texture(tex, side * scale, hdDetailBias), steep);
+        base = mix(base, texture(tex, side * scale), steep);
     }
     base.rgb *= 0.96 + 0.08 * hdNoise(world.xz / 6144.0 + vec2(17.0, 3.0));
     return base;
@@ -236,7 +239,7 @@ vec4 sampleUnit(int unit) {
         // 634HD: the ground's texture blended (HD_TERRAIN); the base texture in linear colour too (tonemap)
         if (uHdGround != 0 && hdOn(HD_TERRAIN)) return hdInput(hdTerrainTexture(uTexture0, gUv0, FF_VIEW_POS));
         if (uHdSmooth != 0 && uLogicalScale > 1.0 && uHdScene == 0) return sharpBilinear(uTexture0, gUv0);
-        return hdInput(texture(uTexture0, gUv0, hdDetailBias));
+        return hdInput(texture(uTexture0, gUv0));
     }
     // the other units' colours are sRGB too (environment maps, the water's wave textures): linear
     // with HD_LINEAR like the base texture, so they add up as they did in the game's sRGB
@@ -251,8 +254,10 @@ vec4 sampleUnit(int unit) {
 }
 
 void main() {
+    if (uHdBlobWater != 0 && vTexCoord0.z < 0.5) {
+        discard;
+    }
     gSrgbWater = uHdWater != 0 && hdOn(HD_LINEAR);
-    hdSetDetail(FF_VIEW_POS);
     gPrimary = vColor;
 #ifdef ARB_VERTEX
     // the ARB vertex programs (the water effects) pass the game's colour through as it is: sRGB

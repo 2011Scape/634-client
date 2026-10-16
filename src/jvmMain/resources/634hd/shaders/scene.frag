@@ -74,9 +74,9 @@ vec4 sampleMaterial(vec4 material, vec4 extra, vec2 uv) {
     bool fine = material.y > 1.5;
     bool linear = (flags & FLAG_LINEAR) != 0;
     if ((flags & FLAG_MIPMAP) != 0 || hdOn(HD_MIPMAPS)) {
-        if (fine) return linear ? texture(uFineLinear, coord, hdDetailBias) : texture(uFineNearest, coord, hdDetailBias);
-        if (large) return linear ? texture(uLargeLinear, coord, hdDetailBias) : texture(uLargeNearest, coord, hdDetailBias);
-        return linear ? texture(uSmallLinear, coord, hdDetailBias) : texture(uSmallNearest, coord, hdDetailBias);
+        if (fine) return linear ? texture(uFineLinear, coord) : texture(uFineNearest, coord);
+        if (large) return linear ? texture(uLargeLinear, coord) : texture(uLargeNearest, coord);
+        return linear ? texture(uSmallLinear, coord) : texture(uSmallNearest, coord);
     }
     if (fine) return linear ? textureLod(uFineLinear, coord, 0.0) : textureLod(uFineNearest, coord, 0.0);
     if (large) return linear ? textureLod(uLargeLinear, coord, 0.0) : textureLod(uLargeNearest, coord, 0.0);
@@ -102,7 +102,6 @@ vec4 pixelLit() {
 }
 
 void main() {
-    hdSetDetail(vViewPos);
     int mapSlot = -1;
     vec2 mapUv = vTexCoord;
     vec4 material = texelFetch(uMaterials, vMaterial * 2);

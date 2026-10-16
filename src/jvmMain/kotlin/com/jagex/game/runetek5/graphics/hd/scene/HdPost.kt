@@ -33,8 +33,8 @@ class HdPost {
         private const val BLOOM_LEVELS: Int = 5
         private const val LUT_SIZE: Int = 16
 
-        private const val EXPOSURE_ACES: Float = 1.15f
-        private const val EXPOSURE_AGX: Float = 1.25f
+        private const val EXPOSURE_ACES: Float = 0.95f
+        private const val EXPOSURE_AGX: Float = 1.05f
         private const val BLOOM_THRESHOLD: Float = 0.75f
         private const val BLOOM_STRENGTH: Float = 0.35f
     }

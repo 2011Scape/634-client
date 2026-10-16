@@ -19,6 +19,13 @@ uniform sampler2DArray uHdNormalMaps;
 uniform sampler2DArray uHdOrmMaps;
 uniform sampler2DArray uHdEmissiveMaps;
 
+// [rgb] with a highlight [h] added. Highlights are tuned as amounts of the game's (sRGB) colour; with
+// tonemapping (HD_LINEAR) the colour is linear, where the same amount is several times brighter (0.2
+// linear is about 0.48 sRGB) and lit surfaces took a plastic sheen: there it is added in sRGB.
+vec3 hdAddHighlight(vec3 rgb, vec3 h) {
+    return hdOn(HD_LINEAR) ? hdToLinear(hdToSrgb(rgb) + h) : rgb + h;
+}
+
 bool hdHasMaps(int slot) {
     return slot >= 0 && hdOn(HD_MATERIALS);
 }
@@ -46,7 +53,7 @@ vec2 hdParallaxUv(int slot, vec2 uv, vec3 viewPos) {
     mat3 tbn = hdTangentFrame(viewPos, uv);
     vec3 view = normalize(-viewPos) * tbn;
     float layer = hdMapA[slot].x;
-    float depth = hdMapA[slot].w * hdDetail;
+    float depth = hdMapA[slot].w;
     vec2 step = view.xy / max(view.z, 0.25) * depth / 6.0;
     vec2 p = uv;
     float current = 0.0;
@@ -70,12 +77,11 @@ vec4 hdApplyMaterial(int slot, vec4 color, vec2 uv, vec3 viewPos) {
     vec3 n = face;
     if (hdMapB[slot].x > 0.5) {
         // x and y from the map (BC5 keeps two channels), z rebuilt
-        vec2 xy = (texture(uHdNormalMaps, vec3(uv, layer)).xy * 2.0 - 1.0) * hdDetail;
+        vec2 xy = texture(uHdNormalMaps, vec3(uv, layer)).xy * 2.0 - 1.0;
         vec3 mapped = vec3(xy, sqrt(max(1.0 - dot(xy, xy), 0.0)));
         n = normalize(tbn * mapped);
     }
     vec4 orm = hdMapB[slot].y > 0.5 ? texture(uHdOrmMaps, vec3(uv, layer)) : vec4(1.0, 0.7, 0.0, 1.0);
-    orm.r = mix(1.0, orm.r, hdDetail);
     vec3 sun = hdSunDirection.w > 0.5 ? hdSunDirection.xyz : vec3(0.0, 1.0, 0.0);
     float ambient = max(dot(hdAmbientColour.rgb, vec3(0.333)), 0.05);
     float sunLight = max(dot(hdSunColour.rgb, vec3(0.333)), 0.0);
@@ -91,7 +97,7 @@ vec4 hdApplyMaterial(int slot, vec4 color, vec2 uv, vec3 viewPos) {
     vec3 halfway = normalize(view + sun);
     float shininess = mix(96.0, 6.0, roughness);
     float highlight = pow(max(dot(n, halfway), 0.0), shininess) * (1.0 - roughness) * hdMapA[slot].y;
-    rgb += hdSunColour.rgb * highlight * hdShadow(viewPos);
+    rgb = hdAddHighlight(rgb, hdSunColour.rgb * highlight * hdShadow(viewPos));
     if (hdMapB[slot].z > 0.5) {
         rgb += hdColour(texture(uHdEmissiveMaps, vec3(uv, hdMapB[slot].w))).rgb * orm.b * hdMapA[slot].z;
     }
@@ -160,12 +166,12 @@ vec4 hdLightModel(int slot, vec4 color, vec2 uv, vec3 viewPos, vec3 normal) {
             vec3 t = normalize(frame[0] - n0 * dot(frame[0], n0));
             vec3 b = normalize(frame[1] - n0 * dot(frame[1], n0) - t * dot(frame[1], t));
             if (dot(cross(t, b), n0) < 0.0) b = -b;
-            vec2 xy = (texture(uHdNormalMaps, vec3(uv, layer)).xy * 2.0 - 1.0) * hdDetail;
+            vec2 xy = texture(uHdNormalMaps, vec3(uv, layer)).xy * 2.0 - 1.0;
             n = normalize(mat3(t, b, n0) * vec3(xy, sqrt(max(1.0 - dot(xy, xy), 0.0))));
         }
         if (hdMapB[slot].y > 0.5) {
             vec4 orm = texture(uHdOrmMaps, vec3(uv, layer));
-            occlusion = mix(1.0, orm.r, 0.45 * hdDetail);
+            occlusion = mix(1.0, orm.r, 0.45);
             roughness = orm.g;
         }
         strength = hdMapA[slot].y;
@@ -190,9 +196,9 @@ vec4 hdLightModel(int slot, vec4 color, vec2 uv, vec3 viewPos, vec3 normal) {
         vec3 view = normalize(-viewPos);
         if (hdSunDirection.w > 0.5) {
             vec3 reflected = reflect(-hdSunDirection.xyz, n);
-            rgb += hdSunColour.rgb * pow(max(dot(view, reflected), 0.0), gloss) * (1.0 - roughness) * strength * sun;
+            rgb = hdAddHighlight(rgb, hdSunColour.rgb * pow(max(dot(view, reflected), 0.0), gloss) * (1.0 - roughness) * strength * sun);
         }
-        rgb += hdPointHighlights(viewPos, n, gloss) * (1.0 - roughness) * strength * 0.6;
+        rgb = hdAddHighlight(rgb, hdPointHighlights(viewPos, n, gloss) * (1.0 - roughness) * strength * 0.6);
     }
     if (mapped && hdMapB[slot].z > 0.5) {
         vec4 orm = texture(uHdOrmMaps, vec3(uv, layer));

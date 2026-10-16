@@ -11,6 +11,10 @@ import kotlin.jvm.JvmStatic
 
 class HdShadow constructor(glToolkit: HdToolkit?, sizeX: Int, sizeZ: Int) : Shadow() {
 
+	/** 634HD: cast by a model with water faces (HdGround keeps these with the sun's shadows on). */
+	@JvmField
+	var hdWater: Boolean = false
+
 	@JvmField
 	var sizeX: Int = 0
 

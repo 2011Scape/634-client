@@ -116,6 +116,7 @@ class FfFragmentUniformLocations(gl: WebGL2RenderingContext, program: WebGLProgr
     val hdUnderwater: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdUnderwater")
     // 634HD: soft particles - on, and the projection's depth terms (HD_SOFT_PARTICLES)
     val hdSoft: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdSoft")
+    val hdBlobWater: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdBlobWater")
     // 634HD: the slot of the texture's material maps (HD_MATERIALS)
     val hdMapSlot: WebGLUniformLocation? = gl.getUniformLocation(program, "uHdMapSlot")
     // 634HD: the texture id, for the debug panel's texture overlay
@@ -167,6 +168,7 @@ fun uploadFfFragmentUniforms(gl: WebGL2RenderingContext, state: GlState, L: FfFr
     setInt(gl, L, L.hdGround, SI_HD_GROUND, state.hdGround)
     setInt(gl, L, L.hdUnderwater, SI_HD_UNDERWATER, state.hdUnderwater)
     setInt(gl, L, L.hdSoft, SI_HD_SOFT, state.hdSoft)
+    setInt(gl, L, L.hdBlobWater, SI_HD_BLOB_WATER, state.hdBlobWater)
     setInt(gl, L, L.hdMapSlot, SI_HD_MAP_SLOT, state.hdMapSlot)
     setInt(gl, L, L.hdTexture, SI_HD_TEXTURE, state.hdTexture)
     setInt(gl, L, L.hdSmooth, SI_HD_SMOOTH, if (com.jagex.game.runetek5.client.features.HdSettings.smoothInterface) 1 else 0)
@@ -261,7 +263,8 @@ private const val SI_HD_MAP_SLOT = SI_ALPHA_TEST + 7
 private const val SI_HD_TEXTURE = SI_ALPHA_TEST + 8
 private const val SI_HD_SMOOTH = SI_ALPHA_TEST + 9
 private const val SI_HD_UNDERWATER = SI_ALPHA_TEST + 10
-internal const val FF_SHADOW_INTS = SI_ALPHA_TEST + 11
+private const val SI_HD_BLOB_WATER = SI_ALPHA_TEST + 11
+internal const val FF_SHADOW_INTS = SI_ALPHA_TEST + 12
 
 private const val SF_TEX_ENV_COLOR = 0
 private const val SF_ENV_SCALE = 4

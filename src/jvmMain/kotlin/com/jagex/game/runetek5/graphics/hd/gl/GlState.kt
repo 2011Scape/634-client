@@ -82,6 +82,9 @@ class GlState(val gl: WebGL2RenderingContext) {
     // terms (P[2][2], P[3][2]) and 1/width, 1/height of the depth copy
     var hdSoft: Int = 0
 
+    /** 634HD: the game's blob shadows drawn only where the ground is under water (HdGround, with sun shadows). */
+    var hdBlobWater: Int = 0
+
     // 634HD: the slot of the drawn texture's material maps (HdMaterialMaps), -1 for none
     var hdMapSlot: Int = -1
 
