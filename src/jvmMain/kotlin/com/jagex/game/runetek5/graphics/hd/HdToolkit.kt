@@ -659,6 +659,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	// 634HD: the debug panel (client.debug builds), its GPU timer and frame clock
 	private var debugPanel: HdDebugPanel? = null
 	private val gpuQueries: IntArray = IntArray(4)
+	private val GPU_TIMING: Boolean = System.getProperty("client.test.hdGpu") != null
+	private var gpuNanosSum: Long = 0L
+	private var gpuSamples: Int = 0
 	private var gpuQueryIndex: Int = 0
 	private var gpuQueryActive: Boolean = false
 	private var panelLastNanos: Long = 0L
@@ -936,11 +939,15 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 	override fun sceneBuilt() {
 		this.buildRegion()
 		this.hdFeatures.lights.dirty = true
+		// 634HD: the room fill is flooded again from the new region (scene/HdLightGrid)
+		this.hdFeatures.lightGrid.dirty = true
 	}
 
 	override fun sceneChanged(level: Int, x: Int, z: Int) {
 		this.sceneRenderer.sceneChanged(x, z)
 		this.hdFeatures.lights.dirty = true
+		// 634HD: a wall or loc changed here (a door): the lights round it are flooded again next frame
+		this.hdFeatures.lightGrid.changed(level, x, z)
 	}
 
 	override fun transparentEntitiesDone() {
@@ -3400,8 +3407,8 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		if (HdSettings.materials) {
 			this.materialMaps.prepare(this.hdContent)
 		}
-		if (this.debugPanel != null && HdSettings.panel && !this.gpuQueryActive) {
-			// the 3D view's GPU time, read a few frames later (the debug panel)
+		if ((this.debugPanel != null && HdSettings.panel || GPU_TIMING) && !this.gpuQueryActive) {
+			// the 3D view's GPU time, read a few frames later (the debug panel; client.test.hdGpu prints it)
 			if (this.gpuQueries[0] == 0) {
 				org.lwjgl.opengl.GL33C.glGenQueries(this.gpuQueries)
 			}
@@ -3493,6 +3500,19 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			org.lwjgl.opengl.GL33C.glEndQuery(org.lwjgl.opengl.GL33C.GL_TIME_ELAPSED)
 			this.gpuQueryActive = false
 			this.gpuQueryIndex = (this.gpuQueryIndex + 1) and 3
+			if (GPU_TIMING) {
+				// client.test.hdGpu: the 3D view's GPU time averaged over every 300 frames, printed
+				val oldest: Int = this.gpuQueries[this.gpuQueryIndex]
+				if (oldest != 0 && org.lwjgl.opengl.GL33C.glGetQueryObjecti(oldest, org.lwjgl.opengl.GL33C.GL_QUERY_RESULT_AVAILABLE) != 0) {
+					this.gpuNanosSum += org.lwjgl.opengl.GL33C.glGetQueryObjecti64(oldest, org.lwjgl.opengl.GL33C.GL_QUERY_RESULT)
+					this.gpuSamples++
+					if (this.gpuSamples == 300) {
+						println("HDGPU 3D view " + String.format(java.util.Locale.ROOT, "%.3f", this.gpuNanosSum / 300.0 / 1000000.0) + " ms a frame (300 frames)")
+						this.gpuNanosSum = 0L
+						this.gpuSamples = 0
+					}
+				}
+			}
 		}
 		this.sceneDrawing = false
 		this.hdFeatures.shadows.recording = false

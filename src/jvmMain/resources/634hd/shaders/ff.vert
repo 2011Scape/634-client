@@ -72,6 +72,7 @@ void main() {
                     lightDir = toLight / max(dist, 0.0001);
                     vec3 k = uLightAttenuation[i];
                     atten = 1.0 / max(k.x + k.y * dist + k.z * dist * dist, 0.0001);
+                    atten *= hdGameLightWindow(dist, k.z);
                 }
                 float diff = max(dot(rawEyeNormal, lightDir), 0.0);
                 lit += (uLightAmbient[i] + hdEnvDiffuse(uLightDiffuse[i], i) * diff) * atten;

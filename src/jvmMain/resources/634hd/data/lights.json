@@ -75,7 +75,7 @@
         12006
       ],
       "colour": "#ff9b45",
-      "radius": 4.0,
+      "radius": 6.0,
       "intensity": 1.2,
       "offset": [
         0,
@@ -204,7 +204,7 @@
         13530
       ],
       "colour": "#ff8a35",
-      "radius": 5.0,
+      "radius": 7.0,
       "intensity": 1.5,
       "offset": [
         0,
@@ -256,7 +256,7 @@
         47573
       ],
       "colour": "#ff8a3a",
-      "radius": 4.0,
+      "radius": 6.0,
       "intensity": 1.2,
       "offset": [
         0,
@@ -305,7 +305,7 @@
         55864
       ],
       "colour": "#ff9840",
-      "radius": 4.5,
+      "radius": 6.0,
       "intensity": 1.3,
       "offset": [
         0,
@@ -399,7 +399,7 @@
         54964
       ],
       "colour": "#ffc878",
-      "radius": 2.5,
+      "radius": 4.0,
       "intensity": 0.9,
       "offset": [
         0,
@@ -472,7 +472,7 @@
         32897
       ],
       "colour": "#ffd99a",
-      "radius": 4.0,
+      "radius": 7.0,
       "intensity": 1.0,
       "offset": [
         0,
@@ -698,7 +698,7 @@
         56561
       ],
       "colour": "#ff7a30",
-      "radius": 3.0,
+      "radius": 4.5,
       "intensity": 1.0,
       "offset": [
         0,

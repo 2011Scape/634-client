@@ -131,6 +131,7 @@ void main() {
             float dist = length(toLight);
             vec3 lightDir = toLight / max(dist, 0.0001);
             float atten = 1.0 / max(diffuse.w + light.w * dist * dist, 0.0001);
+            atten *= hdGameLightWindow(dist, light.w);
             float diff = max(dot(rawEyeNormal, lightDir), 0.0);
             lit += (vec4(0.0, 0.0, 0.0, 1.0) + vec4(diffuse.rgb, 1.0) * diff) * atten;
         }

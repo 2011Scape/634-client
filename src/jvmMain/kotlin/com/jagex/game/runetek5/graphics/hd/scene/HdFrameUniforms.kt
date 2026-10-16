@@ -35,6 +35,7 @@ class HdFrameUniforms {
         const val HD_GRASS: Int = 65536
         const val HD_LIGHTING_MODEL: Int = 131072
         const val HD_REFLECTIONS: Int = 262144
+        const val HD_LIGHT_GRID: Int = 524288
         const val MAX_ACTORS: Int = 8
 
         // std140 offsets, in bytes
@@ -68,7 +69,9 @@ class HdFrameUniforms {
         private const val MOON: Int = DAY_NIGHT + 16
         private const val TONEMAP: Int = MOON + 16
         private const val SCENE_SIZE: Int = TONEMAP + 16
-        const val SIZE: Int = SCENE_SIZE + 16
+        private const val GRID_PARAMS: Int = SCENE_SIZE + 16
+        private const val LIGHT_GRID: Int = GRID_PARAMS + 16
+        const val SIZE: Int = LIGHT_GRID + MAX_LIGHTS * 16
     }
 
     private var buffer: Int = 0
@@ -102,6 +105,7 @@ class HdFrameUniforms {
         if (HdSettings.grassDisplacement) bits = bits or HD_GRASS
         if (HdSettings.lightingModel) bits = bits or HD_LIGHTING_MODEL
         if (HdSettings.reflections) bits = bits or HD_REFLECTIONS
+        if (HdSettings.lightGrid && (HdSettings.lights || HdSettings.playerLight)) bits = bits or HD_LIGHT_GRID
         return bits
     }
 
@@ -148,7 +152,7 @@ class HdFrameUniforms {
     }
 
     /** The debug panel's overlay (HdDebugPanel.OVERLAYS), 0 for none. */
-    fun setDebug(overlay: Int) = putInt4(DEBUG, overlay, 0, 0, 0)
+    fun setDebug(overlay: Int) = putInt4(DEBUG, overlay, if (System.getProperty("client.test.hdOverlayRaw") != null) 1 else 0, 0, 0)
 
     /** Water's tint (HD_WATER): colour, w how strongly it replaces the game's water colour. */
     fun setWater(r: Float, g: Float, b: Float, strength: Float) = putVec4(WATER, r, g, b, strength)
@@ -158,6 +162,12 @@ class HdFrameUniforms {
 
     /** The loaded scene's size in world units (x, z): the fade near its edge (HD_FADE, hdFog). */
     fun setSceneSize(x: Float, z: Float) = putVec4(SCENE_SIZE, x, z, 0.0f, 0.0f)
+
+    /** The room fill's strength this frame and its texels per tile (HD_LIGHT_GRID, HdLightGrid). */
+    fun setGridParams(strength: Float, texelsPerTile: Float) = putVec4(GRID_PARAMS, strength, texelsPerTile, 0.0f, 0.0f)
+
+    /** Light [index]'s wall visibility patch (HD_LIGHT_GRID): its layer (0: none), the light's world x and z. */
+    fun setLightGrid(index: Int, layer: Float, x: Float, z: Float) = putVec4(LIGHT_GRID + index * 16, layer, x, z, 0.0f)
 
     /** Day and night: the sun's or moon's eye-space direction replacing light 0 ([on]), the moon's world direction and the night (0 to 1). */
     fun setDayNight(x: Float, y: Float, z: Float, on: Boolean, moonX: Float, moonY: Float, moonZ: Float, night: Float) {
