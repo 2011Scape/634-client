@@ -90,7 +90,7 @@ vec4 hdApplyMaterial(int slot, vec4 color, vec2 uv, vec3 viewPos) {
     // a bumpy surface turns, on average, a little away from the light: 1.08 keeps the overall
     // brightness where the game had it, so the maps add relief rather than darken
     float relight = clamp(mappedLight / max(flat_, 0.05) * 1.08, 0.45, 1.6);
-    vec3 rgb = color.rgb * relight * mix(1.0, orm.r, 0.45);
+    vec3 rgb = hdScaleLight(color.rgb, relight * mix(1.0, orm.r, 0.45));
     // a highlight that narrows as the surface gets smoother
     float roughness = orm.g;
     vec3 view = normalize(-viewPos);
@@ -185,7 +185,7 @@ vec4 hdLightModel(int slot, vec4 color, vec2 uv, vec3 viewPos, vec3 normal) {
     // 1.08: shadow and occlusion now take light away where the game's flat light did not; the scene
     // keeps its overall brightness
     vec3 ratio = clamp(light / max(reference, vec3(0.05)) * 1.08, vec3(0.2), vec3(2.2));
-    vec3 rgb = color.rgb * ratio;
+    vec3 rgb = hdScaleLight(color.rgb, ratio);
     // point lights: the game added them on the smooth normal (hdAddPointLights); the difference on the
     // mapped normal is added here, so the relief catches torchlight too
     if (hdOn(HD_LIGHTS) && hdLightInfo.x > 0 && mapped) {

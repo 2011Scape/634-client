@@ -33,7 +33,6 @@ import com.jagex.game.runetek5.graphics.model.particle.EmissiveTriangle
 import com.jagex.game.runetek5.js5.ModelTexCoordFlag
 import jaclib.memory.Stream
 import com.jagex.game.runetek5.graphics.hd.gl.HdGl
-import com.jagex.game.runetek5.graphics.hd.gl.HdContext
 import com.jagex.game.runetek5.buffer.ArrayBufferGL
 import com.jagex.game.runetek5.buffer.ElementsBufferGL
 import com.jagex.game.runetek5.graphics.model.buffer.ModelElementsBufferGL
@@ -44,7 +43,6 @@ import com.jagex.game.runetek5.utils.ColorUtil
 import com.jagex.game.runetek5.utils.ArrayUtils
 import com.jagex.game.runetek5.graphics.model.billboard.BillboardTypeList
 import com.jagex.game.runetek5.core.util.Arrays
-import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.core.crypto.GpuModelRetainMasks
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
@@ -1408,7 +1406,24 @@ class HdModel : Model {
 		}
 		glShadow2.setDimension(shadowMaxZ, shadowMaxX, shadowMinZ, shadowMinX)
 		this.projectShadow(glShadow2)
-		glShadow2.hdWater = this.hdHasWaterFaces()
+		// 634HD: a water model's blob shadow on dry ground (kept with the sun's shadows on, HdGround) is
+		// cast by its water faces only; its rim and stonework cast the sun's shadow instead. Cast here,
+		// not on the switch: the shadow may be cached past a change of the switch
+		val water: Boolean = this.hdHasWaterFaces()
+		glShadow2.hdWater = water
+		if (water) {
+			var waterFaces: HdShadow? = glShadow2.hdWaterFaces
+			if (waterFaces != null && waterFaces.fitsDimension(height, width)) {
+				waterFaces.reset()
+			} else {
+				waterFaces = HdShadow(this.glToolkit, width, height)
+				glShadow2.hdWaterFaces = waterFaces
+			}
+			waterFaces.setDimension(shadowMaxZ, shadowMaxX, shadowMinZ, shadowMinX)
+			this.projectShadow(waterFaces, true)
+		} else {
+			glShadow2.hdWaterFaces = null
+		}
 		return glShadow2
 	}
 
@@ -1456,7 +1471,7 @@ class HdModel : Model {
 		this.boundsCalculated = false
 	}
 
-	private fun projectShadow(shadow: HdShadow) {
+	private fun projectShadow(shadow: HdShadow, waterFacesOnly: Boolean = false) {
 		if (this.numNormals > this.glToolkit!!.scratchVerticesX.size) {
 			this.glToolkit.scratchVerticesY = IntArray(this.numNormals)
 			this.glToolkit.scratchVerticesX = IntArray(this.numNormals)
@@ -1481,6 +1496,7 @@ class HdModel : Model {
 			}
 		}
 		for (faceIndex in 0 until this.renderedFaceCount) {
+			if (waterFacesOnly && !this.hdFaceIsWater(faceIndex)) continue
 			if (this.facesAlpha == null || this.facesAlpha!![faceIndex] <= 128) {
 				val vertexA: Short = this.facesA!![faceIndex]
 				val vertexB: Short = this.facesB!![faceIndex]
@@ -4339,20 +4355,39 @@ class HdModel : Model {
 		return way
 	}
 
+	/** The face materials hdWaterFaces was found for (an animated loc rebuilds its shadow every frame). */
+	private var hdWaterFacesOf: ShortArray? = null
+	private var hdWaterFaces: Boolean = false
 
 	/** 634HD: whether any face is drawn with a water material (the water effects), for HdShadow.hdWater. */
 	private fun hdHasWaterFaces(): Boolean {
 		val materials: ShortArray = this.facesMaterial ?: return false
-		val provider: MaterialProvider = this.glToolkit!!.materialProvider ?: return false
+		if (materials === this.hdWaterFacesOf) return this.hdWaterFaces
+		var found: Boolean = false
 		var last: Int = -2
 		for (f in 0 until this.numFaces) {
 			val id: Int = materials[f].toInt()
 			if (id == -1 || id == last) continue
 			last = id
-			val effect: Int = provider.getMetrics(id and 0xFFFF)?.effectType?.toInt() ?: continue
-			if (effect == 2 || effect == 3 || effect == 4 || effect == 5 || effect == 8 || effect == 9) return true
+			if (this.hdMaterialIsWater(id)) {
+				found = true
+				break
+			}
 		}
-		return false
+		this.hdWaterFacesOf = materials
+		this.hdWaterFaces = found
+		return found
 	}
 
+	private fun hdFaceIsWater(face: Int): Boolean {
+		val materials: ShortArray = this.facesMaterial ?: return false
+		val id: Int = materials[face].toInt()
+		return id != -1 && this.hdMaterialIsWater(id)
+	}
+
+	private fun hdMaterialIsWater(id: Int): Boolean {
+		val provider: MaterialProvider = this.glToolkit!!.materialProvider ?: return false
+		val effect: Int = provider.getMetrics(id and 0xFFFF)?.effectType?.toInt() ?: return false
+		return HdToolkit.isWaterEffect(effect)
+	}
 }

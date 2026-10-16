@@ -15,6 +15,14 @@ class HdShadow constructor(glToolkit: HdToolkit?, sizeX: Int, sizeZ: Int) : Shad
 	@JvmField
 	var hdWater: Boolean = false
 
+	/**
+	 * 634HD: the same shadow cast by the water faces only, for the dry ground round a water model with
+	 * the sun's shadows on (HdGround.waterShadowMap). Both are cast when the model's shadow is, so a
+	 * cached shadow (LocTypeList.modelAndShadowCache) fits whichever the switch asks for.
+	 */
+	@JvmField
+	var hdWaterFaces: HdShadow? = null
+
 	@JvmField
 	var sizeX: Int = 0
 

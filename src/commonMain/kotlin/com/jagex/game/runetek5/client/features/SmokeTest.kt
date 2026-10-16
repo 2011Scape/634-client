@@ -1591,7 +1591,10 @@ object SmokeTest {
 			if (if (further) SceneVisibleTiles.visibleTiles <= visibleTilesBefore else SceneVisibleTiles.visibleTiles >= visibleTilesBefore) {
 				fail("the map was not built again at draw distance " + ClientFeatures.RENDER_DISTANCE + " (from " + distanceBefore + "): " + visibleTilesBefore + " visible tiles, now " + SceneVisibleTiles.visibleTiles)
 			}
-			println("SMOKE draw distance " + ClientFeatures.RENDER_DISTANCE + ": " + visibleTilesBefore + " to " + SceneVisibleTiles.visibleTiles + " visible tiles")
+			if (MapRegion.sceneBaseX != (MapRegion.mapCenterChunkX - (MapRegion.sceneSizeX shr 4)) * 8 || MapRegion.sceneBaseY != (MapRegion.mapBaseChunkY - (MapRegion.sceneSizeY shr 4)) * 8) {
+				fail("the scene's base " + MapRegion.sceneBaseX + "," + MapRegion.sceneBaseY + " was not moved for its size " + MapRegion.sceneSizeX)
+			}
+			println("SMOKE draw distance " + ClientFeatures.RENDER_DISTANCE + ": " + visibleTilesBefore + " to " + SceneVisibleTiles.visibleTiles + " visible tiles, base " + MapRegion.sceneBaseX + "," + MapRegion.sceneBaseY)
 			checkImage("-open-hd-settings-high", "build/smoke/open-" + id + "-hd-settings-high.png")
 			if (!HdSettingsPanel.clickClose() || HdSettingsPanel.open) {
 				fail("Close did not close the 634HD settings panel")
@@ -1911,8 +1914,8 @@ object SmokeTest {
 		val components: Array<Component?> = Interface.interfaces!![id]!!
 		for (i in 0 until components.size) {
 			val c: Component = components[i] ?: continue
-			println("SMOKE IF " + id + ":" + i + " type " + c.type + " parent " + (c.parentId and 0xFFFF) + " text \"" + c.text + "\" sprite " + c.spriteId + " name " + c.name
-				+ " onClick " + script(c.onClick) + " onLoad " + script(c.onLoadScript) + " onVarp " + script(c.onVarpTransmit) + " onMouseOver " + script(c.onMouseOver))
+			println("SMOKE IF " + id + ":" + i + " type " + c.type + " parent " + (c.parentId and 0xFFFF) + " text \"" + c.text + "\" sprite " + c.spriteId + " name " + c.name +
+				" onClick " + script(c.onClick) + " onLoad " + script(c.onLoadScript) + " onVarp " + script(c.onVarpTransmit) + " onMouseOver " + script(c.onMouseOver))
 		}
 		println("SMOKE PASS dumped interface " + id + ", " + components.size + " components")
 		lang.flushOut()

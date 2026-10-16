@@ -40,7 +40,7 @@ object StaticRegionInit {
 		MapRegion.hdServerKeys = serverKeys
 		MapRegion.hdBaseX = baseX
 		MapRegion.hdBaseY = baseY
-		hdApplySceneSize()
+		hdApplySceneSize(true)
 		MapBuildStart.performUpdate(baseY, baseX, MainLogicStep.STEP_GAME_SCREEN_MAP_BUILD, forcedPositionUpdate)
 	}
 
@@ -50,13 +50,26 @@ object StaticRegionInit {
 	 * the size raised by the draw distance (ClientFeatures.sceneMapSize): the game sizes its fog and
 	 * draw radius from the scene, so a bigger scene is a longer view with the edge still fogged. The
 	 * server's keys are matched to the regions by position (the server's own list order over its
-	 * size); a region the server did not send gets zero keys (Void's maps are not encrypted).
+	 * size); a region the server did not send gets zero keys (Void's maps are not encrypted). A region
+	 * packet always builds the list ([packet]); a map rebuild only when the size or the base changed,
+	 * so the loaded map and loc buffers stay (the original's rebuild left them).
 	 */
+	private var hdAppliedSize: Int = -1
+	private var hdAppliedBaseX: Int = -1
+	private var hdAppliedBaseY: Int = -1
+
 	@JvmStatic
-	fun hdApplySceneSize() {
+	fun hdApplySceneSize(packet: Boolean) {
 		val serverMapSize: Int = MapRegion.hdServerMapSize
 		val baseX: Int = MapRegion.hdBaseX
 		val baseY: Int = MapRegion.hdBaseY
+		val size: Int = ClientFeatures.sceneMapSize(serverMapSize)
+		if (!packet && size == hdAppliedSize && baseX == hdAppliedBaseX && baseY == hdAppliedBaseY && MapRegion.regionIds != null) {
+			return
+		}
+		hdAppliedSize = size
+		hdAppliedBaseX = baseX
+		hdAppliedBaseY = baseY
 		val serverKeys: Array<IntArray?> = MapRegion.hdServerKeys ?: arrayOfNulls<IntArray>(0)
 		// the server's regions, in its order
 		val serverSize: Int = MapRegion.MAP_SIZES[serverMapSize]
@@ -74,7 +87,7 @@ object StaticRegionInit {
 			}
 			sx++
 		}
-		MapRegion.setMapSize(ClientFeatures.sceneMapSize(serverMapSize))
+		MapRegion.setMapSize(size)
 		var regionCount: Int = 0
 		var countX: Int = (baseX - (MapRegion.sceneSizeX shr 4)) / 8
 		while (countX <= (baseX + (MapRegion.sceneSizeX shr 4)) / 8) {

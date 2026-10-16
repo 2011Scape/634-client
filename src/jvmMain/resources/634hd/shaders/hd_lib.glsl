@@ -232,6 +232,17 @@ vec4 hdPointLight(vec3 normal, vec3 viewPos, vec3 lightPos, vec3 attenuation, ve
     return vec4(diffuse * max(dot(normal, lightDir), 0.0) * atten, 0.0);
 }
 
+// [rgb] scaled by a light factor [f] (a ratio of light, a shadow's darkening): with tonemapping the
+// game's light multiplies the sRGB colour (hdApplyLight), so a factor on top does the same, which on
+// the linear colour is f^2.2; in linear light the factor came out weaker than the game's own shading.
+vec3 hdScaleLight(vec3 rgb, vec3 f) {
+    return hdOn(HD_LINEAR) ? rgb * pow(max(f, vec3(0.0)), vec3(2.2)) : rgb * f;
+}
+
+vec3 hdScaleLight(vec3 rgb, float f) {
+    return hdScaleLight(rgb, vec3(f));
+}
+
 // The game's light on [base] (in the scene's space). With tonemapping (HD_LINEAR) the light multiplies
 // the sRGB colour, as the game's does, before it is made linear: multiplying the linear colour by the
 // same factor flattened the shading (a lit face only lit^(1/2.2) brighter), which with the tonemap's
@@ -354,7 +365,7 @@ vec4 hdApplyShadow(vec4 color, vec3 viewPos, vec3 normal) {
     if (lit >= 0.999) return color;
     float normalLength = length(normal);
     float facing = normalLength > 0.0001 ? max(dot(normal / normalLength, hdSunDirection.xyz), 0.0) : 1.0;
-    return vec4(color.rgb * (1.0 - 0.42 * facing * (1.0 - lit)), color.a);
+    return vec4(hdScaleLight(color.rgb, 1.0 - 0.42 * facing * (1.0 - lit)), color.a);
 }
 
 // How much of the sky world point [world] sees, from the height maps (the baked static scene only

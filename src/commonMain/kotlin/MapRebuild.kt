@@ -14,7 +14,13 @@ object MapRebuild {
 		// packet (StaticRegionInit.hdApplySceneSize) - the panel, ::hd renderDistance and the smoke test
 		// all rebuild through here
 		if (MapRegion.hdServerKeys != null && MapRegion.areaMode == AreaMode.STATIC_AREA) {
-			StaticRegionInit.hdApplySceneSize()
+			val sizeBefore: Int = MapRegion.sceneSizeX
+			StaticRegionInit.hdApplySceneSize(false)
+			if (MapRegion.sceneSizeX != sizeBefore && ClientState.mainLogicStep === MainLogicStep.STEP_GAME_SCREEN) {
+				// a new size: its base moves with it, and the entities with the base (as a region packet does)
+				MapBuildStart.performUpdate(MapRegion.hdBaseY, MapRegion.hdBaseX, MainLogicStep.STEP_GAME_SCREEN_MAP_BUILD, true)
+				return
+			}
 		}
 		if (ClientState.mainLogicStep === MainLogicStep.STEP_LOGIN_SCREEN) {
 			MainLogicStepTransition.setMainLogicStep(MainLogicStep.STEP_LOGIN_SCREEN_MAP_BUILD)

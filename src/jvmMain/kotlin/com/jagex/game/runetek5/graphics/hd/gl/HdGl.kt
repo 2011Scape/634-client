@@ -6,9 +6,6 @@
  * OpenGL.js.kt); what only the browser needs (interface scale, canvas alpha, typed arrays) is gone, and
  * the formats a core context lacks (luminance, alpha, intensity) become R8/RG8 with a swizzle.
  */
-// The warnings of the original (deobfuscated) code, left as it was: the build treats warnings as errors.
-@file:Suppress("SENSELESS_COMPARISON")
-
 package com.jagex.game.runetek5.graphics.hd.gl
 
 import jaggl.GlScratch
@@ -240,10 +237,8 @@ object HdGl {
 
     private const val GL_BGRA = 32993
     private const val GL_RGBA = 6408
-    private fun fixBgraFormat(format: Int): Int = format
 
     private const val GL_UNSIGNED_INT_8_8_8_8_REV = 33639
-    private fun fixPixelType(type: Int): Int = type
 
     private const val GL_RGB = 6407
 
@@ -325,11 +320,11 @@ object HdGl {
     fun glTranslatef(arg0: Float, arg1: Float, arg2: Float) = exec { matrixWillChange(); state.matrixStack.translate(arg0, arg1, arg2) }
     fun glScalef(arg0: Float, arg1: Float, arg2: Float) = exec { matrixWillChange(); state.matrixStack.scale(arg0, arg1, arg2) }
     fun glRotatef(arg0: Float, arg1: Float, arg2: Float, arg3: Float) = exec { matrixWillChange(); state.matrixStack.rotate(arg0, arg1, arg2, arg3) }
-    fun glOrtho(arg0: Double, arg1: Double, arg2: Double, arg3: Double, arg4: Double, arg5: Double) = exec { matrixWillChange();
+    fun glOrtho(arg0: Double, arg1: Double, arg2: Double, arg3: Double, arg4: Double, arg5: Double) = exec { matrixWillChange()
         state.matrixStack.ortho(arg0, arg1, arg2, arg3, arg4, arg5)
     }
 
-    fun glFrustum(arg0: Double, arg1: Double, arg2: Double, arg3: Double, arg4: Double, arg5: Double) = exec { matrixWillChange();
+    fun glFrustum(arg0: Double, arg1: Double, arg2: Double, arg3: Double, arg4: Double, arg5: Double) = exec { matrixWillChange()
         state.matrixStack.frustum(arg0, arg1, arg2, arg3, arg4, arg5)
     }
 
@@ -696,20 +691,6 @@ object HdGl {
         6410 -> WebGL2RenderingContext.RG8
         6402 -> WebGL2RenderingContext.DEPTH_COMPONENT24
         34041 -> WebGL2RenderingContext.DEPTH24_STENCIL8
-        else -> format
-    }
-
-    // texImage2D keeps WebGL1's legacy unsized formats (GL_ALPHA/GL_LUMINANCE/
-    // GL_LUMINANCE_ALPHA) working as both internalformat and format for backward
-    // compatibility, but texImage3D is a WebGL2-only entry point with no such carve-out:
-    // it requires a *sized* internalformat (see sizedInternalFormat) paired with the
-    // matching unsized *format* token (GL_RED/GL_RG), not the legacy one. Passing the
-    // legacy format straight through (as glTexImage3Dub used to) is an invalid
-    // combination for gl.texImage3D and silently fails, leaving the texture data
-    // unset.
-    private fun unsizedFormatFor3D(format: Int): Int = when (format) {
-        6406, 6409 -> WebGL2RenderingContext.RED
-        6410 -> WebGL2RenderingContext.RG
         else -> format
     }
 
@@ -1097,9 +1078,7 @@ object HdGl {
     fun glGenBuffersARB(arg0: Int, arg1: IntArray?, arg2: Int) {
         for (i in 0 until arg0) {
             val buf = gl.createBuffer()
-            if (buf == null) {
-            }
-            val id = state.buffers.allocate(buf!!)
+            val id = state.buffers.allocate(buf)
             arg1?.set(arg2 + i, id)
         }
     }

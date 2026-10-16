@@ -60,6 +60,8 @@ class HdReflections {
             GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uSmallLinear"), HdMaterials.UNIT_SMALL_LINEAR)
             GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uLargeLinear"), HdMaterials.UNIT_LARGE_LINEAR)
             GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uFineLinear"), HdMaterials.UNIT_FINE_LINEAR)
+            // hd_lib's lighting helpers (the day and night direction, the area tints) act only for a scene program
+            GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uHdScene"), 1)
             this.program = program
         }
         return program
@@ -69,6 +71,8 @@ class HdReflections {
         var program: WebGLProgram? = this.dynamicProgram
         if (program == null) {
             program = HdShaders.program("reflect_dynamic")
+            GL33C.glUseProgram(program.id)
+            GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uHdScene"), 1)
             this.dynamicProgram = program
         }
         return program
@@ -83,6 +87,9 @@ class HdReflections {
         }
         width = w
         height = h
+        // on the reflection's own unit: on the active one it would replace a fixed-function texture
+        // behind the emulator's tracking
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT)
         GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, texture)
         GL33C.glTexImage2D(GL33C.GL_TEXTURE_2D, 0, GL33C.GL_RGBA8, w, h, 0, GL33C.GL_RGBA, GL33C.GL_UNSIGNED_BYTE, null as ByteBuffer?)
         GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D, GL33C.GL_TEXTURE_MIN_FILTER, GL33C.GL_LINEAR)
@@ -97,11 +104,22 @@ class HdReflections {
         GL33C.glFramebufferRenderbuffer(GL33C.GL_DRAW_FRAMEBUFFER, GL33C.GL_DEPTH_ATTACHMENT, GL33C.GL_RENDERBUFFER, depth)
     }
 
-    /** The water plane of the local player's ground: the mean height of its water tiles, NaN for none. */
+    /**
+     * The water plane: the mean height of the water tiles of the local player's level's ground, else
+     * of the first level that has any (the grounds are by level), NaN for none.
+     */
     private fun waterPlane(): Float {
         val grounds = Scene.aClass65Array2 ?: return Float.NaN
-        val ground: HdGround = (if (grounds.isNotEmpty()) grounds[0] else null) as? HdGround ?: return Float.NaN
-        return ground.hdWaterPlaneY
+        val level: Int = com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate.currentLevel
+        if (level in grounds.indices) {
+            val own: Float = (grounds[level] as? HdGround)?.hdWaterPlaneY ?: Float.NaN
+            if (!own.isNaN()) return own
+        }
+        for (i in grounds.indices) {
+            val plane: Float = (grounds[i] as? HdGround)?.hdWaterPlaneY ?: Float.NaN
+            if (!plane.isNaN()) return plane
+        }
+        return Float.NaN
     }
 
     /**
@@ -142,6 +160,9 @@ class HdReflections {
         val mirroredView: FloatArray = Mat4.multiply(view, mirror)
         val worldToClip: FloatArray = Mat4.multiply(projection, mirroredView)
         val inverseView: FloatArray = Mat4.invert(view) ?: return
+        // the sky as the mirrored camera sees it: sky.frag takes a direction from the camera at the
+        // inverse's translation, so that is the camera's position mirrored about the plane
+        inverseView[13] = 2.0f * plane - inverseView[13]
         val skyProjection: FloatArray = Mat4.multiply(projection, Mat4.multiply(mirroredView, inverseView))
 
         ensureTarget(maxOf(1, viewport[2] / 2), maxOf(1, viewport[3] / 2))

@@ -34,6 +34,9 @@ import org.lwjgl.opengl.GL33C
 class HdShadows {
 
     companion object {
+        /** The attributes recorded with a caster for the reflection: colour, texture coordinate, normal. */
+        private val RECORDED_ATTRIBS: IntArray = intArrayOf(ATTRIB_COLOR, ATTRIB_TEXCOORD0, ATTRIB_NORMAL)
+
         // past the units the retained scene (8-15) and the post passes use
         const val UNIT: Int = 16
         const val AO_UNIT: Int = 17
@@ -511,6 +514,11 @@ class HdShadows {
     // the opaque entities of this frame; the translucent ones (drawn after the map is made: players
     // with a cape, for one) recorded into [late] and drawn into the next frame's map from [previous]
     private val casters: Casters = Casters()
+
+    /** Every list, for a stream about to orphan; the two the reflection draws; a per-draw scratch (no per-frame allocation). */
+    private val lists: Array<Casters> by lazy { arrayOf(previous, late, casters) }
+    private val reflectedLists: Array<Casters> by lazy { arrayOf(casters, previous) }
+    private val have: BooleanArray = BooleanArray(3)
     private var late: Casters = Casters()
     private var previous: Casters = Casters()
     private var lateMode: Boolean = false
@@ -725,7 +733,7 @@ class HdShadows {
         }
         val at: Int = list.indices.position()
         list.indices.put(org.lwjgl.system.MemoryUtil.memByteBuffer(address, bytes))
-        record(vertexBuffer, size, type, stride, offset, -1, count, elementType, at.toLong(), modelView)
+        record(vertexBuffer, size, type, stride, offset, -1, count, elementType, at.toLong(), modelView, state)
     }
 
     // copy on write: the casters (list, index) drawn from each buffer, this frame and last frame's late
@@ -750,44 +758,87 @@ class HdShadows {
      */
     fun beforeStreamOrphan(buffer: Int, written: java.util.TreeMap<Int, Int>) {
         GL33C.glBindBuffer(GL33C.GL_COPY_READ_BUFFER, buffer)
-        for (list in arrayOf(previous, late, casters)) {
+        for (list in lists) {
             for (i in 0 until list.count) {
-                if (list.vertexBuffer[i] == buffer) {
-                    val range = written.floorEntry(list.offset[i].toInt())
-                    val bytes: Long = if (range == null) -1L else range.key.toLong() + range.value - list.offset[i]
-                    if (!copyOut(list, i, true, bytes)) list.elements[i] = 0
+                // the positions and whichever of the colour, texture-coordinate and normal arrays are in
+                // this buffer (634HD reflections draw them), from the lowest to the end of the last
+                // write that holds one: all moved together, their offsets kept relative
+                var from: Long = -1L
+                var end: Long = -1L
+                for (part in 0 until 4) {
+                    val offset: Long = partOffset(list, i, buffer, part)
+                    if (offset < 0L) continue
+                    val range = written.floorEntry(offset.toInt()) ?: continue
+                    val rangeEnd: Long = range.key.toLong() + range.value
+                    if (from < 0L || offset < from) from = offset
+                    if (rangeEnd > end) end = rangeEnd
+                }
+                if (from >= 0L) {
+                    if (!copyOut(list, i, buffer, from, end - from)) list.elements[i] = 0
                 }
                 if (list.elementBuffer[i] == buffer) {
                     val bytes: Long = list.elements[i].toLong() * (if (list.elementType[i] == GL33C.GL_UNSIGNED_BYTE) 1L else if (list.elementType[i] == GL33C.GL_UNSIGNED_SHORT) 2L else 4L)
-                    if (!copyOut(list, i, false, bytes)) list.elements[i] = 0
+                    if (!copyOutIndices(list, i, bytes)) list.elements[i] = 0
                 }
             }
         }
     }
 
-    /** Copies caster [i]'s vertices (or indices) from the buffer bound to COPY_READ into the list's copy buffer. */
-    private fun copyOut(list: Casters, i: Int, vertices: Boolean, bytes: Long): Boolean {
-        if (bytes <= 0L || bytes > MAX_COPY) return false
+    /** Caster [i]'s offset of [part] (0 the positions, 1 to 3 the attributes) when it is in [buffer], else -1. */
+    private fun partOffset(list: Casters, i: Int, buffer: Int, part: Int): Long {
+        if (part == 0) return if (list.vertexBuffer[i] == buffer) list.offset[i] else -1L
+        val at: Int = i * 3 + part - 1
+        return if (list.attrBuffer[at] == buffer) list.attrOffset[at] else -1L
+    }
+
+    /** Room for [bytes] in the list's copy buffer (bound to COPY_WRITE): its offset, -1 for none. */
+    private fun copyRoom(list: Casters, bytes: Long): Long {
+        if (bytes <= 0L || bytes > MAX_COPY) return -1L
         if (list.copyBuffer == 0) {
             list.copyBuffer = GL33C.glGenBuffers()
             GL33C.glBindBuffer(GL33C.GL_COPY_WRITE_BUFFER, list.copyBuffer)
             GL33C.glBufferData(GL33C.GL_COPY_WRITE_BUFFER, COPY_CAPACITY, GL33C.GL_STREAM_COPY)
         }
         val at: Long = (list.copyUsed + 255L) and 255L.inv()
-        if (at + bytes > COPY_CAPACITY) return false
+        if (at + bytes > COPY_CAPACITY) return -1L
         GL33C.glBindBuffer(GL33C.GL_COPY_WRITE_BUFFER, list.copyBuffer)
-        val from: Long = if (vertices) list.offset[i] else list.elementOffset[i]
+        return at
+    }
+
+    /**
+     * Copies [bytes] from [from] of [buffer] (bound to COPY_READ) into the list's copy buffer and moves
+     * caster [i]'s positions and attributes that were in that buffer onto the copy.
+     */
+    private fun copyOut(list: Casters, i: Int, buffer: Int, from: Long, bytes: Long): Boolean {
+        val at: Long = copyRoom(list, bytes)
+        if (at < 0L) return false
         GL33C.glCopyBufferSubData(GL33C.GL_COPY_READ_BUFFER, GL33C.GL_COPY_WRITE_BUFFER, from, at, bytes)
         list.copyUsed = at + bytes
-        if (vertices) {
+        if (list.vertexBuffer[i] == buffer) {
             list.vertexBuffer[i] = list.copyBuffer
-            list.offset[i] = at
+            list.offset[i] = at + (list.offset[i] - from)
             list.vertexVersion[i] = 0
-        } else {
-            list.elementBuffer[i] = list.copyBuffer
-            list.elementOffset[i] = at
-            list.elementVersion[i] = 0
         }
+        for (k in 0 until 3) {
+            val at3: Int = i * 3 + k
+            if (list.attrBuffer[at3] == buffer) {
+                list.attrBuffer[at3] = list.copyBuffer
+                list.attrOffset[at3] = at + (list.attrOffset[at3] - from)
+                list.attrVersion[at3] = 0
+            }
+        }
+        return true
+    }
+
+    /** Copies caster [i]'s indices from the buffer bound to COPY_READ into the list's copy buffer. */
+    private fun copyOutIndices(list: Casters, i: Int, bytes: Long): Boolean {
+        val at: Long = copyRoom(list, bytes)
+        if (at < 0L) return false
+        GL33C.glCopyBufferSubData(GL33C.GL_COPY_READ_BUFFER, GL33C.GL_COPY_WRITE_BUFFER, list.elementOffset[i], at, bytes)
+        list.copyUsed = at + bytes
+        list.elementBuffer[i] = list.copyBuffer
+        list.elementOffset[i] = at
+        list.elementVersion[i] = 0
         return true
     }
 
@@ -863,7 +914,6 @@ class HdShadows {
         if (list.count >= MAX_CASTERS || vertexBuffer == 0 || elementBuffer == 0) return
         val i: Int = list.count++
         recordAttributes(list, i, vertexBuffer, offset, state)
-        recordAttributes(list, i, vertexBuffer, offset, state)
         list.vertexBuffer[i] = vertexBuffer
         list.size[i] = size
         list.type[i] = type
@@ -896,12 +946,11 @@ class HdShadows {
 
     /** The draw's colour (0), texture coordinate (1) and normal (2) attributes, for the reflection. */
     private fun recordAttributes(list: Casters, i: Int, vertexBuffer: Int, offset: Long, state: GlState?) {
-        val attribs: IntArray = intArrayOf(ATTRIB_COLOR, ATTRIB_TEXCOORD0, ATTRIB_NORMAL)
         for (k in 0 until 3) {
             val at: Int = i * 3 + k
             list.attrBuffer[at] = 0
             if (state == null) continue
-            val p: ClientArrayPointer = state.clientArrays[attribs[k]]
+            val p: ClientArrayPointer = state.clientArrays[RECORDED_ATTRIBS[k]]
             val source = p.sourceBuffer
             if (!p.enabled || source == null) continue
             list.attrBuffer[at] = source.id
@@ -927,6 +976,8 @@ class HdShadows {
     fun drawReflected(program: WebGLProgram, worldToClip: FloatArray, view: FloatArray, textureUnit: Int, which: Int = 0) {
         if (vao == 0) ensurePrograms()
         GL33C.glBindVertexArray(vao)
+        // the shadow pass enables attribute 0 on this VAO, but may not have run (shadows and AO off)
+        GL33C.glEnableVertexAttribArray(0)
         val uMatrix: Int = GL33C.glGetUniformLocation(program.id, "uMatrix")
         val uModelView: Int = GL33C.glGetUniformLocation(program.id, "uModelView")
         val uModelWorld: Int = GL33C.glGetUniformLocation(program.id, "uModelWorld")
@@ -942,7 +993,7 @@ class HdShadows {
         var skippedRetained: Int = 0
         var skippedIndices: Int = 0
         var noColour: Int = 0
-        for (list in arrayOf(casters, previous)) {
+        for (list in reflectedLists) {
             if (list.count == 0) continue
             if ((which == 1 && list !== casters) || (which == 2 && list !== previous)) continue
             if (list.indices.position() > 0 && list.indexBuffer == 0) { skippedIndices += list.count; continue }
@@ -954,7 +1005,6 @@ class HdShadows {
                 if (System.getProperty("client.test.hdDebug") != null && (reflectDebugFrame % 60) == 0 && list.atPlayer[i]) {
                     println("HDDEBUG reflected player caster: list " + (if (list === casters) "now" else "late") + " at " + list.modelView[i * 16 + 12] + "," + list.modelView[i * 16 + 13] + "," + list.modelView[i * 16 + 14] + " elements " + list.elements[i] + " texture " + list.texture[i] + " lit " + list.lit[i] + " y-scale " + list.modelView[i * 16 + 5])
                 }
-                if (false && stale(list.vertexBuffer[i], list.vertexVersion[i]) || (list.elementBuffer[i] > 0 && stale(list.elementBuffer[i], list.elementVersion[i]))) continue
                 if (list.elementBuffer[i] == -1 && list.indexBuffer == 0) continue
                 for (k in 0 until 16) matrix[k] = list.modelView[i * 16 + k]
                 matrixBuffer.clear()
@@ -968,12 +1018,13 @@ class HdShadows {
                 GL33C.glUniformMatrix4fv(uModelWorld, false, matrixBuffer)
                 GL33C.glBindBuffer(GL33C.GL_ARRAY_BUFFER, list.vertexBuffer[i])
                 GL33C.glVertexAttribPointer(0, list.size[i], list.type[i], false, list.stride[i], list.offset[i])
-                val have: BooleanArray = BooleanArray(3)
+                val have: BooleanArray = this.have
                 for (k in 0 until 3) {
                     val at: Int = i * 3 + k
                     have[k] = list.attrBuffer[at] != 0 && !stale(list.attrBuffer[at], list.attrVersion[at])
                     if (!have[k]) {
                         GL33C.glDisableVertexAttribArray(1 + k)
+                        // past the emulator's cache of these constants: it is told to forget them below
                         if (k == 0) GL33C.glVertexAttrib4f(1, 1.0f, 1.0f, 1.0f, 1.0f)
                         if (k == 2) GL33C.glVertexAttrib3f(3, 0.0f, -1.0f, 0.0f)
                     } else {
@@ -992,6 +1043,8 @@ class HdShadows {
             }
         }
         for (k in 1 until 4) GL33C.glDisableVertexAttribArray(k)
+        HdGl.state.glAttribConstant[1][0] = Float.NaN
+        HdGl.state.glAttribConstant[3][0] = Float.NaN
         GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, 0)
         if (System.getProperty("client.test.hdDebug") != null && (reflectDebugFrame++ % 60) == 0) {
             println("HDDEBUG reflection dynamic: now " + casters.count + " late " + previous.count + " drawn " + drawn + " (player " + atPlayerDrawn + ") stale " + skippedStale + " retained " + skippedRetained + " no-indices " + skippedIndices + " without colour " + noColour)
