@@ -1,3 +1,6 @@
+// The warnings of the original (deobfuscated) code, left as it was: the build treats warnings as errors.
+@file:Suppress("SENSELESS_COMPARISON")
+
 package com.jagex.game.runetek5.sound.jagtheora
 
 import com.jagex.game.runetek5.core.datastruct.key.IterableHashTable

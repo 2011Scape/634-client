@@ -1,7 +1,7 @@
 package lang
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import pageScope
 import kotlinx.coroutines.launch
 
 /**
@@ -25,7 +25,7 @@ actual class Thread actual constructor(private val target: Runnable?) : Runnable
 
     actual fun start() {
         alive = true
-        GlobalScope.launch(Dispatchers.Default) {
+        pageScope.launch(Dispatchers.Default) {
             try {
                 run()
             } finally {

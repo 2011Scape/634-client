@@ -1,3 +1,6 @@
+// The warnings of the original (deobfuscated) code, left as it was: the build treats warnings as errors.
+@file:Suppress("DEPRECATION", "SENSELESS_COMPARISON")
+
 import com.jagex.game.runetek5.DepthBuffer
 import com.jagex.game.runetek5.EnvironmentSampler
 import com.jagex.game.runetek5.graphics.sprite.SpriteType

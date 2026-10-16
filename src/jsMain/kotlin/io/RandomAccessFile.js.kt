@@ -1,6 +1,6 @@
 package io
 
-import kotlinx.coroutines.GlobalScope
+import pageScope
 import kotlinx.coroutines.launch
 import org.khronos.webgl.Int8Array
 import org.khronos.webgl.Uint8Array
@@ -127,7 +127,7 @@ actual open class RandomAccessFile actual constructor(name: String?, mode: Strin
         closed = true
         mapNodeErrors(path) { closeSync(fd) }
         if (!readOnly && MemFs.dirtyPaths.contains(MemFs.normalise(path))) {
-            GlobalScope.launch { CachePersistence.flushPath(path) }
+            pageScope.launch { CachePersistence.flushPath(path) }
         }
     }
 

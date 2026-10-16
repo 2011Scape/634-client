@@ -1,7 +1,7 @@
 package io
 
 import kotlinx.browser.window
-import kotlinx.coroutines.GlobalScope
+import pageScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.khronos.webgl.ArrayBuffer
@@ -65,7 +65,7 @@ object CachePersistence {
     }
 
     fun startAutoFlush(intervalMs: Int = 5000) {
-        GlobalScope.launch {
+        pageScope.launch {
             while (true) {
                 delay(intervalMs.toLong())
                 flushDirty()

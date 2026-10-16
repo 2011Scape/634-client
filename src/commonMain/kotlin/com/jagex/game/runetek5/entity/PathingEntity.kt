@@ -1,3 +1,6 @@
+// The warnings of the original (deobfuscated) code, left as it was: the build treats warnings as errors.
+@file:Suppress("SENSELESS_COMPARISON")
+
 package com.jagex.game.runetek5.entity
 
 import com.jagex.game.runetek5.graphics.hint.HintDetails

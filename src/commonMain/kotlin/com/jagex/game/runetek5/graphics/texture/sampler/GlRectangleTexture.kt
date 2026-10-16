@@ -1,3 +1,6 @@
+// The warnings of the original (deobfuscated) code, left as it was: the build treats warnings as errors.
+@file:Suppress("DIFFERENT_NAMES_FOR_THE_SAME_PARAMETER_IN_SUPERTYPES")
+
 package com.jagex.game.runetek5.graphics.texture.sampler
 
 import com.jagex.game.runetek5.DataType

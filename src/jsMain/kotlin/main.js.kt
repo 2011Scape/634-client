@@ -2,7 +2,7 @@ import com.jagex.game.runetek5.client.GameShell
 import io.CachePersistence
 import kotlinx.browser.document
 import kotlinx.browser.window
-import kotlinx.coroutines.GlobalScope
+import pageScope
 import kotlinx.coroutines.await
 import kotlinx.coroutines.launch
 
@@ -32,7 +32,7 @@ fun main() {
     window.addEventListener("pagehide", { net.closeAllSockets() })
     holdPageAwake()
     window.addEventListener("pageshow", { event -> if (event.asDynamic().persisted == true) window.location.reload() })
-    GlobalScope.launch {
+    pageScope.launch {
         CachePersistence.hydrate()
         fetchPageResources()
         if ("smoke" == lang.getProperty("client.test")) {

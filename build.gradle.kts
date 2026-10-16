@@ -41,7 +41,9 @@ kotlin {
          * The deobfuscated classes keep the 2010 jar's parameter names where they override a supertype's
          * (2,856 warnings that hide the rest); the remaining warnings are the ones worth reading.
          */
-        freeCompilerArgs.add("-Xsuppress-warning=PARAMETER_NAME_CHANGED_ON_OVERRIDE")
+        freeCompilerArgs.add("-Xwarning-level=PARAMETER_NAME_CHANGED_ON_OVERRIDE:disabled")
+        // Every other warning fails the build; the original code's are suppressed per file with the reason
+        allWarningsAsErrors.set(true)
     }
     sourceSets {
         jvmMain.dependencies {

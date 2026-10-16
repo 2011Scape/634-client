@@ -1,3 +1,6 @@
+// The warnings of the original (deobfuscated) code, left as it was: the build treats warnings as errors.
+@file:Suppress("UNCHECKED_CAST")
+
 import com.jagex.game.runetek5.cache.node.ChangeLocationRequest
 import com.jagex.game.runetek5.cache.node.Node
 import com.jagex.game.runetek5.core.constants.MainLogicStep

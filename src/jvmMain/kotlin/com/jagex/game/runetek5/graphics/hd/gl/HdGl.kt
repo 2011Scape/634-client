@@ -6,6 +6,9 @@
  * OpenGL.js.kt); what only the browser needs (interface scale, canvas alpha, typed arrays) is gone, and
  * the formats a core context lacks (luminance, alpha, intensity) become R8/RG8 with a swizzle.
  */
+// The warnings of the original (deobfuscated) code, left as it was: the build treats warnings as errors.
+@file:Suppress("SENSELESS_COMPARISON")
+
 package com.jagex.game.runetek5.graphics.hd.gl
 
 import jaggl.GlScratch
