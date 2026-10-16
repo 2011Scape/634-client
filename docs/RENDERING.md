@@ -189,6 +189,8 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
   the client builds 136 instead and under 320 MB only the server's scene (`ClientFeatures.sceneMapSize`;
   168 and 136 both went out of memory at 256 MB).
 - **Checks:**
+  - the build gates: warnings as errors on every target, ktlint and detekt against their baselines
+    (`./gradlew check`, in `build` and CI; CLAUDE.md);
   - unit tests in `src/jvmTest` (`./gradlew jvmTest`, part of `build` and so of CI): the logic that
     needs no running client, `ClientFeatures.sceneMapSize` so far;
   - the scene harness against toolkit 1's references (`-Pclient.test.toolkit=6
