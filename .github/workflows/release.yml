@@ -1,13 +1,18 @@
 name: Release
 
+# Two release channels:
+#   Stable       a tag vX.Y.Z publishes a release of that name; GitHub's "latest" is the newest of them.
+#   Development  every push to main rebuilds the one pre-release tagged "dev" (the tag moved to the
+#                commit, the release made again with the new files), versioned dev-<yyyymmdd>-<sha>.
+# A pull request that touches this file is a dry run: it builds and checks a development build and
+# publishes nothing. (Path filters do not apply to tag pushes.)
 on:
   push:
     tags:
       - "v*"
-    # A dry run when the workflow itself changes on a branch: builds and checks, publishes nothing.
-    # (Path filters do not apply to tag pushes.)
     branches:
-      - "**"
+      - main
+  pull_request:
     paths:
       - ".github/workflows/release.yml"
 
@@ -16,15 +21,40 @@ on:
 permissions:
   contents: read
 
+# one development publish at a time, in order: two pushes to main must not race over the dev tag
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
-    env:
-      VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'dry-run' }}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      channel: ${{ steps.version.outputs.channel }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # the whole history and the tags: the development notes list the commits since the last stable tag
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Name the build
+        id: version
+        env:
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [[ "$REF" == refs/tags/v* ]]; then
+            echo "channel=stable" >> "$GITHUB_OUTPUT"
+            echo "version=${REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "channel=development" >> "$GITHUB_OUTPUT"
+            echo "version=dev-$(date -u +%Y%m%d)-${SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+          cat "$GITHUB_OUTPUT"
 
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
@@ -37,7 +67,9 @@ jobs:
 
       # check runs checkClasses on the release jar and compiles commonMain on its own before publishing
       - name: Build and check the release jars
-        run: ./gradlew check compileCommonMainKotlinMetadata release -Pversion="${VERSION#v}" --console=plain
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: ./gradlew check compileCommonMainKotlinMetadata release -Pversion="$VERSION" --console=plain
 
       # on a dry run too, so the run shows what a release would publish
       - name: Write checksums
@@ -47,6 +79,29 @@ jobs:
           ls -l
           cat SHA256SUMS
 
+      # the development build's notes: where it comes from and the merges since the last stable release
+      # (a stable release gets GitHub's generated notes instead)
+      - name: Write the development notes
+        if: steps.version.outputs.channel == 'development'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          last=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          {
+            echo "Development build \`$VERSION\` from \`main\` at ${SHA::7}, built $(date -u +'%Y-%m-%d %H:%M UTC')."
+            echo
+            echo "This pre-release is replaced by every push to main. The [latest stable release](https://github.com/$REPOSITORY/releases/latest) is the one to keep."
+            echo
+            if [ -n "$last" ]; then
+              echo "### Since $last"
+              echo
+              git log --first-parent --format='- %s (%h)' "$last..HEAD"
+            fi
+          } > build/release/NOTES.md
+          cat build/release/NOTES.md
+
       - name: Keep the release files for the publish job
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -55,14 +110,20 @@ jobs:
             build/release/*.jar
             build/release/*.zip
             build/release/SHA256SUMS
+            build/release/NOTES.md
           if-no-files-found: error
 
   publish:
     needs: release
-    if: startsWith(github.ref, 'refs/tags/v')
+    # a stable tag, or a push to main; never a pull request's dry run
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      VERSION: ${{ needs.release.outputs.version }}
+      CHANNEL: ${{ needs.release.outputs.channel }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
@@ -73,9 +134,20 @@ jobs:
         working-directory: release
         run: sha256sum -c SHA256SUMS
 
-      - name: Publish the release
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Publish the stable release
+        if: env.CHANNEL == 'stable'
         run: |
           gh release create "$GITHUB_REF_NAME" release/*.jar release/*.zip release/SHA256SUMS \
             --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
+
+      # the dev tag is moved to this commit, the old pre-release removed (its files carry the old name)
+      # and a new one made from it: the page https://github.com/<repo>/releases/tag/dev stays the same
+      - name: Publish the development build
+        if: env.CHANNEL == 'development'
+        run: |
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/dev" -f sha="$GITHUB_SHA" -F force=true \
+            || gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/dev" -f sha="$GITHUB_SHA"
+          gh release delete dev --repo "$GITHUB_REPOSITORY" --yes || true
+          gh release create dev release/*.jar release/*.zip release/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --prerelease --title "Development build $VERSION" \
+            --notes-file release/NOTES.md
