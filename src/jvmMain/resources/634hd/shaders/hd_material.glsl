@@ -432,11 +432,16 @@ vec3 hdWaterNormal(vec2 xz, int type, out vec2 flow) {
 // water colour (light, mid and dark: the colour at 0.8, 0.45 and 0.05, by the fresnel), with the scene
 // mirrored in the water (HdReflections, the sky and the trees) mixed over it where it was drawn, bent
 // by the normal. (117HD's own sky sampled in the reflected direction gave a pale water here: the
-// gradient's sky is the saturated blue of its tint.)
-vec3 hdWaterReflection(vec3 viewDir, vec3 n, float finalFresnel, vec2 fragCoord) {
+// gradient's sky is the saturated blue of its tint.) Not for a water [model]: the scene is mirrored
+// about the ground's water plane, and a pond at its own height got the trees' reflection displaced
+// over it (the swamp's willow, a lit patch at night).
+// The gradient is the sky's colour by day; it takes the time of day's and the area's change in light
+// (hdUnlitLight, as the game's water does), so a pond does not glow at night.
+vec3 hdWaterReflection(vec3 viewDir, vec3 n, float finalFresnel, vec2 fragCoord, bool model) {
     vec3 tint = hdWaterTint.rgb / max(max(max(hdWaterTint.r, hdWaterTint.g), hdWaterTint.b), 0.001);
     vec3 own = finalFresnel < 0.5 ? mix(tint * 0.05, tint * 0.45, finalFresnel * 2.0) : mix(tint * 0.45, tint * 0.8, (finalFresnel - 0.5) * 2.0);
-    if (hdOn(HD_REFLECTIONS) && uHdReflection.z > 0.0) {
+    if (hdOn(HD_ENV_LIGHT)) own *= hdUnlitLight(hdAmbientColour.rgb, hdSunColour.rgb);
+    if (!model && hdOn(HD_REFLECTIONS) && uHdReflection.z > 0.0) {
         vec2 uv = clamp((fragCoord - uHdReflection.xy) / uHdReflection.zw + n.xz * HD_WATER_REFLECTION_BEND, vec2(0.001), vec2(0.999));
         vec4 mirrored = texture(uHdReflectionMap, uv);
         return mix(own, mirrored.rgb * finalFresnel, mirrored.a * HD_WATER_MIRROR_SHARE);
@@ -474,7 +479,8 @@ vec4 hdWaterSurface(int slot, vec3 viewPos, float vertexDepth, vec2 fragCoord) {
     vec3 skyLight = max(-n.y, 0.0) * hdFogColour.rgb * 0.5;
     float fresnel = 1.0 - clamp(dot(viewDir, n), 0.0, 1.0);
     float finalFresnel = clamp(mix(0.4, 1.0, fresnel * 1.2), 0.0, 1.0);
-    vec3 reflection = hdWaterReflection(viewDir, n, finalFresnel, fragCoord);
+    bool model = vertexDepth < 0.0;
+    vec3 reflection = hdWaterReflection(viewDir, n, finalFresnel, fragCoord, model);
     if (hdDebug.x == 9) {
         // the water probe overlay: by screen third, the type's surface colour (and its opacity as alpha),
         // what the surface reflects, the ripples' normal; a type table that never arrived shows black
@@ -494,7 +500,6 @@ vec4 hdWaterSurface(int slot, vec3 viewPos, float vertexDepth, vec2 fragCoord) {
     // 117HD darkens its plain water (the types with its WATER's fresnel amount) by a quarter
     if (hdWaterSpec[type].w > 0.84 && hdWaterSpec[type].w < 0.86) base *= 0.75;
     // foam at the shore: where the vertex depth is small (a model has no shore)
-    bool model = vertexDepth < 0.0;
     float depth = max(vertexDepth, 0.0);
     float shore = model ? 0.0 : 1.0 - clamp(depth / HD_WATER_FOAM_DEPTH, 0.0, 1.0);
     vec2 foamUv = fract((world.xz + hdSceneSize.zw) / 512.0) + flow * 0.025;
@@ -508,11 +513,13 @@ vec4 hdWaterSurface(int slot, vec3 viewPos, float vertexDepth, vec2 fragCoord) {
     float alpha = max(hdWaterSurfaceColour[type].w, max(foamAmount, max(finalFresnel, length(specComposite / 3.0))));
     // deeper water goes opaque (634HD's own: 117HD leaves it to the darkened bed)
     alpha = max(alpha, HD_WATER_DEPTH_OPACITY * smoothstep(0.3, 1.0, clamp(depth / HD_WATER_DEPTH_RANGE, 0.0, 1.0)));
+    // the depth colour laid under a flat type or a model takes the time of day's light too
+    vec3 under = hdWaterDepthColour[type].rgb * (hdOn(HD_ENV_LIGHT) ? hdUnlitLight(hdAmbientColour.rgb, hdSunColour.rgb) : vec3(1.0));
     if (hdWaterDepthColour[type].w > 0.5) {
-        base = mix(hdWaterDepthColour[type].rgb, base, alpha);
+        base = mix(under, base, alpha);
         alpha = 1.0;
     } else if (model) {
-        base = mix(hdWaterDepthColour[type].rgb, base, alpha);
+        base = mix(under, base, alpha);
         alpha = max(alpha, HD_WATER_MODEL_OPACITY);
     }
     return vec4(hdColour(vec4(base, 1.0)).rgb, alpha);
