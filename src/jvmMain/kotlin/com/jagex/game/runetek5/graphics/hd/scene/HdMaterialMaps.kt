@@ -15,6 +15,11 @@
  * layer, specular and emissive strength, parallax depth, and which maps it has. The toolkit passes a
  * draw's slot (GlState.hdMapSlot for emulated draws, the retained scene's material table otherwise).
  *
+ * A second block (HdMaterialFlow, binding 2; its own buffer, as the first sits just under GL's least
+ * block size) carries the flowing textures (117HD's fire cape and lava): the flow map's layer in a
+ * fourth array (unit 31, sRGB at FLOW_SIZE, the maps of the shared materials/flow/ folder), its
+ * strength and the inverse of its slide times, the extra scroll, and whether the texture is unlit.
+ *
  * The maps are read from the jar (634hd/materials/<texture>/), or next to the data folder when
  * HdContent reads one (hot reload: they are loaded again when materials.json changes).
  */
@@ -35,16 +40,27 @@ class HdMaterialMaps {
         const val UNIT_NORMAL: Int = 19
         const val UNIT_ORM: Int = 20
         const val UNIT_EMISSIVE: Int = 21
+        const val BINDING_FLOW: Int = 2
+        const val UNIT_FLOW: Int = 31
         // 448 sets: the two vec4 arrays of the HdMaterialMaps block stay under 16 KB, GL's least limit
         const val MAX_MAPS: Int = 448
         const val SIZE: Int = 256
+        /** The flow maps' size (117HD's lava flow map is 128 square). */
+        const val FLOW_SIZE: Int = 128
         private const val TABLE_BYTES: Int = MAX_MAPS * 16 * 2
+        private const val FLOW_FOLDER: String = "flow"
         private const val COMPRESSED_RGBA_BPTC: Int = 0x8E8C
         private val BC7_WEIGHTS: IntArray = intArrayOf(0, 4, 9, 13, 17, 21, 26, 30, 34, 38, 43, 47, 51, 55, 60, 64)
     }
 
     private val arrays: IntArray = IntArray(3)
     private var buffer: Int = 0
+    private var flowArray: Int = 0
+    private var flowBuffer: Int = 0
+
+    /** Flow maps loaded (layers of the flow array). */
+    var flowCount: Int = 0
+        private set
     private var loadedVersion: Int = -1
 
     /** Whether the loaded maps are the fresh textures' (HdSettings.textureReplacements). */
@@ -75,11 +91,15 @@ class HdMaterialMaps {
         }
         if (buffer == 0) return
         GL33C.glBindBufferBase(GL33C.GL_UNIFORM_BUFFER, BINDING, buffer)
+        GL33C.glBindBufferBase(GL33C.GL_UNIFORM_BUFFER, BINDING_FLOW, flowBuffer)
         for (i in 0 until 3) {
             GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT_NORMAL + i)
             GL33C.glBindTexture(GL33C.GL_TEXTURE_2D_ARRAY, arrays[i])
             GL33C.glBindSampler(UNIT_NORMAL + i, 0)
         }
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT_FLOW)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_2D_ARRAY, flowArray)
+        GL33C.glBindSampler(UNIT_FLOW, 0)
         GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + HdGl.state.activeTextureUnit)
     }
 
@@ -179,7 +199,15 @@ class HdMaterialMaps {
         val layerBytes: Int = SIZE * SIZE * 4
         val pixels: ByteBuffer = ByteBuffer.allocateDirect(layerBytes).order(ByteOrder.nativeOrder())
         val table: ByteBuffer = ByteBuffer.allocateDirect(TABLE_BYTES).order(ByteOrder.nativeOrder())
+        val flowTable: ByteBuffer = ByteBuffer.allocateDirect(TABLE_BYTES).order(ByteOrder.nativeOrder())
         GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT_NORMAL)
+        // the flow maps (materials/flow/, shared): a layer per distinct file, sRGB as 117HD stores them
+        val flowNames: ArrayList<String> = ArrayList()
+        for (m in materials) {
+            val name: String = m.flowMap ?: continue
+            if (!flowNames.contains(name)) flowNames.add(name)
+        }
+        loadFlow(content, flowNames)
         // flat normal, no occlusion with mid roughness and no emission, black
         val defaults: IntArray = intArrayOf(0x8080FF, 0xFFB300, 0x000000)
         val alphaDefaults: IntArray = intArrayOf(0xFF, 0xFF, 0xFF)
@@ -268,6 +296,14 @@ class HdMaterialMaps {
             table.putFloat(slot * 16, slot.toFloat()).putFloat(slot * 16 + 4, m.specular).putFloat(slot * 16 + 8, m.emissiveStrength).putFloat(slot * 16 + 12, if (m.height != null) m.parallax else 0.0f)
             val b: Int = MAX_MAPS * 16 + slot * 16
             table.putFloat(b, if (has[0]) 1.0f else 0.0f).putFloat(b + 4, if (has[1]) 1.0f else 0.0f).putFloat(b + 8, if (has[2]) 1.0f else 0.0f).putFloat(b + 12, maxOf(0, emissiveLayer).toFloat())
+            // hdMapC: the flow map's layer plus one (0 without), its strength, the inverse slide times
+            // (fract(t / duration) in the shader; 0 stands still, as 117HD's animationFrame); hdMapD: the
+            // extra scroll, unlit
+            val flowLayer: Int = if (m.flowMap == null) -1 else flowNames.indexOf(m.flowMap!!)
+            flowTable.putFloat(slot * 16, (flowLayer + 1).toFloat()).putFloat(slot * 16 + 4, m.flowStrength)
+                .putFloat(slot * 16 + 8, if (m.flowDurationU > 0.0f) 1.0f / m.flowDurationU else 0.0f)
+                .putFloat(slot * 16 + 12, if (m.flowDurationV > 0.0f) 1.0f / m.flowDurationV else 0.0f)
+            flowTable.putFloat(b, m.scrollU).putFloat(b + 4, m.scrollV).putFloat(b + 8, if (m.unlit) 1.0f else 0.0f).putFloat(b + 12, 0.0f)
         }
         if (!uncompressed && GL33C.glGetError() != GL33C.GL_NO_ERROR) {
             // the driver would not compress: load again uncompressed
@@ -295,38 +331,80 @@ class HdMaterialMaps {
         GL33C.glBindBuffer(GL33C.GL_UNIFORM_BUFFER, buffer)
         table.clear()
         GL33C.glBufferData(GL33C.GL_UNIFORM_BUFFER, table, GL33C.GL_STATIC_DRAW)
+        flowBuffer = GL33C.glGenBuffers()
+        GL33C.glBindBuffer(GL33C.GL_UNIFORM_BUFFER, flowBuffer)
+        flowTable.clear()
+        GL33C.glBufferData(GL33C.GL_UNIFORM_BUFFER, flowTable, GL33C.GL_STATIC_DRAW)
         GL33C.glBindBuffer(GL33C.GL_UNIFORM_BUFFER, 0)
-        println("634HD: " + count + " material map sets, " + (bytes / 1048576L) + " MB" + (if (compressed) " (BC5/BC7, " + precompressedLayers + " layers precompressed)" else " (uncompressed)"))
+        println("634HD: " + count + " material map sets, " + (bytes / 1048576L) + " MB" + (if (compressed) " (BC5/BC7, " + precompressedLayers + " layers precompressed)" else " (uncompressed)") + ", " + flowCount + " flow maps")
+    }
+
+    /**
+     * The flow array: a layer per name in [names] (materials/flow/), sRGB (read linearised, as 117HD
+     * reads its), FLOW_SIZE square with mipmaps, repeating. A map that cannot be read leaves its layer
+     * black (no flow). Always one layer at least, so the sampler is complete.
+     */
+    private fun loadFlow(content: HdContent, names: ArrayList<String>) {
+        flowCount = names.size
+        flowArray = GL33C.glGenTextures()
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_2D_ARRAY, flowArray)
+        val levels: Int = 32 - Integer.numberOfLeadingZeros(FLOW_SIZE)
+        var size: Int = FLOW_SIZE
+        for (level in 0 until levels) {
+            GL33C.glTexImage3D(GL33C.GL_TEXTURE_2D_ARRAY, level, GL33C.GL_SRGB8_ALPHA8, size, size, maxOf(1, flowCount), 0, GL33C.GL_RGBA, GL33C.GL_UNSIGNED_BYTE, null as ByteBuffer?)
+            size = maxOf(1, size shr 1)
+        }
+        GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D_ARRAY, GL33C.GL_TEXTURE_MAX_LEVEL, levels - 1)
+        GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D_ARRAY, GL33C.GL_TEXTURE_MIN_FILTER, GL33C.GL_LINEAR_MIPMAP_LINEAR)
+        GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D_ARRAY, GL33C.GL_TEXTURE_MAG_FILTER, GL33C.GL_LINEAR)
+        GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D_ARRAY, GL33C.GL_TEXTURE_WRAP_S, GL33C.GL_REPEAT)
+        GL33C.glTexParameteri(GL33C.GL_TEXTURE_2D_ARRAY, GL33C.GL_TEXTURE_WRAP_T, GL33C.GL_REPEAT)
+        val pixels: ByteBuffer = ByteBuffer.allocateDirect(FLOW_SIZE * FLOW_SIZE * 4).order(ByteOrder.nativeOrder())
+        for ((layer, name) in names.withIndex()) {
+            pixels.clear()
+            if (!read(content, FLOW_FOLDER, name, pixels, false, FLOW_SIZE)) {
+                for (i in 0 until FLOW_SIZE * FLOW_SIZE) pixels.putInt(i * 4, 0)
+                pixels.clear()
+            }
+            pixels.position(0)
+            GL33C.glTexSubImage3D(GL33C.GL_TEXTURE_2D_ARRAY, 0, 0, 0, layer, FLOW_SIZE, FLOW_SIZE, 1, GL33C.GL_RGBA, GL33C.GL_UNSIGNED_BYTE, pixels)
+        }
+        if (flowCount > 0) GL33C.glGenerateMipmap(GL33C.GL_TEXTURE_2D_ARRAY)
+        bytes += FLOW_SIZE.toLong() * FLOW_SIZE * maxOf(1, flowCount) * 4L * 4L / 3L
     }
 
     /**
      * One map's pixels at SIZE x SIZE (scaled if it is not), RGBA, into [out]; false if it is missing or
      * unreadable (a missing one is reported unless [missingOk]: the jar carries no PNG).
      */
-    private fun read(content: HdContent, texture: Int, name: String, out: ByteBuffer, missingOk: Boolean = false): Boolean {
+    private fun read(content: HdContent, texture: Int, name: String, out: ByteBuffer, missingOk: Boolean = false): Boolean =
+        read(content, texture.toString(), name, out, missingOk, SIZE)
+
+    /** The same from the folder named [folder] under materials/, at [size] square. */
+    private fun read(content: HdContent, folder: String, name: String, out: ByteBuffer, missingOk: Boolean, size: Int): Boolean {
         try {
-            val folder: File? = content.folder
-            val stream = if (folder != null && File(folder, "../materials/$texture/$name").isFile) {
-                File(folder, "../materials/$texture/$name").inputStream()
+            val dataFolder: File? = content.folder
+            val stream = if (dataFolder != null && File(dataFolder, "../materials/$folder/$name").isFile) {
+                File(dataFolder, "../materials/$folder/$name").inputStream()
             } else {
-                HdMaterialMaps::class.java.getResourceAsStream("/634hd/materials/$texture/$name")
+                HdMaterialMaps::class.java.getResourceAsStream("/634hd/materials/$folder/$name")
             }
             if (stream == null) {
-                if (!missingOk) System.err.println("634HD: materials.json: no materials/$texture/$name")
+                if (!missingOk) System.err.println("634HD: materials.json: no materials/$folder/$name")
                 return false
             }
             var image: java.awt.image.BufferedImage = stream.use { javax.imageio.ImageIO.read(it) } ?: return false
-            if (image.width != SIZE || image.height != SIZE) {
-                val scaled = java.awt.image.BufferedImage(SIZE, SIZE, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+            if (image.width != size || image.height != size) {
+                val scaled = java.awt.image.BufferedImage(size, size, java.awt.image.BufferedImage.TYPE_INT_ARGB)
                 val g = scaled.createGraphics()
                 g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC)
-                g.drawImage(image, 0, 0, SIZE, SIZE, null)
+                g.drawImage(image, 0, 0, size, size, null)
                 g.dispose()
                 image = scaled
             }
             val alpha: Boolean = image.colorModel.hasAlpha()
-            for (y in 0 until SIZE) {
-                for (x in 0 until SIZE) {
+            for (y in 0 until size) {
+                for (x in 0 until size) {
                     val argb: Int = image.getRGB(x, y)
                     out.put((argb shr 16).toByte()).put((argb shr 8).toByte()).put(argb.toByte()).put(if (alpha) (argb ushr 24).toByte() else -1)
                 }
@@ -334,7 +412,7 @@ class HdMaterialMaps {
             out.flip()
             return true
         } catch (ex: java.io.IOException) {
-            System.err.println("634HD: materials/$texture/$name: $ex")
+            System.err.println("634HD: materials/$folder/$name: $ex")
             return false
         }
     }
@@ -431,6 +509,11 @@ class HdMaterialMaps {
         }
         if (buffer != 0) GL33C.glDeleteBuffers(buffer)
         buffer = 0
+        if (flowArray != 0) GL33C.glDeleteTextures(flowArray)
+        flowArray = 0
+        if (flowBuffer != 0) GL33C.glDeleteBuffers(flowBuffer)
+        flowBuffer = 0
+        flowCount = 0
         count = 0
         bytes = 0L
     }

@@ -258,7 +258,7 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
 | `environmentLighting` | the environment's `sun` colour and intensity and `ambient` tint the game's light 0 and ambient light (`hdEnvSun`/`hdEnvAmbient`); `sun.yaw` turns the shadow sun; every field eases between areas, the grading table crossfades | `HdFeatures`, `hdEnvDiffuse`/`hdEnvAmbientLight`, `HdPost.useGrading` |
 | `softParticles` | particles fade into geometry (depth copy) | `scene/HdSoftParticles` |
 | `interfaceScale` (2/3/4) | the window at a whole-number scale, 3D at native resolution | `gl/HdGl.windowScale` |
-| `materials` | Phase 5 normal / ORM / emissive / height maps | `scene/HdMaterialMaps`, `hd_material.glsl` |
+| `materials` | Phase 5 normal / ORM / emissive / height maps; the flowing, unlit materials (117HD's fire cape and lava, below) | `scene/HdMaterialMaps`, `hd_material.glsl` |
 | `lightingModel` (on in High and Ultra) | lit surfaces relit per pixel as a sum of terms: the sun on the material's mapped normal (bent around the smooth normal) with the shadow, a neutral ambient plus a hemisphere (sky light on upward faces, slightly tinted towards the sky; warm bounce on downward ones) scaled by the occlusion map, a Phong highlight sized by the roughness map; the point lights on the mapped normal (the difference from their light on the smooth normal) with their own highlights; emission; applied per channel as the model's light over its own light on the smooth normal in full sun (times 1.08, so the scene keeps its brightness), so where nothing differs the game's colour stays. Replaces the ratio shortcut (`hdApplyMaterial`, clamped 0.45-1.6) and the separate shadow darkening for those surfaces. 117HD's scene_frag.glsl was the reference for the terms; no code is taken from it | `hdLightModel`, `hdModelLight` (`hd_material.glsl`), `scene.frag`, `ff.frag` |
 | `textureReplacements` (on in High and Ultra) | fresh textures: a game texture whose `materials.json` entry names an `albedo` draws at 256x256 with that art (its colour; the alpha is the game's own, made at its own size and scaled with back-projection, so cut-outs, effects and scrolling stay - or, for an albedo with alpha, its pattern at the game mask's mean and spread), with the `fresh/` material maps beside it; toggling remakes every world texture and the retained scene | `content/HdMaterialProvider.fresh`/`replaced`, `HdTextureCache` (the 256 size), `HdMaterials` (a third array, units 28 and 29), `HdMaterialMaps` (`fresh/`) |
 | `particles` | GPU particles: embers over fires and torches, sparks over lava, one instanced draw; each emitter starts at its loc's flame - found once per loc type, shape and rotation in the loc's model (`HdModel.hdFlamePoint`: flame sprites, the game's particle-emitter triangles, faces drawn with the fire texture 110, bright orange faces, or for candles, torches and braziers the model's top), placed with the loc's rotation and wall offset; the light's fixed offset when none is found. The light moves to the flame too, and the embers are sized to it (`particles.vert`): spread across the flame's width, their count, rise, size and wander scaled by its height (a candle's about 60 units: few, small, low; a campfire's about 250: many), ovens capped to a few small sparks, fireplaces' embers kept within the opening | `scene/HdGpuParticles`, `particles.vert` |
@@ -362,6 +362,25 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   models and floors are already textured, so overrides mostly replace (`replace: true`) or fill the
   few untextured faces (match them by `faceColours`). Model overrides map uvs by box projection in
   world space (`uv`, `uvScale` tiles a repeat); tile overrides take `scale` tiles a repeat.
+- **Flowing, unlit materials (the fire cape, lava).** 117HD's method, replicated: a `materials.json`
+  entry with a `flowMap` (a map in the shared `634hd/materials/flow/`; 117HD's own 128x128
+  `lava_flow_map.png`, BSD 2-Clause, the licence beside it) has its uv moved by the map's red and
+  green times `flowStrength`, the map itself sampled at the uv slid once per `flowDuration` seconds
+  along u and v, after an extra `uvScroll` (uv per second) on top of the game's own scroll; `unlit`
+  draws the texture alone - the face colour, the game's lights, the point lights and the fill, the
+  lighting model, shadows and occlusion all passed over (only the emissive map is added, so lava keeps
+  its glow), and the bloom takes what is bright. The fire cape is texture 40 (its 2010 index is
+  117HD's vanilla index too): strength 0.05, durations 12 and 4 s, scroll (0, 0.1) - 117HD's own
+  value, 1/3, is set against OSRS's scroll rate and sign (it nearly cancels it to a crawl); here
+  the game scrolls the cape 1 uv per 6.4 s the other way, so 0.1 leaves the same slow crawl in the
+  game's own direction; lava (110, which the game does not scroll): 0.05, 36 and 22 s, (0, -0.05),
+  with its maps. The table is a second uniform block (`HdMaterialFlow`,
+  binding 2; the first sits just under GL's least block size) and the flow maps a fourth array (unit
+  31, sRGB, read linearised as 117HD reads its, with mipmaps) in `HdMaterialMaps`; `hdFlowUv`,
+  `hdUnlit` and `hdUnlitMaterial` in `hd_material.glsl`, hooked in `ff.frag` (models, the ground) and
+  `scene.frag` (static locs) before the parallax, so the albedo and the maps agree. The scroll and the
+  slide take the fraction of `hdTime.x` (seconds, wrapping hourly), so the uv keeps its precision; 22
+  does not divide 3600, so the lava's v-phase pops once an hour, as the caustics do.
 - **Materials.** `tools/make_material_maps.py` builds map sets from the cache textures (dumped
   with `client.test.findText=textures:`) into `634hd/materials/<texture>/` with a `recipe.txt` each.
   Fine relief on 23 sets came from height maps made with `/generate` (nano-banana-2-lite, the cache

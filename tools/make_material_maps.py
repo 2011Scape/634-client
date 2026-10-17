@@ -177,12 +177,16 @@ def main():
     with open(path) as f:
         old = json.load(f)['materials']
     kept = [m for m in old if m['texture'] not in made]
-    # a fresh texture's albedo (albedo.png beside its set) stays on its entry
+    # a fresh texture's albedo (albedo.png beside its set) and the hand-written flow fields (the
+    # fire cape, lava: 117HD's flowing, unlit materials) stay on its entry
+    carried = ('albedo', 'flowMap', 'flowStrength', 'flowDuration', 'uvScroll', 'unlit')
     for m in old:
-        if m['texture'] in made and 'albedo' in m:
+        if m['texture'] in made:
             for e in entries:
                 if e['texture'] == m['texture']:
-                    e['albedo'] = m['albedo']
+                    for key in carried:
+                        if key in m:
+                            e[key] = m[key]
     entries += kept
     with open(path, 'w') as f:
         json.dump({'materials': entries}, f, indent=2)

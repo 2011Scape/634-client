@@ -19,6 +19,19 @@ uniform sampler2DArray uHdNormalMaps;
 uniform sampler2DArray uHdOrmMaps;
 uniform sampler2DArray uHdEmissiveMaps;
 
+// The flowing textures (117HD's fire cape and lava), a second block: the first sits just under GL's
+// least block size (HdMaterialMaps.kt).
+layout(std140) uniform HdMaterialFlow {
+    // x: the flow map's layer plus one (0: none), y: its strength, z and w: 1 / the seconds the map
+    // takes to slide once along u and v (0: it stands still)
+    vec4 hdMapC[HD_MAX_MAPS];
+    // x and y: extra scroll in uv per second on top of the game's own, z: unlit (1), w: unused
+    vec4 hdMapD[HD_MAX_MAPS];
+};
+
+// texture unit 31 (HdShaders.link): the flow maps, sRGB (read linearised, as 117HD reads its)
+uniform sampler2DArray uHdFlowMaps;
+
 // [rgb] with a highlight [h] added. Highlights are tuned as amounts of the game's (sRGB) colour; with
 // tonemapping (HD_LINEAR) the colour is linear, where the same amount is several times brighter (0.2
 // linear is about 0.48 sRGB) and lit surfaces took a plastic sheen: there it is added in sRGB.
@@ -28,6 +41,35 @@ vec3 hdAddHighlight(vec3 rgb, vec3 h) {
 
 bool hdHasMaps(int slot) {
     return slot >= 0 && hdOn(HD_MATERIALS);
+}
+
+// Whether the material is drawn as its texture alone: no lighting, shadow or occlusion, the face
+// colour ignored (117HD's unlit with overrideBaseColor: its fire cape and lava).
+bool hdUnlit(int slot) {
+    return hdHasMaps(slot) && hdMapD[slot].z > 0.5;
+}
+
+// 117HD's flowing texture: [uv] slid by the material's extra scroll, then moved by the flow map's red
+// and green (0..1, linearised: the offset is one-sided, as in 117HD), the map itself sampled at the uv
+// slid once per its duration along each axis. The scroll and the slide take the fraction of hdTime.x
+// (seconds, wrapping hourly): a repeating texture reads the same, and the uv keeps its precision.
+vec2 hdFlowUv(int slot, vec2 uv) {
+    if (!hdHasMaps(slot)) return uv;
+    uv += fract(hdMapD[slot].xy * hdTime.x);
+    if (hdMapC[slot].x > 0.5) {
+        vec2 flowUv = uv - fract(vec2(hdTime.x) * hdMapC[slot].zw);
+        uv += texture(uHdFlowMaps, vec3(flowUv, hdMapC[slot].x - 1.0)).xy * hdMapC[slot].y;
+    }
+    return uv;
+}
+
+// An unlit material's [color]: only its emission is added (lava keeps its glow; the fire cape has none).
+vec4 hdUnlitMaterial(int slot, vec4 color, vec2 uv) {
+    if (!hdHasMaps(slot) || hdMapB[slot].z < 0.5) return color;
+    float layer = hdMapA[slot].x;
+    float mask = hdMapB[slot].y > 0.5 ? texture(uHdOrmMaps, vec3(uv, layer)).b : 0.0;
+    color.rgb += hdColour(texture(uHdEmissiveMaps, vec3(uv, hdMapB[slot].w))).rgb * mask * hdMapA[slot].z;
+    return color;
 }
 
 // The tangent frame at a fragment: tangent along u, bitangent along v, the face normal (towards the

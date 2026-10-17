@@ -19,10 +19,14 @@
           "orm": { "type": "string", "description": "red: ambient occlusion, green: roughness, blue: emissive mask" },
           "height": { "type": "string" },
           "emissive": { "type": "string" },
-          "uvScroll": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+          "uvScroll": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2, "description": "extra scroll of the texture, in uv per second, on top of the game's own" },
           "specular": { "type": "number", "minimum": 0, "maximum": 4 },
           "emissiveStrength": { "type": "number", "minimum": 0, "maximum": 16 },
-          "parallax": { "type": "number", "minimum": 0, "maximum": 0.2 }
+          "parallax": { "type": "number", "minimum": 0, "maximum": 0.2 },
+          "flowMap": { "type": "string", "description": "a flow map under materials/flow/ (shared): its red and green, sampled at the uv slid by flowDuration, move the uv by flowStrength (lava, the fire cape; 117HD's method)" },
+          "flowStrength": { "type": "number", "minimum": 0, "maximum": 1 },
+          "flowDuration": { "type": "array", "items": { "type": "number", "exclusiveMinimum": 0 }, "minItems": 2, "maxItems": 2, "description": "seconds for the flow map to slide once along u and along v" },
+          "unlit": { "type": "boolean", "description": "drawn as the texture alone: no lighting, shadow or occlusion, the face colour ignored" }
         }
       }
     }

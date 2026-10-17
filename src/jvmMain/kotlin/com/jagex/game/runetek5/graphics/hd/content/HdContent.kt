@@ -78,22 +78,37 @@ class HdContent {
         var orm: String? = null
         var height: String? = null
         var emissive: String? = null
+        /** Extra scroll in uv per second, on top of the game's own. */
         var scrollU: Float = 0.0f
         var scrollV: Float = 0.0f
         var specular: Float = 0.5f
         var emissiveStrength: Float = 1.0f
         var parallax: Float = 0.04f
+        /**
+         * 117HD's flowing texture (its fire cape and lava): a map in the shared materials/flow/ folder,
+         * sampled at the uv slid once per flowDurationU/V seconds, moves the uv by flowStrength times
+         * its red and green.
+         */
+        var flowMap: String? = null
+        var flowStrength: Float = 0.0f
+        var flowDurationU: Float = 0.0f
+        var flowDurationV: Float = 0.0f
+        /** Drawn as the texture alone: no lighting, shadow or occlusion, the face colour ignored. */
+        var unlit: Boolean = false
     }
 
     /**
      * The bytes of [name] in material [texture]'s folder (634hd/materials/<texture>/): from the data
      * folder's sibling when content comes from a folder, else from the jar.
      */
-    fun materialFile(texture: Int, name: String): ByteArray? {
-        val folder: File? = this.folder
-        val file: File? = if (folder != null) File(folder, "../materials/$texture/$name") else null
+    fun materialFile(texture: Int, name: String): ByteArray? = materialFile(texture.toString(), name)
+
+    /** The same for a folder named [folder] under 634hd/materials/ (the shared flow/ folder). */
+    fun materialFile(folder: String, name: String): ByteArray? {
+        val dataFolder: File? = this.folder
+        val file: File? = if (dataFolder != null) File(dataFolder, "../materials/$folder/$name") else null
         if (file != null && file.isFile) return file.readBytes()
-        val stream = HdContent::class.java.getResourceAsStream("/634hd/materials/$texture/$name") ?: return null
+        val stream = HdContent::class.java.getResourceAsStream("/634hd/materials/$folder/$name") ?: return null
         return stream.use { it.readBytes() }
     }
 
@@ -406,6 +421,13 @@ class HdContent {
         m.specular = num(o["specular"], 0.5f)
         m.emissiveStrength = num(o["emissiveStrength"], 1.0f)
         m.parallax = num(o["parallax"], 0.04f)
+        m.flowMap = str(o["flowMap"])
+        m.flowStrength = num(o["flowStrength"], 0.0f)
+        (o["flowDuration"] as? Json.Arr)?.let {
+            m.flowDurationU = (it.items[0] as Json.Num).value.toFloat()
+            m.flowDurationV = (it.items[1] as Json.Num).value.toFloat()
+        }
+        m.unlit = (o["unlit"] as? Json.Bool)?.value ?: false
         return m
     }
 

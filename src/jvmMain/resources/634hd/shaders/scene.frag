@@ -105,16 +105,20 @@ void main() {
     int mapSlot = -1;
     vec2 mapUv = vTexCoord;
     vec4 material = texelFetch(uMaterials, vMaterial * 2);
-    vec4 primary = (vLit != 0 && hdOn(HD_PIXEL_LIGHTING)) ? pixelLit() : vColor;
-    if ((int(material.w) & FLAG_UNLIT) == 0) {
+    vec4 extra = texelFetch(uMaterials, vMaterial * 2 + 1);
+    bool textured = (int(material.w) & FLAG_TEXTURED) != 0;
+    // the texture's 634HD maps (HD_MATERIALS): extra.w is its slot plus one, 0 without
+    if (textured) mapSlot = int(extra.w) - 1;
+    // an unlit material (hd_material.glsl; lava): the texture alone, the colour and every light passed over
+    bool unlit = hdUnlit(mapSlot);
+    vec4 primary = unlit ? vec4(1.0, 1.0, 1.0, vColor.a) : (vLit != 0 && hdOn(HD_PIXEL_LIGHTING)) ? pixelLit() : vColor;
+    if (!unlit && (int(material.w) & FLAG_UNLIT) == 0) {
         primary = hdAddPointLights(primary, vBase, vViewPos, vEyeNormal);
     }
     vec4 color = primary;
-    if ((int(material.w) & FLAG_TEXTURED) != 0) {
-        vec4 extra = texelFetch(uMaterials, vMaterial * 2 + 1);
-        // the texture's 634HD maps (HD_MATERIALS): extra.w is its slot plus one, 0 without
-        mapSlot = int(extra.w) - 1;
-        mapUv = hdParallaxUv(mapSlot, vTexCoord, vViewPos);
+    if (textured) {
+        // the flow (a flowing material) before the parallax, so the albedo and the maps agree
+        mapUv = hdParallaxUv(mapSlot, hdFlowUv(mapSlot, vTexCoord), vViewPos);
         vec4 tex = hdColour(sampleMaterial(material, extra, mapUv));
         int op = int(material.z);
         if (op == 1) {
@@ -144,7 +148,9 @@ void main() {
     } else if (uAlphaTestEnabled && !alphaTestPasses(color.a)) {
         discard;
     }
-    if (hdOn(HD_LIGHTING_MODEL) && (int(material.w) & FLAG_UNLIT) == 0) {
+    if (unlit) {
+        color = hdUnlitMaterial(mapSlot, color, mapUv);
+    } else if (hdOn(HD_LIGHTING_MODEL) && (int(material.w) & FLAG_UNLIT) == 0) {
         color = hdLightModel(mapSlot, color, mapUv, vViewPos, vEyeNormal);
     } else {
         color = hdApplyMaterial(mapSlot, color, mapUv, vViewPos);
@@ -152,7 +158,7 @@ void main() {
     }
     // the retained scene's occlusion is baked into its vertices once the region is baked; the height
     // maps (moving models, the ground) until then
-    hdAppliedOcclusion = (hdOn(HD_AO) && hdAoBake.z > 0.5) ? mix(1.0, vOcclusion, hdAoParams.y) : hdAmbientOcclusion(vViewPos, vEyeNormal);
+    hdAppliedOcclusion = unlit ? 1.0 : (hdOn(HD_AO) && hdAoBake.z > 0.5) ? mix(1.0, vOcclusion, hdAoParams.y) : hdAmbientOcclusion(vViewPos, vEyeNormal);
     color.rgb *= hdAppliedOcclusion;
     float depth = gl_FragCoord.z / gl_FragCoord.w;
     if (uFogEnabled) {

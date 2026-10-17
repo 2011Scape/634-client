@@ -252,6 +252,9 @@ as a zip beside the jar.
 - [SMAA](https://github.com/iryoku/smaa) by Jorge Jimenez, Jose I. Echevarria, Belen Masia, Fernando
   Navarro and Diego Gutierrez, for the SMAA shader and lookup textures (MIT licence, in
   `src/jvmMain/resources/smaa/`).
+- [117HD](https://github.com/117HD/RLHD), for the lava flow map behind the fire cape and the lava
+  (BSD 2-Clause licence, in `src/jvmMain/resources/634hd/materials/flow/`), and as the reference for
+  its flowing, unlit materials.
 
 ## Disclaimer
 

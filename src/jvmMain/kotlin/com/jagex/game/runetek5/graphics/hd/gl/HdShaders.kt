@@ -92,13 +92,23 @@ object HdShaders {
         if (maps != org.lwjgl.opengl.GL33C.GL_INVALID_INDEX) {
             org.lwjgl.opengl.GL33C.glUniformBlockBinding(program.id, maps, com.jagex.game.runetek5.graphics.hd.scene.HdMaterialMaps.BINDING)
         }
-        val mapNames = arrayOf("uHdNormalMaps", "uHdOrmMaps", "uHdEmissiveMaps")
+        val flow = org.lwjgl.opengl.GL33C.glGetUniformBlockIndex(program.id, "HdMaterialFlow")
+        if (flow != org.lwjgl.opengl.GL33C.GL_INVALID_INDEX) {
+            org.lwjgl.opengl.GL33C.glUniformBlockBinding(program.id, flow, com.jagex.game.runetek5.graphics.hd.scene.HdMaterialMaps.BINDING_FLOW)
+        }
+        val mapNames = arrayOf("uHdNormalMaps", "uHdOrmMaps", "uHdEmissiveMaps", "uHdFlowMaps")
+        val mapUnits = intArrayOf(
+            com.jagex.game.runetek5.graphics.hd.scene.HdMaterialMaps.UNIT_NORMAL,
+            com.jagex.game.runetek5.graphics.hd.scene.HdMaterialMaps.UNIT_ORM,
+            com.jagex.game.runetek5.graphics.hd.scene.HdMaterialMaps.UNIT_EMISSIVE,
+            com.jagex.game.runetek5.graphics.hd.scene.HdMaterialMaps.UNIT_FLOW,
+        )
         for (i in mapNames.indices) {
             val location = org.lwjgl.opengl.GL33C.glGetUniformLocation(program.id, mapNames[i])
             if (location >= 0) {
                 val previous = org.lwjgl.opengl.GL33C.glGetInteger(org.lwjgl.opengl.GL33C.GL_CURRENT_PROGRAM)
                 org.lwjgl.opengl.GL33C.glUseProgram(program.id)
-                org.lwjgl.opengl.GL33C.glUniform1i(location, com.jagex.game.runetek5.graphics.hd.scene.HdMaterialMaps.UNIT_NORMAL + i)
+                org.lwjgl.opengl.GL33C.glUniform1i(location, mapUnits[i])
                 org.lwjgl.opengl.GL33C.glUseProgram(previous)
             }
         }
