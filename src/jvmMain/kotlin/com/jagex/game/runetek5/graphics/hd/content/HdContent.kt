@@ -28,7 +28,7 @@ class HdContent {
     )
 
     class EnvironmentDef(val name: String, val line: Int) {
-        /** Where the entry came from when generated ("117HD <AREA>", from 117HD's environments.json); null for a hand-written one. */
+        /** Where the entry came from when generated (the area it covers, "KHARIDIAN_DESERT"); null for a hand-written one. */
         var source: String? = null
         var regions: IntArray? = null
         var bounds: Array<IntArray>? = null
@@ -42,13 +42,13 @@ class HdContent {
         var ambientColour: FloatArray? = null
         var ambientIntensity: Float = 1.0f
         var fogColour: FloatArray? = null
-        /** 117HD's fogDepth, the distance fog's thickness (NaN: the default environment's, else 6.5). */
+        /** The distance fog's depth (how thick it is) (NaN: the default environment's, else 6.5). */
         var fogDepth: Float = Float.NaN
         /** The fog's end in tiles from the camera (NaN: the game's own, from its tables for the scene size). */
         var fogEnd: Float = Float.NaN
         var skyTop: FloatArray? = null
         var skyHorizon: FloatArray? = null
-        /** 117HD's ground fog: full below [groundFogStart], none above [groundFogEnd] (world y, negative is up), at [groundFogOpacity] (0: none). */
+        /** The ground fog: full below [groundFogStart], none above [groundFogEnd] (world y, negative is up), at [groundFogOpacity] (0: none). */
         var groundFogStart: Float = 0.0f
         var groundFogEnd: Float = 0.0f
         var groundFogOpacity: Float = 0.0f
@@ -94,7 +94,7 @@ class HdContent {
         var emissiveStrength: Float = 1.0f
         var parallax: Float = 0.04f
         /**
-         * 117HD's flowing texture (its fire cape and lava): a map in the shared materials/flow/ folder,
+         * The flowing texture (the fire cape and lava): a map in the shared materials/flow/ folder,
          * sampled at the uv slid once per flowDurationU/V seconds, moves the uv by flowStrength times
          * its red and green.
          */
@@ -113,8 +113,7 @@ class HdContent {
     }
 
     /**
-     * A water texture drawn as 634HD's surface: 117HD's WaterType (rs117/hd/scene/water_types/WaterType.java,
-     * its water_types.json), the defaults its WATER. Colours sRGB.
+     * A water texture drawn as 634HD's surface: its water type, the defaults the plain WATER type's. Colours sRGB.
      */
     class WaterDef {
         var surface: FloatArray = colour("#69809c")

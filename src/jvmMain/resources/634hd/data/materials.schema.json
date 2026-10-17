@@ -23,7 +23,7 @@
           "specular": { "type": "number", "minimum": 0, "maximum": 4 },
           "emissiveStrength": { "type": "number", "minimum": 0, "maximum": 16 },
           "parallax": { "type": "number", "minimum": 0, "maximum": 0.2 },
-          "flowMap": { "type": "string", "description": "a flow map under materials/flow/ (shared): its red and green, sampled at the uv slid by flowDuration, move the uv by flowStrength (lava, the fire cape; 117HD's method)" },
+          "flowMap": { "type": "string", "description": "a flow map under materials/flow/ (shared): its red and green, sampled at the uv slid by flowDuration, move the uv by flowStrength (lava, the fire cape)" },
           "flowStrength": { "type": "number", "minimum": 0, "maximum": 1 },
           "flowDuration": { "type": "array", "items": { "type": "number", "exclusiveMinimum": 0 }, "minItems": 2, "maxItems": 2, "description": "seconds for the flow map to slide once along u and along v" },
           "unlit": { "type": "boolean", "description": "drawn as the texture alone: no lighting, shadow or occlusion, the face colour ignored" },
@@ -31,7 +31,7 @@
           "water": {
             "type": "object",
             "additionalProperties": false,
-            "description": "a water texture drawn as 634HD's own surface (client.hd.water 2): the fields of 117HD's WaterType (rs117/hd/scene/water_types/WaterType.java), each with 117HD's WATER value as its default; a water texture without this block takes the defaults",
+            "description": "a water texture drawn as 634HD's own surface (client.hd.water 2): the fields of a water type, each with the WATER type's value as its default; a water texture without this block takes the defaults",
             "properties": {
               "surface": { "$ref": "#/$defs/colour", "description": "the water's own colour, lit (default #69809c)" },
               "foam": { "$ref": "#/$defs/colour", "description": "the shore foam's colour (default #b0a492)" },
@@ -41,7 +41,7 @@
               "gloss": { "type": "number", "minimum": 1, "maximum": 2000, "description": "the glint's exponent (default 500)" },
               "normalStrength": { "type": "number", "minimum": 0, "maximum": 1, "description": "the ripples' height (default 0.09)" },
               "fresnel": { "type": "number", "minimum": 0, "maximum": 1, "description": "how much of the reflection shows (default 0.85)" },
-              "duration": { "type": "number", "exclusiveMinimum": 0, "maximum": 8, "description": "the animation's period, 1 for 117HD's (default 1)" },
+              "duration": { "type": "number", "exclusiveMinimum": 0, "maximum": 8, "description": "the animation's period, (default 1)" },
               "hasFoam": { "type": "boolean", "description": "foam at the shore (default true)" },
               "flat": { "type": "boolean", "description": "opaque: the depth colour fills in for the seabed (default false)" }
             }

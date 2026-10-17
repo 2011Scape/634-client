@@ -39,7 +39,7 @@ layout(std140) uniform HdFrame {
     vec4 hdAmbientColour;
     // the environment's fog colour (sRGB)
     vec4 hdFogColour;
-    // x: the fog's depth scaled to the draw distance (117HD's fogDepth * min(tiles, 90) / 10; 0: no
+    // x: the fog's depth scaled to the draw distance (the environment's depth * min(tiles, 90) / 10; 0: no
     // distance fog), y: the draw distance = the fog's end (eye distance), z: the unscaled depth / 100
     // (the sky fog's density, hdFoggedSkyColour), w: unused
     vec4 hdFogParams;
@@ -94,7 +94,7 @@ layout(std140) uniform HdFrame {
     vec4 hdGridParams;
     // each point light's wall visibility patch (HD_LIGHT_GRID): x its layer (0 none), y, z the light's world x, z
     vec4 hdLightGrid[HD_MAX_LIGHTS];
-    // the ground fog (HD_FOG, 117HD's groundFog): x its start, y its end (world y, negative is up: full
+    // the ground fog (HD_FOG, environments.json groundFog): x its start, y its end (world y, negative is up: full
     // below the start, none above the end), z its opacity (0: none), w: unused
     vec4 hdGroundFog;
 };
@@ -305,8 +305,8 @@ vec3 hdSkyColour(vec3 dir) {
     return mix(hdSkyHorizon.rgb, hdSkyTop.rgb, pow(up, 0.4));
 }
 
-// The sky in world direction [dir] seen through the environment's fog: 117HD's foggedSkyColor
-// (its sky_fog.glsl). The fog colour shows through most near the horizon, by the unscaled fog depth
+// The sky in world direction [dir] seen through the environment's fog: the fog colour shows
+// through most near the horizon, by the unscaled fog depth
 // (hdFogParams.z), so a hazy area (the desert) tints its horizon while the sky's top stays the sky's.
 vec3 hdFoggedSkyColour(vec3 dir) {
     vec3 sky = hdSkyColour(dir);
@@ -319,10 +319,10 @@ vec3 hdFoggedSkyColour(vec3 dir) {
 // Set to 0 by a draw that wants no ground fog (ff.frag: the seabed, under water already), 1 otherwise.
 float hdGroundFogScale = 1.0;
 
-// 117HD's distance fog (its utils/fog.glsl calculateFogAmount) for world position [p] seen from the
+// The distance fog for world position [p] seen from the
 // camera at [cam], in the game's units (512 a tile), the draw distance the fog's end (hdFogParams.y):
 // the greatest of an edge fog over the five tiles before the loaded scene's edge or the draw
-// distance's square (its corners rounded; a tile less north and east, as 117HD), a linear ramp over
+// distance's square (its corners rounded; a tile less north and east, as the client draws), a linear ramp over
 // the last 15% of the distance on the ground plane, and an exponential fog by the environment's depth,
 // starting the nearer the thicker it is.
 float hdDistanceFog(vec3 p, vec3 cam) {
@@ -350,9 +350,9 @@ float hdDistanceFog(vec3 p, vec3 cam) {
     return max(max(amount1, amount2), edge);
 }
 
-// 117HD's ground fog (its scene_frag.glsl) at world position [p]: full below hdGroundFog.x, none
-// above .y, at opacity .z, fading in over the first 6000 units from the camera (117HD's 1500 at 128
-// a tile), so the ground at the player's feet is never fogged.
+// The ground fog at world position [p]: full below hdGroundFog.x, none
+// above .y, at opacity .z, fading in over the first 6000 units (about twelve tiles) from the camera,
+// so the ground at the player's feet is never fogged.
 float hdGroundFogAmount(vec3 p, vec3 cam) {
     if (hdGroundFog.z <= 0.0 || hdGroundFogScale <= 0.0) return 0.0;
     float g = 1.0 - clamp((p.y - hdGroundFog.x) / (hdGroundFog.y - hdGroundFog.x), 0.0, 1.0);
@@ -369,9 +369,9 @@ vec3 hdFogMix(vec3 color, vec3 fogRgb, float amount) {
 }
 
 // Fog over a fragment at eye-space [viewPos] ([depth]: its eye depth). [fogColour], [start] and [end]
-// are the draw's fixed-function fog, which is all there is unless HD_FOG (117HD's fog: the
+// are the draw's fixed-function fog, which is all there is unless HD_FOG (634HD's fog: the
 // environment's colour, its distance fog by depth and its ground fog, hdDistanceFog and
-// hdGroundFogAmount, the two combined as 117HD combines them) or HD_SKY (the colour of the sky behind
+// hdGroundFogAmount, the two combined as 1 - (1 - a)(1 - g)) or HD_SKY (the colour of the sky behind
 // the fragment, seen through the fog). The fog's share and its sRGB colour (hdFog's terms, for a draw
 // that also goes opaque with the fog).
 float hdFogAmount(vec3 viewPos, float depth, vec4 fogColour, float start, float end, out vec3 fogRgb) {

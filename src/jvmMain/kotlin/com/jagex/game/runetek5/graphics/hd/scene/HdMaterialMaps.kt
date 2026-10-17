@@ -16,7 +16,7 @@
  * draw's slot (GlState.hdMapSlot for emulated draws, the retained scene's material table otherwise).
  *
  * A second block (HdMaterialFlow, binding 2; its own buffer, as the first sits just under GL's least
- * block size) carries the flowing textures (117HD's fire cape and lava): the flow map's layer in a
+ * block size) carries the flowing textures (the fire cape and lava): the flow map's layer in a
  * fourth array (unit 31, sRGB at FLOW_SIZE, the maps of the shared materials/flow/ folder), its
  * strength and the inverse of its slide times, the extra scroll, and whether the texture is unlit.
  *
@@ -46,12 +46,12 @@ class HdMaterialMaps {
         const val BINDING_WATER: Int = 3
         const val MAX_WATER_TYPES: Int = 16
         private const val WATER_TABLE_BYTES: Int = 16 + MAX_WATER_TYPES * 16 * 5
-        /** 117HD's water maps (materials/flow/): trailing layers of the flow array, whatever the materials use. */
+        /** The water maps (materials/flow/): trailing layers of the flow array, whatever the materials use. */
         private val WATER_MAPS: Array<String> = arrayOf("water_normal_map_1.png", "water_foam.png", "water_flow_map.png")
         // 448 sets: the two vec4 arrays of the HdMaterialMaps block stay under 16 KB, GL's least limit
         const val MAX_MAPS: Int = 448
         const val SIZE: Int = 256
-        /** The flow maps' size (117HD's lava flow map is 128 square). */
+        /** The flow maps' size (the lava flow map is 128 square). */
         const val FLOW_SIZE: Int = 128
         private const val TABLE_BYTES: Int = MAX_MAPS * 16 * 2
         private const val FLOW_FOLDER: String = "flow"
@@ -209,7 +209,7 @@ class HdMaterialMaps {
         val table: ByteBuffer = ByteBuffer.allocateDirect(TABLE_BYTES).order(ByteOrder.nativeOrder())
         val flowTable: ByteBuffer = ByteBuffer.allocateDirect(TABLE_BYTES).order(ByteOrder.nativeOrder())
         GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT_NORMAL)
-        // the flow maps (materials/flow/, shared): a layer per distinct file, sRGB as 117HD stores them
+        // the flow maps (materials/flow/, shared): a layer per distinct file, sRGB
         val flowNames: ArrayList<String> = ArrayList()
         for (m in materials) {
             val name: String = m.flowMap ?: continue
@@ -307,7 +307,7 @@ class HdMaterialMaps {
             val b: Int = MAX_MAPS * 16 + slot * 16
             table.putFloat(b, if (has[0]) 1.0f else 0.0f).putFloat(b + 4, if (has[1]) 1.0f else 0.0f).putFloat(b + 8, if (has[2]) 1.0f else 0.0f).putFloat(b + 12, maxOf(0, emissiveLayer).toFloat())
             // hdMapC: the flow map's layer plus one (0 without), its strength, the inverse slide times
-            // (fract(t / duration) in the shader; 0 stands still, as 117HD's animationFrame); hdMapD: the
+            // (fract(t / duration) in the shader; 0 stands still); hdMapD: the
             // extra scroll, unlit
             val flowLayer: Int = if (m.flowMap == null) -1 else flowNames.indexOf(m.flowMap!!)
             flowTable.putFloat(slot * 16, (flowLayer + 1).toFloat()).putFloat(slot * 16 + 4, m.flowStrength)
@@ -350,7 +350,7 @@ class HdMaterialMaps {
     }
 
     /**
-     * The water types' block (HdWaterTypes): type 0 is WaterDef's defaults (117HD's WATER), then one per
+     * The water types' block (HdWaterTypes): type 0 is WaterDef's defaults (the WATER type), then one per
      * material with a water block, in materials.json's order, at most MAX_WATER_TYPES - 1 of them; the
      * block's first vector names the water maps' layers of the flow array. Returns the type of each water
      * material by texture (hdMapD.w, plus one in the table: 0 is the default).
@@ -393,8 +393,8 @@ class HdMaterialMaps {
     }
 
     /**
-     * The flow array: a layer per name in [names] (materials/flow/), sRGB (read linearised, as 117HD
-     * reads its), FLOW_SIZE square with mipmaps, repeating. A map that cannot be read leaves its layer
+     * The flow array: a layer per name in [names] (materials/flow/), sRGB (read linearised),
+     * FLOW_SIZE square with mipmaps, repeating. A map that cannot be read leaves its layer
      * black (no flow). Always one layer at least, so the sampler is complete.
      */
     private fun loadFlow(content: HdContent, names: ArrayList<String>) {

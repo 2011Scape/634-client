@@ -4,7 +4,7 @@
  * into the frame's uniform block (HdFrameUniforms) before the scene is drawn.
  *
  * The environment (environments.json, HdContent) is the one whose area holds the local player; when
- * that changes its values are blended over TRANSITION_SECONDS (117HD's three seconds, smoothstepped),
+ * that changes its values are blended over TRANSITION_SECONDS (three seconds, smoothstepped),
  * at once when the player jumped SKIP_TRANSITION_TILES or more (a teleport). Where it gives nothing,
  * the game's own atmosphere (fog colour and distance, sun) is used, so dungeons keep their dark fog.
  */
@@ -29,13 +29,13 @@ class HdFeatures {
         /** The shadow sun's lowest pitch in degrees with the time of day. */
         const val SHADOW_MIN_PITCH: Float = 12.0f
 
-        /** A change of environment blends over this long (117HD's TRANSITION_DURATION). */
+        /** A change of environment blends over this long. */
         const val TRANSITION_SECONDS: Float = 3.0f
 
-        /** A move of this many tiles in a frame (a teleport) switches the environment at once (117HD's SKIP_TRANSITION_DISTANCE). */
+        /** A move of this many tiles in a frame (a teleport) switches the environment at once. */
         const val SKIP_TRANSITION_TILES: Int = 41
 
-        /** The distance fog's depth where neither the environment nor the default gives one (117HD's OVERWORLD). */
+        /** The distance fog's depth where neither the environment nor the default gives one (the open overworld's). */
         const val DEFAULT_FOG_DEPTH: Float = 6.5f
     }
 
@@ -74,7 +74,7 @@ class HdFeatures {
     private var liveSunPitch: Float = Float.NaN
     private var liveSunYaw: Float = Float.NaN
     // ...and what was uploaded when the environment last changed: the uploaded values blend from these
-    // to the live ones over TRANSITION_SECONDS (117HD's transition)
+    // to the live ones over TRANSITION_SECONDS
     private val fromSky: FloatArray = FloatArray(6)
     private val fromFog: FloatArray = FloatArray(8)
     private val fromEnvLight: FloatArray = FloatArray(6)
@@ -183,7 +183,7 @@ class HdFeatures {
             this.shadows.bindBaked()
             uniforms.setAmbientOcclusionBake(this.shadows.aoBakeMatrix, this.shadows.aoBakeParams)
         }
-        // the fog's depth scaled to the draw distance in tiles, as 117HD scales it (fogDepth * min(dd, 90) / 10)
+        // the fog's depth scaled to the draw distance in tiles, (depth * min(dd, 90) / 10)
         val drawTiles: Float = fog[4] / 512.0f
         uniforms.setFog(fog[0], fog[1], fog[2], fog[3] * minOf(drawTiles, 90.0f) / 10.0f, fog[4], fog[3] / 100.0f)
         uniforms.setGroundFog(fog[5], fog[6], fog[7])
@@ -238,8 +238,8 @@ class HdFeatures {
         }
         this.environment = environment
         val fogColour: FloatArray = state.fogColor
-        // the fog colour: the environment's, else the game's (its zone's, #c8c0a8 by default: 117HD's
-        // "HD 2008" sky colour, so an imported environment without a colour gets the sky's)
+        // the fog colour: the environment's, else the game's (its zone's, #c8c0a8 by default, the HD
+        // 2008 sky colour, so a generated environment without a colour gets the sky's)
         val envFog: FloatArray? = environment?.fogColour
         target[6] = envFog?.get(0) ?: fogColour[0]
         target[7] = envFog?.get(1) ?: fogColour[1]
@@ -253,7 +253,7 @@ class HdFeatures {
         target[3] = horizon?.get(0) ?: target[6]
         target[4] = horizon?.get(1) ?: target[7]
         target[5] = horizon?.get(2) ?: target[8]
-        // the fog's depth: the environment's, else the default environment's, else 117HD's overworld's
+        // the fog's depth: the environment's, else the default environment's, else the open overworld's
         var depth: Float = environment?.fogDepth ?: Float.NaN
         if (depth.isNaN()) depth = content.environments.firstOrNull { it.isDefault }?.fogDepth ?: Float.NaN
         target[9] = if (depth.isNaN()) DEFAULT_FOG_DEPTH else depth
@@ -309,7 +309,7 @@ class HdFeatures {
         }
         liveSunPitch = easeAngle(liveSunPitch, environment?.sunPitch ?: Float.NaN, step)
         liveSunYaw = easeAngle(liveSunYaw, environment?.sunYaw ?: Float.NaN, step)
-        // 117HD's transition: a new environment blends in from what was shown over TRANSITION_SECONDS
+        // The transition: a new environment blends in from what was shown over TRANSITION_SECONDS
         // (smoothstepped), at once after a teleport, at login or when the content was reloaded
         if (environment !== lastEnvironment) {
             val jumped: Boolean = reloaded || lastEnvironment == null || lastTileX == Int.MIN_VALUE || tileX == Int.MIN_VALUE ||

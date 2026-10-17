@@ -255,7 +255,7 @@
     },
     {
       "name": "Evil bob island",
-      "source": "117HD EVIL_BOB_ISLAND",
+      "source": "EVIL_BOB_ISLAND",
       "area": {
         "bounds": [
           [2496, 4748, 2559, 4801]
@@ -268,7 +268,7 @@
     },
     {
       "name": "Revenant caves",
-      "source": "117HD REVENANT_CAVES",
+      "source": "REVENANT_CAVES",
       "area": {
         "bounds": [
           [3136, 10048, 3263, 10239]
@@ -281,7 +281,7 @@
     },
     {
       "name": "Random event gravedigger",
-      "source": "117HD RANDOM_EVENT_GRAVEDIGGER",
+      "source": "RANDOM_EVENT_GRAVEDIGGER",
       "area": {
         "bounds": [
           [1920, 4992, 1935, 5007]
@@ -299,7 +299,7 @@
     },
     {
       "name": "Black rooms",
-      "source": "117HD BLACK_ROOMS",
+      "source": "BLACK_ROOMS",
       "area": {
         "bounds": [
           [2566, 4618, 2589, 4642],
@@ -313,7 +313,7 @@
     },
     {
       "name": "Black caves",
-      "source": "117HD BLACK_CAVES",
+      "source": "BLACK_CAVES",
       "area": {
         "bounds": [
           [2984, 7840, 3007, 7871]
@@ -326,7 +326,7 @@
     },
     {
       "name": "Frozen waste plateau",
-      "source": "117HD FROZEN_WASTE_PLATEAU",
+      "source": "FROZEN_WASTE_PLATEAU",
       "area": {
         "bounds": [
           [2943, 3910, 2989, 3952],
@@ -361,7 +361,7 @@
     },
     {
       "name": "Corporeal beast lair",
-      "source": "117HD Corporeal Beast Lair",
+      "source": "Corporeal Beast Lair",
       "area": {
         "bounds": [
           [2944, 4224, 3007, 4287],
@@ -375,7 +375,7 @@
     },
     {
       "name": "Lucien's base environment",
-      "source": "117HD Lucien's Base Environment",
+      "source": "Lucien's Base Environment",
       "area": {
         "bounds": [
           [2939, 3808, 2943, 3837],
@@ -392,7 +392,7 @@
     },
     {
       "name": "Wilderness high",
-      "source": "117HD WILDERNESS_HIGH",
+      "source": "WILDERNESS_HIGH",
       "area": {
         "bounds": [
           [2939, 3904, 3391, 3974]
@@ -410,7 +410,7 @@
     },
     {
       "name": "Wilderness low",
-      "source": "117HD WILDERNESS_LOW",
+      "source": "WILDERNESS_LOW",
       "area": {
         "bounds": [
           [2938, 3543, 3378, 3579],
@@ -432,7 +432,7 @@
     },
     {
       "name": "Wilderness mid",
-      "source": "117HD WILDERNESS_MID",
+      "source": "WILDERNESS_MID",
       "area": {
         "bounds": [
           [2939, 3730, 3391, 3806],
@@ -461,7 +461,7 @@
     },
     {
       "name": "Hunter guild",
-      "source": "117HD HUNTER_GUILD",
+      "source": "HUNTER_GUILD",
       "area": {
         "bounds": [
           [1536, 9408, 1599, 9471]
@@ -474,7 +474,7 @@
     },
     {
       "name": "Daimon's crater - bounty hunter",
-      "source": "117HD Daimon's Crater - Bounty Hunter",
+      "source": "Daimon's Crater - Bounty Hunter",
       "area": {
         "bounds": [
           [3328, 3968, 3391, 4031],
@@ -500,7 +500,7 @@
     },
     {
       "name": "Varrock museum basement",
-      "source": "117HD VARROCK_MUSEUM_BASEMENT",
+      "source": "VARROCK_MUSEUM_BASEMENT",
       "area": {
         "bounds": [
           [1729, 4929, 1790, 4990],
@@ -514,7 +514,7 @@
     },
     {
       "name": "Stronghold of security war",
-      "source": "117HD STRONGHOLD_OF_SECURITY_WAR",
+      "source": "STRONGHOLD_OF_SECURITY_WAR",
       "area": {
         "bounds": [
           [1856, 5184, 1919, 5247]
@@ -527,7 +527,7 @@
     },
     {
       "name": "Stronghold of security famine",
-      "source": "117HD STRONGHOLD_OF_SECURITY_FAMINE",
+      "source": "STRONGHOLD_OF_SECURITY_FAMINE",
       "area": {
         "bounds": [
           [1984, 5184, 2047, 5247]
@@ -540,7 +540,7 @@
     },
     {
       "name": "Stronghold of security pestilence",
-      "source": "117HD STRONGHOLD_OF_SECURITY_PESTILENCE",
+      "source": "STRONGHOLD_OF_SECURITY_PESTILENCE",
       "area": {
         "bounds": [
           [2112, 5248, 2175, 5311]
@@ -558,7 +558,7 @@
     },
     {
       "name": "Stronghold of security death",
-      "source": "117HD STRONGHOLD_OF_SECURITY_DEATH",
+      "source": "STRONGHOLD_OF_SECURITY_DEATH",
       "area": {
         "bounds": [
           [2304, 5184, 2367, 5247]
@@ -571,7 +571,7 @@
     },
     {
       "name": "Tolna dungeon anger",
-      "source": "117HD TOLNA_DUNGEON_ANGER",
+      "source": "TOLNA_DUNGEON_ANGER",
       "area": {
         "bounds": [
           [3008, 5216, 3039, 5247],
@@ -586,7 +586,7 @@
     },
     {
       "name": "Tolna dungeon fear",
-      "source": "117HD TOLNA_DUNGEON_FEAR",
+      "source": "TOLNA_DUNGEON_FEAR",
       "area": {
         "bounds": [
           [3040, 5216, 3071, 5247],
@@ -603,7 +603,7 @@
     },
     {
       "name": "Tolna dungeon confusion",
-      "source": "117HD TOLNA_DUNGEON_CONFUSION",
+      "source": "TOLNA_DUNGEON_CONFUSION",
       "area": {
         "bounds": [
           [3040, 5184, 3071, 5215],
@@ -617,7 +617,7 @@
     },
     {
       "name": "Dorgeshkaan agility area",
-      "source": "117HD DORGESHKAAN_AGILITY_AREA",
+      "source": "DORGESHKAAN_AGILITY_AREA",
       "area": {
         "bounds": [
           [2688, 5184, 2751, 5247]
@@ -630,7 +630,7 @@
     },
     {
       "name": "Dorgeshkaan",
-      "source": "117HD DORGESHKAAN",
+      "source": "DORGESHKAAN",
       "area": {
         "bounds": [
           [2688, 5184, 2751, 5375]
@@ -643,7 +643,7 @@
     },
     {
       "name": "The inferno",
-      "source": "117HD THE_INFERNO",
+      "source": "THE_INFERNO",
       "area": {
         "bounds": [
           [2240, 5312, 2303, 5375]
@@ -656,7 +656,7 @@
     },
     {
       "name": "Tzhaar",
-      "source": "117HD TZHAAR",
+      "source": "TZHAAR",
       "area": {
         "bounds": [
           [2368, 5056, 2431, 5119],
@@ -671,7 +671,7 @@
     },
     {
       "name": "Hallowed sepulchre lobby",
-      "source": "117HD HALLOWED_SEPULCHRE_LOBBY",
+      "source": "HALLOWED_SEPULCHRE_LOBBY",
       "area": {
         "bounds": [
           [2368, 5952, 2431, 6015]
@@ -684,7 +684,7 @@
     },
     {
       "name": "Hallowed sepulchre floor 1",
-      "source": "117HD HALLOWED_SEPULCHRE_FLOOR_1",
+      "source": "HALLOWED_SEPULCHRE_FLOOR_1",
       "area": {
         "bounds": [
           [2220, 5938, 2325, 6032]
@@ -697,7 +697,7 @@
     },
     {
       "name": "Hallowed sepulchre floor 2",
-      "source": "117HD HALLOWED_SEPULCHRE_FLOOR_2",
+      "source": "HALLOWED_SEPULCHRE_FLOOR_2",
       "area": {
         "bounds": [
           [2475, 5938, 2580, 6032]
@@ -710,7 +710,7 @@
     },
     {
       "name": "Hallowed sepulchre floor 3",
-      "source": "117HD HALLOWED_SEPULCHRE_FLOOR_3",
+      "source": "HALLOWED_SEPULCHRE_FLOOR_3",
       "area": {
         "bounds": [
           [2350, 5800, 2455, 5906]
@@ -723,7 +723,7 @@
     },
     {
       "name": "Hallowed sepulchre floor 4",
-      "source": "117HD HALLOWED_SEPULCHRE_FLOOR_4",
+      "source": "HALLOWED_SEPULCHRE_FLOOR_4",
       "area": {
         "bounds": [
           [2475, 5800, 2580, 5906]
@@ -736,7 +736,7 @@
     },
     {
       "name": "Hallowed sepulchre floor 5",
-      "source": "117HD HALLOWED_SEPULCHRE_FLOOR_5",
+      "source": "HALLOWED_SEPULCHRE_FLOOR_5",
       "area": {
         "bounds": [
           [2220, 5800, 2325, 5906]
@@ -749,7 +749,7 @@
     },
     {
       "name": "Ver sinhaza transition",
-      "source": "117HD VER_SINHAZA_TRANSITION",
+      "source": "VER_SINHAZA_TRANSITION",
       "area": {
         "bounds": [
           [3648, 3229, 3650, 3231],
@@ -768,7 +768,7 @@
     },
     {
       "name": "Ver sinhaza",
-      "source": "117HD VER_SINHAZA",
+      "source": "VER_SINHAZA",
       "area": {
         "bounds": [
           [3641, 3202, 3684, 3236],
@@ -796,7 +796,7 @@
     },
     {
       "name": "Needs to be above the non-legacy version",
-      "source": "117HD TOB_ROOM_VAULT",
+      "source": "TOB_ROOM_VAULT",
       "area": {
         "bounds": [
           [3224, 4305, 3250, 4334]
@@ -809,7 +809,7 @@
     },
     {
       "name": "Tob room vault",
-      "source": "117HD TOB_ROOM_VAULT",
+      "source": "TOB_ROOM_VAULT",
       "area": {
         "bounds": [
           [3224, 4305, 3250, 4334]
@@ -822,7 +822,7 @@
     },
     {
       "name": "Needs to be above the non-legacy version (2)",
-      "source": "117HD THEATRE_OF_BLOOD",
+      "source": "THEATRE_OF_BLOOD",
       "area": {
         "bounds": [
           [3136, 4224, 3327, 4479]
@@ -835,7 +835,7 @@
     },
     {
       "name": "Theatre of blood",
-      "source": "117HD THEATRE_OF_BLOOD",
+      "source": "THEATRE_OF_BLOOD",
       "area": {
         "bounds": [
           [3136, 4224, 3327, 4479]
@@ -853,7 +853,7 @@
     },
     {
       "name": "Toa loot room",
-      "source": "117HD TOA_LOOT_ROOM",
+      "source": "TOA_LOOT_ROOM",
       "area": {
         "bounds": [
           [3648, 5120, 3711, 5183]
@@ -866,7 +866,7 @@
     },
     {
       "name": "Toa entrance lobby",
-      "source": "117HD TOA_ENTRANCE_LOBBY",
+      "source": "TOA_ENTRANCE_LOBBY",
       "area": {
         "bounds": [
           [3344, 9102, 3375, 9135]
@@ -879,7 +879,7 @@
     },
     {
       "name": "Toa final boss phase 2",
-      "source": "117HD TOA_FINAL_BOSS_PHASE_2",
+      "source": "TOA_FINAL_BOSS_PHASE_2",
       "area": {
         "bounds": [
           [3904, 5120, 3967, 5183]
@@ -892,7 +892,7 @@
     },
     {
       "name": "Tombs of amascut",
-      "source": "117HD TOMBS_OF_AMASCUT",
+      "source": "TOMBS_OF_AMASCUT",
       "area": {
         "bounds": [
           [3344, 9102, 3375, 9135],
@@ -917,7 +917,7 @@
     },
     {
       "name": "Barrows crypts",
-      "source": "117HD BARROWS_CRYPTS",
+      "source": "BARROWS_CRYPTS",
       "area": {
         "bounds": [
           [3520, 9664, 3583, 9727]
@@ -936,7 +936,7 @@
     },
     {
       "name": "Barrows tunnels",
-      "source": "117HD BARROWS_TUNNELS",
+      "source": "BARROWS_TUNNELS",
       "area": {
         "bounds": [
           [3520, 9664, 3583, 9727]
@@ -950,7 +950,7 @@
     },
     {
       "name": "Barrows",
-      "source": "117HD BARROWS",
+      "source": "BARROWS",
       "area": {
         "bounds": [
           [3519, 3312, 3533, 3325],
@@ -985,7 +985,7 @@
     },
     {
       "name": "Darkmeyer",
-      "source": "117HD DARKMEYER",
+      "source": "DARKMEYER",
       "area": {
         "bounds": [
           [3592, 3312, 3616, 3399],
@@ -1012,7 +1012,7 @@
     },
     {
       "name": "Meiyerditch",
-      "source": "117HD MEIYERDITCH",
+      "source": "MEIYERDITCH",
       "area": {
         "bounds": [
           [3587, 3200, 3627, 3310],
@@ -1041,7 +1041,7 @@
     },
     {
       "name": "Meiyerditch myreque hideout",
-      "source": "117HD MEIYERDITCH_MYREQUE_HIDEOUT",
+      "source": "MEIYERDITCH_MYREQUE_HIDEOUT",
       "area": {
         "bounds": [
           [3584, 9600, 3647, 9663]
@@ -1054,7 +1054,7 @@
     },
     {
       "name": "Meiyerditch mines",
-      "source": "117HD MEIYERDITCH_MINES",
+      "source": "MEIYERDITCH_MINES",
       "area": {
         "bounds": [
           [2376, 4616, 2399, 4639],
@@ -1068,7 +1068,7 @@
     },
     {
       "name": "Default Morytania Environment",
-      "source": "117HD MORYTANIA",
+      "source": "MORYTANIA",
       "area": {
         "bounds": [
           [3432, 3167, 3775, 3486],
@@ -1107,7 +1107,7 @@
     },
     {
       "name": "Lumbridge castle basement",
-      "source": "117HD LUMBRIDGE_CASTLE_BASEMENT",
+      "source": "LUMBRIDGE_CASTLE_BASEMENT",
       "area": {
         "bounds": [
           [3200, 9600, 3220, 9659]
@@ -1120,7 +1120,7 @@
     },
     {
       "name": "Goblin maze",
-      "source": "117HD GOBLIN_MAZE",
+      "source": "GOBLIN_MAZE",
       "area": {
         "bounds": [
           [3221, 9600, 3263, 9659],
@@ -1138,7 +1138,7 @@
     },
     {
       "name": "Lumbridge swamp caves",
-      "source": "117HD LUMBRIDGE_SWAMP_CAVES",
+      "source": "LUMBRIDGE_SWAMP_CAVES",
       "area": {
         "bounds": [
           [3136, 9536, 3263, 9599]
@@ -1151,7 +1151,7 @@
     },
     {
       "name": "Draynor manor",
-      "source": "117HD DRAYNOR_MANOR",
+      "source": "DRAYNOR_MANOR",
       "area": {
         "bounds": [
           [3084, 3330, 3120, 3382],
@@ -1170,7 +1170,7 @@
     },
     {
       "name": "Draynor manor forest",
-      "source": "117HD DRAYNOR_MANOR_FOREST",
+      "source": "DRAYNOR_MANOR_FOREST",
       "area": {
         "bounds": [
           [3076, 3315, 3119, 3393],
@@ -1185,7 +1185,7 @@
     },
     {
       "name": "Draynor manor crypt",
-      "source": "117HD DRAYNOR_MANOR_CRYPT",
+      "source": "DRAYNOR_MANOR_CRYPT",
       "area": {
         "bounds": [
           [3074, 9767, 3081, 9779]
@@ -1198,7 +1198,7 @@
     },
     {
       "name": "Killerwatt plane",
-      "source": "117HD KILLERWATT_PLANE",
+      "source": "KILLERWATT_PLANE",
       "area": {
         "bounds": [
           [2624, 5184, 2687, 5247]
@@ -1216,7 +1216,7 @@
     },
     {
       "name": "Misthalin mystery manor region",
-      "source": "117HD MISTHALIN_MYSTERY_MANOR_REGION",
+      "source": "MISTHALIN_MYSTERY_MANOR_REGION",
       "area": {
         "bounds": [
           [1600, 4780, 1682, 4863]
@@ -1229,7 +1229,7 @@
     },
     {
       "name": "Motherlode mine",
-      "source": "117HD MOTHERLODE_MINE",
+      "source": "MOTHERLODE_MINE",
       "area": {
         "bounds": [
           [3710, 5631, 3775, 5695]
@@ -1242,7 +1242,7 @@
     },
     {
       "name": "Games room",
-      "source": "117HD GAMES_ROOM",
+      "source": "GAMES_ROOM",
       "area": {
         "bounds": [
           [2179, 4931, 2236, 4988]
@@ -1255,7 +1255,7 @@
     },
     {
       "name": "Soul wars red base",
-      "source": "117HD SOUL_WARS_RED_BASE",
+      "source": "SOUL_WARS_RED_BASE",
       "area": {
         "bounds": [
           [2272, 2910, 2302, 2946],
@@ -1275,7 +1275,7 @@
     },
     {
       "name": "Smoke dungeon",
-      "source": "117HD SMOKE_DUNGEON",
+      "source": "SMOKE_DUNGEON",
       "area": {
         "bounds": [
           [3136, 9344, 3327, 9407]
@@ -1288,7 +1288,7 @@
     },
     {
       "name": "Smoke devil dungeon",
-      "source": "117HD SMOKE_DEVIL_DUNGEON",
+      "source": "SMOKE_DEVIL_DUNGEON",
       "area": {
         "bounds": [
           [2304, 9408, 2431, 9471]
@@ -1301,7 +1301,7 @@
     },
     {
       "name": "Kharidian desert deep",
-      "source": "117HD KHARIDIAN_DESERT_DEEP",
+      "source": "KHARIDIAN_DESERT_DEEP",
       "area": {
         "bounds": [
           [3210, 2817, 3322, 2970],
@@ -1341,7 +1341,7 @@
     },
     {
       "name": "Kharidian desert mid",
-      "source": "117HD KHARIDIAN_DESERT_MID",
+      "source": "KHARIDIAN_DESERT_MID",
       "area": {
         "bounds": [
           [3135, 2990, 3524, 3009],
@@ -1386,7 +1386,7 @@
     },
     {
       "name": "Kharidian desert",
-      "source": "117HD KHARIDIAN_DESERT",
+      "source": "KHARIDIAN_DESERT",
       "area": {
         "bounds": [
           [3201, 3070, 3518, 3134],
@@ -1443,7 +1443,7 @@
     },
     {
       "name": "Desert treasure pyramid",
-      "source": "117HD DESERT_TREASURE_PYRAMID",
+      "source": "DESERT_TREASURE_PYRAMID",
       "area": {
         "bounds": [
           [2880, 4928, 2943, 4991],
@@ -1459,7 +1459,7 @@
     },
     {
       "name": "Pyramid plunder",
-      "source": "117HD PYRAMID_PLUNDER",
+      "source": "PYRAMID_PLUNDER",
       "area": {
         "bounds": [
           [1920, 4416, 1983, 4479]
@@ -1472,7 +1472,7 @@
     },
     {
       "name": "Sophanem temple bank",
-      "source": "117HD SOPHANEM_TEMPLE_BANK",
+      "source": "SOPHANEM_TEMPLE_BANK",
       "area": {
         "bounds": [
           [2752, 5120, 2815, 5183]
@@ -1485,7 +1485,7 @@
     },
     {
       "name": "Scarab lair temple",
-      "source": "117HD SCARAB_LAIR_TEMPLE",
+      "source": "SCARAB_LAIR_TEMPLE",
       "area": {
         "bounds": [
           [2112, 4352, 2175, 4415]
@@ -1498,7 +1498,7 @@
     },
     {
       "name": "Kalphite lair",
-      "source": "117HD KALPHITE_LAIR",
+      "source": "KALPHITE_LAIR",
       "area": {
         "bounds": [
           [3456, 9472, 3519, 9535]
@@ -1512,7 +1512,7 @@
     },
     {
       "name": "Uzer demonic throneroom",
-      "source": "117HD UZER_DEMONIC_THRONEROOM",
+      "source": "UZER_DEMONIC_THRONEROOM",
       "area": {
         "bounds": [
           [2690, 4873, 2749, 4925]
@@ -1526,7 +1526,7 @@
     },
     {
       "name": "Essence mine",
-      "source": "117HD ESSENCE_MINE",
+      "source": "ESSENCE_MINE",
       "area": {
         "bounds": [
           [2880, 4800, 2943, 4863]
@@ -1539,7 +1539,7 @@
     },
     {
       "name": "Ice queens dungeon",
-      "source": "117HD ICE_QUEENS_DUNGEON",
+      "source": "ICE_QUEENS_DUNGEON",
       "area": {
         "bounds": [
           [2816, 9897, 2879, 9983],
@@ -1553,7 +1553,7 @@
     },
     {
       "name": "Rellekka hunter region",
-      "source": "117HD RELLEKKA_HUNTER_REGION",
+      "source": "RELLEKKA_HUNTER_REGION",
       "area": {
         "bounds": [
           [2699, 3771, 2710, 3809],
@@ -1574,7 +1574,7 @@
     },
     {
       "name": "Rellekka hunter iceberg",
-      "source": "117HD RELLEKKA_HUNTER_ICEBERG",
+      "source": "RELLEKKA_HUNTER_ICEBERG",
       "area": {
         "bounds": [
           [2699, 3810, 2736, 3839],
@@ -1593,7 +1593,7 @@
     },
     {
       "name": "Gielinor snowy northern region",
-      "source": "117HD GIELINOR_SNOWY_NORTHERN_REGION",
+      "source": "GIELINOR_SNOWY_NORTHERN_REGION",
       "area": {
         "bounds": [
           [2748, 3711, 2942, 3887],
@@ -1675,7 +1675,7 @@
     },
     {
       "name": "Iceberg",
-      "source": "117HD ICEBERG",
+      "source": "ICEBERG",
       "area": {
         "bounds": [
           [2617, 4008, 2687, 4103],
@@ -1692,7 +1692,7 @@
     },
     {
       "name": "Mountain camp entry path",
-      "source": "117HD MOUNTAIN_CAMP_ENTRY_PATH",
+      "source": "MOUNTAIN_CAMP_ENTRY_PATH",
       "area": {
         "bounds": [
           [2766, 3655, 2780, 3673]
@@ -1710,7 +1710,7 @@
     },
     {
       "name": "Mountain camp",
-      "source": "117HD MOUNTAIN_CAMP",
+      "source": "MOUNTAIN_CAMP",
       "area": {
         "bounds": [
           [2777, 3671, 2815, 3675],
@@ -1730,7 +1730,7 @@
     },
     {
       "name": "Fremennik province",
-      "source": "117HD FREMENNIK_PROVINCE",
+      "source": "FREMENNIK_PROVINCE",
       "area": {
         "bounds": [
           [2692, 3639, 2815, 3711],
@@ -1785,7 +1785,7 @@
     },
     {
       "name": "Rellekka cold water",
-      "source": "117HD RELLEKKA_COLD_WATER",
+      "source": "RELLEKKA_COLD_WATER",
       "area": {
         "bounds": [
           [2673, 3726, 2824, 3887],
@@ -1842,7 +1842,7 @@
     },
     {
       "name": "Fremennik isles middle",
-      "source": "117HD FREMENNIK_ISLES_MIDDLE",
+      "source": "FREMENNIK_ISLES_MIDDLE",
       "area": {
         "bounds": [
           [2302, 3827, 2363, 3841],
@@ -1861,7 +1861,7 @@
     },
     {
       "name": "Neitiznot",
-      "source": "117HD NEITIZNOT",
+      "source": "NEITIZNOT",
       "area": {
         "bounds": [
           [2304, 3776, 2367, 3839]
@@ -1873,7 +1873,7 @@
     },
     {
       "name": "Jatizso",
-      "source": "117HD JATIZSO",
+      "source": "JATIZSO",
       "area": {
         "bounds": [
           [2368, 3776, 2431, 3839]
@@ -1891,7 +1891,7 @@
     },
     {
       "name": "Fremennik isles far north",
-      "source": "117HD FREMENNIK_ISLES_FAR_NORTH",
+      "source": "FREMENNIK_ISLES_FAR_NORTH",
       "area": {
         "bounds": [
           [2307, 3878, 2422, 3902],
@@ -1910,7 +1910,7 @@
     },
     {
       "name": "Fremennik isles north",
-      "source": "117HD FREMENNIK_ISLES_NORTH",
+      "source": "FREMENNIK_ISLES_NORTH",
       "area": {
         "bounds": [
           [2304, 3840, 2431, 3903]
@@ -1923,7 +1923,7 @@
     },
     {
       "name": "Lighthouse dungeon",
-      "source": "117HD LIGHTHOUSE_DUNGEON",
+      "source": "LIGHTHOUSE_DUNGEON",
       "area": {
         "bounds": [
           [2496, 4608, 2542, 4666],
@@ -1937,7 +1937,7 @@
     },
     {
       "name": "Waterbirth island",
-      "source": "117HD WATERBIRTH_ISLAND",
+      "source": "WATERBIRTH_ISLAND",
       "area": {
         "bounds": [
           [2496, 3712, 2559, 3775]
@@ -1950,7 +1950,7 @@
     },
     {
       "name": "Island of stone",
-      "source": "117HD ISLAND_OF_STONE",
+      "source": "ISLAND_OF_STONE",
       "area": {
         "bounds": [
           [2451, 3993, 2472, 4032],
@@ -1965,7 +1965,7 @@
     },
     {
       "name": "Penguin base",
-      "source": "117HD PENGUIN_BASE",
+      "source": "PENGUIN_BASE",
       "area": {
         "bounds": [
           [2631, 10369, 2684, 10431]
@@ -1978,7 +1978,7 @@
     },
     {
       "name": "Karamja volcano dungeon",
-      "source": "117HD KARAMJA_VOLCANO_DUNGEON",
+      "source": "KARAMJA_VOLCANO_DUNGEON",
       "area": {
         "bounds": [
           [2818, 9606, 2876, 9663],
@@ -2005,7 +2005,7 @@
     },
     {
       "name": "Brimhaven agility arena",
-      "source": "117HD BRIMHAVEN_AGILITY_ARENA",
+      "source": "BRIMHAVEN_AGILITY_ARENA",
       "area": {
         "bounds": [
           [2812, 9536, 2818, 9604],
@@ -2025,7 +2025,7 @@
     },
     {
       "name": "Ungael",
-      "source": "117HD UNGAEL",
+      "source": "UNGAEL",
       "area": {
         "bounds": [
           [2240, 4032, 2303, 4095]
@@ -2038,7 +2038,7 @@
     },
     {
       "name": "God wars dungeon",
-      "source": "117HD GOD_WARS_DUNGEON",
+      "source": "GOD_WARS_DUNGEON",
       "area": {
         "bounds": [
           [2816, 5184, 2943, 5375],
@@ -2052,7 +2052,7 @@
     },
     {
       "name": "Tar swamp",
-      "source": "117HD TAR_SWAMP",
+      "source": "TAR_SWAMP",
       "area": {
         "bounds": [
           [3632, 3694, 3712, 3800],
@@ -2066,7 +2066,7 @@
     },
     {
       "name": "Sote lletya mostly done burning",
-      "source": "117HD SOTE_LLETYA_MOSTLY_DONE_BURNING",
+      "source": "SOTE_LLETYA_MOSTLY_DONE_BURNING",
       "area": {
         "bounds": [
           [2752, 6080, 2815, 6143]
@@ -2079,7 +2079,7 @@
     },
     {
       "name": "Sote lletya on fire",
-      "source": "117HD SOTE_LLETYA_ON_FIRE",
+      "source": "SOTE_LLETYA_ON_FIRE",
       "area": {
         "bounds": [
           [2880, 6144, 2943, 6207]
@@ -2092,7 +2092,7 @@
     },
     {
       "name": "Backwater and breakbone strait",
-      "source": "117HD BACKWATER_AND_BREAKBONE_STRAIT",
+      "source": "BACKWATER_AND_BREAKBONE_STRAIT",
       "area": {
         "bounds": [
           [2176, 3006, 2205, 3010],
@@ -2352,7 +2352,7 @@
     },
     {
       "name": "Poison waste",
-      "source": "117HD POISON_WASTE",
+      "source": "POISON_WASTE",
       "area": {
         "bounds": [
           [2166, 3069, 2315, 3119],
@@ -2388,7 +2388,7 @@
     },
     {
       "name": "Tirannwn mainland",
-      "source": "117HD TIRANNWN_MAINLAND",
+      "source": "TIRANNWN_MAINLAND",
       "area": {
         "bounds": [
           [2320, 3140, 2364, 3202],
@@ -2508,7 +2508,7 @@
     },
     {
       "name": "Prifddinas",
-      "source": "117HD PRIFDDINAS",
+      "source": "PRIFDDINAS",
       "area": {
         "bounds": [
           [3225, 6023, 3302, 6136],
@@ -2602,7 +2602,7 @@
     },
     {
       "name": "Zalcano",
-      "source": "117HD ZALCANO",
+      "source": "ZALCANO",
       "area": {
         "bounds": [
           [3008, 6016, 3071, 6079]
@@ -2615,7 +2615,7 @@
     },
     {
       "name": "Sote grand library",
-      "source": "117HD SOTE_GRAND_LIBRARY",
+      "source": "SOTE_GRAND_LIBRARY",
       "area": {
         "bounds": [
           [2560, 6080, 2687, 6207]
@@ -2628,7 +2628,7 @@
     },
     {
       "name": "Sote fragment of seren arena",
-      "source": "117HD SOTE_FRAGMENT_OF_SEREN_ARENA",
+      "source": "SOTE_FRAGMENT_OF_SEREN_ARENA",
       "area": {
         "bounds": [
           [3264, 5888, 3326, 5951]
@@ -2641,7 +2641,7 @@
     },
     {
       "name": "Shadow dungeon",
-      "source": "117HD SHADOW_DUNGEON",
+      "source": "SHADOW_DUNGEON",
       "area": {
         "bounds": [
           [2624, 5056, 2687, 5119],
@@ -2655,7 +2655,7 @@
     },
     {
       "name": "Nightmare zone and king black dragon",
-      "source": "117HD NIGHTMARE_ZONE_AND_KING_BLACK_DRAGON",
+      "source": "NIGHTMARE_ZONE_AND_KING_BLACK_DRAGON",
       "area": {
         "bounds": [
           [2241, 4670, 2303, 4722]
@@ -2668,7 +2668,7 @@
     },
     {
       "name": "Castle wars underground",
-      "source": "117HD CASTLE_WARS_UNDERGROUND",
+      "source": "CASTLE_WARS_UNDERGROUND",
       "area": {
         "bounds": [
           [2356, 9473, 2444, 9535],
@@ -2682,7 +2682,7 @@
     },
     {
       "name": "Lms arena wild varrock",
-      "source": "117HD LMS_ARENA_WILD_VARROCK",
+      "source": "LMS_ARENA_WILD_VARROCK",
       "area": {
         "bounds": [
           [3456, 6016, 3647, 6207]
@@ -2700,7 +2700,7 @@
     },
     {
       "name": "Karuulm slayer dungeon",
-      "source": "117HD KARUULM_SLAYER_DUNGEON",
+      "source": "KARUULM_SLAYER_DUNGEON",
       "area": {
         "bounds": [
           [1216, 10112, 1343, 10239],
@@ -2717,7 +2717,7 @@
     },
     {
       "name": "Kourend catacombs",
-      "source": "117HD KOUREND_CATACOMBS",
+      "source": "KOUREND_CATACOMBS",
       "area": {
         "bounds": [
           [1584, 9976, 1751, 10111],
@@ -2731,7 +2731,7 @@
     },
     {
       "name": "Kebos lowlands swamp",
-      "source": "117HD KEBOS_LOWLANDS_SWAMP",
+      "source": "KEBOS_LOWLANDS_SWAMP",
       "area": {
         "bounds": [
           [1167, 3604, 1345, 3663],
@@ -2774,7 +2774,7 @@
     },
     {
       "name": "Lizardman temple",
-      "source": "117HD LIZARDMAN_TEMPLE",
+      "source": "LIZARDMAN_TEMPLE",
       "area": {
         "bounds": [
           [1280, 10048, 1343, 10111]
@@ -2787,7 +2787,7 @@
     },
     {
       "name": "Blood altar",
-      "source": "117HD BLOOD_ALTAR",
+      "source": "BLOOD_ALTAR",
       "area": {
         "bounds": [
           [1703, 3815, 1739, 3844],
@@ -2802,7 +2802,7 @@
     },
     {
       "name": "Zeah snowy northern region",
-      "source": "117HD ZEAH_SNOWY_NORTHERN_REGION",
+      "source": "ZEAH_SNOWY_NORTHERN_REGION",
       "area": {
         "bounds": [
           [1400, 3885, 1438, 3902],
@@ -2849,7 +2849,7 @@
     },
     {
       "name": "Wintertodt arena",
-      "source": "117HD WINTERTODT_ARENA",
+      "source": "WINTERTODT_ARENA",
       "area": {
         "bounds": [
           [1606, 3966, 1654, 4058]
@@ -2867,7 +2867,7 @@
     },
     {
       "name": "Arceuus",
-      "source": "117HD ARCEUUS",
+      "source": "ARCEUUS",
       "area": {
         "bounds": [
           [1572, 3799, 1597, 3840],
@@ -2921,7 +2921,7 @@
     },
     {
       "name": "Lovakengj",
-      "source": "117HD LOVAKENGJ",
+      "source": "LOVAKENGJ",
       "area": {
         "bounds": [
           [1421, 3788, 1560, 3844],
@@ -2981,7 +2981,7 @@
     },
     {
       "name": "Battlefront lizardman canyon shamans",
-      "source": "117HD BATTLEFRONT_LIZARDMAN_CANYON_SHAMANS",
+      "source": "BATTLEFRONT_LIZARDMAN_CANYON_SHAMANS",
       "area": {
         "bounds": [
           [1346, 3717, 1351, 3720],
@@ -3015,7 +3015,7 @@
     },
     {
       "name": "The stranglewood",
-      "source": "117HD THE_STRANGLEWOOD",
+      "source": "THE_STRANGLEWOOD",
       "area": {
         "bounds": [
           [1087, 3365, 1237, 3462],
@@ -3030,7 +3030,7 @@
     },
     {
       "name": "The stranglewood quest underground areas",
-      "source": "117HD THE_STRANGLEWOOD_QUEST_UNDERGROUND_AREAS",
+      "source": "THE_STRANGLEWOOD_QUEST_UNDERGROUND_AREAS",
       "area": {
         "bounds": [
           [1152, 9728, 1215, 9855]
@@ -3043,7 +3043,7 @@
     },
     {
       "name": "Judge of yama boss",
-      "source": "117HD JUDGE_OF_YAMA_BOSS",
+      "source": "JUDGE_OF_YAMA_BOSS",
       "area": {
         "bounds": [
           [1600, 5888, 1727, 5951]
@@ -3061,7 +3061,7 @@
     },
     {
       "name": "Cosmic entitys plane",
-      "source": "117HD COSMIC_ENTITYS_PLANE",
+      "source": "COSMIC_ENTITYS_PLANE",
       "area": {
         "bounds": [
           [2048, 4800, 2111, 4863]
@@ -3074,7 +3074,7 @@
     },
     {
       "name": "Zanaris",
-      "source": "117HD ZANARIS",
+      "source": "ZANARIS",
       "area": {
         "bounds": [
           [2368, 4416, 2495, 4479],
@@ -3089,7 +3089,7 @@
     },
     {
       "name": "The gauntlet normal",
-      "source": "117HD THE_GAUNTLET_NORMAL",
+      "source": "THE_GAUNTLET_NORMAL",
       "area": {
         "bounds": [
           [1856, 5632, 1919, 5695]
@@ -3103,7 +3103,7 @@
     },
     {
       "name": "The gauntlet corrupted",
-      "source": "117HD THE_GAUNTLET_CORRUPTED",
+      "source": "THE_GAUNTLET_CORRUPTED",
       "area": {
         "bounds": [
           [1920, 5632, 1983, 5695]
@@ -3117,7 +3117,7 @@
     },
     {
       "name": "The gauntlet lobby",
-      "source": "117HD THE_GAUNTLET_LOBBY",
+      "source": "THE_GAUNTLET_LOBBY",
       "area": {
         "bounds": [
           [3025, 6116, 3040, 6131]
@@ -3130,7 +3130,7 @@
     },
     {
       "name": "Blackhole",
-      "source": "117HD BLACKHOLE",
+      "source": "BLACKHOLE",
       "area": {
         "bounds": [
           [1616, 4728, 1623, 4735]
@@ -3143,7 +3143,7 @@
     },
     {
       "name": "Camdozaal",
-      "source": "117HD CAMDOZAAL",
+      "source": "CAMDOZAAL",
       "area": {
         "bounds": [
           [2897, 5760, 3036, 5848]
@@ -3156,7 +3156,7 @@
     },
     {
       "name": "Tempoross cove",
-      "source": "117HD TEMPOROSS_COVE",
+      "source": "TEMPOROSS_COVE",
       "area": {
         "bounds": [
           [3010, 2834, 3051, 2869],
@@ -3200,7 +3200,7 @@
     },
     {
       "name": "The storm tempor edge",
-      "source": "117HD THE_STORM_TEMPOR_EDGE",
+      "source": "THE_STORM_TEMPOR_EDGE",
       "area": {
         "bounds": [
           [2975, 2920, 2981, 2925],
@@ -3340,7 +3340,7 @@
     },
     {
       "name": "The storm tempor",
-      "source": "117HD THE_STORM_TEMPOR",
+      "source": "THE_STORM_TEMPOR",
       "area": {
         "bounds": [
           [2982, 2893, 3068, 2930],
@@ -3401,7 +3401,7 @@
     },
     {
       "name": "Deaths office",
-      "source": "117HD DEATHS_OFFICE",
+      "source": "DEATHS_OFFICE",
       "area": {
         "bounds": [
           [3164, 5719, 3185, 5734]
@@ -3414,7 +3414,7 @@
     },
     {
       "name": "Chambers of xeric",
-      "source": "117HD CHAMBERS_OF_XERIC",
+      "source": "CHAMBERS_OF_XERIC",
       "area": {
         "bounds": [
           [3200, 5696, 3263, 5759],
@@ -3429,7 +3429,7 @@
     },
     {
       "name": "Nightmare of ashihama arena",
-      "source": "117HD NIGHTMARE_OF_ASHIHAMA_ARENA",
+      "source": "NIGHTMARE_OF_ASHIHAMA_ARENA",
       "area": {
         "bounds": [
           [3840, 9920, 3903, 9983]
@@ -3442,7 +3442,7 @@
     },
     {
       "name": "Sisterhood sanctuary",
-      "source": "117HD SISTERHOOD_SANCTUARY",
+      "source": "SISTERHOOD_SANCTUARY",
       "area": {
         "bounds": [
           [3712, 9664, 3903, 9855]
@@ -3455,7 +3455,7 @@
     },
     {
       "name": "Lunar dream world",
-      "source": "117HD LUNAR_DREAM_WORLD",
+      "source": "LUNAR_DREAM_WORLD",
       "area": {
         "bounds": [
           [1728, 5056, 1791, 5119],
@@ -3469,7 +3469,7 @@
     },
     {
       "name": "Cosmic altar",
-      "source": "117HD COSMIC_ALTAR",
+      "source": "COSMIC_ALTAR",
       "area": {
         "bounds": [
           [2112, 4799, 2176, 4863]
@@ -3482,7 +3482,7 @@
     },
     {
       "name": "True blood altar",
-      "source": "117HD TRUE_BLOOD_ALTAR",
+      "source": "TRUE_BLOOD_ALTAR",
       "area": {
         "bounds": [
           [3202, 4800, 3263, 4863]
@@ -3495,7 +3495,7 @@
     },
     {
       "name": "Tarns lair",
-      "source": "117HD TARNS_LAIR",
+      "source": "TARNS_LAIR",
       "area": {
         "bounds": [
           [3136, 4544, 3199, 4671]
@@ -3508,7 +3508,7 @@
     },
     {
       "name": "Random event gravedigger (2)",
-      "source": "117HD RANDOM_EVENT_GRAVEDIGGER",
+      "source": "RANDOM_EVENT_GRAVEDIGGER",
       "area": {
         "bounds": [
           [1920, 4992, 1935, 5007]
@@ -3526,7 +3526,7 @@
     },
     {
       "name": "Giants foundry",
-      "source": "117HD GIANTS_FOUNDRY",
+      "source": "GIANTS_FOUNDRY",
       "area": {
         "bounds": [
           [3331, 11456, 3393, 11520]
@@ -3539,7 +3539,7 @@
     },
     {
       "name": "Elid cave",
-      "source": "117HD ELID_CAVE",
+      "source": "ELID_CAVE",
       "area": {
         "bounds": [
           [3346, 9532, 3350, 9535],
@@ -3553,7 +3553,7 @@
     },
     {
       "name": "Ancient cavern",
-      "source": "117HD ANCIENT_CAVERN",
+      "source": "ANCIENT_CAVERN",
       "area": {
         "bounds": [
           [1600, 5248, 1663, 5311],
@@ -3569,7 +3569,7 @@
     },
     {
       "name": "Icy underground dark",
-      "source": "117HD ICY_UNDERGROUND_DARK",
+      "source": "ICY_UNDERGROUND_DARK",
       "area": {
         "bounds": [
           [2816, 10304, 2879, 10367],
@@ -3585,7 +3585,7 @@
     },
     {
       "name": "Icy underground bright",
-      "source": "117HD ICY_UNDERGROUND_BRIGHT",
+      "source": "ICY_UNDERGROUND_BRIGHT",
       "area": {
         "bounds": [
           [2816, 9897, 2879, 9983],
@@ -3601,7 +3601,7 @@
     },
     {
       "name": "Dt2 mysterious figure hideout",
-      "source": "117HD DT2_MYSTERIOUS_FIGURE_HIDEOUT",
+      "source": "DT2_MYSTERIOUS_FIGURE_HIDEOUT",
       "area": {
         "bounds": [
           [3072, 9216, 3135, 9279]
@@ -3614,7 +3614,7 @@
     },
     {
       "name": "Asgarnia ice dungeon snowy",
-      "source": "117HD ASGARNIA_ICE_DUNGEON_SNOWY",
+      "source": "ASGARNIA_ICE_DUNGEON_SNOWY",
       "area": {
         "bounds": [
           [3020, 9531, 3085, 9605],
@@ -3632,7 +3632,7 @@
     },
     {
       "name": "Asgarnia ice dungeon normal",
-      "source": "117HD ASGARNIA_ICE_DUNGEON_NORMAL",
+      "source": "ASGARNIA_ICE_DUNGEON_NORMAL",
       "area": {
         "bounds": [
           [2984, 9536, 3019, 9601],
@@ -3646,7 +3646,7 @@
     },
     {
       "name": "Royal titans arena",
-      "source": "117HD ROYAL_TITANS_ARENA",
+      "source": "ROYAL_TITANS_ARENA",
       "area": {
         "bounds": [
           [2906, 9555, 2916, 9580]
@@ -3659,7 +3659,7 @@
     },
     {
       "name": "Goblin village cooks chamber",
-      "source": "117HD GOBLIN_VILLAGE_COOKS_CHAMBER",
+      "source": "GOBLIN_VILLAGE_COOKS_CHAMBER",
       "area": {
         "bounds": [
           [2968, 9904, 2991, 9919],
@@ -3673,7 +3673,7 @@
     },
     {
       "name": "Mage arena bank",
-      "source": "117HD MAGE_ARENA_BANK",
+      "source": "MAGE_ARENA_BANK",
       "area": {
         "bounds": [
           [2525, 4706, 2551, 4727]
@@ -3686,7 +3686,7 @@
     },
     {
       "name": "Mage arena god statues",
-      "source": "117HD MAGE_ARENA_GOD_STATUES",
+      "source": "MAGE_ARENA_GOD_STATUES",
       "area": {
         "bounds": [
           [2495, 4682, 2520, 4730]
@@ -3699,7 +3699,7 @@
     },
     {
       "name": "Tears of guthix",
-      "source": "117HD TEARS_OF_GUTHIX",
+      "source": "TEARS_OF_GUTHIX",
       "area": {
         "bounds": [
           [3200, 9501, 3265, 9535],
@@ -3713,7 +3713,7 @@
     },
     {
       "name": "Burgh de rott basement",
-      "source": "117HD BURGH_DE_ROTT_BASEMENT",
+      "source": "BURGH_DE_ROTT_BASEMENT",
       "area": {
         "bounds": [
           [3456, 9600, 3519, 9663]
@@ -3726,7 +3726,7 @@
     },
     {
       "name": "Keep le faye jail",
-      "source": "117HD KEEP_LE_FAYE_JAIL",
+      "source": "KEEP_LE_FAYE_JAIL",
       "area": {
         "bounds": [
           [1881, 4253, 1919, 4287]
@@ -3739,7 +3739,7 @@
     },
     {
       "name": "Poison waste dungeon",
-      "source": "117HD POISON_WASTE_DUNGEON",
+      "source": "POISON_WASTE_DUNGEON",
       "area": {
         "bounds": [
           [1344, 4224, 1407, 4287],
@@ -3755,7 +3755,7 @@
     },
     {
       "name": "The scar",
-      "source": "117HD THE_SCAR",
+      "source": "THE_SCAR",
       "area": {
         "bounds": [
           [1984, 6304, 2143, 6463],
@@ -3772,7 +3772,7 @@
     },
     {
       "name": "Lassar undercity water cutscene",
-      "source": "117HD LASSAR_UNDERCITY_WATER_CUTSCENE",
+      "source": "LASSAR_UNDERCITY_WATER_CUTSCENE",
       "area": {
         "bounds": [
           [3200, 6272, 3263, 6335]
@@ -3785,7 +3785,7 @@
     },
     {
       "name": "Lassar undercity normal",
-      "source": "117HD LASSAR_UNDERCITY_NORMAL",
+      "source": "LASSAR_UNDERCITY_NORMAL",
       "area": {
         "bounds": [
           [2496, 6336, 2559, 6399],
@@ -3801,7 +3801,7 @@
     },
     {
       "name": "Lassar undercity shadow realm",
-      "source": "117HD LASSAR_UNDERCITY_SHADOW_REALM",
+      "source": "LASSAR_UNDERCITY_SHADOW_REALM",
       "area": {
         "bounds": [
           [2240, 6336, 2303, 6399],
@@ -3816,7 +3816,7 @@
     },
     {
       "name": "Abyssal areas",
-      "source": "117HD ABYSSAL_AREAS",
+      "source": "ABYSSAL_AREAS",
       "area": {
         "bounds": [
           [3034, 4803, 3044, 4863],
@@ -3855,7 +3855,7 @@
     },
     {
       "name": "Defender of varrock castle under attack",
-      "source": "117HD DEFENDER_OF_VARROCK_CASTLE_UNDER_ATTACK",
+      "source": "DEFENDER_OF_VARROCK_CASTLE_UNDER_ATTACK",
       "area": {
         "bounds": [
           [3840, 4864, 4031, 5055]
@@ -3868,7 +3868,7 @@
     },
     {
       "name": "Mind altar",
-      "source": "117HD MIND_ALTAR",
+      "source": "MIND_ALTAR",
       "area": {
         "bounds": [
           [2756, 4805, 2810, 4861]
@@ -3881,7 +3881,7 @@
     },
     {
       "name": "Earth altar",
-      "source": "117HD EARTH_ALTAR",
+      "source": "EARTH_ALTAR",
       "area": {
         "bounds": [
           [2627, 4815, 2685, 4861]
@@ -3894,7 +3894,7 @@
     },
     {
       "name": "Fire altar",
-      "source": "117HD FIRE_ALTAR",
+      "source": "FIRE_ALTAR",
       "area": {
         "bounds": [
           [2553, 4802, 2622, 4864]
@@ -3907,7 +3907,7 @@
     },
     {
       "name": "Body altar",
-      "source": "117HD BODY_ALTAR",
+      "source": "BODY_ALTAR",
       "area": {
         "bounds": [
           [2497, 4817, 2543, 4863]
@@ -3920,7 +3920,7 @@
     },
     {
       "name": "Chaos altar",
-      "source": "117HD CHAOS_ALTAR",
+      "source": "CHAOS_ALTAR",
       "area": {
         "bounds": [
           [2240, 4800, 2303, 4863]
@@ -3933,7 +3933,7 @@
     },
     {
       "name": "Law altar",
-      "source": "117HD LAW_ALTAR",
+      "source": "LAW_ALTAR",
       "area": {
         "bounds": [
           [2432, 4800, 2495, 4863]
@@ -3946,7 +3946,7 @@
     },
     {
       "name": "Death altar",
-      "source": "117HD DEATH_ALTAR",
+      "source": "DEATH_ALTAR",
       "area": {
         "bounds": [
           [2176, 4799, 2240, 4863]
@@ -3958,7 +3958,7 @@
     },
     {
       "name": "Earthbound cavern",
-      "source": "117HD EARTHBOUND_CAVERN",
+      "source": "EARTHBOUND_CAVERN",
       "area": {
         "bounds": [
           [1344, 9664, 1407, 9747]
@@ -3971,7 +3971,7 @@
     },
     {
       "name": "Streambound cavern",
-      "source": "117HD STREAMBOUND_CAVERN",
+      "source": "STREAMBOUND_CAVERN",
       "area": {
         "bounds": [
           [1472, 9664, 1535, 9727]
@@ -3984,7 +3984,7 @@
     },
     {
       "name": "Perious moons antechamber",
-      "source": "117HD PERIOUS_MOONS_ANTECHAMBER",
+      "source": "PERIOUS_MOONS_ANTECHAMBER",
       "area": {
         "bounds": [
           [1418, 9640, 1433, 9653],
@@ -4002,7 +4002,7 @@
     },
     {
       "name": "Ancient shrine",
-      "source": "117HD ANCIENT_SHRINE",
+      "source": "ANCIENT_SHRINE",
       "area": {
         "bounds": [
           [1501, 9568, 1525, 9592],
@@ -4019,7 +4019,7 @@
     },
     {
       "name": "Red chinchompa hunting ground",
-      "source": "117HD RED_CHINCHOMPA_HUNTING_GROUND",
+      "source": "RED_CHINCHOMPA_HUNTING_GROUND",
       "area": {
         "bounds": [
           [2509, 9285, 2534, 9309]
@@ -4032,7 +4032,7 @@
     },
     {
       "name": "Hueycoatl arena",
-      "source": "117HD Hueycoatl Arena",
+      "source": "Hueycoatl Arena",
       "area": {
         "bounds": [
           [1508, 3268, 1515, 3272],
@@ -4052,7 +4052,7 @@
     },
     {
       "name": "Varlamore snowy mountains upper",
-      "source": "117HD VARLAMORE_SNOWY_MOUNTAINS_UPPER",
+      "source": "VARLAMORE_SNOWY_MOUNTAINS_UPPER",
       "area": {
         "bounds": [
           [1425, 3133, 1465, 3200],
@@ -4103,7 +4103,7 @@
     },
     {
       "name": "Varlamore snowy mountains lower",
-      "source": "117HD VARLAMORE_SNOWY_MOUNTAINS_LOWER",
+      "source": "VARLAMORE_SNOWY_MOUNTAINS_LOWER",
       "area": {
         "bounds": [
           [1407, 3116, 1424, 3197],
@@ -4159,7 +4159,7 @@
     },
     {
       "name": "White wolf mountain environment",
-      "source": "117HD WHITE_WOLF_MOUNTAIN_ENVIRONMENT",
+      "source": "WHITE_WOLF_MOUNTAIN_ENVIRONMENT",
       "area": {
         "bounds": [
           [2799, 3500, 2811, 3507],
@@ -4199,7 +4199,7 @@
     },
     {
       "name": "Enchanted valley",
-      "source": "117HD ENCHANTED_VALLEY",
+      "source": "ENCHANTED_VALLEY",
       "area": {
         "bounds": [
           [3010, 4480, 3071, 4540]
@@ -4212,7 +4212,7 @@
     },
     {
       "name": "Auburnvale",
-      "source": "117HD AUBURNVALE",
+      "source": "AUBURNVALE",
       "area": {
         "bounds": [
           [1272, 3364, 1284, 3387],
@@ -4304,7 +4304,7 @@
     },
     {
       "name": "Fishing trawler sunk",
-      "source": "117HD FISHING_TRAWLER_SUNK",
+      "source": "FISHING_TRAWLER_SUNK",
       "area": {
         "bounds": [
           [1920, 4800, 1983, 4862]
@@ -4317,7 +4317,7 @@
     },
     {
       "name": "Fishing trawler",
-      "source": "117HD FISHING_TRAWLER",
+      "source": "FISHING_TRAWLER",
       "area": {
         "bounds": [
           [1856, 4800, 1919, 4862],
@@ -4332,7 +4332,7 @@
     },
     {
       "name": "Puro puro",
-      "source": "117HD PURO_PURO",
+      "source": "PURO_PURO",
       "area": {
         "bounds": [
           [2560, 4288, 2623, 4351]
@@ -4345,7 +4345,7 @@
     },
     {
       "name": "Ruins of tapoyauik",
-      "source": "117HD Ruins of Tapoyauik",
+      "source": "Ruins of Tapoyauik",
       "area": {
         "bounds": [
           [1536, 9600, 1727, 9663]
@@ -4358,7 +4358,7 @@
     },
     {
       "name": "Amoxliatl arena",
-      "source": "117HD AMOXLIATL_ARENA",
+      "source": "AMOXLIATL_ARENA",
       "area": {
         "bounds": [
           [1344, 4480, 1407, 4543]
@@ -4371,7 +4371,7 @@
     },
     {
       "name": "Random event prison pete",
-      "source": "117HD RANDOM_EVENT_PRISON_PETE",
+      "source": "RANDOM_EVENT_PRISON_PETE",
       "area": {
         "bounds": [
           [2059, 4447, 2111, 4479]
@@ -4389,7 +4389,7 @@
     },
     {
       "name": "Black knights fort - basement",
-      "source": "117HD Black Knights Fort - Basement",
+      "source": "Black Knights Fort - Basement",
       "area": {
         "bounds": [
           [1857, 4225, 1877, 4252]
@@ -4402,7 +4402,7 @@
     },
     {
       "name": "Black knights fort - catacombs",
-      "source": "117HD Black Knights Fort - Catacombs",
+      "source": "Black Knights Fort - Catacombs",
       "area": {
         "bounds": [
           [4160, 4696, 4162, 4704],
@@ -4417,7 +4417,7 @@
     },
     {
       "name": "Guthix temple",
-      "source": "117HD Guthix Temple",
+      "source": "Guthix Temple",
       "area": {
         "bounds": [
           [4032, 4352, 4159, 4479]
@@ -4430,7 +4430,7 @@
     },
     {
       "name": "Doom of mokhaiotl - floor 1",
-      "source": "117HD Doom of Mokhaiotl - Floor 1",
+      "source": "Doom of Mokhaiotl - Floor 1",
       "area": {
         "bounds": [
           [1280, 9536, 1343, 9599]
@@ -4443,7 +4443,7 @@
     },
     {
       "name": "Doom of mokhaiotl - floors 2 to 5",
-      "source": "117HD Doom of Mokhaiotl - Floors 2 to 5",
+      "source": "Doom of Mokhaiotl - Floors 2 to 5",
       "area": {
         "bounds": [
           [3392, 6400, 3455, 6463]
@@ -4456,7 +4456,7 @@
     },
     {
       "name": "Doom of mokhaiotl - floors 6 to 8",
-      "source": "117HD Doom of Mokhaiotl - Floors 6 to 8",
+      "source": "Doom of Mokhaiotl - Floors 6 to 8",
       "area": {
         "bounds": [
           [3520, 6400, 3583, 6463]
@@ -4469,7 +4469,7 @@
     },
     {
       "name": "Cerberus entrance",
-      "source": "117HD CERBERUS ENTRANCE",
+      "source": "CERBERUS ENTRANCE",
       "area": {
         "bounds": [
           [1280, 1226, 1343, 1279]
@@ -4482,7 +4482,7 @@
     },
     {
       "name": "Mastering mixology wind",
-      "source": "117HD MASTERING_MIXOLOGY_WIND",
+      "source": "MASTERING_MIXOLOGY_WIND",
       "area": {
         "bounds": [
           [1386, 9319, 1401, 9333]
@@ -4495,7 +4495,7 @@
     },
     {
       "name": "Grimstone",
-      "source": "117HD GRIMSTONE",
+      "source": "GRIMSTONE",
       "area": {
         "bounds": [
           [2880, 4032, 2943, 4095]
@@ -4508,7 +4508,7 @@
     },
     {
       "name": "Grimstone dungeon",
-      "source": "117HD GRIMSTONE_DUNGEON",
+      "source": "GRIMSTONE_DUNGEON",
       "area": {
         "bounds": [
           [2816, 10432, 2943, 10495]
@@ -4521,7 +4521,7 @@
     },
     {
       "name": "Mm2 airship platform",
-      "source": "117HD MM2_AIRSHIP_PLATFORM",
+      "source": "MM2_AIRSHIP_PLATFORM",
       "area": {
         "bounds": [
           [2049, 5376, 2110, 5439]
@@ -4534,7 +4534,7 @@
     },
     {
       "name": "Vampyrium small forest instance",
-      "source": "117HD VAMPYRIUM_SMALL_FOREST_INSTANCE",
+      "source": "VAMPYRIUM_SMALL_FOREST_INSTANCE",
       "area": {
         "bounds": [
           [2944, 7808, 2975, 7839],
@@ -4549,7 +4549,7 @@
     },
     {
       "name": "Vampyrium large forest instance",
-      "source": "117HD VAMPYRIUM_LARGE_FOREST_INSTANCE",
+      "source": "VAMPYRIUM_LARGE_FOREST_INSTANCE",
       "area": {
         "bounds": [
           [2816, 7616, 2879, 7679],
@@ -4564,7 +4564,7 @@
     },
     {
       "name": "Maggot king arena",
-      "source": "117HD MAGGOT_KING_ARENA",
+      "source": "MAGGOT_KING_ARENA",
       "area": {
         "bounds": [
           [2880, 8000, 2943, 8063]
@@ -4577,7 +4577,7 @@
     },
     {
       "name": "Environment for the final battle during The Blood Moon Rises",
-      "source": "117HD VAMPYRIUM_CASTLE_DRAKAN_ROOF",
+      "source": "VAMPYRIUM_CASTLE_DRAKAN_ROOF",
       "area": {
         "bounds": [
           [2511, 7823, 2514, 7853],
@@ -4592,7 +4592,7 @@
     },
     {
       "name": "Environment for Vampyrium post quest, normal cycle since the events of the quest are now past",
-      "source": "117HD VAMPYRIUM",
+      "source": "VAMPYRIUM",
       "area": {
         "bounds": [
           [2368, 7680, 2815, 8063],
@@ -4612,7 +4612,7 @@
     },
     {
       "name": "Player owned house wildy",
-      "source": "117HD PLAYER_OWNED_HOUSE_WILDY",
+      "source": "PLAYER_OWNED_HOUSE_WILDY",
       "area": {
         "bounds": [
           [2048, 7040, 2111, 7167]
@@ -4630,7 +4630,7 @@
     },
     {
       "name": "Player owned house frem",
-      "source": "117HD PLAYER_OWNED_HOUSE_FREM",
+      "source": "PLAYER_OWNED_HOUSE_FREM",
       "area": {
         "bounds": [
           [1856, 7040, 1919, 7167]
@@ -4649,7 +4649,7 @@
     },
     {
       "name": "Player owned house mory",
-      "source": "117HD PLAYER_OWNED_HOUSE_MORY",
+      "source": "PLAYER_OWNED_HOUSE_MORY",
       "area": {
         "bounds": [
           [1984, 7040, 2047, 7167]
@@ -4668,7 +4668,7 @@
     },
     {
       "name": "Player owned house death",
-      "source": "117HD PLAYER_OWNED_HOUSE_DEATH",
+      "source": "PLAYER_OWNED_HOUSE_DEATH",
       "area": {
         "bounds": [
           [1920, 7040, 1983, 7167]
@@ -4682,7 +4682,7 @@
     },
     {
       "name": "Player owned house snowy",
-      "source": "117HD PLAYER_OWNED_HOUSE_SNOWY",
+      "source": "PLAYER_OWNED_HOUSE_SNOWY",
       "area": {
         "bounds": [
           [1984, 7040, 2047, 7167]
@@ -4696,7 +4696,7 @@
     },
     {
       "name": "Wyrmscraig",
-      "source": "117HD WYRMSCRAIG",
+      "source": "WYRMSCRAIG",
       "area": {
         "bounds": [
           [2542, 2172, 2625, 2304],
@@ -4760,7 +4760,7 @@
     },
     {
       "name": "Wyrmscraig (2)",
-      "source": "117HD WYRMSCRAIG",
+      "source": "WYRMSCRAIG",
       "area": {
         "bounds": [
           [2542, 2172, 2625, 2304],

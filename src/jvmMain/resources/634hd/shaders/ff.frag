@@ -398,15 +398,15 @@ void main() {
     // before the fog, so the fog's colour mixed in is the sky's as the sky and the land show it (undone
     // after the fog, fully fogged water came out a shade off the sky, and the game's water sheet, which
     // goes opaque near the fog's end through a per-vertex ramp, showed as a pale, tile-stepped patch).
-    // 634HD's own surface and the seabed under it stay in the scene's light, as 117HD's do.
+    // 634HD's own surface and the seabed under it stay in the scene's light.
     if (uHdWater != 0 && !surface && !bed && hdOn(HD_LINEAR)) color.rgb = hdTonemapInverse(hdToSrgb(color.rgb));
     float depth = gl_FragCoord.z / gl_FragCoord.w;
     // the seabed takes the distance fog (at water 1 the game's sheet is translucent) but no ground fog:
-    // it lies under the water already (117HD fogs nothing under water)
+    // it lies under the water already (nothing is fogged under water)
     hdGroundFogScale = uHdUnderwater != 0 ? 0.0 : 1.0;
     if (uFogEnabled) {
         if (surface) {
-            // the fog raises the surface's opacity (117HD: a = fog + a * (1 - fog)), so the far sea closes
+            // the fog raises the surface's opacity (a = fog + a * (1 - fog)), so the far sea closes
             // over its bed and melts into the sky
             vec3 fogRgb;
             float amount = hdFogAmount(FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd, fogRgb);

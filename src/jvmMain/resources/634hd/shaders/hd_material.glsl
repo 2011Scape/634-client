@@ -19,7 +19,7 @@ uniform sampler2DArray uHdNormalMaps;
 uniform sampler2DArray uHdOrmMaps;
 uniform sampler2DArray uHdEmissiveMaps;
 
-// The flowing textures (117HD's fire cape and lava), a second block: the first sits just under GL's
+// The flowing textures (the fire cape and lava), a second block: the first sits just under GL's
 // least block size (HdMaterialMaps.kt).
 layout(std140) uniform HdMaterialFlow {
     // x: the flow map's layer plus one (0: none), y: its strength, z and w: 1 / the seconds the map
@@ -30,7 +30,7 @@ layout(std140) uniform HdMaterialFlow {
     vec4 hdMapD[HD_MAX_MAPS];
 };
 
-// texture unit 31 (HdShaders.link): the flow maps, sRGB (read linearised, as 117HD reads its)
+// texture unit 31 (HdShaders.link): the flow maps, sRGB (read linearised)
 uniform sampler2DArray uHdFlowMaps;
 
 // 634HD: the water's reflection (HdReflections, unit 26): the viewport it is for (z 0: none), and the
@@ -38,9 +38,9 @@ uniform sampler2DArray uHdFlowMaps;
 uniform vec4 uHdReflection;
 uniform sampler2D uHdReflectionMap;
 
-// 634HD's water surface (HdSettings.water 2): 117HD's water types (rs117/hd/scene/water_types/WaterType.java),
+// 634HD's water surface (HdSettings.water 2): the water types,
 // a third block (HdMaterialMaps.loadWaterTypes); type 0 the defaults, a water material's own at hdMapD.w.
-// Its maps are trailing layers of the flow array (117HD's water_normal_map_1, water_foam, water_flow_map).
+// Its maps are trailing layers of the flow array (water_normal_map_1, water_foam, water_flow_map).
 #define HD_MAX_WATER_TYPES 16
 layout(std140) uniform HdWaterTypes {
     // x: the water normal map's layer in the flow array, y: the foam map's, z: the flow map's, w: types loaded
@@ -70,13 +70,13 @@ bool hdHasMaps(int slot) {
 }
 
 // Whether the material is drawn as its texture alone: no lighting, shadow or occlusion, the face
-// colour ignored (117HD's unlit with overrideBaseColor: its fire cape and lava).
+// colour ignored (the fire cape and lava).
 bool hdUnlit(int slot) {
     return hdHasMaps(slot) && hdMapD[slot].z > 0.5;
 }
 
-// 117HD's flowing texture: [uv] slid by the material's extra scroll, then moved by the flow map's red
-// and green (0..1, linearised: the offset is one-sided, as in 117HD), the map itself sampled at the uv
+// The flowing texture: [uv] slid by the material's extra scroll, then moved by the flow map's red
+// and green (0..1, linearised: the offset is one-sided), the map itself sampled at the uv
 // slid once per its duration along each axis. The scroll and the slide take the fraction of hdTime.x
 // (seconds, wrapping hourly): a repeating texture reads the same, and the uv keeps its precision.
 vec2 hdFlowUv(int slot, vec2 uv) {
@@ -375,14 +375,13 @@ float hdCaustics(vec2 p, float t) {
     return total * 0.5;
 }
 
-// ---- 634HD's water surface (HdSettings.water 2): 117HD's water, recreated ----
-// rs117/hd/utils/water.glsl (sampleWater, sampleUnderwater), utils/specular.glsl, the types of
-// scene/water_types/WaterType.java (HdWaterTypes above), the reflection's gradient of
-// renderer/SkyRenderer.java (updateGlobalUbo). The world's y points down here as there. Sums are made
-// in sRGB terms as 117HD makes them, and the result made linear once (hdColour) for the scene.
+// ---- 634HD's water surface (HdSettings.water 2) ----
+// The surface (hdWaterSurface), the seabed under it (hdWaterBed), the water types (HdWaterTypes
+// above) and the reflection's gradient. The world's y points down. Sums are made in sRGB terms, and
+// the result made linear once (hdColour) for the scene.
 
 // The depth (world units, 512 a tile) over which the seabed's tint goes to black and the surface goes
-// opaque (117HD's 500 of its 128-unit tiles is about four tiles; the game's beds are real and shallow,
+// opaque (about four tiles would suit deep modelled seabeds; the game's beds are real and shallow,
 // a river a tile or so, so three), how deep the shore foam reaches, and how opaque deep water gets.
 #define HD_WATER_DEPTH_RANGE 1536.0
 #define HD_WATER_FOAM_DEPTH 192.0
@@ -394,30 +393,30 @@ float hdCaustics(vec2 p, float t) {
 // How far the ripples bend the reflection, in the view's width per unit of the normal's lean.
 #define HD_WATER_REFLECTION_BEND 0.3
 // How much of what the surface reflects is the scene mirrored in it (HdReflections) where it was drawn;
-// the rest is 117HD's own: the sky in the reflected direction, or its gradient. At 1 the water was a
-// pane of glass with the trees in it; 117HD's water is the sky's colour, rippling.
+// the rest is the sky in the reflected direction, or its gradient. At 1 the water was a
+// pane of glass with the trees in it; water should be the sky's colour, rippling.
 #define HD_WATER_MIRROR_SHARE 0.5
 
 int hdWaterType(int slot) {
     return slot >= 0 ? int(hdMapD[slot].w + 0.5) : 0;
 }
 
-// 117HD's worldUvs: a repeat every [tiles] tiles (512 units here, 128 there) of the world position
-// ([xz] in the scene plus its base, as 117HD adds its sceneBase: the ripples stay put when the scene
+// World uvs: a repeat every [tiles] tiles (512 units) of the world position
+// ([xz] in the scene plus its base: the ripples stay put when the scene
 // is rebuilt around a new base); the area's size scales it.
 vec2 hdWaterWorldUv(vec2 xz, float tiles) {
     return -(xz + hdSceneSize.zw) / (512.0 * tiles * max(hdWaterParams.w, 0.25));
 }
 
-// 117HD's animationFrame: the phase of a slide that takes [seconds] (periods that divide the hour, so
+// The animation frame: the phase of a slide that takes [seconds] (periods that divide the hour, so
 // hdTime.x's hourly wrap passes unseen).
 float hdWaterFrame(float seconds) {
     return seconds > 0.0 ? fract(hdTime.x / seconds) : 0.0;
 }
 
-// The surface's normal (world space) at world [xz] for water [type]: 117HD's three scrolled layers
+// The surface's normal (world space) at world [xz] for water [type]: three scrolled layers
 // of its normal map (3, 5 and 7 tiles a repeat), bent by its flow map ([flow], for the foam too).
-// The array is sRGB: the encoded values come back through hdToSrgb, as 117HD's linearToSrgb does.
+// The array is sRGB: the encoded values come back through hdToSrgb.
 vec3 hdWaterNormal(vec2 xz, int type, out vec2 flow) {
     float duration = hdWaterTime[type].x / max(hdWaterParams.y, 0.05);
     float strength = hdWaterSpec[type].z * hdWaterParams.x;
@@ -436,10 +435,10 @@ vec3 hdWaterNormal(vec2 xz, int type, out vec2 flow) {
     return normalize(n1 + n2 + n3);
 }
 
-// What the surface reflects (sRGB) for a fresnel share [finalFresnel]: 117HD's gradient of the area's
+// What the surface reflects (sRGB) for a fresnel share [finalFresnel]: a gradient of the area's
 // water colour (light, mid and dark: the colour at 0.8, 0.45 and 0.05, by the fresnel), with the scene
 // mirrored in the water (HdReflections, the sky and the trees) mixed over it where it was drawn, bent
-// by the normal. (117HD's own sky sampled in the reflected direction gave a pale water here: the
+// by the normal. (the sky sampled in the reflected direction gave a pale water here: the
 // gradient's sky is the saturated blue of its tint.) Not for a water [model]: the scene is mirrored
 // about the ground's water plane, and a pond at its own height got the trees' reflection displaced
 // over it (the swamp's willow, a lit patch at night).
@@ -457,7 +456,7 @@ vec3 hdWaterReflection(vec3 viewDir, vec3 n, float finalFresnel, vec2 fragCoord,
     return own;
 }
 
-// 117HD's water surface for a water draw: [slot] the texture's material slot (-1: the default type),
+// The water surface for a water draw: [slot] the texture's material slot (-1: the default type),
 // [viewPos] eye space, [vertexDepth] the vertex's water depth less one (0 at the shore) on the ground,
 // below 0 for a water model (a fixed depth, no foam), [fragCoord] gl_FragCoord.xy. The surface in the
 // scene's space with its own alpha (the caller fogs it, and the fog raises the alpha).
@@ -499,13 +498,13 @@ vec4 hdWaterSurface(int slot, vec3 viewPos, float vertexDepth, vec2 fragCoord) {
     }
     vec3 composite = ambient + lightOut + spec + skyLight + pointOut + pointSpec + reflection * max(specStrength, 0.2);
     // the type's colour, its hue pulled towards the area's tint by the tint's strength at the type's
-    // own brightness (pulled towards the tint itself, 117HD's dark swamp water came out a mid green)
+    // own brightness (pulled towards the tint itself, the dark swamp water came out a mid green)
     vec3 typeColour = hdWaterSurfaceColour[type].rgb;
     float typeLuma = dot(typeColour, vec3(0.299, 0.587, 0.114));
     float tintLuma = max(dot(hdWaterTint.rgb, vec3(0.299, 0.587, 0.114)), 0.001);
     vec3 surfaceSrgb = mix(typeColour, hdWaterTint.rgb * (typeLuma / tintLuma), hdWaterTint.w);
     vec3 base = mix(surfaceSrgb * composite, reflection, hdWaterSpec[type].w);
-    // 117HD darkens its plain water (the types with its WATER's fresnel amount) by a quarter
+    // plain water (the types with WATER's fresnel amount) is darkened by a quarter
     if (hdWaterSpec[type].w > 0.84 && hdWaterSpec[type].w < 0.86) base *= 0.75;
     // foam at the shore: where the vertex depth is small (a model has no shore)
     float depth = max(vertexDepth, 0.0);
@@ -519,7 +518,7 @@ vec4 hdWaterSurface(int slot, vec3 viewPos, float vertexDepth, vec2 fragCoord) {
     finalFresnel = max(finalFresnel, 1.0 - dot(viewDir, vec3(0.0, -1.0, 0.0)));
     base += pointSpec + spec / 3.0;
     float alpha = max(hdWaterSurfaceColour[type].w, max(foamAmount, max(finalFresnel, length(specComposite / 3.0))));
-    // deeper water goes opaque (634HD's own: 117HD leaves it to the darkened bed)
+    // deeper water goes opaque (rather than leaving it to the darkened bed)
     alpha = max(alpha, HD_WATER_DEPTH_OPACITY * smoothstep(0.3, 1.0, clamp(depth / HD_WATER_DEPTH_RANGE, 0.0, 1.0)));
     // the depth colour laid under a flat type or a model takes the time of day's light too
     vec3 under = hdWaterDepthColour[type].rgb * (hdOn(HD_ENV_LIGHT) ? hdUnlitLight(hdAmbientColour.rgb, hdSunColour.rgb) : vec3(1.0));
@@ -533,7 +532,7 @@ vec4 hdWaterSurface(int slot, vec3 viewPos, float vertexDepth, vec2 fragCoord) {
     return vec4(hdColour(vec4(base, 1.0)).rgb, alpha);
 }
 
-// The seabed under 634HD's surface (117HD's sampleUnderwater): [color] (the scene's space) tinted by
+// The seabed under 634HD's surface: [color] (the scene's space) tinted by
 // the type's depth colour over the first 30% of the depth range, then towards black. (The seabed's
 // draw carries its own texture's slot, not the water's: the default type's depth colour.)
 vec3 hdWaterBed(int slot, vec3 color, float vertexDepth) {

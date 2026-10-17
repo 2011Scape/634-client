@@ -561,8 +561,8 @@ object SmokeTest {
 		// many NPCs: guards in shiny armour, and barbarians around their fires (they wander too)
 		"varrock_palace:3212,3468,0,0,1400,0,65;" +
 		"barbarian_village:3082,3420,0,0,1400,0,65;" +
-		// the environment fog (117HD's, environments.json): Al Kharid's town in the desert haze, the open
-		// desert south of the Shantay pass under 117HD's own KHARIDIAN_DESERT entry
+		// the environment fog (environments.json): Al Kharid's town in the desert haze, the open
+		// desert south of the Shantay pass under the generated KHARIDIAN_DESERT entry
 		"al_kharid:3293,3180,0,0,1400,0;" +
 		"kharid_desert:3304,3060,0,0,1400,0;" +
 		// the player close up in outfits that between them use every way an item's material draws
