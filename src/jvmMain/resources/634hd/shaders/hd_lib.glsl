@@ -24,6 +24,7 @@
 #define HD_LIGHTING_MODEL 131072
 #define HD_REFLECTIONS 262144
 #define HD_LIGHT_GRID 524288
+#define HD_WATER_SURFACE 1048576
 #define HD_MAX_ACTORS 8
 #define HD_MAX_LIGHTS 64
 
@@ -60,7 +61,7 @@ layout(std140) uniform HdFrame {
     // water's tint (sRGB), w: how much of the game's water colour it replaces (HD_WATER)
     vec4 hdWaterTint;
     // x: the debug panel's overlay (0 none, 1 normals, 2 texture ids, 3 lights, 4 shadow map,
-    // 5 chunk bounds, 6 occlusion, 7 shadows, 8 light grid)
+    // 5 chunk bounds, 6 occlusion, 7 shadows, 8 light grid, 9 the water surface by thirds)
     ivec4 hdDebug;
     // the region's baked occlusion height map (HD_AO): world to (u, v, depth); x top, y height range,
     // z 1 once baked
@@ -81,7 +82,9 @@ layout(std140) uniform HdFrame {
     vec4 hdMoon;
     // the composite's exposure before the tonemap's curve (x; the curve is hdFlags.y: 1 ACES, 2 AgX)
     vec4 hdTonemap;
-    // the loaded scene's size in world units (x, z): the fade near its edge (HD_FADE)
+    // the loaded scene's size in world units (x, z): the fade near its edge (HD_FADE); z, w: the
+    // scene's base in the world, so a pattern laid in world space (the water, the caustics) stays put
+    // when the scene is rebuilt around a new base (a teleport, a long walk)
     vec4 hdSceneSize;
     // the room fill (HD_LIGHT_GRID, HdLightGrid): x strength this frame, y the grid's texels per tile
     vec4 hdGridParams;
@@ -306,12 +309,13 @@ vec3 hdFogMix(vec3 color, vec3 fogRgb, float amount) {
 // Fog over a fragment at eye-space [viewPos] ([depth]: its eye depth). [fogColour], [start] and [end]
 // are the draw's fixed-function fog, which is all there is unless HD_FOG (the environment's colour
 // and distances, a smooth curve, height fog) or HD_SKY (the colour of the sky behind the fragment).
-vec4 hdFog(vec4 color, vec3 viewPos, float depth, vec4 fogColour, float start, float end) {
+// The fog's share and its sRGB colour (hdFog's terms, for a draw that also goes opaque with the fog).
+float hdFogAmount(vec3 viewPos, float depth, vec4 fogColour, float start, float end, out vec3 fogRgb) {
+    fogRgb = fogColour.rgb;
     if (!hdOn(HD_FOG) && !hdOn(HD_SKY) && !hdOn(HD_FADE)) {
         float fogFactor = clamp((end - depth) / (end - start), 0.0, 1.0);
-        return vec4(hdFogMix(color.rgb, fogColour.rgb, 1.0 - fogFactor), color.a);
+        return 1.0 - fogFactor;
     }
-    vec3 fogRgb = fogColour.rgb;
     float amount;
     float dist = length(viewPos);
     if (hdOn(HD_FOG)) {
@@ -346,6 +350,12 @@ vec4 hdFog(vec4 color, vec3 viewPos, float depth, vec4 fogColour, float start, f
         }
         amount = max(amount, max(fade, edge));
     }
+    return amount;
+}
+
+vec4 hdFog(vec4 color, vec3 viewPos, float depth, vec4 fogColour, float start, float end) {
+    vec3 fogRgb;
+    float amount = hdFogAmount(viewPos, depth, fogColour, start, end, fogRgb);
     return vec4(hdFogMix(color.rgb, fogRgb, amount), color.a);
 }
 

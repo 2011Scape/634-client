@@ -42,6 +42,12 @@ class HdMaterialMaps {
         const val UNIT_EMISSIVE: Int = 21
         const val BINDING_FLOW: Int = 2
         const val UNIT_FLOW: Int = 31
+        /** The water types' block (HdWaterTypes in hd_material.glsl): 634HD's water surface (HdSettings.water 2). */
+        const val BINDING_WATER: Int = 3
+        const val MAX_WATER_TYPES: Int = 16
+        private const val WATER_TABLE_BYTES: Int = 16 + MAX_WATER_TYPES * 16 * 5
+        /** 117HD's water maps (materials/flow/): trailing layers of the flow array, whatever the materials use. */
+        private val WATER_MAPS: Array<String> = arrayOf("water_normal_map_1.png", "water_foam.png", "water_flow_map.png")
         // 448 sets: the two vec4 arrays of the HdMaterialMaps block stay under 16 KB, GL's least limit
         const val MAX_MAPS: Int = 448
         const val SIZE: Int = 256
@@ -57,6 +63,7 @@ class HdMaterialMaps {
     private var buffer: Int = 0
     private var flowArray: Int = 0
     private var flowBuffer: Int = 0
+    private var waterBuffer: Int = 0
 
     /** Flow maps loaded (layers of the flow array). */
     var flowCount: Int = 0
@@ -92,6 +99,7 @@ class HdMaterialMaps {
         if (buffer == 0) return
         GL33C.glBindBufferBase(GL33C.GL_UNIFORM_BUFFER, BINDING, buffer)
         GL33C.glBindBufferBase(GL33C.GL_UNIFORM_BUFFER, BINDING_FLOW, flowBuffer)
+        GL33C.glBindBufferBase(GL33C.GL_UNIFORM_BUFFER, BINDING_WATER, waterBuffer)
         for (i in 0 until 3) {
             GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + UNIT_NORMAL + i)
             GL33C.glBindTexture(GL33C.GL_TEXTURE_2D_ARRAY, arrays[i])
@@ -207,7 +215,9 @@ class HdMaterialMaps {
             val name: String = m.flowMap ?: continue
             if (!flowNames.contains(name)) flowNames.add(name)
         }
+        for (name in WATER_MAPS) if (!flowNames.contains(name)) flowNames.add(name)
         loadFlow(content, flowNames)
+        val waterTypeOf: HashMap<Int, Int> = loadWaterTypes(materials, flowNames)
         // flat normal, no occlusion with mid roughness and no emission, black
         val defaults: IntArray = intArrayOf(0x8080FF, 0xFFB300, 0x000000)
         val alphaDefaults: IntArray = intArrayOf(0xFF, 0xFF, 0xFF)
@@ -303,7 +313,7 @@ class HdMaterialMaps {
             flowTable.putFloat(slot * 16, (flowLayer + 1).toFloat()).putFloat(slot * 16 + 4, m.flowStrength)
                 .putFloat(slot * 16 + 8, if (m.flowDurationU > 0.0f) 1.0f / m.flowDurationU else 0.0f)
                 .putFloat(slot * 16 + 12, if (m.flowDurationV > 0.0f) 1.0f / m.flowDurationV else 0.0f)
-            flowTable.putFloat(b, m.scrollU).putFloat(b + 4, m.scrollV).putFloat(b + 8, if (m.unlit) 1.0f else 0.0f).putFloat(b + 12, 0.0f)
+            flowTable.putFloat(b, m.scrollU).putFloat(b + 4, m.scrollV).putFloat(b + 8, if (m.unlit) 1.0f else 0.0f).putFloat(b + 12, (waterTypeOf[m.texture] ?: 0).toFloat())
         }
         if (!uncompressed && GL33C.glGetError() != GL33C.GL_NO_ERROR) {
             // the driver would not compress: load again uncompressed
@@ -337,6 +347,49 @@ class HdMaterialMaps {
         GL33C.glBufferData(GL33C.GL_UNIFORM_BUFFER, flowTable, GL33C.GL_STATIC_DRAW)
         GL33C.glBindBuffer(GL33C.GL_UNIFORM_BUFFER, 0)
         println("634HD: " + count + " material map sets, " + (bytes / 1048576L) + " MB" + (if (compressed) " (BC5/BC7, " + precompressedLayers + " layers precompressed)" else " (uncompressed)") + ", " + flowCount + " flow maps")
+    }
+
+    /**
+     * The water types' block (HdWaterTypes): type 0 is WaterDef's defaults (117HD's WATER), then one per
+     * material with a water block, in materials.json's order, at most MAX_WATER_TYPES - 1 of them; the
+     * block's first vector names the water maps' layers of the flow array. Returns the type of each water
+     * material by texture (hdMapD.w, plus one in the table: 0 is the default).
+     */
+    private fun loadWaterTypes(materials: List<HdContent.MaterialDef>, flowNames: ArrayList<String>): HashMap<Int, Int> {
+        val types: ArrayList<HdContent.WaterDef> = ArrayList()
+        types.add(HdContent.WaterDef())
+        val typeOf: HashMap<Int, Int> = HashMap()
+        for (m in materials) {
+            val w: HdContent.WaterDef = m.water ?: continue
+            if (types.size >= MAX_WATER_TYPES) {
+                System.err.println("634HD: materials.json has more than " + (MAX_WATER_TYPES - 1) + " water types; texture " + m.texture + " takes the default")
+                continue
+            }
+            typeOf[m.texture] = types.size
+            types.add(w)
+        }
+        val table: ByteBuffer = ByteBuffer.allocateDirect(WATER_TABLE_BYTES).order(ByteOrder.nativeOrder())
+        table.putFloat(0, flowNames.indexOf(WATER_MAPS[0]).toFloat()).putFloat(4, flowNames.indexOf(WATER_MAPS[1]).toFloat())
+            .putFloat(8, flowNames.indexOf(WATER_MAPS[2]).toFloat()).putFloat(12, types.size.toFloat())
+        val stride: Int = MAX_WATER_TYPES * 16
+        for ((i, w) in types.withIndex()) {
+            val at: Int = 16 + i * 16
+            putColour(table, at, w.surface, w.opacity)
+            putColour(table, at + stride, w.foam, if (w.hasFoam) 1.0f else 0.0f)
+            putColour(table, at + stride * 2, w.depth, if (w.flat) 1.0f else 0.0f)
+            table.putFloat(at + stride * 3, w.specular).putFloat(at + stride * 3 + 4, w.gloss).putFloat(at + stride * 3 + 8, w.normalStrength).putFloat(at + stride * 3 + 12, w.fresnel)
+            table.putFloat(at + stride * 4, w.duration).putFloat(at + stride * 4 + 4, 0.0f).putFloat(at + stride * 4 + 8, 0.0f).putFloat(at + stride * 4 + 12, 0.0f)
+        }
+        if (waterBuffer == 0) waterBuffer = GL33C.glGenBuffers()
+        GL33C.glBindBuffer(GL33C.GL_UNIFORM_BUFFER, waterBuffer)
+        table.clear()
+        GL33C.glBufferData(GL33C.GL_UNIFORM_BUFFER, table, GL33C.GL_STATIC_DRAW)
+        GL33C.glBindBuffer(GL33C.GL_UNIFORM_BUFFER, 0)
+        return typeOf
+    }
+
+    private fun putColour(table: ByteBuffer, at: Int, rgb: FloatArray, w: Float) {
+        table.putFloat(at, rgb[0]).putFloat(at + 4, rgb[1]).putFloat(at + 8, rgb[2]).putFloat(at + 12, w)
     }
 
     /**
@@ -513,6 +566,8 @@ class HdMaterialMaps {
         flowArray = 0
         if (flowBuffer != 0) GL33C.glDeleteBuffers(flowBuffer)
         flowBuffer = 0
+        if (waterBuffer != 0) GL33C.glDeleteBuffers(waterBuffer)
+        waterBuffer = 0
         flowCount = 0
         count = 0
         bytes = 0L

@@ -1246,7 +1246,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			} else {
 				texture = this.textureCache.getTexture(materialId)
 				val textureMetrics: MaterialType? = this.materialProvider!!.getMetrics(materialId)
-				this.setSceneAlphaToCoverage(textureMetrics!!.effectCombiner == 1) // Not part of the original client: see setSceneAlphaToCoverage.
+				// Not part of the original client: see setSceneAlphaToCoverage. 634HD's own water surface (water 2) blends
+				// its alpha: under multisampling the coverage dither would pixelate it.
+				this.setSceneAlphaToCoverage(textureMetrics!!.effectCombiner == 1 && !(HdSettings.water >= 2 && isWaterEffect(textureMetrics.effectType.toInt())))
 				if (textureMetrics.speedU.toInt() == 0 && textureMetrics.speedV.toInt() == 0) {
 					this.renderStationaryTexture()
 				} else {
@@ -1269,6 +1271,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			// under the tonemap, and the seabed (3) is fogged again after the HD steps (ff.frag); the effect's
 			// number, for the debug report
 			HdGl.state.hdWater = if (isWaterEffect(effectType)) effectType else 0
+			if (HdToolkit.DEBUG_EFFECTS != null && isWaterEffect(effectType) && effectType != 3 && HdToolkit.DEBUG_WATER_SEEN.add(materialId)) {
+				println("HDDEBUG water draw: texture " + materialId + " effect " + effectType + " ground " + HdGl.state.hdGround + " slot " + HdGl.state.hdMapSlot)
+			}
 			if (HdToolkit.DEBUG_EFFECTS != null && materialId >= 0 && !this.stillWaterToggled) {
 				HdToolkit.DEBUG_EFFECTS!![materialId] = effectType or (combineMode shl 8) or ((effectParam1.toInt() and 0xFF) shl 16) or (effectParam2 shl 24)
 			}
@@ -3404,7 +3409,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		this.frameUploaded = false
 		this.updateHdScene()
 		this.hdFeatures.beginFrame(this, x, y, width, height)
-		if (HdSettings.materials) {
+		if (HdSettings.materials || HdSettings.water >= 2) { // 634HD water (2) reads the flow array and the water types
 			this.materialMaps.prepare(this.hdContent)
 		}
 		if ((this.debugPanel != null && HdSettings.panel || GPU_TIMING) && !this.gpuQueryActive) {
@@ -3944,6 +3949,9 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		fun isWaterEffect(effect: Int): Boolean = effect == 2 || effect == 3 || effect == 4 || effect == 5 || effect == 8 || effect == 9
 
 		private var debugMaterialFrames: Int = 0
+
+		/** The water textures reported once each (client.test.hdDebug). */
+		private val DEBUG_WATER_SEEN: HashSet<Int> = HashSet()
 
 		/** 634HD debugging: each material's effect type (bits 0-7), combine mode (8-15), params (16-23, 24-31). */
 		val DEBUG_EFFECTS: HashMap<Int, Int>? = if (System.getProperty("client.test.hdDebug") != null) HashMap() else null

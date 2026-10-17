@@ -62,7 +62,7 @@ object HdSettings {
 	@JvmField
 	var terrainBlend: Boolean = false
 
-	/** Water: 0 as the game draws it, 1 the seabed re-fogged after the HD steps, shown right under the tonemap, with caustics at the area's speed. */
+	/** Water: 0 as the game draws it, 1 the game's water under the HD steps (the seabed re-fogged, shown right under the tonemap, caustics at the area's speed), 2 634HD's own surface (117HD's method: scrolled normal maps, sun glint, fresnel, the reflection, the seabed tinted by depth, foam at the shore). */
 	@JvmField
 	var water: Int = 0
 
@@ -245,7 +245,7 @@ object HdSettings {
 		sky = level >= 2
 		pixelLighting = level >= 2
 		lights = level >= 2
-		water = if (level >= 2) 1 else 0
+		water = if (level >= 3) 2 else if (level >= 2) 1 else 0
 		foliage = level >= 2
 		terrainBlend = level >= 2
 		colourGrading = level >= 2
@@ -469,7 +469,7 @@ object HdSettings {
 			}
 			"lights" -> lights = flag(on, off) ?: return "takes on or off"
 			"terrainblend" -> terrainBlend = flag(on, off) ?: return "takes on or off"
-			"water" -> water = if (off) 0 else if (on) 1 else if (number in 0..1) number else return "takes 0 or 1"
+			"water" -> water = if (off) 0 else if (on) 2 else if (number in 0..2) number else return "takes 0, 1 or 2"
 			"foliage" -> foliage = flag(on, off) ?: return "takes on or off"
 			"sky" -> sky = flag(on, off) ?: return "takes on or off"
 			"softparticles" -> softParticles = flag(on, off) ?: return "takes on or off"
@@ -515,7 +515,7 @@ object HdSettings {
 				shadows = if (enable) 2048 else 0
 				lights = enable
 				terrainBlend = enable
-				water = if (enable) 1 else 0
+				water = if (enable) 2 else 0
 				foliage = enable
 				sky = enable
 				softParticles = enable

@@ -99,6 +99,26 @@ class HdContent {
         var lightRed: Float = 0.0f
         var lightGreen: Float = 0.0f
         var lightBlue: Float = 0.0f
+        /** A water texture's own surface (HdSettings.water 2); null takes WaterDef's defaults. */
+        var water: WaterDef? = null
+    }
+
+    /**
+     * A water texture drawn as 634HD's surface: 117HD's WaterType (rs117/hd/scene/water_types/WaterType.java,
+     * its water_types.json), the defaults its WATER. Colours sRGB.
+     */
+    class WaterDef {
+        var surface: FloatArray = colour("#69809c")
+        var foam: FloatArray = colour("#b0a492")
+        var depth: FloatArray = colour("#00758e")
+        var opacity: Float = 0.5f
+        var specular: Float = 0.5f
+        var gloss: Float = 500.0f
+        var normalStrength: Float = 0.09f
+        var fresnel: Float = 0.85f
+        var duration: Float = 1.0f
+        var hasFoam: Boolean = true
+        var flat: Boolean = false
     }
 
     /**
@@ -437,7 +457,24 @@ class HdContent {
             m.lightGreen = (it.items[1] as Json.Num).value.toFloat()
             m.lightBlue = (it.items[2] as Json.Num).value.toFloat()
         }
+        (o["water"] as? Json.Obj)?.let { m.water = parseWater(it) }
         return m
+    }
+
+    private fun parseWater(o: Json.Obj): WaterDef {
+        val w = WaterDef()
+        col(o["surface"])?.let { w.surface = it }
+        col(o["foam"])?.let { w.foam = it }
+        col(o["depth"])?.let { w.depth = it }
+        w.opacity = num(o["opacity"], w.opacity)
+        w.specular = num(o["specular"], w.specular)
+        w.gloss = num(o["gloss"], w.gloss)
+        w.normalStrength = num(o["normalStrength"], w.normalStrength)
+        w.fresnel = num(o["fresnel"], w.fresnel)
+        w.duration = num(o["duration"], w.duration)
+        w.hasFoam = (o["hasFoam"] as? Json.Bool)?.value ?: w.hasFoam
+        w.flat = (o["flat"] as? Json.Bool)?.value ?: w.flat
+        return w
     }
 
     private fun parseOverride(o: Json.Obj): OverrideDef {

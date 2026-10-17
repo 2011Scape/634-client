@@ -245,6 +245,7 @@ class HdGround : Ground {
 			}
 			var waterPlaneSum: Double = 0.0
 			var waterPlaneCount: Int = 0
+			var waterDepthMax: Int = 0
 			val nativeHeapBuffer: NativeHeapBuffer = this.glToolkit.nativeHeap!!.a(this.totalTileVertexCount * vertexStride, false)
 			val stream: Stream = Stream(nativeHeapBuffer)
 			val glGroundLayers: Array<HdGroundLayer?> = arrayOfNulls<HdGroundLayer>(this.totalTileVertexCount)
@@ -414,6 +415,7 @@ class HdGround : Ground {
 								if (waterDepths != null && waterDepths[tileVertex] > 1) {
 									waterPlaneSum += (this.averageHeight(vertexX, vertexZ) + heightOffset).toDouble()
 									waterPlaneCount++
+									if (waterDepths[tileVertex] > waterDepthMax) waterDepthMax = waterDepths[tileVertex]
 								}
 								if (this.glToolkit.bigEndianess) {
 									stream.a(vertexX.toFloat())
@@ -559,6 +561,14 @@ class HdGround : Ground {
 				this.hdShadowTilesReady = true
 			}
 			this.hdWaterPlaneY = if (waterPlaneCount > 0) (waterPlaneSum / waterPlaneCount).toFloat() else Float.NaN
+			if (HdToolkit.DEBUG_MATERIALS != null) {
+				// 634HD debugging (client.test.hdDebug): the water's depths against the layers' fog scales (the water surface)
+				val layerText: StringBuilder = StringBuilder()
+				for (layer in this.layers!!) {
+					if (layer!!.waterDepth != 0 || layer.waterIntensity != 0) layerText.append(' ').append(layer.materialId).append(":scale").append(layer.waterDepth).append("/intensity").append(layer.waterIntensity)
+				}
+				println("HDDEBUG ground water: " + waterPlaneCount + " vertices, depth up to " + waterDepthMax + ", plane y " + this.hdWaterPlaneY + ", layers" + layerText)
+			}
 		}
 		this.tileHeightOffsets = null
 		this.normalZ = null

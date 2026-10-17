@@ -253,8 +253,9 @@ as a zip beside the jar.
   Navarro and Diego Gutierrez, for the SMAA shader and lookup textures (MIT licence, in
   `src/jvmMain/resources/smaa/`).
 - [117HD](https://github.com/117HD/RLHD), for the lava flow map behind the fire cape and the lava
-  (BSD 2-Clause licence, in `src/jvmMain/resources/634hd/materials/flow/`), and as the reference for
-  its flowing, unlit materials.
+  and the water's normal, flow and foam maps (BSD 2-Clause licence, in
+  `src/jvmMain/resources/634hd/materials/flow/`), and as the reference for its flowing, unlit
+  materials and its water (`utils/water.glsl`, its water types).
 
 ## Disclaimer
 

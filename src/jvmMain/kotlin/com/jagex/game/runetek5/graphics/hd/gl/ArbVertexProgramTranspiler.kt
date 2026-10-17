@@ -824,6 +824,9 @@ internal object ArbVertexProgramTranspiler {
         if (ctx.usesSecondary) sb.append("out vec4 vColorSecondary;\n")
         // 634HD: the eye-space position, for the features' fog, shadows, occlusion and water (ff.frag)
         sb.append("out vec3 vArbViewPos;\n")
+        // 634HD: the vertex's water depth less one (the ground's third texture coordinate, HdGround), for
+        // the water surface (ff.frag): the water programs drop it (the lapping effect zeroes oTexCoord0.z)
+        sb.append("out float vArbWaterDepth;\n")
         // Must match FixedFunctionShader.VERTEX_SOURCE's own invariant gl_Position declaration -
         // see the comment on the fallback assignment below.
         sb.append("invariant gl_Position;\n")
@@ -864,6 +867,7 @@ internal object ArbVertexProgramTranspiler {
             else if (ATTRIB_POSITION in ctx.usedAttribs) "    vArbViewPos = (uModelViewMatrix * aPosition).xyz;\n"
             else "    vArbViewPos = vec3(0.0);\n"
         )
+        sb.append(if (ATTRIB_TEXCOORD0 in ctx.usedAttribs) "    vArbWaterDepth = aTexCoord0.z;\n" else "    vArbWaterDepth = 0.0;\n")
         if (ctx.positionWritten) {
             sb.append("    gl_Position = oPosition;\n")
         } else {
@@ -1028,7 +1032,7 @@ internal class ArbProgramRuntime {
             lastModelViewVersion = -1
             lastProjectionVersion = -1
             lastTextureMatrixVersion.fill(-1)
-            uModelViewMatrix =gl.getUniformLocation(prog, "uModelViewMatrix")
+            uModelViewMatrix = gl.getUniformLocation(prog, "uModelViewMatrix")
             uProjectionMatrix = gl.getUniformLocation(prog, "uProjectionMatrix")
             uModelViewProjection = gl.getUniformLocation(prog, "uModelViewProjection")
             for (u in 0..2) uTextureMatrices[u] = gl.getUniformLocation(prog, "uTextureMatrices[$u]")

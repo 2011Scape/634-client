@@ -22,11 +22,17 @@ uniform vec3 uLightAttenuation[8];
 #ifndef ARB_VERTEX
 #define FF_VIEW_POS vViewPos
 #define FF_NORMAL vEyeNormal
+// the vertex's water depth less one on the ground (its third texture coordinate, through the ground's
+// texture matrix, which leaves z as it is), for the water surface
+#define FF_WATER_DEPTH vTexCoord0.z
 #else
-// transpiled programs pass the eye position (ArbVertexProgramTranspiler), but no normal
+// transpiled programs pass the eye position (ArbVertexProgramTranspiler), but no normal; and the
+// vertex's water depth less one (the ground's third texture coordinate, which the water programs drop)
 in vec3 vArbViewPos;
+in float vArbWaterDepth;
 #define FF_VIEW_POS vArbViewPos
 #define FF_NORMAL vec3(0.0)
+#define FF_WATER_DEPTH vArbWaterDepth
 #endif
 // 1 while the material is water (HD_WATER)
 uniform int uHdWater;
@@ -34,9 +40,6 @@ uniform int uHdWater;
 uniform int uHdGround;
 // 1 while the game's underwater pass draws (the riverbed): caustics there (HD_CAUSTICS)
 uniform int uHdUnderwater;
-// 634HD: the water's reflection (HdReflections): the viewport it is for (z 0: none), and the texture
-uniform vec4 uHdReflection;
-uniform sampler2D uHdReflectionMap;
 // the slot of the texture's 634HD maps (HD_MATERIALS), -1 without
 uniform int uHdMapSlot;
 // the 634 texture id of unit 0 (the debug panel's texture overlay), -1 for none
@@ -310,8 +313,18 @@ void main() {
     // mirror at grazing angles, the game's water looking down - and the sheet over it as it is. The
     // sheet's opacity is not raised: raised to the reflection's, the near-white sheet made the water
     // pale whatever the reflection showed (grey at night).
+    // 634HD's own water surface (HD_WATER_SURFACE, HdSettings.water 2) in place of the game's sheet on
+    // the water draws (not the seabed, 3, nor waterfalls, 5): the ground's, with its vertex depth, and
+    // the water models' (ponds and pools that are locs: the swamp's, the oasis), at a fixed depth;
+    // whether the effect draws through ff.vert or a transpiled program: lit, shadowed, glinting and
+    // reflecting on its own, with its own alpha (hd_material.glsl)
+    bool surface = false;
+    if (uHdWater != 0 && uHdWater != 3 && uHdWater != 5 && hdOn(HD_WATER_SURFACE)) {
+        color = hdWaterSurface(uHdMapSlot, FF_VIEW_POS, uHdGround != 0 ? FF_WATER_DEPTH : -1.0, gl_FragCoord.xy);
+        surface = true;
+    }
     bool reflected = false;
-    if (uHdWater != 0 && uHdWater != 3 && uHdGround != 0 && hdOn(HD_REFLECTIONS) && uHdReflection.z > 0.0) {
+    if (uHdWater != 0 && uHdWater != 3 && uHdGround != 0 && !surface && hdOn(HD_REFLECTIONS) && uHdReflection.z > 0.0) {
         vec3 up = -vec3(hdViewToWorld[0][1], hdViewToWorld[1][1], hdViewToWorld[2][1]);
         vec3 view = normalize(FF_VIEW_POS);
         float cosine = max(dot(-view, normalize(up)), 0.0);
@@ -328,16 +341,16 @@ void main() {
         color = vec4(outRgb, outAlpha);
         reflected = true;
     }
-    if (uAlphaTestEnabled && !reflected && !alphaTestPasses(color.a)) {
+    if (uAlphaTestEnabled && !reflected && !surface && !alphaTestPasses(color.a)) {
         discard;
     }
     // the water draws are unlit (the game's colour as it is): the area's and the time of day's light
     // would pass them by, and water glowed at night. They take the change in light a lit face takes.
-    if (uHdWater != 0 && !lightsApplied && hdOn(HD_ENV_LIGHT)) {
+    if (uHdWater != 0 && !lightsApplied && !surface && hdOn(HD_ENV_LIGHT)) {
         vec3 light = hdUnlitLight(hdAmbientColour.rgb, hdSunColour.rgb);
         color.rgb *= light; // in sRGB terms: gSrgbWater holds whenever HD_LINEAR does
     }
-    if (gSrgbWater) color.rgb = hdToLinear(color.rgb);
+    if (gSrgbWater && !surface) color.rgb = hdToLinear(color.rgb);
     if (uHdSoft != 0 && hdOn(HD_SOFT_PARTICLES)) {
         // fade out over the last 96 units before the geometry behind: no hard line where it cuts in
         float sceneZ = texture(uHdSceneDepth, gl_FragCoord.xy * uHdDepthParams.zw).r * 2.0 - 1.0;
@@ -347,7 +360,9 @@ void main() {
         color.a *= clamp((sceneEye - fragmentEye) / 96.0, 0.0, 1.0);
     }
     bool modelled = !unlit && hdOn(HD_LIGHTING_MODEL) && length(FF_NORMAL) > 0.0001;
-    if (unlit) {
+    if (surface) {
+        // the water surface is done: no material maps (texture 638's), light, shadow or occlusion on top
+    } else if (unlit) {
         // shown as the game shows it whatever the tonemap, like the water below (through AgX the lava
         // went a washed peach)
         color = hdUnlitMaterial(uHdMapSlot, color, gUv0);
@@ -359,29 +374,42 @@ void main() {
     }
     if (uHdUnderwater != 0 && hdOn(HD_CAUSTICS)) {
         vec3 world = (hdViewToWorld * vec4(FF_VIEW_POS, 1.0)).xyz;
-        float light = hdCaustics(world.xz, hdTime.x * hdWaterParams.y);
+        float light = hdCaustics(world.xz + hdSceneSize.zw, hdTime.x * hdWaterParams.y);
         color.rgb += color.rgb * light * 0.55 * (hdSunDirection.w > 0.5 ? 1.0 : 0.4) * hdSunStrength();
     }
-    if (!modelled && !unlit) color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
-    hdAppliedOcclusion = (unlit || uHdGround == 3) ? 1.0 : uHdGround == 2 ? hdGroundOcclusion(FF_VIEW_POS, FF_NORMAL) : hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);
+    if (!modelled && !unlit && !surface) color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
+    hdAppliedOcclusion = (unlit || surface || uHdGround == 3) ? 1.0 : uHdGround == 2 ? hdGroundOcclusion(FF_VIEW_POS, FF_NORMAL) : hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);
     color.rgb *= hdAppliedOcclusion;
     // The seabed (the game's underwater pass, its still water effect, HD_WATER): the game's texture stage 1
     // blends it into the water's colour by depth and distance, but the HD steps after it (material maps,
     // the lighting model, world textures, caustics) brought its detail back, and the steep seabed's
     // stretched textures showed through the sea as streaks (Draynor). The game's own blend (its ramp
     // and its colour) is made once more here, so the seabed stays as the standard toolkit's.
-    if (uHdUnderwater != 0 && hdOn(HD_WATER) && uUseTexture[1] && uIs3D[1] == 0 && !uCubeMap[1]) {
+    // Under 634HD's own surface (HD_WATER_SURFACE) the seabed is instead tinted by the water type's depth
+    // colour, darker the deeper, by its vertex depth (the still water programs pass it in vTexCoord0.z).
+    bool bed = uHdUnderwater != 0 && hdOn(HD_WATER_SURFACE);
+    if (bed) {
+        color.rgb = hdWaterBed(uHdMapSlot, color.rgb, vTexCoord0.z);
+    } else if (uHdUnderwater != 0 && hdOn(HD_WATER) && uUseTexture[1] && uIs3D[1] == 0 && !uCubeMap[1]) {
         float murk = texture(uTexture1, logicalCentre(vTexCoord1.xy)).a;
         color.rgb = hdFogMix(color.rgb, uTexEnvColor[1].rgb, murk);
     }
     // a water draw shows as the game shows it, whatever the tonemap (hd_lib.glsl hdTonemapInverse):
     // before the fog, so the fog's colour mixed in is the sky's as the sky and the land show it (undone
     // after the fog, fully fogged water came out a shade off the sky, and the game's water sheet, which
-    // goes opaque near the fog's end through a per-vertex ramp, showed as a pale, tile-stepped patch)
-    if (uHdWater != 0 && hdOn(HD_LINEAR)) color.rgb = hdTonemapInverse(hdToSrgb(color.rgb));
+    // goes opaque near the fog's end through a per-vertex ramp, showed as a pale, tile-stepped patch).
+    // 634HD's own surface and the seabed under it stay in the scene's light, as 117HD's do.
+    if (uHdWater != 0 && !surface && !bed && hdOn(HD_LINEAR)) color.rgb = hdTonemapInverse(hdToSrgb(color.rgb));
     float depth = gl_FragCoord.z / gl_FragCoord.w;
     if (uFogEnabled) {
-        color = hdFog(color, FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd);
+        if (surface) {
+            // the fog raises the surface's opacity (117HD), so the far sea closes over its bed and melts into the sky
+            vec3 fogRgb;
+            float amount = hdFogAmount(FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd, fogRgb);
+            color = vec4(hdFogMix(color.rgb, fogRgb, amount), max(color.a, amount));
+        } else {
+            color = hdFog(color, FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd);
+        }
     }
     fragColor = hdDebugOverlay(color, FF_VIEW_POS, FF_NORMAL, uUseTexture[0] ? uHdTexture : -1);
 }

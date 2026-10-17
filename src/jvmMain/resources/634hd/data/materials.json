@@ -152,6 +152,12 @@
       "light": [1.0, 0.45, 0.12]
     },
     {
+      "texture": 895,
+      "name": "swamp water",
+      "specular": 0,
+      "water": { "surface": "#172114", "foam": "#737865", "depth": "#29521a", "opacity": 0.8, "specular": 0.1, "gloss": 100, "normalStrength": 0.05, "fresnel": 0.3, "duration": 1.2, "flat": true }
+    },
+    {
       "texture": 125,
       "name": "speckled gravel",
       "normal": "normal.png",

@@ -36,6 +36,7 @@ class HdFrameUniforms {
         const val HD_LIGHTING_MODEL: Int = 131072
         const val HD_REFLECTIONS: Int = 262144
         const val HD_LIGHT_GRID: Int = 524288
+        const val HD_WATER_SURFACE: Int = 1048576
         const val MAX_ACTORS: Int = 8
 
         // std140 offsets, in bytes
@@ -96,6 +97,7 @@ class HdFrameUniforms {
         if (HdSettings.ambientOcclusion) bits = bits or HD_AO
         if (HdSettings.terrainBlend) bits = bits or HD_TERRAIN
         if (HdSettings.water != 0) bits = bits or HD_WATER
+        if (HdSettings.water >= 2) bits = bits or HD_WATER_SURFACE
         if (HdSettings.foliage) bits = bits or HD_FOLIAGE
         if (HdSettings.softParticles) bits = bits or HD_SOFT_PARTICLES
         if (HdSettings.mipmaps) bits = bits or HD_MIPMAPS
@@ -160,8 +162,8 @@ class HdFrameUniforms {
     /** The composite's exposure before the tonemap's curve (hdFlags.y): water draws undo both (ff.frag). */
     fun setTonemap(exposure: Float) = putVec4(TONEMAP, exposure, 0.0f, 0.0f, 0.0f)
 
-    /** The loaded scene's size in world units (x, z): the fade near its edge (HD_FADE, hdFog). */
-    fun setSceneSize(x: Float, z: Float) = putVec4(SCENE_SIZE, x, z, 0.0f, 0.0f)
+    /** The loaded scene's size in world units (x, z): the fade near its edge (HD_FADE, hdFog); and its base in the world ([baseX], [baseZ]), so patterns laid in world space (the water's ripples, the caustics) stay put when the scene is rebuilt around a new base. */
+    fun setSceneSize(x: Float, z: Float, baseX: Float, baseZ: Float) = putVec4(SCENE_SIZE, x, z, baseX, baseZ)
 
     /** The room fill's strength this frame and its texels per tile (HD_LIGHT_GRID, HdLightGrid). */
     fun setGridParams(strength: Float, texelsPerTile: Float) = putVec4(GRID_PARAMS, strength, texelsPerTile, 0.0f, 0.0f)
