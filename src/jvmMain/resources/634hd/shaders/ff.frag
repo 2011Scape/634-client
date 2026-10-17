@@ -266,32 +266,40 @@ void main() {
     gPrimary = vColor;
     // whether the game's lights reached this draw (its colour already carries day and night)
     bool lightsApplied = false;
+    bool mapped = uUseTexture[0] && uIs3D[0] == 0 && hdHasMaps(uHdMapSlot);
+    // 634HD: an unlit material (hd_material.glsl; the fire cape, lava): the texture alone, the face
+    // colour and every light passed over
+    bool unlit = mapped && hdUnlit(uHdMapSlot);
 #ifdef ARB_VERTEX
     // the ARB vertex programs (the water effects) pass the game's colour through as it is: sRGB
     gPrimary = hdInput(vColor);
 #endif
 #ifndef ARB_VERTEX
     lightsApplied = uLightingEnabled;
-    if (hdOn(HD_PIXEL_LIGHTING) && uLightingEnabled) {
-        vec4 lit = hdEnvAmbientLight(uGlobalAmbient);
-        for (int i = 0; i < 8; i++) {
-            if (!uLightEnabled[i]) continue;
-            if (uLightPosition[i].w == 0.0) {
-                lit += hdEnvDiffuse(uLightDiffuse[i], i) * max(dot(vEyeNormal, normalize(hdLightDirection(uLightPosition[i].xyz, i))), 0.0);
-            } else {
-                lit += hdPointLight(vEyeNormal, vViewPos, uLightPosition[i].xyz, uLightAttenuation[i], uLightDiffuse[i].rgb);
+    if (unlit) {
+        gPrimary = vec4(1.0, 1.0, 1.0, vColor.a);
+    } else {
+        if (hdOn(HD_PIXEL_LIGHTING) && uLightingEnabled) {
+            vec4 lit = hdEnvAmbientLight(uGlobalAmbient);
+            for (int i = 0; i < 8; i++) {
+                if (!uLightEnabled[i]) continue;
+                if (uLightPosition[i].w == 0.0) {
+                    lit += hdEnvDiffuse(uLightDiffuse[i], i) * max(dot(vEyeNormal, normalize(hdLightDirection(uLightPosition[i].xyz, i))), 0.0);
+                } else {
+                    lit += hdPointLight(vEyeNormal, vViewPos, uLightPosition[i].xyz, uLightAttenuation[i], uLightDiffuse[i].rgb);
+                }
             }
+            gPrimary = hdApplyLight(vBase, lit);
         }
-        gPrimary = hdApplyLight(vBase, lit);
+        gPrimary = hdAddPointLights(gPrimary, vBase, vViewPos, vEyeNormal);
     }
-    gPrimary = hdAddPointLights(gPrimary, vBase, vViewPos, vEyeNormal);
     // lit in the scene's (linear) space: back to sRGB for a water draw's sums
     if (gSrgbWater) gPrimary.rgb = hdToSrgb(gPrimary.rgb);
 #endif
     vec4 color = gPrimary;
     gUv0 = vTexCoord0.xy;
-    bool mapped = uUseTexture[0] && uIs3D[0] == 0 && hdHasMaps(uHdMapSlot);
-    if (mapped) gUv0 = hdParallaxUv(uHdMapSlot, gUv0, FF_VIEW_POS);
+    // the flow (a flowing material) before the parallax, so the albedo and the maps agree
+    if (mapped) gUv0 = hdParallaxUv(uHdMapSlot, hdFlowUv(uHdMapSlot, gUv0), FF_VIEW_POS);
     for (int i = 0; i < 3; i++) {
         if (uUseTexture[i]) color = combineStage(i, sampleUnit(i), color);
     }
@@ -338,8 +346,13 @@ void main() {
         float fragmentEye = uHdDepthParams.y / (fragmentZ + uHdDepthParams.x);
         color.a *= clamp((sceneEye - fragmentEye) / 96.0, 0.0, 1.0);
     }
-    bool modelled = hdOn(HD_LIGHTING_MODEL) && length(FF_NORMAL) > 0.0001;
-    if (modelled) {
+    bool modelled = !unlit && hdOn(HD_LIGHTING_MODEL) && length(FF_NORMAL) > 0.0001;
+    if (unlit) {
+        // shown as the game shows it whatever the tonemap, like the water below (through AgX the lava
+        // went a washed peach)
+        color = hdUnlitMaterial(uHdMapSlot, color, gUv0);
+        if (hdOn(HD_LINEAR)) color.rgb = hdTonemapInverse(hdToSrgb(color.rgb));
+    } else if (modelled) {
         color = hdLightModel(mapped ? uHdMapSlot : -1, color, gUv0, FF_VIEW_POS, FF_NORMAL);
     } else if (mapped) {
         color = hdApplyMaterial(uHdMapSlot, color, gUv0, FF_VIEW_POS);
@@ -349,8 +362,8 @@ void main() {
         float light = hdCaustics(world.xz, hdTime.x * hdWaterParams.y);
         color.rgb += color.rgb * light * 0.55 * (hdSunDirection.w > 0.5 ? 1.0 : 0.4) * hdSunStrength();
     }
-    if (!modelled) color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
-    hdAppliedOcclusion = uHdGround == 3 ? 1.0 : uHdGround == 2 ? hdGroundOcclusion(FF_VIEW_POS, FF_NORMAL) : hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);
+    if (!modelled && !unlit) color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);
+    hdAppliedOcclusion = (unlit || uHdGround == 3) ? 1.0 : uHdGround == 2 ? hdGroundOcclusion(FF_VIEW_POS, FF_NORMAL) : hdAmbientOcclusion(FF_VIEW_POS, FF_NORMAL);
     color.rgb *= hdAppliedOcclusion;
     // The seabed (the game's underwater pass, its still water effect, HD_WATER): the game's texture stage 1
     // blends it into the water's colour by depth and distance, but the HD steps after it (material maps,

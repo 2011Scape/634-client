@@ -127,6 +127,15 @@
       "albedo": "albedo.png"
     },
     {
+      "texture": 40,
+      "name": "fire cape",
+      "flowMap": "lava_flow_map.png",
+      "flowStrength": 0.05,
+      "flowDuration": [12, 4],
+      "uvScroll": [0, 0.1],
+      "unlit": true
+    },
+    {
       "texture": 110,
       "name": "lava",
       "normal": "normal.png",
@@ -134,7 +143,12 @@
       "height": "normal.png",
       "specular": 0.6,
       "emissive": "emissive.png",
-      "emissiveStrength": 2.5
+      "emissiveStrength": 2.5,
+      "flowMap": "lava_flow_map.png",
+      "flowStrength": 0.05,
+      "flowDuration": [36, 22],
+      "uvScroll": [0, -0.05],
+      "unlit": true
     },
     {
       "texture": 125,

@@ -777,7 +777,9 @@ class client : GameShell() {
 		KeyRecorder.keyRecorder!!.prepareAwaitingKeys()
 		MouseRecord.mouseRecorder!!.mainLogic()
 		if (ClientState.activeToolkit != null) {
-			ClientState.activeToolkit!!.tick(Utils.currentTimeMillis().toInt())
+			// Not part of the original client: the smoke test holds the toolkit's clock during an outfit's
+			// close-up, so the game's scrolling textures sit at one phase on every toolkit (SmokeTest.heldTick)
+			ClientState.activeToolkit!!.tick(if (SmokeTest.heldTick >= 0) SmokeTest.heldTick else Utils.currentTimeMillis().toInt())
 		}
 		ClientURLTools.processPendingUrlOpen()
 		KeyRecorder.keyCachePointerPoss = 0

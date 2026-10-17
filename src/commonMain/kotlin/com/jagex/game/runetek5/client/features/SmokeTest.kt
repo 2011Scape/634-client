@@ -546,6 +546,8 @@ object SmokeTest {
 	/** Lumbridge courtyard, the camera zoomed onto the player (held in one pose: holdPose). */
 	private const val OUTFIT_VIEW: String = "3222,3218,0,0,1200,450,25"
 
+	// not a const: the compiler's constant folding runs out of memory on a chain this long
+	@Suppress("MayBeConst")
 	private val DEFAULT_SCENES: String = "lumbridge:3222,3218,0,0,1400,0;" +
 		"varrock:3212,3428,0,2048,1400,0;" +
 		"grand_exchange:3164,3478,0,0,1600,0;" +
@@ -565,7 +567,10 @@ object SmokeTest {
 		"outfit_metal:" + OUTFIT_VIEW + ",0:4732|1:6570|2:87|3:35|4:1127|5:1201|7:4730;" +
 		"outfit_robes:" + OUTFIT_VIEW + ",0:12866|1:-1|2:15511|3:3053|4:19317|5:-1|7:1079;" +
 		"outfit_khazard:" + OUTFIT_VIEW + ",0:74|1:-1|2:86|3:1285|4:75|5:1201|7:1079;" +
-		"outfit_torch:" + OUTFIT_VIEW + ",0:4732|1:10637|2:15511|3:8987|4:1127|5:-1|7:4730"
+		"outfit_torch:" + OUTFIT_VIEW + ",0:4732|1:10637|2:15511|3:8987|4:1127|5:-1|7:4730;" +
+		// the fire cape from behind (its lava, texture 40: the flowing, unlit material with materials on;
+		// the game's scrolling texture without, which this compares to toolkit 1)
+		"outfit_firecape:3222,3218,0,8192,1200,450,25,0:4732|1:6570|2:87|3:35|4:1127|5:1201|7:4730"
 
 	/**
 	 * client.test.findText=word: once in game, prints every interface component whose text holds the
@@ -999,10 +1004,10 @@ object SmokeTest {
 		val dimensions: IntArray = IntArray(2)
 		ClientState.activeToolkit!!.accumulateViewportDimensions(dimensions)
 		val size: String = dimensions[0].toString() + "x" + dimensions[1]
-		println("SMOKE BENCH toolkit=" + GamePreferences.uid!!.toolkit!!.getValue() + " size=" + size + " mode=" + WindowMode.getWindowMode() + " frames=" + BENCH
-			+ " avg=" + format(average) + "ms p50=" + format(times[BENCH / 2]) + "ms p95=" + format(times[kotlin.math.min(BENCH - 1, BENCH * 95 / 100)]) + "ms"
-			+ " fps=" + format(1000.0 / average) + workLine + " ticks/frame=" + format(benchTicks.toDouble() / BENCH.toDouble())
-			+ (if (benchDrawCalls > 0L) " drawCalls=" + (benchDrawCalls / BENCH.toLong()) + " (models " + (benchCategories[1] / BENCH.toLong()) + ", ground " + (benchCategories[2] / BENCH.toLong()) + ", other " + (benchCategories[0] / BENCH.toLong()) + ") triangles=" + (benchTriangles / BENCH.toLong()) + " regionHitch=" + RenderStats.lastRegionUploadMs + "ms regionBuild=" + RenderStats.lastRegionBuildMs + "ms chunkRebuilds=" + RenderStats.chunkRebuilds else ""))
+		println("SMOKE BENCH toolkit=" + GamePreferences.uid!!.toolkit!!.getValue() + " size=" + size + " mode=" + WindowMode.getWindowMode() + " frames=" + BENCH +
+			" avg=" + format(average) + "ms p50=" + format(times[BENCH / 2]) + "ms p95=" + format(times[kotlin.math.min(BENCH - 1, BENCH * 95 / 100)]) + "ms" +
+			" fps=" + format(1000.0 / average) + workLine + " ticks/frame=" + format(benchTicks.toDouble() / BENCH.toDouble()) +
+			(if (benchDrawCalls > 0L) " drawCalls=" + (benchDrawCalls / BENCH.toLong()) + " (models " + (benchCategories[1] / BENCH.toLong()) + ", ground " + (benchCategories[2] / BENCH.toLong()) + ", other " + (benchCategories[0] / BENCH.toLong()) + ") triangles=" + (benchTriangles / BENCH.toLong()) + " regionHitch=" + RenderStats.lastRegionUploadMs + "ms regionBuild=" + RenderStats.lastRegionBuildMs + "ms chunkRebuilds=" + RenderStats.chunkRebuilds else ""))
 		if (benchMaxScreenSize >= 0) {
 			GamePreferences.uid!!.setValue(GamePreferences.uid!!.maxScreenSize, benchMaxScreenSize)
 			GamePreferences.savePreferences()
@@ -1342,6 +1347,9 @@ object SmokeTest {
 		}
 		// hold the camera where the scene asks, whatever the client's own camera logic does; during a
 		// burst it turns client.test.sceneSpin yaw units a frame (moving-camera flicker checks)
+		// an outfit's close-up: the toolkit's clock held at 0, so the game's scrolling textures (the fire
+		// cape's lava) sit at the same phase on both toolkits (client.kt passes it to the toolkit's tick)
+		heldTick = if (values.size > 7) 0 else -1
 		if (values.size > 7) {
 			// an outfit's close-up: the player held in the first frame of its animation, so both toolkits
 			// capture the same pose (the idle sway alone differs by more than a material's change)
@@ -1677,6 +1685,13 @@ object SmokeTest {
 	/** Set by a check that wants the map built again (MapRebuild, a root-package class: the hook does it). */
 	@JvmField
 	var rebuildMap: Boolean = false
+
+	/**
+	 * The toolkit's clock (its tick) held at this value during an outfit's close-up, -1 to let it run:
+	 * the game's scrolling textures then sit at the same phase on every toolkit (client.kt).
+	 */
+	@JvmField
+	var heldTick: Int = -1
 
 	private var toggleRound: Int = 1
 
