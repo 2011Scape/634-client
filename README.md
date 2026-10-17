@@ -8,7 +8,8 @@ The RuneScape client from December 2010 (build 634), patched to play on [Void][v
 comes with a launcher that connects to any Void server, OpenGL on every desktop platform, and a set
 of optional quality-of-life extras. It also runs in a web browser.
 
-**[Download the latest release][releases]**
+**[Download the latest release][releases]** (stable), or the [development build][dev] (what is on
+`main` right now, rebuilt on every push; it may break).
 
 ## Contents
 
@@ -24,7 +25,8 @@ of optional quality-of-life extras. It also runs in a web browser.
 ## Quick start
 
 1. Install **Java 21 to 25** ([Temurin][java], or [Liberica][liberica] for a 32-bit Windows Java).
-2. Download `runetek5-634-<version>.jar` from the [releases page][releases].
+2. Download `runetek5-634-<version>.jar` from the [releases page][releases] (or the
+   [development build][dev] for the newest, less tested code).
 3. Double-click it, or start it from a terminal:
 
    ```bash
@@ -198,6 +200,11 @@ original client".
   account.
 - Dependencies are verified against `gradle/verification-metadata.xml`. After changing one, run
   `./gradlew --write-verification-metadata sha256 build release` and review the diff.
+- Two release channels (`.github/workflows/release.yml`): a tag `vX.Y.Z` on `main` publishes a
+  **stable** release of that name, the newest of which is GitHub's "latest"; every push to `main`
+  rebuilds the one **development** pre-release, tagged `dev` and versioned `dev-<date>-<commit>`,
+  with the merges since the last stable tag as its notes. Both carry the jar, the browser zip and
+  `SHA256SUMS`.
 
 ### The browser client
 
@@ -270,6 +277,7 @@ Jagex Ltd.
 [badge-void]: https://img.shields.io/badge/Void-compatible-2EA44F
 [ci]: https://github.com/2011Scape/634-client/actions/workflows/build.yml
 [releases]: https://github.com/2011Scape/634-client/releases/latest
+[dev]: https://github.com/2011Scape/634-client/releases/tag/dev
 [java]: https://adoptium.net/temurin/releases/?version=21
 [liberica]: https://bell-sw.com/pages/downloads/#jdk-21-lts
 [void]: https://github.com/GregHib/void
