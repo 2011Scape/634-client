@@ -148,7 +148,8 @@
       "flowStrength": 0.05,
       "flowDuration": [36, 22],
       "uvScroll": [0, -0.05],
-      "unlit": true
+      "unlit": true,
+      "light": [1.0, 0.45, 0.12]
     },
     {
       "texture": 125,

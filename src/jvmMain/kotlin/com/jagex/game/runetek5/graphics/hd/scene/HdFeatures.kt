@@ -158,7 +158,7 @@ class HdFeatures {
         val lut: String? = this.environment?.lut
         toolkit.hdPost.useGrading(if (lut != null && HdSettings.colourGrading) toolkit.hdPost.gradingTable(lut) else 0)
         this.lights.prepare(toolkit.hdContent, uniforms, worldToView, seconds, if (HdSettings.dayNight != 0) nightness else 0.0f)
-        this.lightGrid.prepare(uniforms, this.lights, if (HdSettings.dayNight != 0) nightness else -1.0f)
+        this.lightGrid.prepare(uniforms, this.lights, toolkit.hdContent, if (HdSettings.dayNight != 0) nightness else -1.0f)
         uniforms.setDebug(toolkit.debugOverlay())
     }
 

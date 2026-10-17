@@ -179,7 +179,7 @@ def main():
     kept = [m for m in old if m['texture'] not in made]
     # a fresh texture's albedo (albedo.png beside its set) and the hand-written flow fields (the
     # fire cape, lava: 117HD's flowing, unlit materials) stay on its entry
-    carried = ('albedo', 'flowMap', 'flowStrength', 'flowDuration', 'uvScroll', 'unlit')
+    carried = ('albedo', 'flowMap', 'flowStrength', 'flowDuration', 'uvScroll', 'unlit', 'light')
     for m in old:
         if m['texture'] in made:
             for e in entries:

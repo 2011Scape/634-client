@@ -157,17 +157,21 @@ class HdLights {
                         if (action == "Extinguish") lit = true
                     }
                 }
-                // a firemaking cape gives light while worn
-                if (!lit && !(c == 1 && name.startsWith("Firemaking cape"))) continue
+                // a firemaking cape gives light while worn; so does the fire cape's lava
+                val fireCape: Boolean = c == 1 && name == "Fire cape"
+                if (!lit && !fireCape && !(c == 1 && name.startsWith("Firemaking cape"))) continue
                 val tier: Int = lightTier(name)
                 carriedTier += tier
                 if (name == "Sapphire lantern") sapphire = true
                 if (name == "Emerald lantern") emerald = true
                 if (tier > best) {
                     best = tier
-                    carriedFlame = name == "Lit torch" || name == "Torch" || name.contains("candle") || name == "Oil lamp"
-                    // flames warm orange, lanterns a steadier yellow (the gem lenses below)
-                    if (carriedFlame) {
+                    carriedFlame = fireCape || name == "Lit torch" || name == "Torch" || name.contains("candle") || name == "Oil lamp"
+                    // flames warm orange, the fire cape's lava deeper, lanterns a steadier yellow (the gem
+                    // lenses below)
+                    if (fireCape) {
+                        carriedRed = 1.0f; carriedGreen = 0.5f; carriedBlue = 0.15f
+                    } else if (carriedFlame) {
                         carriedRed = 1.0f; carriedGreen = 0.62f; carriedBlue = 0.3f
                     } else {
                         carriedRed = 1.0f; carriedGreen = 0.8f; carriedBlue = 0.5f
@@ -190,7 +194,7 @@ class HdLights {
     /** A lit light source's brightness tier by its name (the wiki's table); 1 for one not listed. */
     private fun lightTier(name: String): Int = when (name) {
         "Bullseye lantern", "Emerald lantern" -> 3
-        "Oil lamp", "Oil lantern", "Sapphire lantern", "Mining helmet" -> 2
+        "Oil lamp", "Oil lantern", "Sapphire lantern", "Mining helmet", "Fire cape" -> 2
         else -> if (name.startsWith("Firemaking cape")) 3 else 1
     }
 

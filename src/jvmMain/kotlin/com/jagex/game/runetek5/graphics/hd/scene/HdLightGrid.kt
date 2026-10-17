@@ -22,7 +22,9 @@ package com.jagex.game.runetek5.graphics.hd.scene
 import com.jagex.game.runetek5.MapRegion
 import com.jagex.game.runetek5.cache.node.PointLight
 import com.jagex.game.runetek5.client.features.HdSettings
+import com.jagex.game.runetek5.config.TypeLists
 import com.jagex.game.runetek5.core.constants.TileFlag
+import com.jagex.game.runetek5.graphics.hd.content.HdContent
 import com.jagex.game.runetek5.graphics.hd.gl.HdGl
 import com.jagex.game.runetek5.graphics.light.StaticPointLight
 import com.jagex.game.runetek5.scene.CollisionMap
@@ -61,6 +63,10 @@ class HdLightGrid {
          * down to a seventh, so a room with no lamp that near stays dark.
          */
         private const val MIN_REACH: Float = 7.0f
+        // a glowing floor tile (materials.json "light": lava): a seed a tile, this far, this bright. A
+        // field of them sums under the knee; one tile on its own is a faint glow
+        private const val FLOOR_REACH: Float = 4.0f
+        private const val FLOOR_LIGHT: Float = 0.4f
 
         /** The fill at a light's own tile, as a share of the light's colour times intensity. */
         private const val FILL_SCALE: Float = 1.0f
@@ -171,7 +177,7 @@ class HdLightGrid {
      * Builds the grid when needed, binds its textures and writes this frame's fill strength;
      * [night] 0 to 1 with a time of day, or -1 without one.
      */
-    fun prepare(uniforms: HdFrameUniforms, lights: HdLights, night: Float) {
+    fun prepare(uniforms: HdFrameUniforms, lights: HdLights, content: HdContent, night: Float) {
         val on: Boolean = HdSettings.lightGrid && (HdSettings.lights || HdSettings.playerLight)
         if (!on) {
             uniforms.setGridParams(0.0f, TEXELS_PER_TILE.toFloat())
@@ -180,7 +186,7 @@ class HdLightGrid {
         if (dirty || gridTexture == 0) {
             dirty = false
             partial = false
-            rebuild(lights, uniforms)
+            rebuild(lights, content, uniforms)
         } else if (partial) {
             partial = false
             refresh()
@@ -197,7 +203,7 @@ class HdLightGrid {
     /** The visibility layer of lights.json loc light [locIndex] (HdLights' index), 0 when none. */
     fun layerOf(locIndex: Int): Int = if (locIndex < 0 || locIndex + 1 >= patchLayers) 0 else locIndex + 1
 
-    private fun rebuild(lights: HdLights, uniforms: HdFrameUniforms) {
+    private fun rebuild(lights: HdLights, content: HdContent, uniforms: HdFrameUniforms) {
         val started: Long = System.nanoTime()
         floodNanos = 0L
         blurNanos = 0L
@@ -212,7 +218,7 @@ class HdLightGrid {
         } else {
             java.util.Arrays.fill(fill, 0.0f)
         }
-        collectSeeds(lights)
+        collectSeeds(lights, content)
         val locs: Int = lights.locLightCount()
         patchLayers = locs + 1
         if (patches.size != patchLayers * PATCH * PATCH) {
@@ -273,8 +279,9 @@ class HdLightGrid {
     }
 
     /** The lights of lights.json on locs, then the game's map lights. */
-    private fun collectSeeds(lights: HdLights) {
+    private fun collectSeeds(lights: HdLights, content: HdContent) {
         seedCount = 0
+        collectFloorSeeds(content)
         val locs: Int = lights.locLightCount()
         for (i in 0 until locs) {
             if (seedCount >= MAX_SEEDS) break
@@ -308,6 +315,41 @@ class HdLightGrid {
                 seedBlue[s] = (colour and 0xFF) / 255.0f * intensity
                 seedReach[s] = minOf(MAX_REACH.toFloat(), maxOf(MIN_REACH, point.getRadius() / 512.0f * FILL_REACH))
                 seedLayer[s] = 0
+            }
+        }
+    }
+
+    /**
+     * A seed on every floor tile whose overlay's texture lights the fill (materials.json "light":
+     * lava), in the material's colour, FLOOR_REACH tiles: a lava field glows onto its banks and walls.
+     * First, so a scene full of lava still gets its lamps within MAX_SEEDS.
+     */
+    private fun collectFloorSeeds(content: HdContent) {
+        val terrain = MapRegion.aClass322_Sub1_1 ?: return
+        val overlays = TypeLists.aClass49_3 ?: return
+        val materials: Map<Int, HdContent.MaterialDef> = content.materials
+        if (materials.isEmpty()) return
+        for (level in 0 until LEVELS) {
+            for (x in 0 until size) {
+                for (z in 0 until size) {
+                    if (seedCount >= MAX_SEEDS) return
+                    val overlay: Int = terrain.floorIds(level, x, z) and 0xFF
+                    if (overlay == 0) continue
+                    val texture: Int = overlays.list(overlay - 1)?.texture ?: continue
+                    if (texture < 0) continue
+                    val m: HdContent.MaterialDef = materials[texture] ?: continue
+                    if (m.lightRed <= 0.0f && m.lightGreen <= 0.0f && m.lightBlue <= 0.0f) continue
+                    val s: Int = seedCount++
+                    seedX[s] = x
+                    seedZ[s] = z
+                    seedLevel[s] = level
+                    seedTop[s] = level
+                    seedRed[s] = m.lightRed * FLOOR_LIGHT
+                    seedGreen[s] = m.lightGreen * FLOOR_LIGHT
+                    seedBlue[s] = m.lightBlue * FLOOR_LIGHT
+                    seedReach[s] = FLOOR_REACH
+                    seedLayer[s] = 0
+                }
             }
         }
     }

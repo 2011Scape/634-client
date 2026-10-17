@@ -26,7 +26,8 @@
           "flowMap": { "type": "string", "description": "a flow map under materials/flow/ (shared): its red and green, sampled at the uv slid by flowDuration, move the uv by flowStrength (lava, the fire cape; 117HD's method)" },
           "flowStrength": { "type": "number", "minimum": 0, "maximum": 1 },
           "flowDuration": { "type": "array", "items": { "type": "number", "exclusiveMinimum": 0 }, "minItems": 2, "maxItems": 2, "description": "seconds for the flow map to slide once along u and along v" },
-          "unlit": { "type": "boolean", "description": "drawn as the texture alone: no lighting, shadow or occlusion, the face colour ignored" }
+          "unlit": { "type": "boolean", "description": "drawn as the texture alone: no lighting, shadow or occlusion, the face colour ignored" },
+          "light": { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 1 }, "minItems": 3, "maxItems": 3, "description": "red, green, blue: a floor tile with this texture lights the room fill (lightGrid) a short way around it, as lava does" }
         }
       }
     }

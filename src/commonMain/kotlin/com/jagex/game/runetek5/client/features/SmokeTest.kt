@@ -692,6 +692,17 @@ object SmokeTest {
 			}
 			println("SMOKE wearing " + WEAR)
 		}
+		// ... and in the worn container (94) too, on this client only, once it exists: 634HD's carried
+		// light looks there (a worn fire cape or firemaking cape lights the player)
+		if (WEAR.length > 0 && !wornContainer && ItemContainer.getContainer(94, false) != null) {
+			wornContainer = true
+			val pairs: Array<String> = WEAR.javaSplit(",")
+			for (pair in pairs) {
+				val colon: Int = pair.indexOf(':')
+				val item: Int = pair.substring(colon + 1).javaTrim().toInt()
+				if (item >= 0) ItemContainer.setItemInContainer(94, false, pair.substring(0, colon).javaTrim().toInt(), 1, item)
+			}
+		}
 		// client.test.carry=item,...: those items in the backpack's last slots, on this client only (the
 		// server's backpack is untouched): 634HD's carried light, e.g. 594 a lit torch, 4550 a bullseye lantern
 		if (CARRY.length > 0 && !carried && ItemContainer.getContainer(93, false) != null) {
@@ -1644,6 +1655,9 @@ object SmokeTest {
 	private val CARRY: String = lang.getProperty("client.test.carry", "")
 
 	private var carried: Boolean = false
+
+	/** Whether client.test.wear's items are in the worn container yet. */
+	private var wornContainer: Boolean = false
 
 	/**
 	 * client.test.materialScan=true: instead of the checks, lists the material classes in the cache

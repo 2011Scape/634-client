@@ -95,6 +95,10 @@ class HdContent {
         var flowDurationV: Float = 0.0f
         /** Drawn as the texture alone: no lighting, shadow or occlusion, the face colour ignored. */
         var unlit: Boolean = false
+        /** A floor tile with this texture lights the room fill (HdLightGrid) around it: the colour, all 0 for none. */
+        var lightRed: Float = 0.0f
+        var lightGreen: Float = 0.0f
+        var lightBlue: Float = 0.0f
     }
 
     /**
@@ -428,6 +432,11 @@ class HdContent {
             m.flowDurationV = (it.items[1] as Json.Num).value.toFloat()
         }
         m.unlit = (o["unlit"] as? Json.Bool)?.value ?: false
+        (o["light"] as? Json.Arr)?.let {
+            m.lightRed = (it.items[0] as Json.Num).value.toFloat()
+            m.lightGreen = (it.items[1] as Json.Num).value.toFloat()
+            m.lightBlue = (it.items[2] as Json.Num).value.toFloat()
+        }
         return m
     }
 
