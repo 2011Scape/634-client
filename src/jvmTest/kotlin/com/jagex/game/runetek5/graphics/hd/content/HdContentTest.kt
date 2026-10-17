@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 /**
  * Not part of the original client: 634HD's environments.json, its fog fields (117HD's fog depth and
  * ground fog) and the choice of environment by tile; and the shipped file, hand-written entries and
- * the ones tools/import_117hd_environments.py generated, against its schema.
+ * the ones generated from 117HD's environments.json (marked source), against its schema.
  */
 class HdContentTest {
 

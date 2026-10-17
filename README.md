@@ -255,8 +255,8 @@ as a zip beside the jar.
 - [117HD](https://github.com/117HD/RLHD), for the lava flow map behind the fire cape and the lava
   and the water's normal, flow and foam maps (BSD 2-Clause licence, in
   `src/jvmMain/resources/634hd/materials/flow/`), for the per-area fog and ground fog of its
-  `environments.json` (the generated entries of `src/jvmMain/resources/634hd/data/environments.json`,
-  imported by `tools/import_117hd_environments.py`, BSD 2-Clause licence), and as the reference for
+  `environments.json` (the entries of `src/jvmMain/resources/634hd/data/environments.json` marked
+  `source`, BSD 2-Clause licence), and as the reference for
   its flowing, unlit materials, its water (`utils/water.glsl`, its water types) and its fog
   (`utils/fog.glsl`, its ground fog and fogged sky).
 
