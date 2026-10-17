@@ -28,7 +28,7 @@ class HdContent {
     )
 
     class EnvironmentDef(val name: String, val line: Int) {
-        /** Where the entry came from when generated ("117HD <AREA>", tools/import_117hd_environments.py); null for a hand-written one. */
+        /** Where the entry came from when generated ("117HD <AREA>", from 117HD's environments.json); null for a hand-written one. */
         var source: String? = null
         var regions: IntArray? = null
         var bounds: Array<IntArray>? = null
