@@ -149,7 +149,9 @@ void main() {
         discard;
     }
     if (unlit) {
+        // shown as the game shows it whatever the tonemap, as ff.frag shows the water and the cape
         color = hdUnlitMaterial(mapSlot, color, mapUv);
+        if (hdOn(HD_LINEAR)) color.rgb = hdTonemapInverse(hdToSrgb(color.rgb));
     } else if (hdOn(HD_LIGHTING_MODEL) && (int(material.w) & FLAG_UNLIT) == 0) {
         color = hdLightModel(mapSlot, color, mapUv, vViewPos, vEyeNormal);
     } else {

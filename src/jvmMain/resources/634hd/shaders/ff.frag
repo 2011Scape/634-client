@@ -348,7 +348,10 @@ void main() {
     }
     bool modelled = !unlit && hdOn(HD_LIGHTING_MODEL) && length(FF_NORMAL) > 0.0001;
     if (unlit) {
+        // shown as the game shows it whatever the tonemap, like the water below (through AgX the lava
+        // went a washed peach)
         color = hdUnlitMaterial(uHdMapSlot, color, gUv0);
+        if (hdOn(HD_LINEAR)) color.rgb = hdTonemapInverse(hdToSrgb(color.rgb));
     } else if (modelled) {
         color = hdLightModel(mapped ? uHdMapSlot : -1, color, gUv0, FF_VIEW_POS, FF_NORMAL);
     } else if (mapped) {

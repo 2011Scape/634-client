@@ -206,7 +206,9 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
     draws (`client.test.materialScan` lists the material classes and items using each; a scene's
     eighth value dresses the player, on the client only, and the harness puts the clothes back; the
     player is held in one pose and only the middle third of the view is compared, so the outfits
-    match toolkit 1 to 0-1 per 1000 and have a limit of 25, room for a passer-by);
+    match toolkit 1 to 0-1 per 1000 and have a limit of 25, room for a passer-by), and a fifth from
+    behind (`outfit_firecape`, yaw 8192) with the fire cape's lava in view: the game's scrolling
+    texture with everything off, the flowing, unlit material with `materials` on;
   - flicker and pops: `client.test.sceneBurst=N` measures the 3D view's mean brightness every frame
     and fails on a frame-to-frame jump above `client.test.sceneLumaJump` (default 3), saving the two
     frames (`build/smoke/scenes/jump-*`); `client.test.sceneWalk` walks during it
@@ -369,7 +371,9 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   along u and v, after an extra `uvScroll` (uv per second) on top of the game's own scroll; `unlit`
   draws the texture alone - the face colour, the game's lights, the point lights and the fill, the
   lighting model, shadows and occlusion all passed over (only the emissive map is added, so lava keeps
-  its glow), and the bloom takes what is bright. The fire cape is texture 40 (its 2010 index is
+  its glow), shown as the game shows it whatever the tonemap (`hdTonemapInverse`, as the water is:
+  through AgX the lava went a washed peach); its values stay under 1, so it does not bloom of itself.
+  The fire cape is texture 40 (its 2010 index is
   117HD's vanilla index too): strength 0.05, durations 12 and 4 s, scroll (0, 0.1) - 117HD's own
   value, 1/3, is set against OSRS's scroll rate and sign (it nearly cancels it to a crawl); here
   the game scrolls the cape 1 uv per 6.4 s the other way, so 0.1 leaves the same slow crawl in the
