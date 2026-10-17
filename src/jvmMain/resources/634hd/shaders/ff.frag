@@ -314,12 +314,13 @@ void main() {
     // sheet's opacity is not raised: raised to the reflection's, the near-white sheet made the water
     // pale whatever the reflection showed (grey at night).
     // 634HD's own water surface (HD_WATER_SURFACE, HdSettings.water 2) in place of the game's sheet on
-    // the ground's water draws (not the seabed, 3, nor waterfalls, 5; water models keep the game's),
+    // the water draws (not the seabed, 3, nor waterfalls, 5): the ground's, with its vertex depth, and
+    // the water models' (ponds and pools that are locs: the swamp's, the oasis), at a fixed depth;
     // whether the effect draws through ff.vert or a transpiled program: lit, shadowed, glinting and
     // reflecting on its own, with its own alpha (hd_material.glsl)
     bool surface = false;
-    if (uHdWater != 0 && uHdWater != 3 && uHdWater != 5 && uHdGround != 0 && hdOn(HD_WATER_SURFACE)) {
-        color = hdWaterSurface(uHdMapSlot, FF_VIEW_POS, FF_WATER_DEPTH, gl_FragCoord.xy);
+    if (uHdWater != 0 && uHdWater != 3 && uHdWater != 5 && hdOn(HD_WATER_SURFACE)) {
+        color = hdWaterSurface(uHdMapSlot, FF_VIEW_POS, uHdGround != 0 ? FF_WATER_DEPTH : -1.0, gl_FragCoord.xy);
         surface = true;
     }
     bool reflected = false;

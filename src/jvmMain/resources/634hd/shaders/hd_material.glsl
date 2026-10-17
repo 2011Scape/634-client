@@ -379,6 +379,10 @@ float hdCaustics(vec2 p, float t) {
 #define HD_WATER_DEPTH_RANGE 1536.0
 #define HD_WATER_FOAM_DEPTH 192.0
 #define HD_WATER_DEPTH_OPACITY 0.9
+// A water model (a pond or pool that is a loc, not ground) has no vertex depth, no foam and no seabed
+// pass: its depth colour is laid under the surface instead, and it goes this opaque at the least (the
+// oasis over bright sand was a pale, flat sheet without it).
+#define HD_WATER_MODEL_OPACITY 0.9
 // How far the ripples bend the reflection, in the view's width per unit of the normal's lean.
 #define HD_WATER_REFLECTION_BEND 0.3
 // How much of what the surface reflects is the scene mirrored in it (HdReflections) where it was drawn;
@@ -440,10 +444,10 @@ vec3 hdWaterReflection(vec3 viewDir, vec3 n, float finalFresnel, vec2 fragCoord)
     return own;
 }
 
-// 117HD's water surface for a ground water draw: [slot] the texture's material slot (-1: the default
-// type), [viewPos] eye space, [vertexDepth] the vertex's water depth less one (0 at the shore),
-// [fragCoord] gl_FragCoord.xy. The surface in the scene's space with its own alpha (the caller fogs
-// it, and the fog raises the alpha).
+// 117HD's water surface for a water draw: [slot] the texture's material slot (-1: the default type),
+// [viewPos] eye space, [vertexDepth] the vertex's water depth less one (0 at the shore) on the ground,
+// below 0 for a water model (a fixed depth, no foam), [fragCoord] gl_FragCoord.xy. The surface in the
+// scene's space with its own alpha (the caller fogs it, and the fog raises the alpha).
 vec4 hdWaterSurface(int slot, vec3 viewPos, float vertexDepth, vec2 fragCoord) {
     int type = hdWaterType(slot);
     vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
@@ -480,14 +484,19 @@ vec4 hdWaterSurface(int slot, vec3 viewPos, float vertexDepth, vec2 fragCoord) {
         return vec4(n * 0.5 + 0.5, 1.0);
     }
     vec3 composite = ambient + lightOut + spec + skyLight + pointOut + pointSpec + reflection * max(specStrength, 0.2);
-    // the type's colour, pulled towards the area's tint by its strength
-    vec3 surfaceSrgb = mix(hdWaterSurfaceColour[type].rgb, hdWaterTint.rgb, hdWaterTint.w);
+    // the type's colour, its hue pulled towards the area's tint by the tint's strength at the type's
+    // own brightness (pulled towards the tint itself, 117HD's dark swamp water came out a mid green)
+    vec3 typeColour = hdWaterSurfaceColour[type].rgb;
+    float typeLuma = dot(typeColour, vec3(0.299, 0.587, 0.114));
+    float tintLuma = max(dot(hdWaterTint.rgb, vec3(0.299, 0.587, 0.114)), 0.001);
+    vec3 surfaceSrgb = mix(typeColour, hdWaterTint.rgb * (typeLuma / tintLuma), hdWaterTint.w);
     vec3 base = mix(surfaceSrgb * composite, reflection, hdWaterSpec[type].w);
     // 117HD darkens its plain water (the types with its WATER's fresnel amount) by a quarter
     if (hdWaterSpec[type].w > 0.84 && hdWaterSpec[type].w < 0.86) base *= 0.75;
-    // foam at the shore: where the vertex depth is small
+    // foam at the shore: where the vertex depth is small (a model has no shore)
+    bool model = vertexDepth < 0.0;
     float depth = max(vertexDepth, 0.0);
-    float shore = 1.0 - clamp(depth / HD_WATER_FOAM_DEPTH, 0.0, 1.0);
+    float shore = model ? 0.0 : 1.0 - clamp(depth / HD_WATER_FOAM_DEPTH, 0.0, 1.0);
     vec2 foamUv = fract((world.xz + hdSceneSize.zw) / 512.0) + flow * 0.025;
     float foamMask = texture(uHdFlowMaps, vec3(foamUv, hdWaterMaps.y)).r;
     vec3 foamColour = hdWaterFoamColour[type].rgb * foamMask * composite;
@@ -502,6 +511,9 @@ vec4 hdWaterSurface(int slot, vec3 viewPos, float vertexDepth, vec2 fragCoord) {
     if (hdWaterDepthColour[type].w > 0.5) {
         base = mix(hdWaterDepthColour[type].rgb, base, alpha);
         alpha = 1.0;
+    } else if (model) {
+        base = mix(hdWaterDepthColour[type].rgb, base, alpha);
+        alpha = max(alpha, HD_WATER_MODEL_OPACITY);
     }
     return vec4(hdColour(vec4(base, 1.0)).rgb, alpha);
 }
