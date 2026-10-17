@@ -37,8 +37,11 @@ layout(std140) uniform HdFrame {
     vec4 hdSunDirection;
     vec4 hdSunColour;
     vec4 hdAmbientColour;
+    // the environment's fog colour (sRGB)
     vec4 hdFogColour;
-    // x: fog start, y: fog end (eye distance), z: height fog density, w: height fog top (world y)
+    // x: the fog's depth scaled to the draw distance (117HD's fogDepth * min(tiles, 90) / 10; 0: no
+    // distance fog), y: the draw distance = the fog's end (eye distance), z: the unscaled depth / 100
+    // (the sky fog's density, hdFoggedSkyColour), w: unused
     vec4 hdFogParams;
     vec4 hdSkyTop;
     vec4 hdSkyHorizon;
@@ -46,7 +49,7 @@ layout(std140) uniform HdFrame {
     mat4 hdShadowMatrix;
     // eye space to world space
     mat4 hdViewToWorld;
-    // x, y, width, height of the 3D view in the target; z, w: 1 / width, 1 / height
+    // x, y, width, height of the 3D view in the target
     vec4 hdViewport;
     // x: point lights this frame
     ivec4 hdLightInfo;
@@ -61,7 +64,8 @@ layout(std140) uniform HdFrame {
     // water's tint (sRGB), w: how much of the game's water colour it replaces (HD_WATER)
     vec4 hdWaterTint;
     // x: the debug panel's overlay (0 none, 1 normals, 2 texture ids, 3 lights, 4 shadow map,
-    // 5 chunk bounds, 6 occlusion, 7 shadows, 8 light grid, 9 the water surface by thirds)
+    // 5 chunk bounds, 6 occlusion, 7 shadows, 8 light grid, 9 the water surface by thirds, 10 the fog
+    // by thirds)
     ivec4 hdDebug;
     // the region's baked occlusion height map (HD_AO): world to (u, v, depth); x top, y height range,
     // z 1 once baked
@@ -90,6 +94,9 @@ layout(std140) uniform HdFrame {
     vec4 hdGridParams;
     // each point light's wall visibility patch (HD_LIGHT_GRID): x its layer (0 none), y, z the light's world x, z
     vec4 hdLightGrid[HD_MAX_LIGHTS];
+    // the ground fog (HD_FOG, 117HD's groundFog): x its start, y its end (world y, negative is up: full
+    // below the start, none above the end), z its opacity (0: none), w: unused
+    vec4 hdGroundFog;
 };
 
 // The inverse of the composite's tonemap (post_composite.frag): the linear value that, after the
@@ -298,6 +305,61 @@ vec3 hdSkyColour(vec3 dir) {
     return mix(hdSkyHorizon.rgb, hdSkyTop.rgb, pow(up, 0.4));
 }
 
+// The sky in world direction [dir] seen through the environment's fog: 117HD's foggedSkyColor
+// (its sky_fog.glsl). The fog colour shows through most near the horizon, by the unscaled fog depth
+// (hdFogParams.z), so a hazy area (the desert) tints its horizon while the sky's top stays the sky's.
+vec3 hdFoggedSkyColour(vec3 dir) {
+    vec3 sky = hdSkyColour(dir);
+    float up = clamp(-dir.y / max(length(dir), 0.0001), 0.0, 1.0);
+    float elevation = up / 0.16;
+    float transmittance = exp(-hdFogParams.z / (1.0 + elevation * elevation));
+    return mix(hdFogColour.rgb, sky, transmittance);
+}
+
+// Set to 0 by a draw that wants no ground fog (ff.frag: the seabed, under water already), 1 otherwise.
+float hdGroundFogScale = 1.0;
+
+// 117HD's distance fog (its utils/fog.glsl calculateFogAmount) for world position [p] seen from the
+// camera at [cam], in the game's units (512 a tile), the draw distance the fog's end (hdFogParams.y):
+// the greatest of an edge fog over the five tiles before the loaded scene's edge or the draw
+// distance's square (its corners rounded; a tile less north and east, as 117HD), a linear ramp over
+// the last 15% of the distance on the ground plane, and an exponential fog by the environment's depth,
+// starting the nearer the thicker it is.
+float hdDistanceFog(vec3 p, vec3 cam) {
+    float depth = hdFogParams.x;
+    if (depth <= 0.0) return 0.0;
+    float dd = hdFogParams.y;
+    float west = cam.x - dd, east = cam.x + dd - 512.0;
+    float south = cam.z - dd, north = cam.z + dd - 512.0;
+    if (hdSceneSize.x > 0.0) {
+        west = max(west, 0.0); east = min(east, hdSceneSize.x);
+        south = max(south, 0.0); north = min(north, hdSceneSize.y);
+    }
+    float xDist = min(p.x - west, east - p.x);
+    float zDist = min(p.z - south, north - p.z);
+    float nearest = min(xDist, zDist), second = max(xDist, zDist);
+    float fogDistance = nearest - 1.5 * 512.0 * max(0.0, (nearest + 2.25) / (second + 2.25));
+    float edge = 1.0 - clamp(fogDistance / (5.0 * 512.0), 0.0, 1.0);
+    float amount1 = clamp((length(cam.xz - p.xz) - dd * 0.85) / max(dd * 0.15, 1.0), 0.0, 1.0);
+    float dd2 = min(dd, 90.0 * 512.0);
+    float m = clamp(depth, 0.0, 1000.0) / 1000.0;
+    float start2 = (0.3 - 0.3 * m) * dd2;
+    float camToVertex = length(cam - vec3(p.x, (p.y + cam.y) * 0.5, p.z));
+    float d2 = max(camToVertex - start2, 0.0) / max(dd2 - start2, 1.0);
+    float amount2 = 1.0 - clamp(exp(-d2 * depth / 100.0), 0.0, 1.0);
+    return max(max(amount1, amount2), edge);
+}
+
+// 117HD's ground fog (its scene_frag.glsl) at world position [p]: full below hdGroundFog.x, none
+// above .y, at opacity .z, fading in over the first 6000 units from the camera (117HD's 1500 at 128
+// a tile), so the ground at the player's feet is never fogged.
+float hdGroundFogAmount(vec3 p, vec3 cam) {
+    if (hdGroundFog.z <= 0.0 || hdGroundFogScale <= 0.0) return 0.0;
+    float g = 1.0 - clamp((p.y - hdGroundFog.x) / (hdGroundFog.y - hdGroundFog.x), 0.0, 1.0);
+    g *= hdGroundFog.z * clamp(distance(p, cam) / 6000.0, 0.0, 1.0);
+    return g * hdGroundFogScale;
+}
+
 // [color] (in the scene's space) fogged by [amount] of the sRGB [fogRgb]. The mix is made in sRGB as
 // the game makes it: in linear light (HD_LINEAR) a half-fogged dark surface would come out much
 // brighter, thick fog (Draynor's sea) turning pale.
@@ -307,9 +369,11 @@ vec3 hdFogMix(vec3 color, vec3 fogRgb, float amount) {
 }
 
 // Fog over a fragment at eye-space [viewPos] ([depth]: its eye depth). [fogColour], [start] and [end]
-// are the draw's fixed-function fog, which is all there is unless HD_FOG (the environment's colour
-// and distances, a smooth curve, height fog) or HD_SKY (the colour of the sky behind the fragment).
-// The fog's share and its sRGB colour (hdFog's terms, for a draw that also goes opaque with the fog).
+// are the draw's fixed-function fog, which is all there is unless HD_FOG (117HD's fog: the
+// environment's colour, its distance fog by depth and its ground fog, hdDistanceFog and
+// hdGroundFogAmount, the two combined as 117HD combines them) or HD_SKY (the colour of the sky behind
+// the fragment, seen through the fog). The fog's share and its sRGB colour (hdFog's terms, for a draw
+// that also goes opaque with the fog).
 float hdFogAmount(vec3 viewPos, float depth, vec4 fogColour, float start, float end, out vec3 fogRgb) {
     fogRgb = fogColour.rgb;
     if (!hdOn(HD_FOG) && !hdOn(HD_SKY) && !hdOn(HD_FADE)) {
@@ -320,18 +384,16 @@ float hdFogAmount(vec3 viewPos, float depth, vec4 fogColour, float start, float 
     float dist = length(viewPos);
     if (hdOn(HD_FOG)) {
         fogRgb = hdFogColour.rgb;
-        amount = smoothstep(hdFogParams.x, hdFogParams.y, dist);
+        vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
+        vec3 cam = hdViewToWorld[3].xyz;
+        float distanceFog = hdDistanceFog(world, cam);
+        float groundFog = hdGroundFogAmount(world, cam);
+        amount = 1.0 - (1.0 - distanceFog) * (1.0 - groundFog);
     } else {
         amount = 1.0 - clamp((end - depth) / (end - start), 0.0, 1.0);
     }
     if (hdOn(HD_SKY)) {
-        fogRgb = hdSkyColour(mat3(hdViewToWorld) * viewPos);
-        if (hdFogParams.z > 0.0) {
-            // height fog: thicker the lower the fragment lies under the environment's fog top
-            float worldY = (hdViewToWorld * vec4(viewPos, 1.0)).y;
-            float below = clamp((worldY - hdFogParams.w) / 1536.0, 0.0, 1.0);
-            amount = max(amount, hdFogParams.z * below * clamp(dist / 6144.0, 0.0, 1.0));
-        }
+        fogRgb = hdFoggedSkyColour(mat3(hdViewToWorld) * viewPos);
     }
     // the fade (HD_FADE): over the last band before the draw distance, into the fog or sky colour,
     // so the edge of the world and what pops in there melt into the background
@@ -341,9 +403,9 @@ float hdFogAmount(vec3 viewPos, float depth, vec4 fogColour, float start, float 
         float fade = smoothstep(hdTime.z, hdTime.z + hdTime.w, dist);
         // and near the loaded scene's edge, whatever the distance, into the sky: at a long draw distance
         // the view reaches past it, and the sea (and the seabed's wall at its edge) stopped against
-        // the sky along a jagged line
+        // the sky along a jagged line (with HD_FOG the fog's own edge term does this over five tiles)
         float edge = 0.0;
-        if (hdSceneSize.x > 0.0) {
+        if (hdSceneSize.x > 0.0 && !hdOn(HD_FOG)) {
             vec3 at = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
             float inside = min(min(at.x, at.z), min(hdSceneSize.x - at.x, hdSceneSize.y - at.z));
             edge = 1.0 - smoothstep(0.0, 4096.0, inside);

@@ -346,6 +346,14 @@ vec4 hdDebugOverlay(vec4 color, vec3 viewPos, vec3 normal, int texture) {
         float tileEdge = (cell.x < cellWidth.x || cell.y < cellWidth.y) ? 0.25 : 0.0;
         return vec4(mix(color.rgb * 0.25 + fill, vec3(1.0, 0.85, 0.0), tileEdge), 1.0);
     }
+    if (mode == 10) {
+        // the fog by screen third: the distance fog's share, the ground fog's, the colour it fades to
+        vec3 cam = hdViewToWorld[3].xyz;
+        float third = (gl_FragCoord.x - hdViewport.x) / hdViewport.z * 3.0;
+        if (third < 1.0) return vec4(vec3(hdDistanceFog(world, cam)), 1.0);
+        if (third < 2.0) return vec4(vec3(hdGroundFogAmount(world, cam)), 1.0);
+        return vec4(hdOn(HD_SKY) ? hdFoggedSkyColour(mat3(hdViewToWorld) * viewPos) : hdFogColour.rgb, 1.0);
+    }
     return color;
 }
 
@@ -484,7 +492,7 @@ vec4 hdWaterSurface(int slot, vec3 viewPos, float vertexDepth, vec2 fragCoord) {
     if (hdDebug.x == 9) {
         // the water probe overlay: by screen third, the type's surface colour (and its opacity as alpha),
         // what the surface reflects, the ripples' normal; a type table that never arrived shows black
-        float third = (fragCoord.x - hdViewport.x) * hdViewport.z * 3.0;
+        float third = (fragCoord.x - hdViewport.x) / hdViewport.z * 3.0;
         if (third < 1.0) return vec4(hdWaterSurfaceColour[type].rgb, 1.0);
         if (third < 2.0) return vec4(reflection, 1.0);
         return vec4(n * 0.5 + 0.5, 1.0);

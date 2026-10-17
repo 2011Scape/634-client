@@ -401,12 +401,16 @@ void main() {
     // 634HD's own surface and the seabed under it stay in the scene's light, as 117HD's do.
     if (uHdWater != 0 && !surface && !bed && hdOn(HD_LINEAR)) color.rgb = hdTonemapInverse(hdToSrgb(color.rgb));
     float depth = gl_FragCoord.z / gl_FragCoord.w;
+    // the seabed takes the distance fog (at water 1 the game's sheet is translucent) but no ground fog:
+    // it lies under the water already (117HD fogs nothing under water)
+    hdGroundFogScale = uHdUnderwater != 0 ? 0.0 : 1.0;
     if (uFogEnabled) {
         if (surface) {
-            // the fog raises the surface's opacity (117HD), so the far sea closes over its bed and melts into the sky
+            // the fog raises the surface's opacity (117HD: a = fog + a * (1 - fog)), so the far sea closes
+            // over its bed and melts into the sky
             vec3 fogRgb;
             float amount = hdFogAmount(FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd, fogRgb);
-            color = vec4(hdFogMix(color.rgb, fogRgb, amount), max(color.a, amount));
+            color = vec4(hdFogMix(color.rgb, fogRgb, amount), amount + color.a * (1.0 - amount));
         } else {
             color = hdFog(color, FF_VIEW_POS, depth, uFogColor, uFogStart, uFogEnd);
         }
