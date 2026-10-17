@@ -96,6 +96,10 @@ object HdShaders {
         if (flow != org.lwjgl.opengl.GL33C.GL_INVALID_INDEX) {
             org.lwjgl.opengl.GL33C.glUniformBlockBinding(program.id, flow, com.jagex.game.runetek5.graphics.hd.scene.HdMaterialMaps.BINDING_FLOW)
         }
+        val water = org.lwjgl.opengl.GL33C.glGetUniformBlockIndex(program.id, "HdWaterTypes")
+        if (water != org.lwjgl.opengl.GL33C.GL_INVALID_INDEX) {
+            org.lwjgl.opengl.GL33C.glUniformBlockBinding(program.id, water, com.jagex.game.runetek5.graphics.hd.scene.HdMaterialMaps.BINDING_WATER)
+        }
         val mapNames = arrayOf("uHdNormalMaps", "uHdOrmMaps", "uHdEmissiveMaps", "uHdFlowMaps")
         val mapUnits = intArrayOf(
             com.jagex.game.runetek5.graphics.hd.scene.HdMaterialMaps.UNIT_NORMAL,

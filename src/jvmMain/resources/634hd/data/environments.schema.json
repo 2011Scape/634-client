@@ -146,7 +146,7 @@
           "water": {
             "type": "object",
             "additionalProperties": false,
-            "description": "the area's water (with client.hd.water): only speed is read now (the caustics' rate); tint, strength, waves, size and glint are kept for the removed HD water and have no effect; each 1 is the default",
+            "description": "the area's water (with client.hd.water): speed is the caustics' rate (1 and 2) and, with 634HD's own surface (2), divides the water type's animation period; tint and strength pull the type's surface colour towards the tint and give the reflection's fallback gradient its hue; waves scales the ripples' height, glint the sun's glint, size the ripples' tiling; each 1 is the default",
             "properties": {
               "tint": {
                 "$ref": "#/$defs/colour"

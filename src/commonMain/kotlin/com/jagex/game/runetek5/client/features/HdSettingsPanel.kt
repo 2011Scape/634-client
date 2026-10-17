@@ -47,7 +47,7 @@ object HdSettingsPanel {
 	)
 
 	private val CHOICES: Array<Array<String>> = arrayOf(
-		arrayOf("off", "aces", "agx"), arrayOf("0", "1024", "2048", "4096"), ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, arrayOf("off", "realtime", "10", "30", "60"), ONOFF, ONOFF, arrayOf("0", "1"), ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, arrayOf("0", "2", "4", "8", "16"), arrayOf("1", "1.5", "2"), arrayOf("auto", "1", "1.5", "2", "2.5", "3"),
+		arrayOf("off", "aces", "agx"), arrayOf("0", "1024", "2048", "4096"), ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, arrayOf("off", "realtime", "10", "30", "60"), ONOFF, ONOFF, arrayOf("0", "1", "2"), ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, ONOFF, arrayOf("0", "2", "4", "8", "16"), arrayOf("1", "1.5", "2"), arrayOf("auto", "1", "1.5", "2", "2.5", "3"),
 	)
 
 	private val ONOFF: Array<String>
@@ -206,7 +206,7 @@ object HdSettingsPanel {
 		"tonemap" -> if (value == "aces") "ACES" else if (value == "agx") "AgX" else "Off"
 		"shadows" -> if (value == "0") "Off" else value
 		"anisotropy" -> if (value == "0") "Off" else value + "x"
-		"water" -> if (value == "1") "On" else "Off"
+		"water" -> if (value == "2") "634HD" else if (value == "1") "Game" else "Off"
 		else -> capital(value)
 	}
 

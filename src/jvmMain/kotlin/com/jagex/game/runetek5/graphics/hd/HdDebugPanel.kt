@@ -46,7 +46,7 @@ import javax.swing.WindowConstants
 class HdDebugPanel(private val content: HdContent) {
 
     companion object {
-        val OVERLAYS = arrayOf("none", "normals", "texture ids", "light count", "shadow map", "chunk bounds", "occlusion only", "shadows only", "light grid")
+        val OVERLAYS = arrayOf("none", "normals", "texture ids", "light count", "shadow map", "chunk bounds", "occlusion only", "shadows only", "light grid", "water")
 
         /** Whether this is a debug build (client.debug), the only kind the panel opens in. */
         val enabled: Boolean = System.getProperty("client.debug") != null
@@ -206,7 +206,7 @@ class HdDebugPanel(private val content: HdContent) {
         var y = 0
         val choices = mapOf(
             "tonemap" to arrayOf("off", "aces", "agx"), "anisotropy" to arrayOf("0", "2", "4", "8", "16"),
-            "shadows" to arrayOf("off", "1024", "2048", "4096"), "water" to arrayOf("0", "1"), "interfaceScale" to arrayOf("off", "2", "3", "4"),
+            "shadows" to arrayOf("off", "1024", "2048", "4096"), "water" to arrayOf("0", "1", "2"), "interfaceScale" to arrayOf("off", "2", "3", "4"),
         )
         val switches = arrayOf("tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting", "shadows", "lights", "lightGrid", "terrainBlend", "water", "foliage", "sky", "softParticles", "fxaa", "bloom", "colourGrading", "materials", "particles", "smoothInterface")
         for (name in switches) {

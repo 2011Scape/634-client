@@ -2,11 +2,13 @@
  * Not part of the original client: 634HD (toolkit 6). The water's planar reflection
  * (HdSettings.reflections): once a frame, before the ground and the water are drawn, the retained
  * static scene and the sky are drawn again, mirrored about the water plane, into a half-size texture
- * (unit UNIT). The water draws (ff.frag) sample it at their own screen position, bent a little by
- * the game's wave texture, and mix it in by the angle of view (strongest at grazing angles). The
- * mirror is applied in world space (uWorldToClip = projection * view * mirror), so the lights, which
- * the emulator keeps in eye space, stay as they are; the sky takes the mirrored projection. Dynamic
- * entities (players, NPCs) and the ground itself are not reflected.
+ * (unit UNIT). The water draws (ff.frag) sample it at their own screen position: the game's water
+ * bent a little by its wave texture, mixed in by the angle of view (strongest at grazing angles);
+ * 634HD's own surface (HdSettings.water 2) bent by its ripples' normal, mixed in by its fresnel
+ * (hd_material.glsl hdWaterReflection). The mirror is applied in world space (uWorldToClip =
+ * projection * view * mirror), so the lights, which the emulator keeps in eye space, stay as they
+ * are; the sky takes the mirrored projection. Dynamic entities (players, NPCs) and the ground itself
+ * are not reflected (under 634HD's surface the sky or the gradient stands in where it is missing).
  */
 package com.jagex.game.runetek5.graphics.hd.scene
 
