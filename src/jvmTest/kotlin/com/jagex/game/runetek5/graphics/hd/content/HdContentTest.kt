@@ -8,9 +8,9 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /**
- * Not part of the original client: 634HD's environments.json, its fog fields (117HD's fog depth and
+ * Not part of the original client: 634HD's environments.json, its fog fields (the fog depth and
  * ground fog) and the choice of environment by tile; and the shipped file, hand-written entries and
- * the ones generated from 117HD's environments.json (marked source), against its schema.
+ * the generated ones (marked source), against its schema.
  */
 class HdContentTest {
 
@@ -27,7 +27,7 @@ class HdContentTest {
             { "name": "Default", "fog": { "depth": 6.5 } },
             { "name": "Town", "area": { "regions": [13105] }, "fog": { "colour": "#c7b79b", "depth": 25 } },
             {
-              "name": "Desert", "source": "117HD KHARIDIAN_DESERT",
+              "name": "Desert", "source": "KHARIDIAN_DESERT",
               "area": { "bounds": [[3201, 3070, 3518, 3134], [3344, 3135, 3352, 3156]], "levels": [0] },
               "fog": { "colour": "#c7b79b", "end": 22 },
               "groundFog": { "start": -800, "end": -2000, "opacity": 0.5 }
@@ -53,7 +53,7 @@ class HdContentTest {
         assertTrue(town.fogEnd.isNaN())
         assertNull(town.source)
         val desert = list[2]
-        assertEquals("117HD KHARIDIAN_DESERT", desert.source)
+        assertEquals("KHARIDIAN_DESERT", desert.source)
         assertTrue(desert.fogDepth.isNaN())
         assertEquals(22.0f, desert.fogEnd)
         assertEquals(-800.0f, desert.groundFogStart)
@@ -96,15 +96,15 @@ class HdContentTest {
         assertEquals(emptyList(), warnings)
         assertTrue(list.size > 100, "the imported environments are present: " + list.size)
         val generated = list.filter { it.source != null }
-        assertTrue(generated.all { it.source!!.startsWith("117HD ") })
+        assertTrue(generated.all { it.source!!.isNotBlank() }, "a generated entry names the area it covers")
         assertTrue(list.indexOfFirst { it.source != null } > list.indexOfLast { it.source == null }, "hand-written entries come first")
-        // Al Kharid (the hand entry, its regions down to y 3072) has the desert haze; further south it is 117HD's
+        // Al Kharid (the hand entry, its regions down to y 3072) has the desert haze; further south it is the generated desert's
         val town = HdContent.environmentAt(list, 3293, 3180, 0)!!
         assertEquals("Al Kharid", town.name)
         assertEquals(25.0f, town.fogDepth)
         assertEquals("Al Kharid", HdContent.environmentAt(list, 3304, 3100, 0)!!.name)
-        assertEquals("117HD KHARIDIAN_DESERT", HdContent.environmentAt(list, 3400, 3100, 0)!!.source)
-        assertEquals("117HD KHARIDIAN_DESERT_MID", HdContent.environmentAt(list, 3304, 3060, 0)!!.source)
-        assertEquals("117HD KHARIDIAN_DESERT_DEEP", HdContent.environmentAt(list, 3250, 2900, 0)!!.source)
+        assertEquals("KHARIDIAN_DESERT", HdContent.environmentAt(list, 3400, 3100, 0)!!.source)
+        assertEquals("KHARIDIAN_DESERT_MID", HdContent.environmentAt(list, 3304, 3060, 0)!!.source)
+        assertEquals("KHARIDIAN_DESERT_DEEP", HdContent.environmentAt(list, 3250, 2900, 0)!!.source)
     }
 }

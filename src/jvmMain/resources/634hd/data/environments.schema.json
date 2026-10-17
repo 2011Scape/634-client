@@ -1,6 +1,6 @@
 {
   "title": "634HD environments",
-  "description": "Per-area lighting and atmosphere for 634HD's features. The first environment whose area holds the player applies; one without an area is the default. A change blends in over three seconds (at once after a teleport), as 117HD's does. Entries with a source were generated from 117HD's environments.json (their fog alone); hand-written entries come first and win.",
+  "description": "Per-area lighting and atmosphere for 634HD's features. The first environment whose area holds the player applies; one without an area is the default. A change blends in over three seconds (at once after a teleport). Entries with a source were generated per area (their fog alone); hand-written entries come first and win.",
   "type": "object",
   "required": [
     "environments"
@@ -21,7 +21,7 @@
           },
           "source": {
             "type": "string",
-            "description": "where a generated entry came from (\"117HD <AREA>\"); absent on a hand-written one"
+            "description": "the area a generated entry covers (\"KHARIDIAN_DESERT\"); absent on a hand-written one"
           },
           "area": {
             "type": "object",
@@ -98,7 +98,7 @@
           "fog": {
             "type": "object",
             "additionalProperties": false,
-            "description": "117HD's fog: the colour (absent: the game's zone fog colour, its sky), the depth (117HD's fogDepth: how thick the exponential distance fog is, 6.5 the open overworld, 25 most areas, 50 deep desert; absent: the default environment's), the end in tiles from the camera (absent: the game's own for the scene size)",
+            "description": "the fog: the colour (absent: the game's zone fog colour, its sky), the depth (how thick the exponential distance fog is, 6.5 the open overworld, 25 most areas, 50 deep desert; absent: the default environment's), the end in tiles from the camera (absent: the game's own for the scene size)",
             "properties": {
               "colour": {
                 "$ref": "#/$defs/colour"
@@ -130,7 +130,7 @@
           "groundFog": {
             "type": "object",
             "additionalProperties": false,
-            "description": "117HD's ground fog, a low mist by height: full below start, none above end (world y in scene units, 512 a tile, negative is up: 117HD's values times 4), at opacity",
+            "description": "the ground fog, a low mist by height: full below start, none above end (world y in scene units, 512 a tile, negative is up), at opacity",
             "properties": {
               "start": {
                 "type": "number"

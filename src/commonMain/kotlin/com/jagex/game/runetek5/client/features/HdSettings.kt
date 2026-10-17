@@ -62,7 +62,7 @@ object HdSettings {
 	@JvmField
 	var terrainBlend: Boolean = false
 
-	/** Water: 0 as the game draws it, 1 the game's water under the HD steps (the seabed re-fogged, shown right under the tonemap, caustics at the area's speed), 2 634HD's own surface (117HD's method: scrolled normal maps, sun glint, fresnel, the reflection, the seabed tinted by depth, foam at the shore). */
+	/** Water: 0 as the game draws it, 1 the game's water under the HD steps (the seabed re-fogged, shown right under the tonemap, caustics at the area's speed), 2 634HD's own surface (scrolled normal maps, sun glint, fresnel, the reflection, the seabed tinted by depth, foam at the shore). */
 	@JvmField
 	var water: Int = 0
 

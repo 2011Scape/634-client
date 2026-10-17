@@ -129,7 +129,7 @@ class HdFrameUniforms {
     fun setSunColour(r: Float, g: Float, b: Float) = putVec4(SUN_COLOUR, r, g, b, 1.0f)
     fun setAmbient(r: Float, g: Float, b: Float) = putVec4(AMBIENT, r, g, b, 1.0f)
     /**
-     * The environment's fog (HD_FOG): its colour; [scaledDepth], 117HD's depth times min(tiles, 90) / 10
+     * The environment's fog (HD_FOG): its colour; [scaledDepth], the environment's depth times min(tiles, 90) / 10
      * (0: no distance fog); [end], the fog's end = the draw distance in eye units; [skyDensity], the
      * unscaled depth / 100 for the fogged sky's horizon (hdFoggedSkyColour).
      */
@@ -138,7 +138,7 @@ class HdFrameUniforms {
         putVec4(FOG_PARAMS, scaledDepth, end, skyDensity, 0.0f)
     }
 
-    /** The ground fog (HD_FOG, 117HD's groundFog): full below world y [start], none above [end], at [opacity] (0: none). */
+    /** The ground fog (HD_FOG, environments.json groundFog): full below world y [start], none above [end], at [opacity] (0: none). */
     fun setGroundFog(start: Float, end: Float, opacity: Float) = putVec4(GROUND_FOG, start, end, opacity, 0.0f)
     fun setSky(topR: Float, topG: Float, topB: Float, horizonR: Float, horizonG: Float, horizonB: Float) {
         putVec4(SKY_TOP, topR, topG, topB, 1.0f)
