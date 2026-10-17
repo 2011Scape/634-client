@@ -72,7 +72,8 @@ class HdFrameUniforms {
         private const val SCENE_SIZE: Int = TONEMAP + 16
         private const val GRID_PARAMS: Int = SCENE_SIZE + 16
         private const val LIGHT_GRID: Int = GRID_PARAMS + 16
-        const val SIZE: Int = LIGHT_GRID + MAX_LIGHTS * 16
+        private const val GROUND_FOG: Int = LIGHT_GRID + MAX_LIGHTS * 16
+        const val SIZE: Int = GROUND_FOG + 16
     }
 
     private var buffer: Int = 0
@@ -127,10 +128,18 @@ class HdFrameUniforms {
     fun setSun(x: Float, y: Float, z: Float, present: Boolean) = putVec4(SUN_DIRECTION, x, y, z, if (present) 1.0f else 0.0f)
     fun setSunColour(r: Float, g: Float, b: Float) = putVec4(SUN_COLOUR, r, g, b, 1.0f)
     fun setAmbient(r: Float, g: Float, b: Float) = putVec4(AMBIENT, r, g, b, 1.0f)
-    fun setFog(r: Float, g: Float, b: Float, start: Float, end: Float, heightDensity: Float, heightTop: Float) {
+    /**
+     * The environment's fog (HD_FOG): its colour; [scaledDepth], 117HD's depth times min(tiles, 90) / 10
+     * (0: no distance fog); [end], the fog's end = the draw distance in eye units; [skyDensity], the
+     * unscaled depth / 100 for the fogged sky's horizon (hdFoggedSkyColour).
+     */
+    fun setFog(r: Float, g: Float, b: Float, scaledDepth: Float, end: Float, skyDensity: Float) {
         putVec4(FOG_COLOUR, r, g, b, 1.0f)
-        putVec4(FOG_PARAMS, start, end, heightDensity, heightTop)
+        putVec4(FOG_PARAMS, scaledDepth, end, skyDensity, 0.0f)
     }
+
+    /** The ground fog (HD_FOG, 117HD's groundFog): full below world y [start], none above [end], at [opacity] (0: none). */
+    fun setGroundFog(start: Float, end: Float, opacity: Float) = putVec4(GROUND_FOG, start, end, opacity, 0.0f)
     fun setSky(topR: Float, topG: Float, topB: Float, horizonR: Float, horizonG: Float, horizonB: Float) {
         putVec4(SKY_TOP, topR, topG, topB, 1.0f)
         putVec4(SKY_HORIZON, horizonR, horizonG, horizonB, 1.0f)

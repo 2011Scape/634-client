@@ -28,8 +28,12 @@ class HdContent {
     )
 
     class EnvironmentDef(val name: String, val line: Int) {
+        /** Where the entry came from when generated ("117HD <AREA>", tools/import_117hd_environments.py); null for a hand-written one. */
+        var source: String? = null
         var regions: IntArray? = null
         var bounds: Array<IntArray>? = null
+        /** The bounds' enclosing box (minX, minY, maxX, maxY), checked before each of them. */
+        var box: IntArray? = null
         var levels: IntArray? = null
         var sunPitch: Float = Float.NaN
         var sunYaw: Float = Float.NaN
@@ -38,12 +42,16 @@ class HdContent {
         var ambientColour: FloatArray? = null
         var ambientIntensity: Float = 1.0f
         var fogColour: FloatArray? = null
-        var fogStart: Float = Float.NaN
+        /** 117HD's fogDepth, the distance fog's thickness (NaN: the default environment's, else 6.5). */
+        var fogDepth: Float = Float.NaN
+        /** The fog's end in tiles from the camera (NaN: the game's own, from its tables for the scene size). */
         var fogEnd: Float = Float.NaN
         var skyTop: FloatArray? = null
         var skyHorizon: FloatArray? = null
-        var heightFogDensity: Float = 0.0f
-        var heightFogTop: Float = 0.0f
+        /** 117HD's ground fog: full below [groundFogStart], none above [groundFogEnd] (world y, negative is up), at [groundFogOpacity] (0: none). */
+        var groundFogStart: Float = 0.0f
+        var groundFogEnd: Float = 0.0f
+        var groundFogOpacity: Float = 0.0f
         var lut: String? = null
         var waterTint: FloatArray? = null
         /** water: how much of the game's water colour the tint replaces (NaN: 0.45), waves' height, speed, size, glint */
@@ -60,7 +68,8 @@ class HdContent {
             val bounds = this.bounds
             if (regions == null && bounds == null) return true
             if (regions != null && regions.indexOf(((x shr 6) shl 8) or (y shr 6)) >= 0) return true
-            if (bounds != null) {
+            val box = this.box
+            if (bounds != null && (box == null || (x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3]))) {
                 for (b in bounds) {
                     if (x >= minOf(b[0], b[2]) && x <= maxOf(b[0], b[2]) && y >= minOf(b[1], b[3]) && y <= maxOf(b[1], b[3])) return true
                 }
@@ -258,6 +267,124 @@ class HdContent {
             val rgb = text.substring(1).toInt(16)
             return floatArrayOf(((rgb shr 16) and 0xFF) / 255.0f, ((rgb shr 8) and 0xFF) / 255.0f, (rgb and 0xFF) / 255.0f)
         }
+
+        private fun ids(json: Json?): IntArray = (json as? Json.Arr)?.items?.map { (it as Json.Num).value.toInt() }?.toIntArray() ?: IntArray(0)
+        private fun num(json: Json?, default: Float): Float = (json as? Json.Num)?.value?.toFloat() ?: default
+        private fun str(json: Json?): String? = (json as? Json.Str)?.value
+        private fun col(json: Json?): FloatArray? = str(json)?.let { colour(it) }
+
+        /**
+         * The entries of [text] ([file].json's array [field]), each checked against the matching part
+         * of its schema [schemaText] (none: unchecked) and converted; a bad entry is skipped with a
+         * warning added to [warnings].
+         */
+        @Suppress("TooGenericExceptionCaught") // a converter's cast, !! or number parse on a bad entry: any of them skips the entry, never the client
+        fun <T> parseEntries(text: String, schemaText: String?, file: String, field: String, convert: (Json.Obj) -> T?, warnings: MutableList<String>): List<T> {
+            val json: Json
+            try {
+                json = Json.parse(text)
+            } catch (ex: Json.ParseException) {
+                warnings.add("$file.json line ${ex.line}: ${ex.message}; the file is ignored")
+                return emptyList()
+            }
+            val schema = if (schemaText == null) null else JsonSchema(Json.parse(schemaText) as Json.Obj)
+            val entries = ((json as? Json.Obj)?.get(field) as? Json.Arr)?.items
+            if (entries == null) {
+                warnings.add("$file.json line ${json.line}: no \"$field\" array; the file is ignored")
+                return emptyList()
+            }
+            val out = ArrayList<T>()
+            for (entry in entries) {
+                if (schema != null) {
+                    // the entry alone against the item schema: one bad entry does not cost the others
+                    val wrapped = Json.Obj(entry.line, linkedMapOf(field to Json.Arr(entry.line, arrayListOf(entry))))
+                    val problems = schema.check(wrapped)
+                    if (problems.isNotEmpty()) {
+                        for (p in problems) warnings.add("$file.json line ${p.line}: ${p.message.removePrefix("$field[0]: ").removePrefix("$field[0].")}; entry skipped")
+                        continue
+                    }
+                }
+                val value = try {
+                    convert(entry as Json.Obj)
+                } catch (ex: RuntimeException) {
+                    warnings.add("$file.json line ${entry.line}: $ex; entry skipped")
+                    null
+                }
+                if (value != null) out.add(value)
+            }
+            return out
+        }
+
+        /** The environments of an environments.json [text], checked against [schemaText] (unit tests, loadAll). */
+        fun parseEnvironments(text: String, schemaText: String?, warnings: MutableList<String>): List<EnvironmentDef> =
+            parseEntries(text, schemaText, "environments", "environments", ::parseEnvironment, warnings)
+
+        fun parseEnvironment(o: Json.Obj): EnvironmentDef {
+            val e = EnvironmentDef(str(o["name"])!!, o.line)
+            e.source = str(o["source"])
+            (o["area"] as? Json.Obj)?.let { area ->
+                area["regions"]?.let { e.regions = ids(it) }
+                (area["bounds"] as? Json.Arr)?.let { b ->
+                    val bounds = b.items.map { ids(it) }.toTypedArray()
+                    e.bounds = bounds
+                    if (bounds.isNotEmpty()) {
+                        e.box = intArrayOf(
+                            bounds.minOf { minOf(it[0], it[2]) }, bounds.minOf { minOf(it[1], it[3]) },
+                            bounds.maxOf { maxOf(it[0], it[2]) }, bounds.maxOf { maxOf(it[1], it[3]) },
+                        )
+                    }
+                }
+                area["levels"]?.let { e.levels = ids(it) }
+            }
+            (o["sun"] as? Json.Obj)?.let { sun ->
+                e.sunPitch = num(sun["pitch"], Float.NaN)
+                e.sunYaw = num(sun["yaw"], Float.NaN)
+                e.sunColour = col(sun["colour"])
+                e.sunIntensity = num(sun["intensity"], 1.0f)
+            }
+            (o["ambient"] as? Json.Obj)?.let { a ->
+                e.ambientColour = col(a["colour"])
+                e.ambientIntensity = num(a["intensity"], 1.0f)
+            }
+            (o["fog"] as? Json.Obj)?.let { f ->
+                e.fogColour = col(f["colour"])
+                e.fogDepth = num(f["depth"], Float.NaN)
+                e.fogEnd = num(f["end"], Float.NaN)
+            }
+            (o["sky"] as? Json.Obj)?.let { s ->
+                e.skyTop = col(s["top"])
+                e.skyHorizon = col(s["horizon"])
+            }
+            (o["groundFog"] as? Json.Obj)?.let { g ->
+                e.groundFogStart = num(g["start"], 0.0f)
+                e.groundFogEnd = num(g["end"], 0.0f)
+                e.groundFogOpacity = num(g["opacity"], 0.0f)
+            }
+            e.lut = str(o["lut"])
+            e.waterTint = col(o["waterTint"])
+            (o["water"] as? Json.Obj)?.let { w ->
+                col(w["tint"])?.let { e.waterTint = it }
+                e.waterStrength = num(w["strength"], Float.NaN)
+                e.waterWaves = num(w["waves"], 1.0f)
+                e.waterSpeed = num(w["speed"], 1.0f)
+                e.waterSize = num(w["size"], 1.0f)
+                e.waterGlint = num(w["glint"], 1.0f)
+            }
+            return e
+        }
+
+        /** The environment of [environments] for world tile ([x], [y]) on [level]: the first area holding it, else the first default. */
+        fun environmentAt(environments: List<EnvironmentDef>, x: Int, y: Int, level: Int): EnvironmentDef? {
+            var fallback: EnvironmentDef? = null
+            for (e in environments) {
+                if (e.isDefault) {
+                    if (fallback == null) fallback = e
+                } else if (e.contains(x, y, level)) {
+                    return e
+                }
+            }
+            return fallback
+        }
     }
 
     init {
@@ -336,46 +463,8 @@ class HdContent {
      */
     private fun <T> parseList(file: String, field: String, convert: (Json.Obj) -> T?): List<T> {
         val text = read("$file.json") ?: return emptyList()
-        val json: Json
-        try {
-            json = Json.parse(text)
-        } catch (ex: Json.ParseException) {
-            warnings.add("$file.json line ${ex.line}: ${ex.message}; the file is ignored")
-            return emptyList()
-        }
-        val schemaText = read("$file.schema.json")
-        val schema = if (schemaText == null) null else JsonSchema(Json.parse(schemaText) as Json.Obj)
-        val entries = ((json as? Json.Obj)?.get(field) as? Json.Arr)?.items
-        if (entries == null) {
-            warnings.add("$file.json line ${json.line}: no \"$field\" array; the file is ignored")
-            return emptyList()
-        }
-        val out = ArrayList<T>()
-        for (entry in entries) {
-            if (schema != null) {
-                // the entry alone against the item schema: one bad entry does not cost the others
-                val wrapped = Json.Obj(entry.line, linkedMapOf(field to Json.Arr(entry.line, arrayListOf(entry))))
-                val problems = schema.check(wrapped)
-                if (problems.isNotEmpty()) {
-                    for (p in problems) warnings.add("$file.json line ${p.line}: ${p.message.removePrefix("$field[0]: ").removePrefix("$field[0].")}; entry skipped")
-                    continue
-                }
-            }
-            val value = try {
-                convert(entry as Json.Obj)
-            } catch (ex: RuntimeException) {
-                warnings.add("$file.json line ${entry.line}: $ex; entry skipped")
-                null
-            }
-            if (value != null) out.add(value)
-        }
-        return out
+        return parseEntries(text, read("$file.schema.json"), file, field, convert, warnings)
     }
-
-    private fun ids(json: Json?): IntArray = (json as? Json.Arr)?.items?.map { (it as Json.Num).value.toInt() }?.toIntArray() ?: IntArray(0)
-    private fun num(json: Json?, default: Float): Float = (json as? Json.Num)?.value?.toFloat() ?: default
-    private fun str(json: Json?): String? = (json as? Json.Str)?.value
-    private fun col(json: Json?): FloatArray? = str(json)?.let { colour(it) }
 
     private fun parseLight(o: Json.Obj): LightDef {
         val c = colour(str(o["colour"])!!)
@@ -386,49 +475,6 @@ class HdContent {
             c[0], c[1], c[2], num(o["radius"], 4.0f), num(o["intensity"], 1.0f),
             offset?.get(0) ?: 0.0f, offset?.get(1) ?: 0.0f, offset?.get(2) ?: 0.0f, flicker,
         )
-    }
-
-    private fun parseEnvironment(o: Json.Obj): EnvironmentDef {
-        val e = EnvironmentDef(str(o["name"])!!, o.line)
-        (o["area"] as? Json.Obj)?.let { area ->
-            area["regions"]?.let { e.regions = ids(it) }
-            (area["bounds"] as? Json.Arr)?.let { b -> e.bounds = b.items.map { ids(it) }.toTypedArray() }
-            area["levels"]?.let { e.levels = ids(it) }
-        }
-        (o["sun"] as? Json.Obj)?.let { sun ->
-            e.sunPitch = num(sun["pitch"], Float.NaN)
-            e.sunYaw = num(sun["yaw"], Float.NaN)
-            e.sunColour = col(sun["colour"])
-            e.sunIntensity = num(sun["intensity"], 1.0f)
-        }
-        (o["ambient"] as? Json.Obj)?.let { a ->
-            e.ambientColour = col(a["colour"])
-            e.ambientIntensity = num(a["intensity"], 1.0f)
-        }
-        (o["fog"] as? Json.Obj)?.let { f ->
-            e.fogColour = col(f["colour"])
-            e.fogStart = num(f["start"], Float.NaN)
-            e.fogEnd = num(f["end"], Float.NaN)
-        }
-        (o["sky"] as? Json.Obj)?.let { s ->
-            e.skyTop = col(s["top"])
-            e.skyHorizon = col(s["horizon"])
-        }
-        (o["heightFog"] as? Json.Obj)?.let { h ->
-            e.heightFogDensity = num(h["density"], 0.0f)
-            e.heightFogTop = num(h["top"], 0.0f)
-        }
-        e.lut = str(o["lut"])
-        e.waterTint = col(o["waterTint"])
-        (o["water"] as? Json.Obj)?.let { w ->
-            col(w["tint"])?.let { e.waterTint = it }
-            e.waterStrength = num(w["strength"], Float.NaN)
-            e.waterWaves = num(w["waves"], 1.0f)
-            e.waterSpeed = num(w["speed"], 1.0f)
-            e.waterSize = num(w["size"], 1.0f)
-            e.waterGlint = num(w["glint"], 1.0f)
-        }
-        return e
     }
 
     private fun parseMaterial(o: Json.Obj): MaterialDef {
@@ -531,6 +577,7 @@ class HdContent {
         for ((i, e) in environments.withIndex()) {
             val fields = ArrayList<String>()
             fields.add("\"name\": \"" + e.name + "\"")
+            e.source?.let { fields.add("\"source\": \"" + it + "\"") }
             val area = ArrayList<String>()
             e.regions?.let { area.add("\"regions\": " + ids(it)) }
             e.bounds?.let { b -> area.add("\"bounds\": " + b.joinToString(", ", "[", "]") { ids(it) }) }
@@ -548,14 +595,14 @@ class HdContent {
             if (ambient.isNotEmpty()) fields.add("\"ambient\": { " + ambient.joinToString(", ") + " }")
             val fog = ArrayList<String>()
             e.fogColour?.let { fog.add("\"colour\": \"" + hex(it) + "\"") }
-            if (!e.fogStart.isNaN()) fog.add("\"start\": " + num(e.fogStart))
+            if (!e.fogDepth.isNaN()) fog.add("\"depth\": " + num(e.fogDepth))
             if (!e.fogEnd.isNaN()) fog.add("\"end\": " + num(e.fogEnd))
             if (fog.isNotEmpty()) fields.add("\"fog\": { " + fog.joinToString(", ") + " }")
             val sky = ArrayList<String>()
             e.skyTop?.let { sky.add("\"top\": \"" + hex(it) + "\"") }
             e.skyHorizon?.let { sky.add("\"horizon\": \"" + hex(it) + "\"") }
             if (sky.isNotEmpty()) fields.add("\"sky\": { " + sky.joinToString(", ") + " }")
-            if (e.heightFogDensity != 0.0f) fields.add("\"heightFog\": { \"density\": " + num(e.heightFogDensity) + ", \"top\": " + num(e.heightFogTop) + " }")
+            if (e.groundFogOpacity != 0.0f) fields.add("\"groundFog\": { \"start\": " + num(e.groundFogStart) + ", \"end\": " + num(e.groundFogEnd) + ", \"opacity\": " + num(e.groundFogOpacity) + " }")
             e.lut?.let { fields.add("\"lut\": \"" + it + "\"") }
             e.waterTint?.let { fields.add("\"waterTint\": \"" + hex(it) + "\"") }
             out.append("    {\n      ").append(fields.joinToString(",\n      ")).append(if (i == environments.size - 1) "\n    }\n" else "\n    },\n")
@@ -566,15 +613,5 @@ class HdContent {
     }
 
     /** The environment for world tile ([x], [y]) on [level]: the first area holding it, else the default. */
-    fun environmentAt(x: Int, y: Int, level: Int): EnvironmentDef? {
-        var fallback: EnvironmentDef? = null
-        for (e in environments) {
-            if (e.isDefault) {
-                if (fallback == null) fallback = e
-            } else if (e.contains(x, y, level)) {
-                return e
-            }
-        }
-        return fallback
-    }
+    fun environmentAt(x: Int, y: Int, level: Int): EnvironmentDef? = environmentAt(environments, x, y, level)
 }

@@ -3,9 +3,10 @@
  * (HdSettings): what they need is worked out once the camera is set (HdToolkit.setCamera) and written
  * into the frame's uniform block (HdFrameUniforms) before the scene is drawn.
  *
- * The environment (environments.json, HdContent) is the one whose area holds the local player; its
- * values are eased towards over about a second when that changes. Where it gives nothing, the
- * game's own atmosphere (fog colour and distance, sun) is used, so dungeons keep their dark fog.
+ * The environment (environments.json, HdContent) is the one whose area holds the local player; when
+ * that changes its values are blended over TRANSITION_SECONDS (117HD's three seconds, smoothstepped),
+ * at once when the player jumped SKIP_TRANSITION_TILES or more (a teleport). Where it gives nothing,
+ * the game's own atmosphere (fog colour and distance, sun) is used, so dungeons keep their dark fog.
  */
 package com.jagex.game.runetek5.graphics.hd.scene
 
@@ -27,6 +28,15 @@ class HdFeatures {
 
         /** The shadow sun's lowest pitch in degrees with the time of day. */
         const val SHADOW_MIN_PITCH: Float = 12.0f
+
+        /** A change of environment blends over this long (117HD's TRANSITION_DURATION). */
+        const val TRANSITION_SECONDS: Float = 3.0f
+
+        /** A move of this many tiles in a frame (a teleport) switches the environment at once (117HD's SKIP_TRANSITION_DISTANCE). */
+        const val SKIP_TRANSITION_TILES: Int = 41
+
+        /** The distance fog's depth where neither the environment nor the default gives one (117HD's OVERWORLD). */
+        const val DEFAULT_FOG_DEPTH: Float = 6.5f
     }
 
     private val start: Long = System.nanoTime()
@@ -43,20 +53,48 @@ class HdFeatures {
     var environment: HdContent.EnvironmentDef? = null
         private set
 
-    // the eased values: sky top, sky horizon, fog colour (rgb), fog start, end, height density, top
+    // the values uploaded this frame: sky top, sky horizon (rgb each); fog colour (rgb), depth, end
+    // (eye units), ground fog start, end (world y), opacity; the sun's and ambient light's tints (rgb
+    // each, times intensity); the water tint (rgb, strength); the area's waves' height, speed, glint and
+    // size; the shadow sun's pitch and yaw (degrees; NaN: the game's)
     private val sky: FloatArray = FloatArray(6)
-    private val fog: FloatArray = FloatArray(7)
-    private var eased: Boolean = false
-    private var lastNanos: Long = 0L
-    private val target: FloatArray = FloatArray(13)
-    // eased too: the sun's and ambient light's tints (rgb each, times intensity), the water tint (rgb,
-    // strength) and the shadow sun's pitch and yaw (degrees; NaN: the game's, not eased)
+    private val fog: FloatArray = FloatArray(8)
     private val envLight: FloatArray = floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f)
     private val water: FloatArray = floatArrayOf(0.11f, 0.24f, 0.3f, 0.2f)
-    // the area's waves' height, speed, glint and size
     private val waterParams: FloatArray = floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f)
     private var sunPitch: Float = Float.NaN
     private var sunYaw: Float = Float.NaN
+    // the live values, eased towards the current environment's target every frame (so the time of
+    // day and the game's own fog colour move smoothly)...
+    private val liveSky: FloatArray = FloatArray(6)
+    private val liveFog: FloatArray = FloatArray(8)
+    private val liveEnvLight: FloatArray = floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f)
+    private val liveWater: FloatArray = floatArrayOf(0.11f, 0.24f, 0.3f, 0.2f)
+    private val liveWaterParams: FloatArray = floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f)
+    private var liveSunPitch: Float = Float.NaN
+    private var liveSunYaw: Float = Float.NaN
+    // ...and what was uploaded when the environment last changed: the uploaded values blend from these
+    // to the live ones over TRANSITION_SECONDS (117HD's transition)
+    private val fromSky: FloatArray = FloatArray(6)
+    private val fromFog: FloatArray = FloatArray(8)
+    private val fromEnvLight: FloatArray = FloatArray(6)
+    private val fromWater: FloatArray = FloatArray(4)
+    private val fromWaterParams: FloatArray = FloatArray(4)
+    private var fromSunPitch: Float = Float.NaN
+    private var fromSunYaw: Float = Float.NaN
+    private var transitionStart: Long = 0L
+    private var lastEnvironment: HdContent.EnvironmentDef? = null
+    private var lastTileX: Int = Int.MIN_VALUE
+    private var lastTileY: Int = Int.MIN_VALUE
+    // the environment at the player's tile, looked up again only when the tile or the content changes
+    private var cachedEnvironment: HdContent.EnvironmentDef? = null
+    private var cachedTileX: Int = Int.MIN_VALUE
+    private var cachedTileY: Int = Int.MIN_VALUE
+    private var cachedLevel: Int = -1
+    private var cachedVersion: Int = -1
+    private var eased: Boolean = false
+    private var lastNanos: Long = 0L
+    private val target: FloatArray = FloatArray(14)
 
     /** The sun's shadow map (HdSettings.shadows). */
     val shadows: HdShadows = HdShadows()
@@ -145,7 +183,10 @@ class HdFeatures {
             this.shadows.bindBaked()
             uniforms.setAmbientOcclusionBake(this.shadows.aoBakeMatrix, this.shadows.aoBakeParams)
         }
-        uniforms.setFog(fog[0], fog[1], fog[2], fog[3], fog[4], fog[5], fog[6])
+        // the fog's depth scaled to the draw distance in tiles, as 117HD scales it (fogDepth * min(dd, 90) / 10)
+        val drawTiles: Float = fog[4] / 512.0f
+        uniforms.setFog(fog[0], fog[1], fog[2], fog[3] * minOf(drawTiles, 90.0f) / 10.0f, fog[4], fog[3] / 100.0f)
+        uniforms.setGroundFog(fog[5], fog[6], fog[7])
         uniforms.setSky(sky[0], sky[1], sky[2], sky[3], sky[4], sky[5])
         // locs fade over the last three tiles before the fog closes (HD_FADE)
         val fadeEnd: Float = if (HdSettings.fog) fog[4] else state.fogEnd
@@ -155,7 +196,10 @@ class HdFeatures {
         val band: Float = if (ClientFeatures.RENDER_DISTANCE > 1.0) maxOf(1536.0f, fadeEnd * 0.25f) else 1536.0f
         uniforms.setTime(seconds, 1.0f, fadeEnd - band, band)
         if (System.getProperty("client.test.hdDebug") != null && (debugFrame++ % 120) == 0) {
-            println("HDDEBUG fog game " + state.fogStart + ".." + state.fogEnd + " eased " + fog[3] + ".." + fog[4] + " fade from " + (fadeEnd - 1536.0f) + " env " + this.environment?.name)
+            println(
+                "HDDEBUG fog game " + state.fogStart + ".." + state.fogEnd + " depth " + fog[3] + " (scaled " + (fog[3] * minOf(drawTiles, 90.0f) / 10.0f) + ", sky " + (fog[3] / 100.0f) + ") end " + fog[4] +
+                    " ground " + fog[5] + ".." + fog[6] + " op " + fog[7] + " t " + transitionProgress + " env " + this.environment?.name + " source " + this.environment?.source,
+            )
         }
         // the grading table of the environment (HdSettings.colourGrading)
         val lut: String? = this.environment?.lut
@@ -165,36 +209,60 @@ class HdFeatures {
         uniforms.setDebug(toolkit.debugOverlay())
     }
 
-    /** Picks the environment at the local player and eases the sky and fog values towards it. */
+    /** How far the last change of environment has blended in (0 to 1), for the debug print. */
+    private var transitionProgress: Float = 1.0f
+
+    /**
+     * Picks the environment at the local player and eases the live sky, fog and light values towards
+     * it; when the environment changes, the uploaded values blend from what they were to the live ones
+     * over TRANSITION_SECONDS (at once after a jump of SKIP_TRANSITION_TILES, or a content reload).
+     */
     private fun environment(content: HdContent, state: GlState) {
         content.poll()
         val player = PlayerUpdate.localPlayer
         var environment: HdContent.EnvironmentDef? = null
+        var tileX: Int = Int.MIN_VALUE
+        var tileY: Int = Int.MIN_VALUE
         if (player != null) {
-            environment = content.environmentAt((player.x shr 9) + MapRegion.sceneBaseX, (player.z shr 9) + MapRegion.sceneBaseY, player.level.toInt())
+            tileX = (player.x shr 9) + MapRegion.sceneBaseX
+            tileY = (player.z shr 9) + MapRegion.sceneBaseY
+            val level: Int = player.level.toInt()
+            if (tileX != cachedTileX || tileY != cachedTileY || level != cachedLevel || content.version != cachedVersion) {
+                cachedTileX = tileX
+                cachedTileY = tileY
+                cachedLevel = level
+                cachedVersion = content.version
+                cachedEnvironment = content.environmentAt(tileX, tileY, level)
+            }
+            environment = cachedEnvironment
         }
         this.environment = environment
         val fogColour: FloatArray = state.fogColor
-        // the sky: the environment's, else drawn from the game's fog colour (a deeper, bluer top)
-        val top: FloatArray? = environment?.skyTop
-        val horizon: FloatArray? = environment?.skyHorizon
-        target[0] = top?.get(0) ?: fogColour[0] * 0.62f
-        target[1] = top?.get(1) ?: fogColour[1] * 0.74f
-        target[2] = top?.get(2) ?: minOf(1.0f, fogColour[2] * 0.95f + 0.04f)
-        target[3] = horizon?.get(0) ?: fogColour[0]
-        target[4] = horizon?.get(1) ?: fogColour[1]
-        target[5] = horizon?.get(2) ?: fogColour[2]
+        // the fog colour: the environment's, else the game's (its zone's, #c8c0a8 by default: 117HD's
+        // "HD 2008" sky colour, so an imported environment without a colour gets the sky's)
         val envFog: FloatArray? = environment?.fogColour
         target[6] = envFog?.get(0) ?: fogColour[0]
         target[7] = envFog?.get(1) ?: fogColour[1]
         target[8] = envFog?.get(2) ?: fogColour[2]
-        // distances in tiles in the file, scene units (512 a tile) here; else the game's fog
-        val start: Float = environment?.fogStart ?: Float.NaN
+        // the sky: the environment's, else drawn from its fog colour (a deeper, bluer top)
+        val top: FloatArray? = environment?.skyTop
+        val horizon: FloatArray? = environment?.skyHorizon
+        target[0] = top?.get(0) ?: target[6] * 0.62f
+        target[1] = top?.get(1) ?: target[7] * 0.74f
+        target[2] = top?.get(2) ?: minOf(1.0f, target[8] * 0.95f + 0.04f)
+        target[3] = horizon?.get(0) ?: target[6]
+        target[4] = horizon?.get(1) ?: target[7]
+        target[5] = horizon?.get(2) ?: target[8]
+        // the fog's depth: the environment's, else the default environment's, else 117HD's overworld's
+        var depth: Float = environment?.fogDepth ?: Float.NaN
+        if (depth.isNaN()) depth = content.environments.firstOrNull { it.isDefault }?.fogDepth ?: Float.NaN
+        target[9] = if (depth.isNaN()) DEFAULT_FOG_DEPTH else depth
+        // the fog's end: tiles in the file, scene units (512 a tile) here; else the game's
         val end: Float = environment?.fogEnd ?: Float.NaN
-        target[9] = if (start.isNaN()) state.fogStart else start * 512.0f
         target[10] = if (end.isNaN()) state.fogEnd else end * 512.0f
-        target[11] = environment?.heightFogDensity ?: 0.0f
-        target[12] = environment?.heightFogTop ?: 0.0f
+        target[11] = environment?.groundFogStart ?: 0.0f
+        target[12] = environment?.groundFogEnd ?: 0.0f
+        target[13] = environment?.groundFogOpacity ?: 0.0f
         if (HdSettings.dayNight != 0) {
             // day and night: the sky and fog darken to a night blue, and warm near sunrise and sunset
             val night: Float = nightness
@@ -211,15 +279,16 @@ class HdFeatures {
             }
         }
         val now: Long = System.nanoTime()
-        val step: Float = if (!eased || content.version != easedVersion) 1.0f else 1.0f - kotlin.math.exp(-((now - lastNanos) / 1.0e9f) / 0.4f)
+        val reloaded: Boolean = !eased || content.version != easedVersion
+        val step: Float = if (reloaded) 1.0f else 1.0f - kotlin.math.exp(-((now - lastNanos) / 1.0e9f) / 0.4f)
         easedVersion = content.version
         lastNanos = now
         eased = true
         for (i in 0 until 6) {
-            sky[i] += (target[i] - sky[i]) * step
+            liveSky[i] += (target[i] - liveSky[i]) * step
         }
-        for (i in 0 until 7) {
-            fog[i] += (target[6 + i] - fog[i]) * step
+        for (i in 0 until 8) {
+            liveFog[i] += (target[6 + i] - liveFog[i]) * step
         }
         // the light's tints, the water and the sun's angles follow the same way
         val sunColour: FloatArray? = environment?.sunColour
@@ -227,19 +296,51 @@ class HdFeatures {
         val ambientColour: FloatArray? = environment?.ambientColour
         val ambientIntensity: Float = environment?.ambientIntensity ?: 1.0f
         for (i in 0 until 3) {
-            envLight[i] += ((sunColour?.get(i) ?: 1.0f) * sunIntensity - envLight[i]) * step
-            envLight[3 + i] += ((ambientColour?.get(i) ?: 1.0f) * ambientIntensity - envLight[3 + i]) * step
+            liveEnvLight[i] += ((sunColour?.get(i) ?: 1.0f) * sunIntensity - liveEnvLight[i]) * step
+            liveEnvLight[3 + i] += ((ambientColour?.get(i) ?: 1.0f) * ambientIntensity - liveEnvLight[3 + i]) * step
         }
         val tint: FloatArray? = environment?.waterTint
         val strength: Float = environment?.waterStrength ?: Float.NaN
         val waterTarget: FloatArray = if (tint != null) floatArrayOf(tint[0], tint[1], tint[2], if (strength.isNaN()) 0.45f else strength) else floatArrayOf(0.11f, 0.24f, 0.3f, if (strength.isNaN()) 0.2f else strength)
         val paramsTarget: FloatArray = floatArrayOf(environment?.waterWaves ?: 1.0f, environment?.waterSpeed ?: 1.0f, environment?.waterGlint ?: 1.0f, environment?.waterSize ?: 1.0f)
         for (i in 0 until 4) {
-            water[i] += (waterTarget[i] - water[i]) * step
-            waterParams[i] += (paramsTarget[i] - waterParams[i]) * step
+            liveWater[i] += (waterTarget[i] - liveWater[i]) * step
+            liveWaterParams[i] += (paramsTarget[i] - liveWaterParams[i]) * step
         }
-        sunPitch = easeAngle(sunPitch, environment?.sunPitch ?: Float.NaN, step)
-        sunYaw = easeAngle(sunYaw, environment?.sunYaw ?: Float.NaN, step)
+        liveSunPitch = easeAngle(liveSunPitch, environment?.sunPitch ?: Float.NaN, step)
+        liveSunYaw = easeAngle(liveSunYaw, environment?.sunYaw ?: Float.NaN, step)
+        // 117HD's transition: a new environment blends in from what was shown over TRANSITION_SECONDS
+        // (smoothstepped), at once after a teleport, at login or when the content was reloaded
+        if (environment !== lastEnvironment) {
+            val jumped: Boolean = reloaded || lastEnvironment == null || lastTileX == Int.MIN_VALUE || tileX == Int.MIN_VALUE ||
+                maxOf(kotlin.math.abs(tileX - lastTileX), kotlin.math.abs(tileY - lastTileY)) >= SKIP_TRANSITION_TILES
+            System.arraycopy(sky, 0, fromSky, 0, 6)
+            System.arraycopy(fog, 0, fromFog, 0, 8)
+            System.arraycopy(envLight, 0, fromEnvLight, 0, 6)
+            System.arraycopy(water, 0, fromWater, 0, 4)
+            System.arraycopy(waterParams, 0, fromWaterParams, 0, 4)
+            fromSunPitch = sunPitch
+            fromSunYaw = sunYaw
+            transitionStart = if (jumped) now - (TRANSITION_SECONDS * 1.0e9f).toLong() else now
+            lastEnvironment = environment
+        }
+        lastTileX = tileX
+        lastTileY = tileY
+        val t: Float = smooth(0.0f, 1.0f, (now - transitionStart) / (TRANSITION_SECONDS * 1.0e9f))
+        transitionProgress = t
+        for (i in 0 until 6) {
+            sky[i] = fromSky[i] + (liveSky[i] - fromSky[i]) * t
+            envLight[i] = fromEnvLight[i] + (liveEnvLight[i] - fromEnvLight[i]) * t
+        }
+        for (i in 0 until 8) {
+            fog[i] = fromFog[i] + (liveFog[i] - fromFog[i]) * t
+        }
+        for (i in 0 until 4) {
+            water[i] = fromWater[i] + (liveWater[i] - fromWater[i]) * t
+            waterParams[i] = fromWaterParams[i] + (liveWaterParams[i] - fromWaterParams[i]) * t
+        }
+        sunPitch = easeAngle(fromSunPitch, liveSunPitch, t)
+        sunYaw = easeAngle(fromSunYaw, liveSunYaw, t)
     }
 
     // the characters grass bends away from: the local player, then the nearest NPCs (world x, z)

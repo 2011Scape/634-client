@@ -46,7 +46,7 @@ import javax.swing.WindowConstants
 class HdDebugPanel(private val content: HdContent) {
 
     companion object {
-        val OVERLAYS = arrayOf("none", "normals", "texture ids", "light count", "shadow map", "chunk bounds", "occlusion only", "shadows only", "light grid", "water")
+        val OVERLAYS = arrayOf("none", "normals", "texture ids", "light count", "shadow map", "chunk bounds", "occlusion only", "shadows only", "light grid", "water", "fog")
 
         /** Whether this is a debug build (client.debug), the only kind the panel opens in. */
         val enabled: Boolean = System.getProperty("client.debug") != null
@@ -133,7 +133,7 @@ class HdDebugPanel(private val content: HdContent) {
         val tabs = JTabbedPane()
         tabs.addTab("Stats", stats())
         tabs.addTab("Features", features())
-        tabs.addTab("Environment", editor(envFields, envTitle, arrayOf("sky top", "sky horizon", "fog colour", "fog start", "fog end", "height fog density", "height fog top", "lut", "water tint", "sun colour", "sun intensity"), { applyEnvironment() }, {
+        tabs.addTab("Environment", editor(envFields, envTitle, arrayOf("sky top", "sky horizon", "fog colour", "fog depth", "fog end", "ground fog start", "ground fog end", "ground fog opacity", "lut", "water tint", "sun colour", "sun intensity"), { applyEnvironment() }, {
             applyEnvironment()
             status.text = content.saveEnvironments()
         }))
@@ -349,10 +349,11 @@ class HdDebugPanel(private val content: HdContent) {
         e.skyTop = colour(f["sky top"]!!.text)
         e.skyHorizon = colour(f["sky horizon"]!!.text)
         e.fogColour = colour(f["fog colour"]!!.text)
-        e.fogStart = number(f["fog start"]!!.text)
+        e.fogDepth = number(f["fog depth"]!!.text)
         e.fogEnd = number(f["fog end"]!!.text)
-        e.heightFogDensity = number(f["height fog density"]!!.text).let { if (it.isNaN()) 0f else it }
-        e.heightFogTop = number(f["height fog top"]!!.text).let { if (it.isNaN()) 0f else it }
+        e.groundFogStart = number(f["ground fog start"]!!.text).let { if (it.isNaN()) 0f else it }
+        e.groundFogEnd = number(f["ground fog end"]!!.text).let { if (it.isNaN()) 0f else it }
+        e.groundFogOpacity = number(f["ground fog opacity"]!!.text).let { if (it.isNaN()) 0f else it }
         e.lut = f["lut"]!!.text.trim().ifEmpty { null }
         e.waterTint = colour(f["water tint"]!!.text)
         e.sunColour = colour(f["sun colour"]!!.text)
@@ -401,10 +402,11 @@ class HdDebugPanel(private val content: HdContent) {
             f["sky top"]!!.text = hex(e?.skyTop)
             f["sky horizon"]!!.text = hex(e?.skyHorizon)
             f["fog colour"]!!.text = hex(e?.fogColour)
-            f["fog start"]!!.text = fmt(e?.fogStart ?: Float.NaN)
+            f["fog depth"]!!.text = fmt(e?.fogDepth ?: Float.NaN)
             f["fog end"]!!.text = fmt(e?.fogEnd ?: Float.NaN)
-            f["height fog density"]!!.text = fmt(e?.heightFogDensity ?: Float.NaN)
-            f["height fog top"]!!.text = fmt(e?.heightFogTop ?: Float.NaN)
+            f["ground fog start"]!!.text = fmt(e?.groundFogStart ?: Float.NaN)
+            f["ground fog end"]!!.text = fmt(e?.groundFogEnd ?: Float.NaN)
+            f["ground fog opacity"]!!.text = fmt(e?.groundFogOpacity ?: Float.NaN)
             f["lut"]!!.text = e?.lut ?: ""
             f["water tint"]!!.text = hex(e?.waterTint)
             f["sun colour"]!!.text = hex(e?.sunColour)
