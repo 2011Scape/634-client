@@ -827,7 +827,29 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		val level: Int = com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate.localPlayer?.level?.toInt() ?: 0
 		val ids: Int = com.jagex.game.runetek5.MapRegion.aClass322_Sub1_1?.floorIds(level, x, z) ?: 0
 		out.append("Tile ").append(x + com.jagex.game.runetek5.MapRegion.sceneBaseX).append(", ").append(z + com.jagex.game.runetek5.MapRegion.sceneBaseY)
-		out.append(", level ").append(level).append(": underlay ").append((ids shr 8) and 0xFF).append(", overlay ").append(ids and 0xFF).append('\n')
+		out.append(", level ").append(level).append(": underlay ").append((ids shr 8) and 0xFF).append(", overlay ").append(ids and 0xFF)
+		// the tile's flags on every plane (bridge, roof removal, zero level, invisible) and the scene's bridge link
+		val masks = com.jagex.game.runetek5.scene.SettingsBits.tileFunctionMasks
+		if (masks != null) {
+			out.append(", flags")
+			for (plane in masks.indices) {
+				val bits: Int = masks[plane]?.get(x)?.get(z)?.toInt() ?: 0
+				out.append(' ').append(plane).append(':')
+				if ((bits and com.jagex.game.runetek5.core.constants.TileFlag.BRIDGE) != 0) out.append('B')
+				if ((bits and com.jagex.game.runetek5.core.constants.TileFlag.REMOVE_ROOF) != 0) out.append('R')
+				if ((bits and com.jagex.game.runetek5.core.constants.TileFlag.ZERO_LEVEL) != 0) out.append('Z')
+				if ((bits and com.jagex.game.runetek5.core.constants.TileFlag.INVISIBLE) != 0) out.append('I')
+				if ((bits and 0x1F) == 0) out.append('-')
+			}
+		}
+		val tiles = com.jagex.game.runetek5.scene.Scene.aClass100ArrayArrayArray3
+		if (tiles != null) {
+			val slot0 = tiles[0]?.get(x)?.get(z)
+			out.append(", bridge link ").append(if (slot0?.bridge != null) "yes" else "no")
+			out.append(", planes")
+			for (plane in tiles.indices) out.append(' ').append(tiles[plane]?.get(x)?.get(z)?.plane?.toInt() ?: -1)
+		}
+		out.append('\n')
 	}
 
 	/** A loc from its entity uid: id, name, shape, rotation and model ids. */
@@ -838,9 +860,13 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		val loc = com.jagex.game.runetek5.config.TypeLists.LOC!!.list(id)
 		val tileX: Int = (uid.toInt() and 0x7F) + com.jagex.game.runetek5.MapRegion.sceneBaseX
 		val tileZ: Int = ((uid.toInt() shr 7) and 0x7F) + com.jagex.game.runetek5.MapRegion.sceneBaseY
-		out.append("Loc ").append(id).append(" \"").append(loc?.name ?: "?").append("\" at ").append(tileX).append(",").append(tileZ).append(", shape ").append(shape).append(", rotation ").append(rotation).append(", models")
+		out.append("Loc ").append(id).append(" \"").append(loc?.name ?: "?").append("\" at ").append(tileX).append(",").append(tileZ).append(", shape ").append(shape).append(", rotation ").append(rotation)
+		// its occluder (Culling): the mode (-1 unset, 0 roofs, 1 all), the occluder height and offset
+		out.append(", occlusion ").append(loc.occlusionMode).append(" cullY ").append(loc.cullY).append(" cullXZ ").append(loc.cullXZ)
+		out.append(", models")
 		val models: Array<IntArray?>? = loc?.hdModelIds()
 		val colours: java.util.TreeMap<Int, Int> = java.util.TreeMap()
+		var modelTop: Int = 0
 		if (models != null) {
 			for (group in models) {
 				if (group != null) {
@@ -849,6 +875,8 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 						// the model's face colours (HSL, as model_overrides faceColours takes them) and how many faces
 						val mesh = try { com.jagex.game.runetek5.graphics.model.Mesh.fromResource(loc.locTypeList!!.meshResource, m and 0xFFFF) } catch (ex: Exception) { null }
 						val faces: ShortArray? = mesh?.facesColor
+						val ys: IntArray? = mesh?.verticesY
+						if (ys != null) for (v in 0 until mesh.numVertices) if (-ys[v] > modelTop) modelTop = -ys[v]
 						if (mesh != null && faces != null) {
 							for (f in 0 until mesh.numFaces) {
 								if (mesh.facesMaterial == null || mesh.facesMaterial!![f].toInt() == -1) {
@@ -861,7 +889,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 				}
 			}
 		}
-		out.append('\n')
+		out.append(", mesh height ").append(modelTop).append('\n') // scene units are four times the mesh's
 		if (colours.isNotEmpty()) {
 			out.append("  untextured face colours:")
 			for ((c, n) in colours.entries.sortedByDescending { it.value }.take(8)) {

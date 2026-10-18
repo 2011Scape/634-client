@@ -212,7 +212,8 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
     draws (`client.test.materialScan` lists the material classes and items using each; a scene's
     eighth value dresses the player, on the client only, and the harness puts the clothes back; the
     player is held in one pose and only the middle third of the view is compared, so the outfits
-    match toolkit 1 to 0-1 per 1000 and have a limit of 25, room for a passer-by), and a fifth from
+    match toolkit 1 to 0-1 per 1000 for the robes and Khazard, 17-31 for the metal and the torch's
+    flame, and have a limit of 35, room for a passer-by), and a fifth from
     behind (`outfit_firecape`, yaw 8192) with the fire cape's lava in view: the game's scrolling
     texture with everything off, the flowing, unlit material with `materials` on;
   - flicker and pops: `client.test.sceneBurst=N` measures the 3D view's mean brightness every frame
@@ -303,6 +304,11 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   plane, floor underlay and overlay ids: `Terrain.floorIds`) and each loc (id, shape, rotation, model
   ids and its untextured face colours as the loc recolours them: what `faceColours` takes);
   `client.test.inspect=true` prints the same for every loc within `client.test.inspectRadius` tiles.
+  Each loc line also carries its occlusion mode, `cullY`/`cullXZ` and mesh height (scene units are four times that), the tile line its flags
+  per plane (B bridge, R roof removal, Z zero level, I invisible) and bridge link, and `SMOKE occluder` lines
+  list the occluders active that frame within the radius (type, plane, tile span, corners, heights).
+  `client.test.sceneCommand=<cmd>` sends a `::` command once the first scene is reached (`occlude` turns
+  occlusion culling off, `w2debug 2` draws the active occluders and the occlusion depth buffer).
 - **Content by area** (Lumbridge, then Varrock). Lights: every cooking range that burns (`Cooking
   range` and `(lit)`, not `(empty)`/`(with logs)`), cooking pots over fires, ovens, fireboxes, fire
   pits, furnaces, elven lamps and mushroom torches joined `lights.json` (found with
