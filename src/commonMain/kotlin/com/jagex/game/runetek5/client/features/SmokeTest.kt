@@ -561,7 +561,8 @@ object SmokeTest {
 		"varrock_sewers:3237,9866,0,0,1400,0;" +
 		// the cows wander between runs: toolkit 1 against its own reference differs by 33 to 57
 		"cows:3256,3276,0,4096,1400,0,65;" +
-		"wizards_tower:3109,3162,0,0,1400,0;" +
+		// the wizards wander: toolkit 1 against its own reference reached 47
+		"wizards_tower:3109,3162,0,0,1400,0,65;" +
 		// many NPCs: guards in shiny armour, and barbarians around their fires (they wander too)
 		"varrock_palace:3212,3468,0,0,1400,0,65;" +
 		"barbarian_village:3082,3420,0,0,1400,0,65;" +
