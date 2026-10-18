@@ -176,6 +176,11 @@ class GlState(val gl: WebGL2RenderingContext) {
     var lightingEnabled = false
     var fogEnabled = false
     var alphaTestEnabled = false
+    // the blend state as the toolkit set it (HdGl.glEnable/glDisable(GL_BLEND), glBlendFunc): what a
+    // draw's coverage means. 634HD's shadow casters (HdShadows) skip the additive and modulating effects
+    var blendEnabled = false
+    var blendSrc = 1
+    var blendDst = 0
     var ffpStateDirty = true
     // Separate from ffpStateDirty: the fixed-function *vertex* lighting uniforms
     // (uLightingEnabled/uGlobalAmbient/uLight*) live only in fixedFunctionShader.program and

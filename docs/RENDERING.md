@@ -290,6 +290,14 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   The animated-model stream starts fresh storage only at the start of a frame, so ranges recorded
   in a frame stay valid until its map is drawn. Translucent entities (drawn after the map) cast
   into the next frame's map. Moving models drawn before the map is made do not receive shadows.
+  What casts nothing: a moving draw's fragment under half opaque by its face's alpha and its
+  texture's (`shadow_dynamic.frag`: an impling's fake-shadow quad, blended parts of a model), a
+  draw blended other than by its alpha or with a water-effect material (additive and modulating
+  effects, a fishing spot's ripple quad: `GlState.blendEnabled`/`blendSrc`/`blendDst`/`hdWater`,
+  recorded with the caster; the water's reflection leaves them out too), and a flat retained model
+  (under 24 units high: a decal on the ground or the water, `HdSceneRenderer.FLAT_CASTER_HEIGHT`).
+  `client.test.hdDebugCasters` prints the casters within four tiles of the player with these flags
+  and their texture's alpha range.
   While sun shadows are on, the game's own blob shadows under locs (`HdShadowMap`'s overlay on the
   ground) are not drawn; the wall darkening baked into the ground's colours stays.
 - **Memory.** The retained scene's CPU geometry and read-back copies, and the shadow casters' index

@@ -397,6 +397,7 @@ object HdGl {
             }
             GL_COLOR_MATERIAL, GL_NORMALIZE, GL_MULTISAMPLE -> {
             }
+            GL_BLEND -> { state.blendEnabled = true; gl.enable(arg0) }
             else -> if (isCoreCap(arg0)) gl.enable(arg0)
         }
     }
@@ -429,6 +430,7 @@ object HdGl {
             }
             GL_COLOR_MATERIAL, GL_NORMALIZE, GL_MULTISAMPLE -> {
             }
+            GL_BLEND -> { state.blendEnabled = false; gl.disable(arg0) }
             else -> if (isCoreCap(arg0)) gl.disable(arg0)
         }
     }
@@ -480,7 +482,11 @@ object HdGl {
         state.ffpStateDirty = true
     }
 
-    fun glBlendFunc(arg0: Int, arg1: Int) = gl.blendFunc(arg0, arg1)
+    fun glBlendFunc(arg0: Int, arg1: Int) {
+        state.blendSrc = arg0
+        state.blendDst = arg1
+        gl.blendFunc(arg0, arg1)
+    }
     fun glDepthFunc(arg0: Int) = gl.depthFunc(arg0)
     fun glDepthMask(arg0: Boolean) = gl.depthMask(arg0)
     fun glCullFace(arg0: Int) = gl.cullFace(arg0)
