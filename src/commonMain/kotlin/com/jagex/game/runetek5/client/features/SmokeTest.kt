@@ -2445,7 +2445,7 @@ object SmokeTest {
 					out.append("  model " + m + ": " + mesh.numFaces + " faces, y " + minY + ".." + maxY + "\n")
 					// the faces by material: how many, their height range, and the material's effect (type,
 					// combiner, alpha, hdr, scroll), from the toolkit's material provider
-					val byMaterial = java.util.TreeMap<Int, IntArray>()
+					val byMaterial = HashMap<Int, IntArray>()
 					for (f in 0 until mesh.numFaces) {
 						val material: Int = if (mesh.facesMaterial == null) -1 else mesh.facesMaterial!![f].toInt()
 						val entry: IntArray = byMaterial.getOrPut(material) { intArrayOf(0, Int.MAX_VALUE, Int.MIN_VALUE) }
@@ -2455,7 +2455,8 @@ object SmokeTest {
 							if (ys[v] > entry[2]) entry[2] = ys[v]
 						}
 					}
-					for ((material, entry) in byMaterial) {
+					for (material in byMaterial.keys.sorted()) {
+						val entry: IntArray = byMaterial[material]!!
 						out.append("    material " + material + ": " + entry[0] + " faces, y " + entry[1] + ".." + entry[2])
 						if (material >= 0) {
 							val metrics = ClientState.activeToolkit?.materialProvider?.getMetrics(material)
