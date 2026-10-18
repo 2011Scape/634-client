@@ -461,14 +461,14 @@ object HdOptionsScreen {
 		return c
 	}
 
-	/** [hflip] and [vflip] as the scripts' cc_sethflip/cc_setvflip, which the client stores crosswise. */
+	/** [hflip] mirrors left to right and [vflip] top to bottom (the fields are honest; only the cc_set*flip opcodes are named crosswise). */
 	private fun sprite(parentHash: Int, slot: Int, x: Int, y: Int, width: Int, height: Int, spriteId: Int, tiling: Boolean, hflip: Boolean, vflip: Boolean): Component {
 		val c: Component = child(parentHash, slot, ComponentType.SPRITE)
 		place(c, x, y, width, height)
 		c.spriteId = spriteId
 		c.tiling = tiling
-		c.flipVertical = hflip
-		c.flipHorizontal = vflip
+		c.flipHorizontal = hflip
+		c.flipVertical = vflip
 		return c
 	}
 
