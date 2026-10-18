@@ -78,6 +78,7 @@ import com.jagex.game.runetek5.client.event.keyboard.SimpleKeyboardMonitorConsta
 import com.jagex.game.runetek5.client.event.keyboard.FriendOrSelfCheck
 import com.jagex.game.runetek5.client.event.mouse.DelayedIfTextUpdate
 import com.jagex.game.runetek5.client.features.ClientFeatures
+import com.jagex.game.runetek5.client.features.HdOptionsScreen
 import com.jagex.game.runetek5.client.web.ClientURLTools
 import com.jagex.game.runetek5.rendering.MessageBox
 import com.jagex.game.runetek5.graphics.map.worldmap.WorldMap
@@ -98,7 +99,6 @@ import com.jagex.game.runetek5.client.input.keyboard.KeyRecorder
 import com.jagex.game.runetek5.graphics.map.minimap.ComponentMinimap
 import com.jagex.game.runetek5.interaction.FriendList
 import com.jagex.game.runetek5.trigger.ClientTriggerType
-import com.jagex.game.runetek5.ClientPacket
 import com.jagex.game.runetek5.MapRegion
 import com.jagex.game.runetek5.cache.node.lru.PulseEvent
 import com.jagex.game.runetek5.client.login.LoginManager
@@ -143,7 +143,6 @@ import com.jagex.game.runetek5.client.LoadingStage
 import com.jagex.game.runetek5.preference.impl.ToolkitOption
 import kotlin.jvm.JvmStatic
 import lang.StringBuffer
-import util.Locale
 import kotlin.jvm.JvmField
 import kotlin.math.pow
 import util.lowercase
@@ -1719,6 +1718,11 @@ object CS2Interpreter {
 					if (toolkitId < ToolkitType.JAVA || toolkitId > ToolkitType.GLX) {
 						toolkitId = ToolkitType.SSE
 					}
+					if (toolkitId == ToolkitType.GL && GamePreferences.uid!!.toolkit!!.getValue() == ToolkitType.HD) {
+						// Not part of the original client: OpenGL is what 634HD reports to the scripts (see
+						// scriptToolkit), so choosing it again keeps 634HD; the 634HD page turns it off.
+						return
+					}
 					ToolkitSwitch.loadAssets(false, toolkitId)
 					return
 				}
@@ -1726,6 +1730,10 @@ object CS2Interpreter {
 					CS2State.intStackPtr -= 2
 					var toolkitId: Int = ScriptRunner.intStack[CS2State.intStackPtr]
 					var keepGraphicsPreset: Boolean = ScriptRunner.intStack[CS2State.intStackPtr + 1] == 1
+					if (toolkitId == ToolkitType.GL && GamePreferences.uid!!.toolkitDefault!!.getValue() == ToolkitType.HD) {
+						// Not part of the original client: see DETAIL_TOOLKIT.
+						return
+					}
 					GamePreferences.uid!!.setValue(GamePreferences.uid!!.toolkitDefault, toolkitId)
 					if (!keepGraphicsPreset) {
 						GamePreferences.uid!!.setValue(GamePreferences.uid!!.graphics, 0)
@@ -1903,11 +1911,13 @@ object CS2Interpreter {
 					return
 				}
 				if (opcode == ClientScriptOpCode.DETAILGET_TOOLKIT) {
-					ScriptRunner.intStack[CS2State.intStackPtr++] = GamePreferences.uid!!.toolkit!!.getValue()
+					// Not part of the original client: the cache scripts know toolkits 0 to 5 and grey every
+					// graphics option for another; 634HD (6) is the OpenGL path and reports as it.
+					ScriptRunner.intStack[CS2State.intStackPtr++] = scriptToolkit(GamePreferences.uid!!.toolkit!!.getValue())
 					return
 				}
 				if (opcode == ClientScriptOpCode.DETAILGET_TOOLKIT_DEFAULT) {
-					ScriptRunner.intStack[CS2State.intStackPtr++] = GamePreferences.uid!!.toolkitDefault!!.getValue()
+					ScriptRunner.intStack[CS2State.intStackPtr++] = scriptToolkit(GamePreferences.uid!!.toolkitDefault!!.getValue())
 					return
 				}
 				if (opcode == 6133) {
@@ -5275,6 +5285,9 @@ object CS2Interpreter {
 		throw IllegalStateException(opcode.toString())
 	}
 
+	/** Not part of the original client: the toolkit as the cache scripts should see it (634HD as OpenGL). */
+	@JvmStatic fun scriptToolkit(toolkitId: Int): Int = if (toolkitId == ToolkitType.HD) ToolkitType.GL else toolkitId
+
 	@OriginalMember(owner = "client!kca", name = "a", descriptor = "(Lclient!jk;I)V")
 	@JvmStatic fun executeScript(@OriginalArg(0) clientScript: ClientScript?, @OriginalArg(1) stackLimit: Int) {
 		@Suppress("NAME_SHADOWING") var clientScript: ClientScript? = clientScript
@@ -5527,6 +5540,11 @@ object CS2Interpreter {
 	@JvmStatic fun executeHookInternal(@OriginalArg(0) hook: HookRequest?, @OriginalArg(1) stackLimit: Int) {
 		@Pc(2) var objects: Array<Any?>? = hook!!.params
 		@Pc(8) var scriptId: Int = (objects!![0] as Int)
+		if (scriptId == HdOptionsScreen.SENTINEL) {
+			// Not part of the original client: a hook of the 634HD settings page, handled in Kotlin.
+			HdOptionsScreen.hook(hook)
+			return
+		}
 		@Pc(12) var clientScript: ClientScript? = ClientScript.getClientScript(scriptId)
 		if (clientScript == null) {
 			return

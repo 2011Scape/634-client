@@ -27,7 +27,6 @@ import com.jagex.game.runetek5.PathFinder
 import com.jagex.game.runetek5.UnloadedLocCount
 import com.jagex.game.runetek5.camera.CameraMode
 import com.jagex.game.runetek5.client.input.mouse.MouseRecord
-import com.jagex.game.runetek5.client.features.HdSettingsPanel
 import com.jagex.game.runetek5.preference.GamePreferences
 import com.jagex.game.runetek5.config.rsinterface.Component
 import com.jagex.game.runetek5.client.GameShell
@@ -50,10 +49,8 @@ import awt.Insets
 import awt.Rectangle
 import io.IOException
 import lang.reflect.Field
-import lang.reflect.Method
 import net.Socket
 import util.GregorianCalendar
-import util.Vector
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
@@ -123,7 +120,6 @@ import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 import lang.Synchronized
 import awt.getInsets
-import lang.getDeclaredMethod
 import lang.jClass
 import lang.javaTrim
 import awt.height
@@ -981,8 +977,6 @@ class client : GameShell() {
 				componentIndex++
 			}
 		}
-		// Not part of the original client: 634HD's settings panel, over the interfaces (HdSettingsPanel).
-		HdSettingsPanel.draw(ClientState.activeToolkit, MouseRecord.mouseRecorder?.getMouseX() ?: -1, MouseRecord.mouseRecorder?.getMouseY() ?: -1)
 		if (Console.isOpen()) {
 			Console.renderConsole(ClientState.activeToolkit)
 		}

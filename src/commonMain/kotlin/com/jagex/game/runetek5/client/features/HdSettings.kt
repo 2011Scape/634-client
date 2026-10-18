@@ -187,7 +187,7 @@ object HdSettings {
 		"cutoutShadows", "worldTextures", "environmentLighting", "caustics", "grassDisplacement", "dayNight", "textureReplacements", "lightingModel", "playerLight", "reflections", "lightGrid",
 	)
 
-	/** The switches a player sets in the 634HD settings panel (HdSettingsPanel) and that are saved. */
+	/** The switches a player sets on the 634HD page of Graphics Options (HdOptionsScreen) and that are saved. */
 	@JvmField
 	val SAVED: Array<String> = arrayOf(
 		"tonemap", "dither", "anisotropy", "mipmaps", "fog", "fade", "ambientOcclusion", "pixelLighting",
@@ -391,7 +391,7 @@ object HdSettings {
 	fun save(): Boolean {
 		val file: io.File = file() ?: return false
 		try {
-			val out: StringBuilder = StringBuilder("# 634HD settings, written by the client (HdSettingsPanel)\n")
+			val out: StringBuilder = StringBuilder("# 634HD settings, written by the client (the 634HD page of Graphics Options)\n")
 			for (name in SAVED) {
 				out.append(name).append('=').append(valueOf(name)).append('\n')
 			}

@@ -160,22 +160,28 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
   buffer, orphaned when full, instead of rewriting a shared buffer between draws.
 - **Fallback.** `ActiveToolkitInit` falls back 6 → 1 → 0, and `client/features/HdFallback` says why in
   the chat box. `client.test.hdFail=context|extension` forces it.
-- **Selection.** `client.toolkit` / `--toolkit`, `::tk6`, and `client/features/HdOptionsButton`, a
-  toggle the client draws in the Graphics Options title bar (the screen is a cache script that knows
-  toolkits 0 to 5 only). Turning it on for the first time, with nothing saved, applies the Medium
-  preset.
-- **Settings panel** (`client/features/HdSettingsPanel`): the "634HD Settings" button at the right of that
-  title bar, or `::hdsettings`, opens a window the client draws over the interfaces: presets (Off,
-  Low, Medium, High, Ultra; `HdSettings.applyPreset`, also `::hd preset <name>`) and a row per
-  switch, each click stepping to its next value. Changes apply at once and are saved to
+- **Selection.** `client.toolkit` / `--toolkit`, `::tk6`, and the "634HD" row of the settings page
+  below. Turning it on for the first time, with nothing saved, applies the Medium preset.
+- **Settings page** (`client/features/HdOptionsScreen`): a "634HD" button the client appends to the
+  preset row (MIN LOW MID HIGH CUSTOM) of the Graphics Options window, or `::hdsettings` while that
+  window is open, replaces the window's body with the 634HD page: presets (Off, Low, Medium, High,
+  Ultra; `HdSettings.applyPreset`, also `::hd preset <name>`), the "634HD" on/off dropdown (the
+  toolkit switch), group tabs (Lighting, World, Effects, Display) and the group's rows as dropdowns,
+  and Back. The page is interface components the client creates the way the cache scripts create the
+  stock pages (`cc_create`), with the stock sprites, fonts and colours, so it fits the window in fixed
+  mode; the cache is not edited. Its clicks and hovers are component hooks whose script id is
+  `HdOptionsScreen.SENTINEL`, which `CS2Interpreter.executeHookInternal` hands back to the page; the
+  row arrows and list items use the cache's own hover scripts. The cache scripts see 634HD as OpenGL
+  (`CS2Interpreter.scriptToolkit`), so the stock Custom page's rows stay live under it, and choosing
+  OpenGL there keeps 634HD. Changes apply at once and are saved to
   `~/.634hd-settings.txt`, read at the next start unless `client.hd.*` switches are given. Two rows
   are the whole client's, outside the presets: draw distance (1x, 1.5x, 2x; `ClientFeatures.RENDER_DISTANCE`,
   live: the map is built again; see below) and interface scale (auto or 1x-3x; `ClientFeatures.SCALE`, from the
   next start, since the window's layout is made at start). Saved, they win over the launcher's
   defaults (`LauncherDefaults` marks what it set with `<name>.default`) but not over `--render-distance`
   or `--scale`; also `::hd renderDistance <n>` and `::hd scale <n>`. The smoke test neither reads nor
-  writes that file; `client.test.findText=open:742` checks the toggle, the Medium preset, the panel's
-  presets, rows (the draw distance's map rebuild too) and Close.
+  writes that file; `client.test.findText=open:742` checks the button, the 634HD row and the Medium
+  preset, the page's presets, rows (the draw distance's map rebuild too) and Back.
 - **Draw distance:** the game's own longer view, a bigger scene. The scene the client builds is
   sized from the last region packet (`StaticRegionInit.hdApplySceneSize`): 136 tiles at 1.5x, 168 at
   2x, never smaller than the server's (Void sends 104). The server's keys are matched to the regions

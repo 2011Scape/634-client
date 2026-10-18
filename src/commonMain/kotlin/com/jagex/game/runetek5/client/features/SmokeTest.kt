@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.client.features
 
+import InterfaceOptionInteract
 import com.jagex.game.runetek5.SceneDrawer
 import com.jagex.game.runetek5.core.constants.TileFlag
 import com.jagex.game.runetek5.scene.SettingsBits
@@ -46,7 +47,6 @@ import com.jagex.game.runetek5.client.ClientState
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 import lang.Class
-import lang.getMethod
 import lang.jClass
 import lang.javaSplit
 import lang.javaTrim
@@ -1508,6 +1508,11 @@ object SmokeTest {
 
 	private var openAtFrame: Int = -1
 
+	/** client.test.openMode=fixed|resizable: the window mode the open:/toggle test switches to first. */
+	private val OPEN_MODE: String = lang.getProperty("client.test.openMode", "")
+
+	private var openModeFrame: Int = -1
+
 	/**
 	 * client.test.findText=open:N: opens interface N as a modal in the main-screen slot, and after 60 frames saves the frame to build/smoke/open-N.png and stops.
 	 */
@@ -1527,43 +1532,79 @@ object SmokeTest {
 			// the main-screen slot, where the server opens such interfaces: 548:18 fixed, 746:8 resizable
 			val slot: Int = if (ClientState.BASE_WINDOW_ID == 548) 18 else 8
 			val parent: Int = (ClientState.BASE_WINDOW_ID shl 16) or slot
-			openSubInterface(id, parent, SubInterfaceType.MODAL)
+			if (id == 742) {
+				// Graphics Options as a player opens it, "Graphics Settings" on the Options tab (261:16): the
+				// server opens the window (so it also takes a window-mode change) and its load scripts
+				// build the stock page the 634HD button goes on
+				InterfaceOptionInteract.ifOptionInteract(-1, "Graphics Settings", 1, (261 shl 16) or 16)
+			} else {
+				openSubInterface(id, parent, SubInterfaceType.MODAL)
+			}
 			openFrame = gameFrames
 			return
 		}
 		if (gameFrames - openFrame < 60) {
 			return
 		}
+		// client.test.openMode=fixed|resizable: the window mode, which the server changes only while
+		// Graphics Options is open, and then opens the window again in the new layout
+		if (OPEN_MODE.length > 0 && openModeFrame < 0) {
+			val wanted: WindowModeType = if (OPEN_MODE == "fixed") WindowModeType.FIXED else WindowModeType.RESIZABLE
+			val graphics: Component? = Interface.getComponent((261 shl 16) or 16)
+			println("SMOKE window mode " + WindowMode.getWindowMode() + ", base window " + ClientState.BASE_WINDOW_ID + ", Graphics Settings op enabled " + (graphics != null && InterfaceManager.getComponentSettings(graphics)!!.isOpEnabled(0)))
+			if (WindowMode.getWindowMode() !== wanted) {
+				sendCommand(if (OPEN_MODE == "fixed") "wm1" else "wm2")
+			}
+			openModeFrame = gameFrames
+			return
+		}
+		if (OPEN_MODE.length > 0 && gameFrames - openModeFrame < 200) {
+			return
+		}
 		if (openStep == 0) {
+			if (OPEN_MODE.length > 0) {
+				println("SMOKE window mode now " + WindowMode.getWindowMode() + ", base window " + ClientState.BASE_WINDOW_ID)
+				val wantedBase: Int = if (OPEN_MODE == "fixed") 548 else 746
+				if (ClientState.BASE_WINDOW_ID != wantedBase) {
+					fail("the window mode did not change to " + OPEN_MODE + ": base window " + ClientState.BASE_WINDOW_ID)
+				}
+			}
 			checkImage("-open", "build/smoke/open-" + id + ".png")
 			if (id != 742) {
 				println("SMOKE PASS opened " + id)
 				lang.flushOut()
 				lang.halt(0)
 			}
-			// the 634HD toggle in the title bar: on, then off again
-			openToolkit = GamePreferences.uid!!.toolkit!!.getValue()
-			println("SMOKE 634HD settings before the toggle: " + HdSettings.describe().joinToString("; ") + ", configured " + HdSettings.configured)
-			if (!HdOptionsButton.pressed(HdOptionsButton.x + 8, HdOptionsButton.y + 8)) {
-				fail("the 634HD toggle did not take the press at " + HdOptionsButton.x + "," + HdOptionsButton.y)
+			// the stock page, with the 634HD button the client adds to its preset row
+			if (!HdOptionsScreen.stockButtonPresent()) {
+				fail("no 634HD button in the Graphics Options preset row")
 			}
+			println("SMOKE 634HD settings before the toggle: " + HdSettings.describe().joinToString("; ") + ", configured " + HdSettings.configured)
+			if (!HdOptionsScreen.clickStockButton() || !HdOptionsScreen.open) {
+				fail("the 634HD button did not open the 634HD page")
+			}
+			if (GamePreferences.uid!!.toolkit!!.getValue() == ToolkitType.HD) {
+				// a saved default from an earlier run: off first, so the flow below turns it on
+				println("SMOKE started on 634HD: turned off first")
+				if (!HdOptionsScreen.clickToggle() || GamePreferences.uid!!.toolkit!!.getValue() == ToolkitType.HD) {
+					fail("the 634HD row did not turn 634HD off")
+				}
+			}
+			openToolkit = GamePreferences.uid!!.toolkit!!.getValue()
 			openStep = 1
 			openFrame = gameFrames
 			return
 		}
 		if (openStep == 1) {
-			if (GamePreferences.uid!!.toolkit!!.getValue() != ToolkitType.HD) {
-				fail("the 634HD toggle left the client on toolkit " + GamePreferences.uid!!.toolkit!!.getValue())
+			// the page on the toolkit the test started on, then 634HD turned on from its row
+			checkImage("-open-page", "build/smoke/open-" + id + "-page.png")
+			if (!HdOptionsScreen.clickToggle() || GamePreferences.uid!!.toolkit!!.getValue() != ToolkitType.HD) {
+				fail("the 634HD row left the client on toolkit " + GamePreferences.uid!!.toolkit!!.getValue())
 			}
 			println("SMOKE 634HD settings after the toggle: " + HdSettings.describe().joinToString("; "))
 			// turned on with nothing saved: the Medium preset (with switches given, those)
 			if (!HdSettings.configured && HdSettings.currentPreset() != "medium") {
 				fail("turning 634HD on gave the settings " + HdSettings.currentPreset() + ", not the medium preset")
-			}
-			checkImage("-open-hd", "build/smoke/open-" + id + "-hd.png")
-			// the settings panel: opened from its button, a preset and a row clicked, then closed
-			if (!HdOptionsButton.pressed(HdOptionsButton.buttonX + 8, HdOptionsButton.y + 8) || !HdSettingsPanel.open) {
-				fail("the 634HD settings button did not open the panel")
 			}
 			openStep = 3
 			openFrame = gameFrames
@@ -1571,45 +1612,53 @@ object SmokeTest {
 		}
 		if (openStep == 5) {
 			if (GamePreferences.uid!!.toolkit!!.getValue() != ToolkitType.HD) {
-				fail("round " + toggleRound + ": the toggle left the client on toolkit " + GamePreferences.uid!!.toolkit!!.getValue())
+				fail("round " + toggleRound + ": the 634HD row left the client on toolkit " + GamePreferences.uid!!.toolkit!!.getValue())
 			}
 			checkImage("-open-hd-round", "build/smoke/open-" + id + "-hd-round" + toggleRound + ".png")
-			if (!HdOptionsButton.pressed(HdOptionsButton.x + 8, HdOptionsButton.y + 8)) {
-				fail("the 634HD toggle did not take the second press in round " + toggleRound)
+			if (!HdOptionsScreen.clickToggle() || !HdOptionsScreen.clickBack()) {
+				fail("the 634HD row did not take the second press in round " + toggleRound)
 			}
 			openStep = 6
 			openFrame = gameFrames
 			return
 		}
 		if (openStep == 3) {
-			checkImage("-open-hd-settings", "build/smoke/open-" + id + "-hd-settings.png")
-			if (!HdSettingsPanel.clickPreset("high") || HdSettings.currentPreset() != "high") {
+			// the page on 634HD: a preset, a row in each of two tabs, the draw distance (live), the interface scale
+			checkImage("-open-hd", "build/smoke/open-" + id + "-hd.png")
+			if (!HdOptionsScreen.clickPreset("high") || HdSettings.currentPreset() != "high") {
 				fail("the High preset did not apply: " + HdSettings.currentPreset())
 			}
-			val before: String = HdSettings.valueOf("bloom")
-			if (!HdSettingsPanel.clickRow("bloom") || HdSettings.valueOf("bloom") == before) {
-				fail("a click on the bloom row did not change it")
+			// the bloom row's list open (its frame is taken in the next step)
+			bloomBefore = HdSettings.valueOf("bloom")
+			if (!HdOptionsScreen.openRow("bloom") || !HdOptionsScreen.popupOpen()) {
+				fail("a click on the bloom row did not open its list")
+			}
+			openStep = 8
+			openFrame = gameFrames
+			return
+		}
+		if (openStep == 8) {
+			checkImage("-open-hd-list", "build/smoke/open-" + id + "-hd-list.png")
+			if (!HdOptionsScreen.choosePopupItem() || HdOptionsScreen.popupOpen() || HdSettings.valueOf("bloom") == bloomBefore) {
+				fail("a choice in the bloom row's list did not change it")
 			}
 			// the draw distance row: live, the map built again further out (checked in the next step)
 			visibleTilesBefore = SceneVisibleTiles.visibleTiles
 			val distance: Double = ClientFeatures.RENDER_DISTANCE
 			distanceBefore = distance
-			if (!HdSettingsPanel.clickRow("renderDistance") || ClientFeatures.RENDER_DISTANCE == distance || !HdSettingsPanel.mapRebuildWanted) {
-				fail("a click on the draw distance row did not change it (" + distance + " to " + ClientFeatures.RENDER_DISTANCE + ")")
+			if (!HdOptionsScreen.cycleRow("renderDistance") || ClientFeatures.RENDER_DISTANCE == distance || !HdOptionsScreen.mapRebuildWanted) {
+				fail("a choice in the draw distance row did not change it (" + distance + " to " + ClientFeatures.RENDER_DISTANCE + ")")
 			}
-			// the panel's own press goes through the game tick, which builds the map; here it is asked directly
-			HdSettingsPanel.mapRebuildWanted = false
-			rebuildMap = true
 			val scale: String = HdSettings.valueOf("scale")
-			if (!HdSettingsPanel.clickRow("scale") || HdSettings.valueOf("scale") == scale) {
-				fail("a click on the interface scale row did not change it")
+			if (!HdOptionsScreen.cycleRow("scale") || HdSettings.valueOf("scale") == scale) {
+				fail("a choice in the interface scale row did not change it")
 			}
 			openStep = 4
 			openFrame = gameFrames
 			return
 		}
 		if (openStep == 4) {
-			// further out, or nearer when the click wrapped round from the largest distance to 1
+			// further out, or nearer when the choice wrapped round from the largest distance to 1
 			val further: Boolean = ClientFeatures.RENDER_DISTANCE > distanceBefore
 			if (if (further) SceneVisibleTiles.visibleTiles <= visibleTilesBefore else SceneVisibleTiles.visibleTiles >= visibleTilesBefore) {
 				fail("the map was not built again at draw distance " + ClientFeatures.RENDER_DISTANCE + " (from " + distanceBefore + "): " + visibleTilesBefore + " visible tiles, now " + SceneVisibleTiles.visibleTiles)
@@ -1619,11 +1668,22 @@ object SmokeTest {
 			}
 			println("SMOKE draw distance " + ClientFeatures.RENDER_DISTANCE + ": " + visibleTilesBefore + " to " + SceneVisibleTiles.visibleTiles + " visible tiles, base " + MapRegion.sceneBaseX + "," + MapRegion.sceneBaseY)
 			checkImage("-open-hd-settings-high", "build/smoke/open-" + id + "-hd-settings-high.png")
-			if (!HdSettingsPanel.clickClose() || HdSettingsPanel.open) {
-				fail("Close did not close the 634HD settings panel")
+			// Back: the stock page again, its 634HD button back on the next tick
+			if (!HdOptionsScreen.clickBack() || HdOptionsScreen.open) {
+				fail("Back did not leave the 634HD page")
 			}
-			if (!HdOptionsButton.pressed(HdOptionsButton.x + 8, HdOptionsButton.y + 8)) {
-				fail("the 634HD toggle did not take the second press")
+			openStep = 7
+			openFrame = gameFrames
+			return
+		}
+		if (openStep == 7) {
+			if (!HdOptionsScreen.stockButtonPresent()) {
+				fail("after Back, no 634HD button in the Graphics Options preset row")
+			}
+			checkImage("-open-hd-back", "build/smoke/open-" + id + "-hd-back.png")
+			// 634HD off again, from the page
+			if (!HdOptionsScreen.clickStockButton() || !HdOptionsScreen.clickToggle() || !HdOptionsScreen.clickBack()) {
+				fail("the 634HD page did not take the press that turns 634HD off")
 			}
 			openStep = 2
 			openFrame = gameFrames
@@ -1636,19 +1696,21 @@ object SmokeTest {
 		if (toggleRound < TOGGLE_ROUNDS) {
 			toggleRound++
 			println("SMOKE 634HD toggle round " + toggleRound + " of " + TOGGLE_ROUNDS)
-			if (!HdOptionsButton.pressed(HdOptionsButton.x + 8, HdOptionsButton.y + 8)) {
-				fail("the 634HD toggle did not take the press in round " + toggleRound)
+			if (!HdOptionsScreen.clickStockButton() || !HdOptionsScreen.clickToggle()) {
+				fail("the 634HD page did not take the press in round " + toggleRound)
 			}
 			openStep = 5
 			openFrame = gameFrames
 			return
 		}
-		println("SMOKE PASS 634HD toggle in the Graphics Options: " + openToolkit + " to 6 (medium preset) and back" + (if (TOGGLE_ROUNDS > 1) ", " + TOGGLE_ROUNDS + " rounds" else "") + "; settings panel: presets, rows, close")
+		println("SMOKE PASS 634HD toggle in the Graphics Options: " + openToolkit + " to 6 (medium preset) and back" + (if (TOGGLE_ROUNDS > 1) ", " + TOGGLE_ROUNDS + " rounds" else "") + "; 634HD page: presets, rows, Back")
 		lang.flushOut()
 		lang.halt(0)
 	}
 
 	private var openStep: Int = 0
+
+	private var bloomBefore: String = ""
 
 	private val TOGGLE_ROUNDS: Int = lang.getInteger("client.test.toggleRounds", 1)
 
@@ -2828,9 +2890,9 @@ object SmokeTest {
 	/**
 	 * Opens a sub-interface through SubInterfaceOpener.openSubInterface, without its load scripts.
 	 */
-	private fun openSubInterface(interfaceId: Int, parentHash: Int, openType: SubInterfaceType) {
+	private fun openSubInterface(interfaceId: Int, parentHash: Int, openType: SubInterfaceType, suppressScripts: Boolean = true) {
 		try {
-			SubInterfaceOpener.openSubInterface(interfaceId, parentHash, openType, true)
+			SubInterfaceOpener.openSubInterface(interfaceId, parentHash, openType, suppressScripts)
 		} catch (ex: Exception) {
 			fail("cannot open interface " + interfaceId + ": " + ex)
 		}
@@ -2904,6 +2966,10 @@ object SmokeTest {
 	@JvmStatic
 	fun error(message: String?, ex: Throwable?) {
 		if (ENABLED) {
+			if (ex != null) {
+				// the first frames, so a failure in the client's own code can be placed
+				println(ex.stackTraceToString().lineSequence().take(30).joinToString("\n"))
+			}
 			fail("client error: " + message + (if (ex == null) "" else " " + ex))
 		}
 	}

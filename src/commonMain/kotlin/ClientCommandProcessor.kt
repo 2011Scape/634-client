@@ -1,6 +1,6 @@
 import com.jagex.game.runetek5.client.features.GroundItemLabels
 import com.jagex.game.runetek5.client.features.HdSettings
-import com.jagex.game.runetek5.client.features.HdSettingsPanel
+import com.jagex.game.runetek5.client.features.HdOptionsScreen
 import com.jagex.game.runetek5.client.features.HdFallback
 import com.jagex.game.runetek5.graphics.ToolkitType
 import com.jagex.game.runetek5.client.features.NpcLabels
@@ -421,10 +421,9 @@ object ClientCommandProcessor {
 					Console.printToConsole("Failed to enter tk5")
 					return
 				}
-				// Not part of the original client: 634HD's settings panel (HdSettingsPanel), also from Graphics Options.
+				// Not part of the original client: 634HD's settings page of Graphics Options (HdOptionsScreen).
 				if (string.equals("hdsettings", ignoreCase = true)) {
-					HdSettingsPanel.toggleOpen()
-					Console.printToConsole("634HD settings " + (if (HdSettingsPanel.open) "open" else "closed"))
+					HdOptionsScreen.openFromCommand()
 					return
 				}
 				// Not part of the original client: ::hd preset <off|low|medium|high|ultra> (see HdSettings.applyPreset)
