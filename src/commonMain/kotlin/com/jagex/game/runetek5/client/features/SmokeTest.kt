@@ -548,7 +548,7 @@ object SmokeTest {
 	private val SCENE_HOME: IntArray = intArrayOf(3094, 3107, 0)
 
 	/** Lumbridge courtyard, the camera zoomed onto the player (held in one pose: holdPose). */
-	private const val OUTFIT_VIEW: String = "3222,3218,0,0,1200,450,25"
+	private const val OUTFIT_VIEW: String = "3222,3218,0,0,1200,450,35"
 
 	// not a const: the compiler's constant folding runs out of memory on a chain this long
 	@Suppress("MayBeConst")
@@ -563,8 +563,9 @@ object SmokeTest {
 		"cows:3256,3276,0,4096,1400,0,65;" +
 		// the wizards wander: toolkit 1 against its own reference reached 47
 		"wizards_tower:3109,3162,0,0,1400,0,65;" +
-		// many NPCs: guards in shiny armour, and barbarians around their fires (they wander too)
-		"varrock_palace:3212,3468,0,0,1400,0,65;" +
+		// many NPCs: guards in shiny armour, and barbarians around their fires (they wander too; the
+		// palace reached 69 on toolkit 6)
+		"varrock_palace:3212,3468,0,0,1400,0,80;" +
 		"barbarian_village:3082,3420,0,0,1400,0,65;" +
 		// the environment fog (environments.json): Al Kharid's town in the desert haze, the open
 		// desert south of the Shantay pass under the generated KHARIDIAN_DESERT entry

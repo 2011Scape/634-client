@@ -212,7 +212,8 @@ throws and falls back). The plan and its status are in `634hd-plan.md`.
     draws (`client.test.materialScan` lists the material classes and items using each; a scene's
     eighth value dresses the player, on the client only, and the harness puts the clothes back; the
     player is held in one pose and only the middle third of the view is compared, so the outfits
-    match toolkit 1 to 0-1 per 1000 and have a limit of 25, room for a passer-by), and a fifth from
+    match toolkit 1 to 0-1 per 1000 for the robes and Khazard, 17-31 for the metal and the torch's
+    flame, and have a limit of 35, room for a passer-by), and a fifth from
     behind (`outfit_firecape`, yaw 8192) with the fire cape's lava in view: the game's scrolling
     texture with everything off, the flowing, unlit material with `materials` on;
   - flicker and pops: `client.test.sceneBurst=N` measures the 3D view's mean brightness every frame
