@@ -84,6 +84,9 @@ object HdOptionsScreen {
 	private const val BOX_LINE_HOVER: Int = 0x80786d
 	private const val BOX_LINE_OPEN: Int = 0xb2aa9f
 	private const val ITEM_HOVER: Int = 0x26527b
+
+	/** A value at its highest (On, or the last choice), as the stock Custom page colours a maximum. */
+	private const val TEXT_TOP: Int = 0x00b1e1
 	private const val BEVEL_FILL: Int = 0x383530
 	private const val ARROW: Int = 2554
 	private const val ARROW_OPEN: Int = 2556
@@ -533,7 +536,7 @@ object HdOptionsScreen {
 		val outline: Int = children.size
 		children.add(rect(BODY, children.size, x, y, boxWidth, 16, BOX_LINE, false))
 		val valueText: Int = children.size
-		children.add(text(BODY, children.size, x + 2, y, boxWidth - 21, 16, FONT_SMALL, shown(row.name, value), TEXT, 1, 1, false))
+		children.add(text(BODY, children.size, x + 2, y, boxWidth - 21, 16, FONT_SMALL, shown(row.name, value), valueColour(row, value), 1, 1, false))
 		val arrow: Int = children.size
 		children.add(sprite(BODY, children.size, right - 17, y, 16, 16, ARROW, false, false, false))
 		val hit: Component = text(BODY, children.size, x, y, boxWidth, 16, FONT_SMALL, "", TEXT, 1, 1, false)
@@ -576,7 +579,8 @@ object HdOptionsScreen {
 		items.aspectWidthType = 1
 		val children: Array<Component?> = arrayOfNulls(values.size)
 		for (i in values.indices) {
-			val t: Component = text(POPUP_ITEMS, i, 0, i * ITEM_HEIGHT, 2, ITEM_HEIGHT, FONT_SMALL, shown(d.row.name, values[i]), TEXT, 1, 1, false)
+			val colour: Int = valueColour(d.row, values[i])
+			val t: Component = text(POPUP_ITEMS, i, 0, i * ITEM_HEIGHT, 2, ITEM_HEIGHT, FONT_SMALL, shown(d.row.name, values[i]), colour, 1, 1, false)
 			t.aspectXType = 1
 			t.aspectWidthType = 1
 			t.hasScript = true
@@ -584,7 +588,7 @@ object HdOptionsScreen {
 			t.opBase = shown(d.row.name, values[i])
 			t.params = arrayOf<Any?>(SENTINEL, A_ITEM, i)
 			t.onMouseOver = arrayOf<Any?>(1356, EV_COM, EV_COMSUBID, ITEM_HOVER)
-			t.onMouseLeaveScript = arrayOf<Any?>(1356, EV_COM, EV_COMSUBID, TEXT)
+			t.onMouseLeaveScript = arrayOf<Any?>(1356, EV_COM, EV_COMSUBID, colour)
 			children[i] = t
 		}
 		items.slotChildren = children
@@ -770,6 +774,9 @@ object HdOptionsScreen {
 		"water" -> if (value == "2") "634HD" else if (value == "1") "Game" else "Off"
 		else -> capital(value)
 	}
+
+	/** The value text's colour: blue at the row's highest choice (On, 4096, 16x, ...), else the stock text colour. */
+	private fun valueColour(row: Row, value: String): Int = if (value == row.choices[row.choices.size - 1]) TEXT_TOP else TEXT
 
 	private fun capital(text: String): String = if (text.isEmpty()) text else text.substring(0, 1).uppercase() + text.substring(1)
 

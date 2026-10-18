@@ -1508,8 +1508,11 @@ object SmokeTest {
 
 	private var openAtFrame: Int = -1
 
-	/** client.test.openMode=fixed|resizable: the window mode the open:/toggle test switches to first. */
-	private val OPEN_MODE: String = lang.getProperty("client.test.openMode", "")
+	/**
+	 * client.test.openMode=fixed|resizable: the window mode the open:/toggle test switches to first
+	 * (resizable by default: the server remembers the last mode, and the references are resizable).
+	 */
+	private val OPEN_MODE: String = lang.getProperty("client.test.openMode", "resizable")
 
 	private var openModeFrame: Int = -1
 
