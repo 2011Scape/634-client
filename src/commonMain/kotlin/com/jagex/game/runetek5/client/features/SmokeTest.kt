@@ -126,6 +126,8 @@ object SmokeTest {
 
 	/** client.test.sceneCommand: a :: command sent once, at the first scene reached (e.g. "occlude", "w2debug 2"). */
 	private val SCENE_COMMAND: String = lang.getProperty("client.test.sceneCommand", "")
+	/** client.test.npcDump=id[,id...]: at the first scene, each NPC type's meshes: faces, translucent faces (alpha, height, flat or not). */
+	private val NPC_DUMP: String = lang.getProperty("client.test.npcDump", "")
 	private var sceneCommandSent: Boolean = false
 
 	private val CHAT: String = lang.getProperty("client.test.chat", "smoke test chat")
@@ -1346,6 +1348,9 @@ object SmokeTest {
 			sceneFrame = gameFrames
 			// client.test.sceneCommand: sent once the first scene is reached (a map build resets what
 			// some commands toggle, e.g. ::occlude, so it cannot go before the teleport)
+			if (NPC_DUMP.length > 0 && !sceneCommandSent) {
+				npcDump()
+			}
 			if (SCENE_COMMAND.length > 0 && !sceneCommandSent) {
 				sceneCommandSent = true
 				println("SMOKE sending ::" + SCENE_COMMAND + " at the first scene")
@@ -2415,6 +2420,72 @@ object SmokeTest {
 	/**
 	 * Runs a console command as typed, through ClientCommandProcessor.executeCommand.
 	 */
+	/** client.test.npcDump: an NPC type's meshes, face by face where a face is translucent. */
+	private fun npcDump() {
+		for (idText in NPC_DUMP.javaSplit(",")) {
+			val id: Int = idText.javaTrim().toIntOrNull() ?: continue
+			val type = TypeLists.NPC!!.list(id)
+			val models: IntArray? = type.hdModelIds()
+			val out: StringBuilder = StringBuilder("SMOKE NPC " + id + " \"" + type.name + "\" size " + type.size + " models " + (models?.joinToString(" ") ?: "none") + "\n")
+			if (models != null) {
+				for (m in models) {
+					if (m == -1) continue
+					val mesh = try { com.jagex.game.runetek5.graphics.model.Mesh.fromResource(TypeLists.NPC!!.meshes, m) } catch (ex: Exception) { null }
+					if (mesh == null) {
+						out.append("  model " + m + ": not loaded\n")
+						continue
+					}
+					val ys: IntArray = mesh.verticesY!!
+					var minY: Int = Int.MAX_VALUE
+					var maxY: Int = Int.MIN_VALUE
+					for (v in 0 until mesh.numVertices) {
+						if (ys[v] < minY) minY = ys[v]
+						if (ys[v] > maxY) maxY = ys[v]
+					}
+					out.append("  model " + m + ": " + mesh.numFaces + " faces, y " + minY + ".." + maxY + "\n")
+					// the faces by material: how many, their height range, and the material's effect (type,
+					// combiner, alpha, hdr, scroll), from the toolkit's material provider
+					val byMaterial = HashMap<Int, IntArray>()
+					for (f in 0 until mesh.numFaces) {
+						val material: Int = if (mesh.facesMaterial == null) -1 else mesh.facesMaterial!![f].toInt()
+						val entry: IntArray = byMaterial.getOrPut(material) { intArrayOf(0, Int.MAX_VALUE, Int.MIN_VALUE) }
+						entry[0]++
+						for (v in intArrayOf(mesh.facesA!![f].toInt(), mesh.facesB!![f].toInt(), mesh.facesC!![f].toInt())) {
+							if (ys[v] < entry[1]) entry[1] = ys[v]
+							if (ys[v] > entry[2]) entry[2] = ys[v]
+						}
+					}
+					for (material in byMaterial.keys.sorted()) {
+						val entry: IntArray = byMaterial[material]!!
+						out.append("    material " + material + ": " + entry[0] + " faces, y " + entry[1] + ".." + entry[2])
+						if (material >= 0) {
+							val metrics = ClientState.activeToolkit?.materialProvider?.getMetrics(material)
+							if (metrics != null) out.append(" effectType " + metrics.effectType + " combiner " + metrics.effectCombiner + " alpha " + (metrics.alpha.toInt() and 0xFF) + " hdr " + metrics.hdr + " scroll " + metrics.speedU + "," + metrics.speedV)
+						}
+						out.append('\n')
+					}
+					val alphas: ByteArray? = mesh.facesAlpha
+					if (alphas != null || mesh.numFaces <= 64) {
+						for (f in 0 until mesh.numFaces) {
+							val a: Int = if (alphas == null) 0 else alphas[f].toInt() and 0xFF
+							// every face of a small model, else the translucent ones
+							if (a == 0 && mesh.numFaces > 64) continue
+							val ya: Int = ys[mesh.facesA!![f].toInt()]
+							val yb: Int = ys[mesh.facesB!![f].toInt()]
+							val yc: Int = ys[mesh.facesC!![f].toInt()]
+							val flat: Boolean = ya == yb && yb == yc
+							val material: Int = if (mesh.facesMaterial == null) -1 else mesh.facesMaterial!![f].toInt()
+							val layer: Int = if (mesh.facesLayer == null) -1 else mesh.facesLayer!![f].toInt()
+							val texture: Int = if (mesh.facesTexture == null) -1 else mesh.facesTexture!![f].toInt()
+							out.append("    face " + f + ": transparency " + a + " (opacity " + (255 - a) + ") y " + ya + "," + yb + "," + yc + (if (flat) " flat" else "") + " colour " + (mesh.facesColor!![f].toInt() and 0xFFFF) + " material " + material + " texture " + texture + " layer " + layer + "\n")
+						}
+					}
+				}
+			}
+			print(out)
+		}
+	}
+
 	private fun sendCommand(command: String) {
 		try {
 			ClientCommandProcessor.executeCommand(command, false, false)

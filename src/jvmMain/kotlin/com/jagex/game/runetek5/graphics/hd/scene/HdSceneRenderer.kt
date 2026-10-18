@@ -153,7 +153,10 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     /** Each object's plane (Entity.level) and loc shape (GameObject.getShape, -1 for none): the occlusion bake leaves out roofs and the floors above the player. */
     private var objectLevel: ByteArray = ByteArray(4096)
     private var objectShape: ByteArray = ByteArray(4096)
-    /** Objects a model override keeps from casting shadows or occluding (castShadows false). */
+    /** Below this height (scene units, 512 a tile) a retained model is flat and casts no shadow. */
+    private val FLAT_CASTER_HEIGHT: Int = 24
+
+    /** Objects a model override keeps from casting shadows or occluding (castShadows false), and flat ones. */
     private var objectNoShadow: BooleanArray = BooleanArray(4096)
     private var buildingNoShadow: Boolean = false
     /** The model override of the entity being built (HdContent.overrideFor), for its material (worldTextures). */
@@ -618,7 +621,6 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         }
     }
 
-
     /** Whether the retained vertices carry baked occlusion; how long the last bake took. */
     var vertexOcclusionBaked: Boolean = false
         private set
@@ -794,7 +796,9 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         objectAlpha[objectId] = buildingAlpha
         objectLevel[objectId] = buildingLevel.toByte()
         objectShape[objectId] = buildingShape.toByte()
-        objectNoShadow[objectId] = buildingNoShadow
+        // a flat model (a decal on the ground or the water, e.g. the ripple loc at a fishing spot) casts no
+        // shadow either: drawn solid into the static map it cast a square the size of its quad
+        objectNoShadow[objectId] = buildingNoShadow || model.hdHeight() < FLAT_CASTER_HEIGHT
         objectWind[objectId] = buildingWind
         if ((objectId + 1) * 16 > objectMatrices.size) {
             objectMatrices = objectMatrices.copyOf(objectMatrices.size * 2)

@@ -4007,6 +4007,14 @@ class HdModel : Model {
 		this.boundsCalculated = true
 	}
 
+	/** 634HD: the model's height (its vertices' y range, scene units), for HdSceneRenderer: a flat model casts no shadow. */
+	fun hdHeight(): Int {
+		if (!this.boundsCalculated) {
+			this.calculateBounds()
+		}
+		return this.maxY - this.minY
+	}
+
 	override fun fa(): Int {
 		if (!this.boundsCalculated) {
 			this.calculateBounds()
