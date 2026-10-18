@@ -565,6 +565,9 @@ object SmokeTest {
 		// desert south of the Shantay pass under the generated KHARIDIAN_DESERT entry
 		"al_kharid:3293,3180,0,0,1400,0;" +
 		"kharid_desert:3304,3060,0,0,1400,0;" +
+		// the Fishing Guild dock from the north at the lowest pitch: the tile under the player was culled
+		// behind a railing's occluder sized as a full wall (MapRegion.occluderHeight)
+		"fishing_guild_dock:2593,3415,0,8192,1024,0;" +
 		// the player close up in outfits that between them use every way an item's material draws
 		// (client.test.materialScan): shiny metal and its three highlights, reflection, unlit, HDR,
 		// scrolling, cut-out and blended transparency

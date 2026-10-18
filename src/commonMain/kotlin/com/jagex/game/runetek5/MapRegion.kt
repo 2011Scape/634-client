@@ -26,6 +26,7 @@ import com.jagex.game.runetek5.entity.StaticGroundDecor
 import com.jagex.game.runetek5.entity.StaticLocation
 import com.jagex.game.runetek5.entity.StaticWall
 import com.jagex.game.runetek5.entity.StaticWallDecor
+import com.jagex.game.runetek5.entity.Entity
 import com.jagex.game.runetek5.entity.Wall
 import com.jagex.game.runetek5.entity.WallDecor
 import com.jagex.game.runetek5.config.TypeLists
@@ -165,13 +166,14 @@ class MapRegion @OriginalMember(owner = "client!vaa", name = "<init>", descripto
 						wall = DynamicWall(toolkit, locType, minLevel, plane, sceneX, averageHeight, sceneZ, this.underwater, shape, rotation, sequenceId)
 					}
 					Scene.addWall(minLevel, x, z, wall, null)
+					val cullY: Int = occluderHeight(locType, wall) // Not part of the original client: see occluderHeight
 					if (rotation == 0) {
 						if (MapRegion.lowDetailShadows && locType.staticShadow) {
 							ground.ka(x, z, 50)
 							ground.ka(x, z + 1, 50)
 						}
 						if (occlusionMode == LocOcclusionMode.ALL && !this.underwater) {
-							Culling.addWallCulling(x, locType.cullXZ, locType.cullY, z, minLevel, 1)
+							Culling.addWallCulling(x, locType.cullXZ, cullY, z, minLevel, 1)
 						}
 					} else if (rotation == 1) {
 						if (MapRegion.lowDetailShadows && locType.staticShadow) {
@@ -179,7 +181,7 @@ class MapRegion @OriginalMember(owner = "client!vaa", name = "<init>", descripto
 							ground.ka(x + 1, z + 1, 50)
 						}
 						if (occlusionMode == LocOcclusionMode.ALL && !this.underwater) {
-							Culling.addWallCulling(x, -locType.cullXZ, locType.cullY, z + 1, minLevel, 2)
+							Culling.addWallCulling(x, -locType.cullXZ, cullY, z + 1, minLevel, 2)
 						}
 					} else if (rotation == 2) {
 						if (MapRegion.lowDetailShadows && locType.staticShadow) {
@@ -187,7 +189,7 @@ class MapRegion @OriginalMember(owner = "client!vaa", name = "<init>", descripto
 							ground.ka(x + 1, z + 1, 50)
 						}
 						if (occlusionMode == LocOcclusionMode.ALL && !this.underwater) {
-							Culling.addWallCulling(x + 1, -locType.cullXZ, locType.cullY, z, minLevel, 1)
+							Culling.addWallCulling(x + 1, -locType.cullXZ, cullY, z, minLevel, 1)
 						}
 					} else if (rotation == 3) {
 						if (MapRegion.lowDetailShadows && locType.staticShadow) {
@@ -195,7 +197,7 @@ class MapRegion @OriginalMember(owner = "client!vaa", name = "<init>", descripto
 							ground.ka(x + 1, z, 50)
 						}
 						if (occlusionMode == LocOcclusionMode.ALL && !this.underwater) {
-							Culling.addWallCulling(x, locType.cullXZ, locType.cullY, z, minLevel, 2)
+							Culling.addWallCulling(x, locType.cullXZ, cullY, z, minLevel, 2)
 						}
 					}
 					if (locType.blocksMovement != 0 && collisionMap != null) {
@@ -250,19 +252,20 @@ class MapRegion @OriginalMember(owner = "client!vaa", name = "<init>", descripto
 							wall = DynamicWall(toolkit, locType, minLevel, plane, sceneX, averageHeight, sceneZ, this.underwater, shape, nextRotation, sequenceId)
 						}
 						Scene.addWall(minLevel, x, z, wall2, wall)
+						val cullY: Int = occluderHeight(locType, wall2, wall) // Not part of the original client: see occluderHeight
 						if ((locType.occlusionMode == 1 || MapRegion.OCCLUDE_UNSPECIFIED_LOCS && locType.occlusionMode == -1) && !this.underwater) {
 							if (rotation == 0) {
-								Culling.addWallCulling(x, locType.cullXZ, locType.cullY, z, minLevel, 1)
-								Culling.addWallCulling(x, locType.cullXZ, locType.cullY, z + 1, minLevel, 2)
+								Culling.addWallCulling(x, locType.cullXZ, cullY, z, minLevel, 1)
+								Culling.addWallCulling(x, locType.cullXZ, cullY, z + 1, minLevel, 2)
 							} else if (rotation == 1) {
-								Culling.addWallCulling(x + 1, locType.cullXZ, locType.cullY, z, minLevel, 1)
-								Culling.addWallCulling(x, locType.cullXZ, locType.cullY, z + 1, minLevel, 2)
+								Culling.addWallCulling(x + 1, locType.cullXZ, cullY, z, minLevel, 1)
+								Culling.addWallCulling(x, locType.cullXZ, cullY, z + 1, minLevel, 2)
 							} else if (rotation == 2) {
-								Culling.addWallCulling(x + 1, locType.cullXZ, locType.cullY, z, minLevel, 1)
-								Culling.addWallCulling(x, locType.cullXZ, locType.cullY, z, minLevel, 2)
+								Culling.addWallCulling(x + 1, locType.cullXZ, cullY, z, minLevel, 1)
+								Culling.addWallCulling(x, locType.cullXZ, cullY, z, minLevel, 2)
 							} else if (rotation == 3) {
-								Culling.addWallCulling(x, locType.cullXZ, locType.cullY, z, minLevel, 1)
-								Culling.addWallCulling(x, locType.cullXZ, locType.cullY, z, minLevel, 2)
+								Culling.addWallCulling(x, locType.cullXZ, cullY, z, minLevel, 1)
+								Culling.addWallCulling(x, locType.cullXZ, cullY, z, minLevel, 2)
 							}
 						}
 						if (locType.blocksMovement != 0 && collisionMap != null) {
@@ -314,7 +317,7 @@ class MapRegion @OriginalMember(owner = "client!vaa", name = "<init>", descripto
 							} else {
 								cullFlags = 16
 							}
-							Culling.addWallCulling(x, 0, locType.cullY, z, minLevel, cullFlags.toInt())
+							Culling.addWallCulling(x, 0, occluderHeight(locType, positionEntity), z, minLevel, cullFlags.toInt())
 						}
 						if (locType.blocksMovement != 0 && collisionMap != null) {
 							collisionMap.flagBlockedObject(!locType.ignoreClipOnAltRoute, locSizeX, z, x, locType.blocksProjectiles, locSizeZ)
@@ -444,6 +447,24 @@ class MapRegion @OriginalMember(owner = "client!vaa", name = "<init>", descripto
 				collisionMap.flagFloorDecoration(z, x)
 			}
 		}
+	}
+
+	/**
+	 * Not part of the original client: a wall loc's occluder is no taller than the wall's model.
+	 * The game sized every wall occluder by LocType.cullY, a full wall (960) unless the config says
+	 * otherwise, so a railing or low fence flagged as an occluder (occlusionMode ALL) hid the ground
+	 * behind it from a low camera, e.g. the tile under the player on the Fishing Guild dock
+	 * (loc 48867). A wall whose model height is not known yet keeps the configured height.
+	 */
+	private fun occluderHeight(locType: LocType, vararg walls: Entity?): Int {
+		var height: Int = 0
+		for (wall in walls) {
+			val top: Int = -(wall?.getModelMinY() ?: 0)
+			if (top > height) {
+				height = top
+			}
+		}
+		return if (height > 0 && height < locType.cullY) height else locType.cullY
 	}
 
 	@OriginalMember(owner = "client!vaa", name = "b", descriptor = "(IIIII)Lclient!se;")
