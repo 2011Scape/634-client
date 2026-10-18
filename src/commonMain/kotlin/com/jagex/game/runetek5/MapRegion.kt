@@ -39,14 +39,12 @@ import com.jagex.game.runetek5.scene.Scene
 import com.jagex.game.runetek5.entity.InteractiveEntityContainer
 import com.jagex.game.runetek5.scene.culling.Culling
 import com.jagex.game.runetek5.scene.tile.Tile
-import com.jagex.game.runetek5.client.features.ClientFeatures
 import com.jagex.game.runetek5.sound.player.area.SoundEffectPlayer
 import com.jagex.game.runetek5.config.loctype.LocInteractivity
 import com.jagex.game.runetek5.preference.GamePreferences
 import com.jagex.game.runetek5.sound.player.area.AmbientSound
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.camera.CameraMode
-import com.jagex.game.runetek5.client.login.LoginManager
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
