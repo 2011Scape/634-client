@@ -87,6 +87,9 @@ class NPCType {
 	@OriginalMember(owner = "client!bb", name = "zb", descriptor = "[I")
 	private var modelIds: IntArray? = null
 
+	/** Not part of the original client: the model ids, for the smoke harness's NPC dump (client.test.npcDump). */
+	fun hdModelIds(): IntArray? = this.modelIds
+
 	@OriginalMember(owner = "client!bb", name = "i", descriptor = "I")
 	@JvmField
 	var shadowSize: Int = -1

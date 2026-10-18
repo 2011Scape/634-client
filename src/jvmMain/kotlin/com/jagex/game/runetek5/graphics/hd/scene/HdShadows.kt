@@ -442,6 +442,8 @@ class HdShadows {
     private var dynamicProgram: WebGLProgram? = null
     private var uDynamicTextured: Int = -1
     private var uDynamicTexture: Int = -1
+    private var uDynamicHaveNormal: Int = -1
+    private var uDynamicModelWorld: Int = -1
     private var uSceneMatrix: Int = -1
     private var uDynamicMatrix: Int = -1
 
@@ -1101,13 +1103,18 @@ class HdShadows {
             matrixBuffer.clear()
             matrixBuffer.put(m).flip()
             GL33C.glUniformMatrix4fv(uDynamicMatrix, false, matrixBuffer)
+            matrixBuffer.clear()
+            matrixBuffer.put(matrix).flip()
+            GL33C.glUniformMatrix4fv(uDynamicModelWorld, false, matrixBuffer)
             GL33C.glBindBuffer(GL33C.GL_ARRAY_BUFFER, list.vertexBuffer[i])
             GL33C.glVertexAttribPointer(0, list.size[i], list.type[i], false, list.stride[i], list.offset[i])
-            // the draw's colour (its faces' alpha) and texture coordinate, with its texture, so that
-            // shadow_dynamic.frag leaves out what is less than half opaque; an attribute whose buffer
-            // was rewritten since falls back to opaque and untextured
+            // the draw's colour (its faces' alpha), texture coordinate and normal, with its texture, so
+            // that shadow_dynamic.frag leaves out what is less than half opaque and what faces the
+            // ground; an attribute whose buffer was rewritten since falls back to opaque, untextured
+            // and no normal
             var textured: Boolean = list.texture[i] != 0
-            for (k in 0 until 2) {
+            var haveNormal: Boolean = true
+            for (k in 0 until 3) {
                 val at: Int = i * 3 + k
                 if (list.attrBuffer[at] != 0 && !stale(list.attrBuffer[at], list.attrVersion[at])) {
                     GL33C.glEnableVertexAttribArray(1 + k)
@@ -1115,17 +1122,28 @@ class HdShadows {
                     GL33C.glVertexAttribPointer(1 + k, list.attrSize[at], list.attrType[at], list.attrNormalized[at], list.attrStride[at], list.attrOffset[at])
                 } else {
                     GL33C.glDisableVertexAttribArray(1 + k)
-                    if (k == 0) GL33C.glVertexAttrib4f(1, 1.0f, 1.0f, 1.0f, 1.0f) else textured = false
+                    if (k == 0) GL33C.glVertexAttrib4f(1, 1.0f, 1.0f, 1.0f, 1.0f) else if (k == 1) textured = false else haveNormal = false
                 }
             }
             GL33C.glUniform1i(uDynamicTextured, if (textured) 1 else 0)
+            GL33C.glUniform1i(uDynamicHaveNormal, if (haveNormal) 1 else 0)
             if (textured) GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, list.texture[i])
             if (CASTER_DEBUG && map === sun) {
                 // client.test.hdDebugCasters: the casters within 4 tiles of the player, as they go into the sun's map
                 val player = com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate.localPlayer
-                if (player != null && kotlin.math.abs(matrix[12] - player.x) < 2048.0f && kotlin.math.abs(matrix[14] - player.z) < 2048.0f && (casterDebugFrame % 120) == 0) {
+                if (player != null && kotlin.math.abs(matrix[12] - player.x) < CASTER_DEBUG_RADIUS && kotlin.math.abs(matrix[14] - player.z) < CASTER_DEBUG_RADIUS && (casterDebugFrame % 120) == 0) {
                     val at: Int = i * 3
-                    println("HDDEBUG caster " + (if (list === previous) "late" else "now") + " #" + i + " at " + matrix[12].toInt() + "," + matrix[13].toInt() + "," + matrix[14].toInt() + " elements " + list.elements[i] + " texture " + list.texture[i] + " colour " + (list.attrBuffer[at] != 0 && !stale(list.attrBuffer[at], list.attrVersion[at])) + " texcoord " + (list.attrBuffer[at + 1] != 0 && !stale(list.attrBuffer[at + 1], list.attrVersion[at + 1])) + " lit " + list.lit[i] + " effect " + list.effect[i] + " atPlayer " + list.atPlayer[i] + " retained " + list.retained[i] + (if (textured) " alpha " + textureAlphaRange(list.texture[i]) else ""))
+                    // a small caster (a quad or two): its first vertex's colour, read back from its buffer
+                    if (list.elements[i] <= 12 && list.attrBuffer[at] != 0 && list.attrSize[at] == 4 && list.attrType[at] == GL33C.GL_UNSIGNED_BYTE) {
+                        val rgba = ByteArray(4)
+                        GL33C.glBindBuffer(GL33C.GL_COPY_READ_BUFFER, list.attrBuffer[at])
+                        val bb: ByteBuffer = org.lwjgl.system.MemoryUtil.memAlloc(4)
+                        GL33C.glGetBufferSubData(GL33C.GL_COPY_READ_BUFFER, list.attrOffset[at], bb)
+                        bb.get(rgba)
+                        org.lwjgl.system.MemoryUtil.memFree(bb)
+                        println("HDDEBUG caster " + (if (list === previous) "late" else "now") + " #" + i + " first vertex colour " + (rgba[0].toInt() and 0xFF) + "," + (rgba[1].toInt() and 0xFF) + "," + (rgba[2].toInt() and 0xFF) + " alpha " + (rgba[3].toInt() and 0xFF) + " stride " + list.attrStride[at])
+                    }
+                    println("HDDEBUG caster " + (if (list === previous) "late" else "now") + " #" + i + " at " + matrix[12].toInt() + "," + matrix[13].toInt() + "," + matrix[14].toInt() + " elements " + list.elements[i] + " texture " + list.texture[i] + " colour " + (list.attrBuffer[at] != 0 && !stale(list.attrBuffer[at], list.attrVersion[at])) + " texcoord " + (list.attrBuffer[at + 1] != 0 && !stale(list.attrBuffer[at + 1], list.attrVersion[at + 1])) + " lit " + list.lit[i] + " normal " + haveNormal + " effect " + list.effect[i] + " atPlayer " + list.atPlayer[i] + " retained " + list.retained[i] + (if (textured) " alpha " + textureAlphaRange(list.texture[i]) else ""))
                 }
             }
             GL33C.glBindBuffer(GL33C.GL_ELEMENT_ARRAY_BUFFER, if (list.elementBuffer[i] == -1) list.indexBuffer else list.elementBuffer[i])
@@ -1133,11 +1151,14 @@ class HdShadows {
         }
         GL33C.glDisableVertexAttribArray(1)
         GL33C.glDisableVertexAttribArray(2)
+        GL33C.glDisableVertexAttribArray(3)
         // past the emulator's cache of attribute 1's constant
         HdGl.state.glAttribConstant[1][0] = Float.NaN
     }
 
     private val CASTER_DEBUG: Boolean = System.getProperty("client.test.hdDebugCasters") != null
+    /** client.test.hdDebugCastersRadius: how far from the player (tiles) the printed casters reach, 4 by default. */
+    private val CASTER_DEBUG_RADIUS: Float = (System.getProperty("client.test.hdDebugCastersRadius")?.toFloatOrNull() ?: 4.0f) * 512.0f
     private val alphaRanges = HashMap<Int, String>()
 
     /** Debugging: the alpha channel's range and the size of GL texture [id] (level 0), read back once. */
@@ -1213,6 +1234,8 @@ class HdShadows {
             uDynamicMatrix = GL33C.glGetUniformLocation(dynamicProgram!!.id, "uMatrix")
             uDynamicTextured = GL33C.glGetUniformLocation(dynamicProgram!!.id, "uTextured")
             uDynamicTexture = GL33C.glGetUniformLocation(dynamicProgram!!.id, "uTexture")
+            uDynamicHaveNormal = GL33C.glGetUniformLocation(dynamicProgram!!.id, "uHaveNormal")
+            uDynamicModelWorld = GL33C.glGetUniformLocation(dynamicProgram!!.id, "uModelWorld")
             vao = GL33C.glGenVertexArrays()
         }
     }
