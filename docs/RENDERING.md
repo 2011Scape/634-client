@@ -303,6 +303,11 @@ start (`--hd name=value,...` in the launcher), `::hd <name> <value>` while playi
   plane, floor underlay and overlay ids: `Terrain.floorIds`) and each loc (id, shape, rotation, model
   ids and its untextured face colours as the loc recolours them: what `faceColours` takes);
   `client.test.inspect=true` prints the same for every loc within `client.test.inspectRadius` tiles.
+  Each loc line also carries its occlusion mode, `cullY`/`cullXZ` and mesh height (scene units are four times that), the tile line its flags
+  per plane (B bridge, R roof removal, Z zero level, I invisible) and bridge link, and `SMOKE occluder` lines
+  list the occluders active that frame within the radius (type, plane, tile span, corners, heights).
+  `client.test.sceneCommand=<cmd>` sends a `::` command once the first scene is reached (`occlude` turns
+  occlusion culling off, `w2debug 2` draws the active occluders and the occlusion depth buffer).
 - **Content by area** (Lumbridge, then Varrock). Lights: every cooking range that burns (`Cooking
   range` and `(lit)`, not `(empty)`/`(with logs)`), cooking pots over fires, ovens, fireboxes, fire
   pits, furnaces, elven lamps and mushroom torches joined `lights.json` (found with

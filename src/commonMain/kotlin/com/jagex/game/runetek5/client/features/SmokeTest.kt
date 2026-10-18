@@ -124,6 +124,10 @@ object SmokeTest {
 
 	private val COMMAND_FRAMES: Int = lang.getInteger("client.test.commandFrames", 60)
 
+	/** client.test.sceneCommand: a :: command sent once, at the first scene reached (e.g. "occlude", "w2debug 2"). */
+	private val SCENE_COMMAND: String = lang.getProperty("client.test.sceneCommand", "")
+	private var sceneCommandSent: Boolean = false
+
 	private val CHAT: String = lang.getProperty("client.test.chat", "smoke test chat")
 
 	private val CHAT_FRAMES: Int = lang.getInteger("client.test.chatFrames", 150)
@@ -1338,6 +1342,13 @@ object SmokeTest {
 			}
 			sceneStep = 2
 			sceneFrame = gameFrames
+			// client.test.sceneCommand: sent once the first scene is reached (a map build resets what
+			// some commands toggle, e.g. ::occlude, so it cannot go before the teleport)
+			if (SCENE_COMMAND.length > 0 && !sceneCommandSent) {
+				sceneCommandSent = true
+				println("SMOKE sending ::" + SCENE_COMMAND + " at the first scene")
+				sendCommand(SCENE_COMMAND)
+			}
 			if (locChange && locPending) {
 				// arrived after a teleport (a walk had taken the player away): the loc goes now
 				locPending = false
@@ -1403,20 +1414,39 @@ object SmokeTest {
 			var count: Int = 0
 			for (dz in -INSPECT_RADIUS..INSPECT_RADIUS) {
 				for (dx in -INSPECT_RADIUS..INSPECT_RADIUS) {
-					val tile: com.jagex.game.runetek5.scene.tile.Tile = com.jagex.game.runetek5.scene.Scene.getTile(0, px + dx, pz + dz) ?: continue
-					val locs: Array<Any?> = arrayOf(tile.primaryWall, tile.secondaryWall, tile.primaryWallDecoration, tile.secondaryWallDecoration, tile.groundDecoration, tile.interactives?.interactiveObject)
-					for (loc in locs) {
-						if (loc is com.jagex.game.runetek5.entity.gameobject.GameObject && count < 40) {
-							val uid: Long = (loc.getId().toLong() shl 32) or ((loc.getShape() and 0x1F).toLong() shl 14) or ((pz + dz).toLong() shl 7) or (px + dx).toLong()
-							if (seen.add(loc.getId().toLong() * 64L + loc.getShape())) {
-								uids.append(',').append(uid)
-								count++
+					for (lvl in 0 until com.jagex.game.runetek5.scene.Scene.length) {
+						val tiles = com.jagex.game.runetek5.scene.Scene.aClass100ArrayArrayArray3 ?: break
+						val tile: com.jagex.game.runetek5.scene.tile.Tile = tiles[lvl]?.get(px + dx)?.get(pz + dz) ?: continue
+						val locs: ArrayList<Any?> = arrayListOf(tile.primaryWall, tile.secondaryWall, tile.primaryWallDecoration, tile.secondaryWallDecoration, tile.groundDecoration)
+						var node = tile.interactives
+						while (node != null) {
+							locs.add(node.interactiveObject)
+							node = node.child
+						}
+						for (loc in locs) {
+							if (loc is com.jagex.game.runetek5.entity.gameobject.GameObject && count < 120) {
+								val uid: Long = (loc.getId().toLong() shl 32) or ((loc.getRotation() and 0x3).toLong() shl 20) or ((loc.getShape() and 0x1F).toLong() shl 14) or ((pz + dz).toLong() shl 7) or (px + dx).toLong()
+								// each id, shape and tile once (a big loc sits on several tiles)
+								if (seen.add(uid)) {
+									uids.append(',').append(uid)
+									count++
+								}
 							}
 						}
 					}
 				}
 			}
 			println("SMOKE inspect: player tile " + (px + MapRegion.sceneBaseX) + "," + (pz + MapRegion.sceneBaseY) + ", " + count + " locs within " + INSPECT_RADIUS + " tiles")
+			// the occluders active this frame (Culling.members) within the radius: type (1/2 walls along
+			// x/z, 8/16 diagonals, 4 floors), plane, tile span, scene-unit corners and heights
+			val members = Culling.members
+			if (members != null) {
+				for (m in 0 until Culling.activeOccluderCount) {
+					val o = members[m] ?: continue
+					if (o.endX < px - INSPECT_RADIUS || o.startX > px + INSPECT_RADIUS || o.endY < pz - INSPECT_RADIUS || o.startY > pz + INSPECT_RADIUS) continue
+					println("SMOKE occluder type " + o.type + " plane " + o.plane + " tiles " + (o.startX + MapRegion.sceneBaseX) + ".." + (o.endX + MapRegion.sceneBaseX) + "," + (o.startY + MapRegion.sceneBaseY) + ".." + (o.endY + MapRegion.sceneBaseY) + " x " + o.tileCullingsX.joinToString(",") + " z " + o.tileCullingsZ.joinToString(",") + " y " + o.drawHeights.joinToString(","))
+				}
+			}
 			lang.setProperty("client.test.inspectNow", px.toString() + "," + pz + uids)
 			return
 		}
