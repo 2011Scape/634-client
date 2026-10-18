@@ -1,4 +1,4 @@
-import com.jagex.game.runetek5.client.features.HdSettingsPanel
+import com.jagex.game.runetek5.client.features.HdOptionsScreen
 import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.core.constants.MainLogicStep
@@ -38,7 +38,7 @@ object ClientLogout {
 		}
 		LoginManager.loginStep = LoginStep.IDLE
 		XpDrops.reset() // Not part of the original client: see XpDrops.
-		HdSettingsPanel.open = false // Not part of the original client: the panel closes only from the game's input tick
+		HdOptionsScreen.reset() // Not part of the original client: the 634HD page of Graphics Options
 		TypeLists.resetAllCaches()
 		Scene.destroy()
 		for (@Pc(24) i in 0 until 4) {

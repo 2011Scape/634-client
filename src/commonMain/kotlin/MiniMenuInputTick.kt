@@ -13,15 +13,12 @@ import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.client.event.keyboard.SimpleKeyboardMonitorConstants
 import com.jagex.game.runetek5.client.event.mouse.MouseLog
 import com.jagex.game.runetek5.client.features.ClientFeatures
-import com.jagex.game.runetek5.client.features.HdOptionsButton
-import com.jagex.game.runetek5.client.features.HdSettingsPanel
 import com.jagex.game.runetek5.graphics.font.FontMetrics
 import com.jagex.game.runetek5.graphics.ifcomponent.InterfaceComponentRenderer
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecorder
 import com.jagex.game.runetek5.client.GameShell
 import com.jagex.game.runetek5.InterfaceDrag
 import com.jagex.game.runetek5.client.input.mouse.MouseManager
-import com.jagex.game.runetek5.client.ClientState
 import kotlin.jvm.JvmStatic
 
 object MiniMenuInputTick {
@@ -74,16 +71,6 @@ object MiniMenuInputTick {
 			clickType = mouseEvent.getClickType()
 		}
 		if (!MiniMenu.isOpen) {
-			// Not part of the original client: a left press on the 634HD toggle (HdOptionsButton) or its
-			// settings panel (HdSettingsPanel) is their own.
-			if (clickType == MouseLog.TYPE_PRESS_LEFT && mouseEvent != null && (HdSettingsPanel.pressed(mouseEvent.getMouseX(), mouseEvent.getMouseY()) || HdOptionsButton.pressed(mouseEvent.getMouseX(), mouseEvent.getMouseY()))) {
-				if (HdSettingsPanel.mapRebuildWanted) {
-					// the panel's draw distance changed: the map is built again at it
-					HdSettingsPanel.mapRebuildWanted = false
-					MapRebuild.rebuildMap()
-				}
-				return
-			}
 			if (clickType == MouseLog.TYPE_PRESS_LEFT && (MiniMenu.menuOpenMode == 1 && MiniMenu.entryCount > 2 || MiniMenu.isTopEntryInterfaceAction())) {
 				clickType = MouseLog.TYPE_PRESS_RIGHT
 			}

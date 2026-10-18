@@ -101,7 +101,7 @@ are off unless the client is started with `--dev-commands`.
 | `--msaa <n>` | OpenGL: anti-alias the 3D view with n samples (0, 2, 4 or 8) in a framebuffer of its own, so the interface stays sharp. Cut-out textures such as leaves get alpha-to-coverage (`--no-a2c` turns that off). | `::msaa n` |
 | `--smaa` | OpenGL: smooth the 3D view's edges with SMAA 1x, with or without MSAA. | `::smaa` |
 | `--render-scale <x>` | OpenGL: draw the 3D view 1.5 or 2 times larger and shrink it (supersampling). | `::renderscale x` |
-| `--toolkit <name>` | Start on a graphics mode: `hd` (634HD, needs OpenGL 3.3), `opengl`, `java` (Safe Mode). Graphics Options has a 634HD toggle too. | `::tk6` |
+| `--toolkit <name>` | Start on a graphics mode: `hd` (634HD, needs OpenGL 3.3), `opengl`, `java` (Safe Mode). Graphics Options has a 634HD page too, from the 634HD button in its preset row, with the switch and every 634HD setting. | `::tk6` |
 
 ### Developer
 
@@ -114,8 +114,8 @@ are off unless the client is started with `--dev-commands`.
 
 ## Platforms
 
-The game has four graphics modes, chosen in its graphics options, and 634HD, chosen with its toggle
-in Graphics Options, `--toolkit hd` or `::tk6`.
+The game has four graphics modes, chosen in its graphics options, and 634HD, chosen on its page of
+Graphics Options (the 634HD button in the preset row), `--toolkit hd` or `::tk6`.
 
 | Platform | Java | OpenGL | Native OpenGL | DirectX | 634HD |
 |---|:-:|:-:|:-:|:-:|:-:|

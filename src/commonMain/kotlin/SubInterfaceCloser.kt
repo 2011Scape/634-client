@@ -9,6 +9,7 @@ import com.jagex.game.runetek5.config.rsinterface.Interface
 import com.jagex.game.runetek5.InterfaceManager
 import com.jagex.game.runetek5.client.menu.MiniMenu
 import com.jagex.game.runetek5.client.ClientState
+import com.jagex.game.runetek5.client.features.HdOptionsScreen
 import kotlin.jvm.JvmStatic
 
 object SubInterfaceCloser {
@@ -18,6 +19,9 @@ object SubInterfaceCloser {
 	fun closeSubInterface(@OriginalArg(0) unload: Boolean, @OriginalArg(1) suppressScripts: Boolean, @OriginalArg(2) subInterface: SubInterface?) {
 		@Pc(8) val type: Int = subInterface!!.interfaceId
 		@Pc(12) val pointer: Int = subInterface.key.toInt()
+		if (type == 742) {
+			HdOptionsScreen.reset() // Not part of the original client: the 634HD page lives in Graphics Options
+		}
 		subInterface.unlink()
 		if (unload) {
 			Interface.unloadInterface(type)

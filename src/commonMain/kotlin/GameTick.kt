@@ -1,5 +1,6 @@
 import com.jagex.game.runetek5.config.rsinterface.MediaType
 import com.jagex.game.runetek5.AudioRenderer
+import com.jagex.game.runetek5.client.features.HdOptionsScreen
 import com.jagex.game.runetek5.core.constants.MainLogicStep
 import com.jagex.game.runetek5.network.packet.TcpPacket
 import com.jagex.game.runetek5.cache.node.lru.PulseEvent
@@ -7,7 +8,6 @@ import com.jagex.game.runetek5.EntityTick
 import com.jagex.game.runetek5.MainLogicManager
 import com.jagex.game.runetek5.Preferences
 import com.jagex.game.runetek5.config.sequence.SeqType
-import com.jagex.game.runetek5.core.crypto.GpuModelRetainMasks
 import com.jagex.game.runetek5.core.datastruct.LoginStateUpdate
 import com.jagex.game.runetek5.buffer.Packet
 import com.jagex.game.runetek5.core.io.connection.TickHookRequests
@@ -18,7 +18,6 @@ import com.jagex.game.runetek5.client.input.mouse.MouseRecord
 import com.jagex.game.runetek5.config.rsinterface.Component
 import com.jagex.game.runetek5.config.rsinterface.HookRequest
 import com.jagex.game.runetek5.graphics.MiniMenuReset
-import com.jagex.game.runetek5.statics.SceneProjectionCenterY
 import io.IOException
 import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
@@ -37,7 +36,6 @@ import com.jagex.game.runetek5.graphics.map.worldmap.WorldMap
 import com.jagex.game.runetek5.network.ConnectionInfo
 import com.jagex.game.runetek5.network.packet.ClientProt
 import com.jagex.game.runetek5.tools.LocalizedText
-import com.jagex.game.runetek5.ClientPacket
 import com.jagex.game.runetek5.client.GameShell
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
 import com.jagex.game.runetek5.client.input.console.Console
@@ -496,6 +494,7 @@ object GameTick {
 												}
 												StaffTeleportCommand.executeTeleportCommand(PlayerUpdate.localPlayer!!.movementBaseY!![0] + MapRegion.sceneBaseY, targetLevel, PlayerUpdate.localPlayer!!.movementBaseX!![0] + MapRegion.sceneBaseX)
 											}
+											HdOptionsScreen.tick() // Not part of the original client: the 634HD page of Graphics Options, after the hook queues
 											MiniMenuInputTick.processMenuInput()
 											for (shakeIndex in 0 until 5) {
 												@Pc(1712) val local1712: Int = Shake.CAM_SHAKE_PHASE[shakeIndex]++
