@@ -18,6 +18,16 @@ How to add something new to the client, from the features built so far: tile mar
   native libraries look up ([PACKAGES.md](PACKAGES.md#native-code-is-frozen) lists them), and leave
   the `@Original*` and `@Pc` annotations as they are.
 
+## A feature is a built-in plugin where it can be
+
+The plugin API ([PLUGINS.md](PLUGINS.md)) has the hooks below as events, and a feature written on it
+is a plugin the client compiles in (`BuiltinPlugins`): it draws through an overlay, hears of packets
+through `StatChanged` and the like, registers its console command, and resets on `GameStateChanged`,
+with no line of its own in the original code. The experience drops (`XpDrops`) are one; start a new
+feature that way, and add to the API (keeping `PluginApi.VERSION` when the change only adds) when it
+lacks something, rather than placing another one-off hook. The hooks below are still the way for
+what the API cannot say.
+
 ## Where to hook in
 
 | You want to | Hook | Example |

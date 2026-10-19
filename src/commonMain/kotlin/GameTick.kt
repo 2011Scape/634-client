@@ -1,3 +1,4 @@
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.config.rsinterface.MediaType
 import com.jagex.game.runetek5.AudioRenderer
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
@@ -292,6 +293,7 @@ object GameTick {
 		var varpId: Int = PlayerVarDomain.playerVarProvider!!.removeNext(true)
 		while (varpId != -1) {
 			MainLogicManager.onVarChange(varpId)
+			PluginRuntime.varpChanged(varpId, PlayerVarDomain.playerVarProvider!!.activeVars[varpId]) // Not part of the original client: the plugins' VarpChanged, once the value is active.
 			PlayerVarDomain.LOGIN_XTEAS[PlayerVarDomain.pulseEventConfigsPtr++ and 0x1F] = varpId
 			varpId = PlayerVarDomain.playerVarProvider!!.removeNext(false)
 		}
@@ -495,6 +497,7 @@ object GameTick {
 												StaffTeleportCommand.executeTeleportCommand(PlayerUpdate.localPlayer!!.movementBaseY!![0] + MapRegion.sceneBaseY, targetLevel, PlayerUpdate.localPlayer!!.movementBaseX!![0] + MapRegion.sceneBaseX)
 											}
 											HdOptionsScreen.tick() // Not part of the original client: the 634HD page of Graphics Options, after the hook queues
+											PluginRuntime.gameTick() // Not part of the original client: the plugins' GameTick.
 											MiniMenuInputTick.processMenuInput()
 											for (shakeIndex in 0 until 5) {
 												@Pc(1712) val local1712: Int = Shake.CAM_SHAKE_PHASE[shakeIndex]++

@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.config.rsinterface
 
+import com.jagex.game.runetek5.plugin.api.Widget
 import com.jagex.game.runetek5.Skybox
 import com.jagex.game.runetek5.graphics.sprite.SpriteType
 import com.jagex.game.runetek5.entity.ParticleSystem
@@ -52,7 +53,42 @@ import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
 @OriginalClass("client!at")
-class Component {
+class Component : Widget {
+
+	/* Not part of the original client: the plugin API's view of a component (plugin.api.Widget). */
+
+	override fun interfaceId(): Int {
+		return this.idHash shr 16
+	}
+
+	override fun componentId(): Int {
+		return this.idHash and 0xFFFF
+	}
+
+	override fun text(): String? {
+		return this.text
+	}
+
+	override fun x(): Int {
+		return this.x
+	}
+
+	override fun y(): Int {
+		return this.y
+	}
+
+	override fun width(): Int {
+		return this.width
+	}
+
+	override fun height(): Int {
+		return this.height
+	}
+
+	override fun isHidden(): Boolean {
+		return this.hidden
+	}
+
 	@OriginalMember(owner = "client!at", name = "a", descriptor = "[Ljava/lang/Object;")
 	@JvmField
 	var onStatTransmit: Array<Any?>? = null

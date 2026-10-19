@@ -10,8 +10,6 @@
     <file name="src/commonMain/kotlin/CS2Interpreter.kt">
         <error line="37" column="1" source="standard:no-unused-imports" />
         <error line="71" column="1" source="standard:no-unused-imports" />
-        <error line="101" column="1" source="standard:no-unused-imports" />
-        <error line="146" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/CanvasInputReattach.kt">
         <error line="1" column="1" source="standard:no-unused-imports" />
@@ -21,9 +19,6 @@
         <error line="16" column="1" source="standard:no-unused-imports" />
         <error line="19" column="1" source="standard:no-unused-imports" />
         <error line="42" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/commonMain/kotlin/ClientLogout.kt">
-        <error line="25" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/Clock.kt">
         <error line="4" column="1" source="standard:final-newline" />
@@ -50,11 +45,6 @@
     <file name="src/commonMain/kotlin/GameScreenFrameRender.kt">
         <error line="4" column="1" source="standard:no-unused-imports" />
     </file>
-    <file name="src/commonMain/kotlin/GameTick.kt">
-        <error line="10" column="1" source="standard:no-unused-imports" />
-        <error line="21" column="1" source="standard:no-unused-imports" />
-        <error line="40" column="1" source="standard:no-unused-imports" />
-    </file>
     <file name="src/commonMain/kotlin/GraphicCacheReset.kt">
         <error line="1" column="1" source="standard:no-unused-imports" />
         <error line="10" column="1" source="standard:no-unused-imports" />
@@ -65,9 +55,6 @@
     </file>
     <file name="src/commonMain/kotlin/HelveticaFont.kt">
         <error line="6" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/commonMain/kotlin/InterfaceComponentDraw.kt">
-        <error line="17" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/InterfaceComponentInput.kt">
         <error line="6" column="1" source="standard:no-unused-imports" />
@@ -118,20 +105,20 @@
         <error line="2" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/LoadingStageWork.kt">
-        <error line="5" column="1" source="standard:no-unused-imports" />
-        <error line="7" column="1" source="standard:no-unused-imports" />
-        <error line="10" column="1" source="standard:no-unused-imports" />
+        <error line="6" column="1" source="standard:no-unused-imports" />
+        <error line="8" column="1" source="standard:no-unused-imports" />
         <error line="11" column="1" source="standard:no-unused-imports" />
         <error line="12" column="1" source="standard:no-unused-imports" />
-        <error line="16" column="1" source="standard:no-unused-imports" />
-        <error line="49" column="1" source="standard:no-unused-imports" />
-        <error line="53" column="1" source="standard:no-unused-imports" />
-        <error line="56" column="1" source="standard:no-unused-imports" />
-        <error line="62" column="1" source="standard:no-unused-imports" />
+        <error line="13" column="1" source="standard:no-unused-imports" />
+        <error line="17" column="1" source="standard:no-unused-imports" />
+        <error line="50" column="1" source="standard:no-unused-imports" />
+        <error line="54" column="1" source="standard:no-unused-imports" />
+        <error line="57" column="1" source="standard:no-unused-imports" />
+        <error line="63" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/MainLogicStepTransition.kt">
-        <error line="1" column="1" source="standard:no-unused-imports" />
         <error line="2" column="1" source="standard:no-unused-imports" />
+        <error line="3" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/MapBuildStart.kt">
         <error line="16" column="1" source="standard:no-unused-imports" />
@@ -144,8 +131,8 @@
         <error line="3" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/MiniMenuActionExecutor.kt">
-        <error line="20" column="1" source="standard:no-unused-imports" />
-        <error line="30" column="1" source="standard:no-unused-imports" />
+        <error line="21" column="1" source="standard:no-unused-imports" />
+        <error line="31" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/MiniMenuDefaultClick.kt">
         <error line="2" column="1" source="standard:no-unused-imports" />
@@ -157,7 +144,6 @@
     <file name="src/commonMain/kotlin/MiniMenuInputTick.kt">
         <error line="5" column="1" source="standard:no-unused-imports" />
         <error line="10" column="1" source="standard:no-unused-imports" />
-        <error line="24" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/ModalInterfaceClose.kt">
         <error line="6" column="1" source="standard:no-unused-imports" />
@@ -198,9 +184,9 @@
         <error line="8" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/ViewportMiniMenuPicking.kt">
-        <error line="5" column="1" source="standard:no-unused-imports" />
-        <error line="14" column="1" source="standard:no-unused-imports" />
-        <error line="28" column="1" source="standard:no-unused-imports" />
+        <error line="7" column="1" source="standard:no-unused-imports" />
+        <error line="16" column="1" source="standard:no-unused-imports" />
+        <error line="30" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/VorbisStreamPreload.kt">
         <error line="3" column="1" source="standard:no-unused-imports" />
@@ -342,11 +328,6 @@
     <file name="src/commonMain/kotlin/ba.kt">
         <error line="6" column="1" source="standard:no-unused-imports" />
     </file>
-    <file name="src/commonMain/kotlin/client.kt">
-        <error line="53" column="1" source="standard:no-unused-imports" />
-        <error line="56" column="1" source="standard:no-unused-imports" />
-        <error line="126" column="1" source="standard:no-unused-imports" />
-    </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/AbstractMouseManager.kt">
         <error line="11" column="1" source="standard:no-unused-imports" />
     </file>
@@ -381,10 +362,6 @@
     </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/MapList.kt">
         <error line="15" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/commonMain/kotlin/com/jagex/game/runetek5/MapRegion.kt">
-        <error line="41" column="1" source="standard:no-unused-imports" />
-        <error line="48" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/MaterialManager.kt">
         <error line="3" column="1" source="standard:no-unused-imports" />
@@ -551,15 +528,9 @@
     </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/client/features/ClientFeatures.kt">
         <error line="25" column="1" source="standard:no-unused-imports" />
-        <error line="94" column="1" source="standard:no-consecutive-blank-lines" />
     </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/client/features/SmokeTest.kt">
-        <error line="48" column="1" source="standard:no-unused-imports" />
         <error line="49" column="1" source="standard:no-unused-imports" />
-        <error line="1003" column="4" source="standard:chain-wrapping" />
-        <error line="1004" column="4" source="standard:chain-wrapping" />
-        <error line="1005" column="4" source="standard:chain-wrapping" />
-        <error line="1915" column="5" source="standard:chain-wrapping" />
     </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/client/features/WindowIcons.kt">
         <error line="9" column="1" source="standard:no-consecutive-blank-lines" />
@@ -604,9 +575,12 @@
         <error line="19" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/config/rsinterface/Component.kt">
-        <error line="14" column="1" source="standard:no-unused-imports" />
-        <error line="50" column="1" source="standard:no-unused-imports" />
-        <error line="655" column="1" source="standard:no-consecutive-blank-lines" />
+        <error line="15" column="1" source="standard:no-unused-imports" />
+        <error line="51" column="1" source="standard:no-unused-imports" />
+        <error line="691" column="1" source="standard:no-consecutive-blank-lines" />
+    </file>
+    <file name="src/commonMain/kotlin/com/jagex/game/runetek5/config/rsinterface/itemcontainer/ItemContainer.kt">
+        <error line="46" column="1" source="standard:no-consecutive-blank-lines" />
     </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/config/varc/VarcTypeList.kt">
         <error line="15" column="1" source="standard:no-unused-imports" />
@@ -622,7 +596,14 @@
         <error line="11" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/entity/NPCEntity.kt">
-        <error line="15" column="1" source="standard:no-unused-imports" />
+        <error line="16" column="1" source="standard:no-unused-imports" />
+        <error line="67" column="1" source="standard:no-consecutive-blank-lines" />
+    </file>
+    <file name="src/commonMain/kotlin/com/jagex/game/runetek5/entity/PathingEntity.kt">
+        <error line="79" column="1" source="standard:no-consecutive-blank-lines" />
+    </file>
+    <file name="src/commonMain/kotlin/com/jagex/game/runetek5/entity/PlayerEntity.kt">
+        <error line="73" column="1" source="standard:no-consecutive-blank-lines" />
     </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/entity/grounditem/AbstractGroundItem.kt">
         <error line="15" column="1" source="standard:no-unused-imports" />
@@ -1305,229 +1286,12 @@
     <file name="src/jsMain/kotlin/ya.js.kt">
         <error line="7" column="1" source="standard:no-unused-imports" />
     </file>
-    <file name="src/jvmMain/kotlin/Clock.jvm.kt">
-        <error line="9" column="1" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/Lock.jvm.kt">
-        <error line="3" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
     <file name="src/jvmMain/kotlin/RuneTek5.kt">
-        <error line="79" column="17" source="standard:chain-wrapping" />
-        <error line="219" column="13" source="standard:chain-wrapping" />
-    </file>
-    <file name="src/jvmMain/kotlin/SoftRef.jvm.kt">
-        <error line="6" column="1" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/a.kt">
-        <error line="235" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/Canvas.jvm.kt">
-        <error line="10" column="51" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/Color.jvm.kt">
-        <error line="11" column="50" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/Component.jvm.kt">
-        <error line="10" column="42" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/Container.jvm.kt">
-        <error line="5" column="86" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/Cursor.jvm.kt">
-        <error line="6" column="74" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/CursorType.jvm.kt">
-        <error line="3" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/Dimension.kt">
-        <error line="5" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/DisplayMode.kt">
-        <error line="5" column="1" source="standard:no-consecutive-blank-lines" />
-        <error line="6" column="42" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/Font.jvm.kt">
-        <error line="3" column="37" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/FontMetrics.jvm.kt">
-        <error line="3" column="51" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/Frame.jvm.kt">
-        <error line="7" column="68" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/Graphics.jvm.kt">
-        <error line="3" column="45" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/Image.jvm.kt">
-        <error line="13" column="64" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/MediaTracker.kt">
-        <error line="3" column="53" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/Point.jvm.kt">
-        <error line="11" column="28" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/Robot.kt">
-        <error line="5" column="30" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/Shape.jvm.kt">
-        <error line="3" column="39" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/Window.jvm.kt">
-        <error line="3" column="41" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/event/Key.kt">
-        <error line="64" column="1" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/event/MouseEvent.jvm.kt">
-        <error line="3" column="55" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/event/MouseListener.jvm.kt">
-        <error line="3" column="61" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/event/MouseMotionListener.jvm.kt">
-        <error line="3" column="73" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/event/MouseWheelEvent.jvm.kt">
-        <error line="3" column="65" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/event/MouseWheelListener.jvm.kt">
-        <error line="3" column="71" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/image/BufferedImage.jvm.kt">
-        <error line="7" column="97" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/image/ColorModel.jvm.kt">
-        <error line="17" column="27" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/image/DataBufferInt.jvm.kt">
-        <error line="6" column="21" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/image/ImageConsumer.jvm.kt">
-        <error line="20" column="72" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/image/ImageObserver.jvm.kt">
-        <error line="20" column="31" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/image/ImageProducer.jvm.kt">
-        <error line="5" column="46" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/awt/image/WritableRaster.jvm.kt">
-        <error line="5" column="48" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/ba.kt">
-        <error line="29" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/NativeLibraryOwner.kt">
-        <error line="13" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/Hd1DTexture.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/Hd2DTexture.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdAbstractArbBuffer.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdArbProgram.kt">
-        <error line="10" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdBreakingWaterEffect.kt">
-        <error line="8" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdCubeMapSpecularEffect.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdCubeTexture.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdCubeTextureGenerator.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdFont.kt">
-        <error line="14" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdFramebuffer.kt">
-        <error line="12" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdFramebufferCompositor.kt">
-        <error line="11" column="1" source="standard:no-unused-imports" />
+        <error line="81" column="17" source="standard:chain-wrapping" />
+        <error line="223" column="13" source="standard:chain-wrapping" />
     </file>
     <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdGround.kt">
         <error line="24" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdGroundLayer.kt">
-        <error line="17" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdLappingWaterEffect.kt">
-        <error line="14" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdModel.kt">
-        <error line="36" column="1" source="standard:no-unused-imports" />
-        <error line="47" column="1" source="standard:no-unused-imports" />
-        <error line="4342" column="1" source="standard:no-consecutive-blank-lines" />
-        <error line="4357" column="1" source="standard:no-blank-line-before-rbrace" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdParticleRenderer.kt">
-        <error line="16" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdProgram.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdRectangularTexture.kt">
-        <error line="10" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdReflectingTextureEffect.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdReflectiveRipplingWaterEffect.kt">
-        <error line="8" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdRenderBuffer.kt">
-        <error line="11" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdRenderList.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdRipplingWaterEffect.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdShader.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdShadowMap.kt">
-        <error line="11" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdSmaaFilter.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
-        <error line="11" column="1" source="standard:no-unused-imports" />
-        <error line="13" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdSprite.kt">
-        <error line="12" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdStillWaterEffect.kt">
-        <error line="10" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdTexture.kt">
-        <error line="10" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdTexture3DShader.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdToolkit.kt">
-        <error line="80" column="1" source="standard:no-unused-imports" />
-        <error line="3908" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdUnlitEffect.kt">
-        <error line="7" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdVolumeTexture.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/HdWaterfallEffect.kt">
-        <error line="9" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/gl/ArbVertexProgramTranspiler.kt">
         <error line="7" column="1" source="standard:no-consecutive-blank-lines" />
@@ -1538,177 +1302,5 @@
         <error line="59" column="48" source="standard:no-multi-spaces" />
         <error line="653" column="13" source="standard:keyword-spacing" />
         <error line="654" column="13" source="standard:keyword-spacing" />
-        <error line="1031" column="31" source="standard:op-spacing" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/gl/FixedFunctionShader.kt">
-        <error line="74" column="1" source="standard:no-blank-line-before-rbrace" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/gl/HdGl.kt">
-        <error line="328" column="128" source="standard:no-semi" />
-        <error line="332" column="130" source="standard:no-semi" />
-    </file>
-    <file name="src/jvmMain/kotlin/com/jagex/game/runetek5/graphics/hd/scene/HdSceneRenderer.kt">
-        <error line="621" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/h.kt">
-        <error line="63" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/i.kt">
-        <error line="373" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/BufferedInputStream.jvm.kt">
-        <error line="3" column="66" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/BufferedReader.jvm.kt">
-        <error line="3" column="56" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/ByteArrayInputStream.jvm.kt">
-        <error line="3" column="68" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/DataInputStream.jvm.kt">
-        <error line="3" column="58" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/EOFException.jvm.kt">
-        <error line="3" column="52" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/File.jvm.kt">
-        <error line="3" column="36" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/FileInputStream.jvm.kt">
-        <error line="3" column="58" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/FileNotFoundException.jvm.kt">
-        <error line="3" column="70" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/FileOutputStream.jvm.kt">
-        <error line="3" column="60" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/InputStream.jvm.kt">
-        <error line="3" column="50" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/InputStreamReader.jvm.kt">
-        <error line="3" column="62" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/InvalidClassException.jvm.kt">
-        <error line="5" column="74" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/OptionalDataException.jvm.kt">
-        <error line="6" column="64" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/OutputStream.jvm.kt">
-        <error line="3" column="52" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/RandomAccessFile.jvm.kt">
-        <error line="3" column="60" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/Reader.jvm.kt">
-        <error line="3" column="40" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/StreamCorruptedException.jvm.kt">
-        <error line="3" column="76" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/StringReader.jvm.kt">
-        <error line="3" column="52" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/StringWriter.jvm.kt">
-        <error line="3" column="52" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/io/Writer.jvm.kt">
-        <error line="3" column="40" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/j.kt">
-        <error line="176" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/ja.kt">
-        <error line="167" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/lang/ArrayIndexOutOfBoundsException.jvm.kt">
-        <error line="3" column="90" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/lang/ClassLoader.jvm.kt">
-        <error line="36" column="1" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/lang/ClassNotFoundException.jvm.kt">
-        <error line="3" column="74" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/lang/IllegalAccessException.jvm.kt">
-        <error line="3" column="74" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/lang/InterruptedException.jvm.kt">
-        <error line="5" column="39" source="standard:no-multi-spaces" />
-        <error line="5" column="61" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/lang/NoSuchFieldException.jvm.kt">
-        <error line="3" column="70" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/lang/Runtime.jvm.kt">
-        <error line="10" column="1" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/lang/SecurityException.jvm.kt">
-        <error line="3" column="64" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/lang/System.jvm.kt">
-        <error line="28" column="76" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/lang/Thread.jvm.kt">
-        <error line="7" column="45" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/lang/ThreadGroup.jvm.kt">
-        <error line="3" column="52" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/lang/reflect/Field.jvm.kt">
-        <error line="10" column="73" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/lang/reflect/Method.jvm.kt">
-        <error line="3" column="50" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/n.kt">
-        <error line="63" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/na.kt">
-        <error line="34" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/net/InetAddress.jvm.kt">
-        <error line="5" column="78" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/net/MalformedURLException.jvm.kt">
-        <error line="3" column="85" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/net/Socket.jvm.kt">
-        <error line="3" column="41" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/oa.kt">
-        <error line="862" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/p.kt">
-        <error line="12" column="1" source="standard:no-unused-imports" />
-        <error line="122" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/sound/AudioFormat.jvm.kt">
-        <error line="67" column="1" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/t.kt">
-        <error line="234" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/util/Enumeration.jvm.kt">
-        <error line="3" column="58" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/util/Random.jvm.kt">
-        <error line="5" column="43" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/util/Vector.jvm.kt">
-        <error line="3" column="48" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/util/zip/CRC32.jvm.kt">
-        <error line="3" column="44" source="standard:final-newline" />
-    </file>
-    <file name="src/jvmMain/kotlin/wa.kt">
-        <error line="44" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/xa.kt">
-        <error line="42" column="1" source="standard:no-consecutive-blank-lines" />
-    </file>
-    <file name="src/jvmMain/kotlin/ya.kt">
-        <error line="39" column="1" source="standard:no-consecutive-blank-lines" />
     </file>
 </baseline>

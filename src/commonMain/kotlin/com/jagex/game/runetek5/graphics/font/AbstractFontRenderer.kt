@@ -18,6 +18,11 @@ abstract class AbstractFontRenderer {
 	@OriginalMember(owner = "client!da", name = "s", descriptor = "Lclient!oea;")
 	private val fontMetrics: FontMetrics?
 
+	/** Not part of the original client: the width of [string] in this font, for the plugin API (ToolkitGraphics). */
+	fun textWidth(string: String?): Int {
+		return this.fontMetrics!!.getWidthNoSprites(string)
+	}
+
 	@OriginalMember(owner = "client!da", name = "d", descriptor = "Lclient!ha;")
 	private val toolkit: Toolkit?
 

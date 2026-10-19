@@ -50,6 +50,8 @@ import java.util.regex.Pattern
  * --render-scale <x>          OpenGL: draw the 3D view x times larger and shrink it (1.0, 1.5, 2.0)
  * --no-a2c                    OpenGL: no alpha-to-coverage for cut-out textures
  * --toolkit <name>            start on a toolkit: hd (634HD, OpenGL 3.3), opengl, java (Safe Mode), or an id
+ * --plugins <dir>             load the plugin jars in dir (default ~/.634-client/plugins; docs/PLUGINS.md)
+ * --no-plugins                load no plugins
  * --hd <name=value,...>       634HD features (tonemap, shadows, pixelLighting, ...; ::hd in game lists them)
  * --dev                       --debug, --zoom and --console together
  * --dev-commands              the console commands that read or write local files (setoutput, runscript,
@@ -118,6 +120,8 @@ object RuneTek5 {
                 "--render-scale" -> System.setProperty("client.renderScale", java.lang.Double.toString(java.lang.Double.parseDouble(value(args, ++i, arg))))
                 "--no-a2c" -> System.setProperty("client.a2c", "false")
                 "--toolkit" -> System.setProperty("client.toolkit", value(args, ++i, arg))
+                "--plugins" -> System.setProperty("client.plugins", path(value(args, ++i, arg)).toString())
+                "--no-plugins" -> System.setProperty("client.plugins", "none")
                 "--hd" -> {
                     // 634HD feature switches: --hd tonemap=aces,shadows=2048 (HdSettings)
                     for (pair in value(args, ++i, arg).split(',')) {
@@ -315,7 +319,7 @@ object RuneTek5 {
             usage: RuneTek5 [--address host] [--port port] [--keys game.properties]
                             [--login-modulus hex] [--js5-modulus hex] [--require-keys] [--server void|jagex] [--packets file]
                             [--world id] [--lang english|german]
-                            [--debug] [--[no-]zoom] [--render-distance x] [--fps n] [--scale x] [--msaa n] [--smaa] [--render-scale x] [--no-a2c] [--toolkit hd|opengl|java] [--[no-]console] [--[no-]shift-drop] [--dev] [--dev-commands]
+                            [--debug] [--[no-]zoom] [--render-distance x] [--fps n] [--scale x] [--msaa n] [--smaa] [--render-scale x] [--no-a2c] [--toolkit hd|opengl|java] [--plugins dir] [--no-plugins] [--[no-]console] [--[no-]shift-drop] [--dev] [--dev-commands]
                             [--tile-markers] [--xp-drops] [--npc-labels] [--ground-items]""".trimIndent())
     }
 }

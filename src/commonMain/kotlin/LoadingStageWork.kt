@@ -1,3 +1,4 @@
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.config.enumtype.EnumTypeList
 import com.jagex.game.runetek5.client.window.WindowModeType
 import com.jagex.game.runetek5.Js5TextureSource
@@ -294,6 +295,7 @@ object LoadingStageWork {
 			EquipmentDefaultsType.initCustomizableObjSlots()
 			TypeLists.LOC!!.setLowDetail(GamePreferences.uid!!.animateBackgroundOverride!!.getValue() == 0)
 			PlayerVarDomain.playerVarProvider = PlayerVarDomain()
+			PluginRuntime.start() // Not part of the original client: the plugins start once the types, interfaces and vars exist.
 			GraphicCacheReset.resetGraphicCaches()
 			ParticleSystemManager.initializeIndex(Resource.PARTICLE)
 			TextureTypeListInit.initialize(Resource.MODEL, Js5TextureSource.anInterface4_10)

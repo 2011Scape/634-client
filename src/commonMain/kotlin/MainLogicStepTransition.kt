@@ -1,3 +1,4 @@
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.ChatLineCount
 import com.jagex.game.runetek5.EmailStatus
 import com.jagex.game.runetek5.MidiChannelVolumeReset
@@ -116,5 +117,6 @@ object MainLogicStepTransition {
 			ClientState.activeToolkit!!.renderLastFrame()
 		}
 		ClientState.mainLogicStep = step
+		PluginRuntime.stepChanged() // Not part of the original client: the plugins' GameStateChanged.
 	}
 }

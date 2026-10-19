@@ -16,3 +16,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "runetek5-634"
+
+// The plugin API, published beside the client as its own jar (api/build.gradle.kts)
+include(":api")

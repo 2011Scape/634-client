@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.entity
 
+import com.jagex.game.runetek5.plugin.api.Npc
 import com.jagex.game.runetek5.config.bas.BasType
 import com.jagex.game.runetek5.config.npc.NPCType
 import com.jagex.game.runetek5.config.sequence.spot.SpotAnimationType
@@ -31,7 +32,38 @@ import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
 @OriginalClass("client!ff")
-class NPCEntity : PathingEntity() {
+class NPCEntity : PathingEntity(), Npc {
+
+	/* Not part of the original client: the plugin API's view of an npc (plugin.api.Npc). */
+
+	/** The type the npc shows now: its own, or the one the player's variables transform it into. */
+	fun shownType(): NPCType? {
+		var type: NPCType? = this.npcType
+		if (type != null && type.alternativeIds != null) {
+			type = type.getMultiNpc(PlayerVarDomain.playerVarProvider)
+		}
+		return type
+	}
+
+	override fun typeId(): Int {
+		val type: NPCType = shownType() ?: return -1
+		return type.id
+	}
+
+	override fun name(): String? {
+		val type: NPCType = shownType() ?: return null
+		return type.name
+	}
+
+	override fun combatLevel(): Int {
+		val type: NPCType = shownType() ?: return 0
+		return type.combatLevel
+	}
+
+	override fun index(): Int {
+		return this.playerIndex
+	}
+
 
 	@OriginalMember(owner = "client!ff", name = "Bd", descriptor = "Lclient!bb;")
 	@JvmField

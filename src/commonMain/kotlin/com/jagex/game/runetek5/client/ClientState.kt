@@ -1,8 +1,8 @@
 package com.jagex.game.runetek5.client
 
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.features.GroundItemLabels
 import com.jagex.game.runetek5.client.features.NpcLabels
-import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.client.features.TileMarkers
 import com.jagex.game.runetek5.ByteArrayPool
 import com.jagex.game.runetek5.Cursor
@@ -321,7 +321,7 @@ object ClientState {
 				TileMarkers.draw(areaX, areaY) // Not part of the original client: see TileMarkers.
 				NpcLabels.draw(areaX, areaY, width, height) // Not part of the original client: see NpcLabels.
 				GroundItemLabels.draw(areaX, areaY) // Not part of the original client: see GroundItemLabels.
-				XpDrops.draw(areaX, areaY, width) // Not part of the original client: see XpDrops.
+				PluginRuntime.drawViewport(areaX, areaY, width, height) // Not part of the original client: the plugins draw here (PluginRuntime); the experience drops among them.
 				HintArrow.drawHintArrows(areaX, areaY, width, height)
 				StaticMedia.drawClickCross(height, width, areaY, areaX)
 			}
