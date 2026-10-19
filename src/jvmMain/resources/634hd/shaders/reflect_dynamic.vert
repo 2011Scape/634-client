@@ -7,7 +7,8 @@
 // distance from the mirrored eye, and clipped to what lies above the water, less a band of
 // HD_REFLECT_SURFACE_BAND over it: a decal lying on the water (a fishing spot's NPC carries a
 // quad a few units over its tile, facing down, that the eye never sees) was mirrored in place
-// as a dark square.
+// as a dark square. For a model standing on a water tile uPlane is its own tile's surface where
+// that is higher than the mean plane (HdShadows.drawReflected).
 
 #include "hd_lib.glsl"
 

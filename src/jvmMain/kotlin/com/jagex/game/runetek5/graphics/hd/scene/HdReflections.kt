@@ -217,7 +217,7 @@ class HdReflections {
         GL33C.glUniform1f(GL33C.glGetUniformLocation(dynamic.id, "uFogStart"), if (state.fogEnabled) state.fogStart else 1.0e9f)
         GL33C.glUniform1f(GL33C.glGetUniformLocation(dynamic.id, "uFogEnd"), if (state.fogEnabled) state.fogEnd else 2.0e9f)
         // (hdReflectionParts=nomirror: the dynamic draws unmirrored, to check their placement against the frame)
-        if (PARTS.contains("dynamic")) shadows.drawReflected(dynamic, if (PARTS.contains("nomirror")) Mat4.multiply(projection, view) else worldToClip, view, DYNAMIC_TEXTURE_UNIT, if (PARTS.contains("now")) 1 else if (PARTS.contains("late")) 2 else 0)
+        if (PARTS.contains("dynamic")) shadows.drawReflected(dynamic, if (PARTS.contains("nomirror")) Mat4.multiply(projection, view) else worldToClip, view, DYNAMIC_TEXTURE_UNIT, if (PARTS.contains("now")) 1 else if (PARTS.contains("late")) 2 else 0, plane)
         GL33C.glDisable(GL33C.GL_CLIP_DISTANCE0)
         if (HdSettings.sky && PARTS.contains("sky")) {
             post.drawSky(skyProjection, true)

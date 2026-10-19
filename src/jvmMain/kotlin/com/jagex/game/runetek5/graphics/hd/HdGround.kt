@@ -104,6 +104,16 @@ class HdGround : Ground {
 	@JvmField
 	var hdWaterPlaneY: Float = Float.NaN
 
+	/** 634HD: the tiles with a vertex on the water (a water depth over 0: 1 is the shore), by x * length + z; kept past the build, which frees the tiles' depths. */
+	private var hdWaterTiles: BooleanArray? = null
+
+	/** 634HD: whether tile [x],[z] (this ground's own tile coordinates) holds water: a vertex with a water depth (the shore counts). */
+	fun hdWaterTile(x: Int, z: Int): Boolean {
+		val tiles: BooleanArray = this.hdWaterTiles ?: return false
+		if (x < 0 || z < 0 || x >= super.width || z >= super.length) return false
+		return tiles[x * super.length + z]
+	}
+
 	/** 634HD: the blob shadows of water models only (the oasis's pool), drawn with the sun's shadows on; made when the first is added. */
 	private var waterShadowMap: HdShadowMap? = null
 
@@ -239,6 +249,7 @@ class HdGround : Ground {
 			var vertexStride: Int = 24
 			if (this.tileWaterDepths != null) {
 				vertexStride += 4
+				this.hdWaterTiles = BooleanArray(super.width * super.length)
 			}
 			if ((this.featureFlags and 0x7) != 0) {
 				vertexStride += 12
@@ -412,6 +423,8 @@ class HdGround : Ground {
 									}
 								}
 								// 634HD: the water plane (hdWaterPlaneY)
+								// (a depth of 1 is the shore, 0 off the surface: hdWaterTile; the plane takes the deeper vertices)
+								if (waterDepths != null && waterDepths[tileVertex] > 0) this.hdWaterTiles!![j * super.length + tileZ] = true
 								if (waterDepths != null && waterDepths[tileVertex] > 1) {
 									waterPlaneSum += (this.averageHeight(vertexX, vertexZ) + heightOffset).toDouble()
 									waterPlaneCount++
