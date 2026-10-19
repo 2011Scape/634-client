@@ -404,28 +404,28 @@ int hdWaterType(int slot) {
 
 // World uvs: a repeat every [tiles] tiles (512 units) of the world position
 // ([xz] in the scene plus its base: the ripples stay put when the scene
-// is rebuilt around a new base); the area's size scales it.
-vec2 hdWaterWorldUv(vec2 xz, float tiles) {
-    return -(xz + hdSceneSize.zw) / (512.0 * tiles * max(hdWaterParams.w, 0.25));
+// is rebuilt around a new base), scaled by the ripples' [size].
+vec2 hdWaterWorldUv(vec2 xz, float tiles, float size) {
+    return -(xz + hdSceneSize.zw) / (512.0 * tiles * max(size, 0.25));
 }
 
-// The animation frame: the phase of a slide that takes [seconds] (periods that divide the hour, so
-// hdTime.x's hourly wrap passes unseen).
+// The animation frame: the phase of a slide that takes [seconds] of water time (hdWaterClock.x, advanced
+// at the area's speed; periods that divide the hour, so the clock's hourly wrap passes unseen).
 float hdWaterFrame(float seconds) {
-    return seconds > 0.0 ? fract(hdTime.x / seconds) : 0.0;
+    return seconds > 0.0 ? fract(hdWaterClock.x / seconds) : 0.0;
 }
 
-// The surface's normal (world space) at world [xz] for water [type]: three scrolled layers
-// of its normal map (3, 5 and 7 tiles a repeat), bent by its flow map ([flow], for the foam too).
+// The sum of the three scrolled layers of water [type]'s normal map (3, 5 and 7 tiles a repeat) at world
+// [xz] with the ripples at [size], bent by its flow map ([flow], for the foam too).
 // The array is sRGB: the encoded values come back through hdToSrgb.
-vec3 hdWaterNormal(vec2 xz, int type, out vec2 flow) {
-    float duration = hdWaterTime[type].x / max(hdWaterParams.y, 0.05);
+vec3 hdWaterLayers(vec2 xz, int type, float size, out vec2 flow) {
+    float duration = hdWaterTime[type].x;
     float strength = hdWaterSpec[type].z * hdWaterParams.x;
-    vec2 flowUv = hdWaterWorldUv(xz, 15.0) + hdWaterFrame(50.0 * duration);
+    vec2 flowUv = hdWaterWorldUv(xz, 15.0, size) + hdWaterFrame(50.0 * duration);
     flow = texture(uHdFlowMaps, vec3(flowUv, hdWaterMaps.z)).xy;
-    vec2 uv1 = hdWaterWorldUv(xz, 3.0).yx - hdWaterFrame(30.0 * duration) + flow * 0.025;
-    vec2 uv2 = hdWaterWorldUv(xz, 5.0) + hdWaterFrame(24.0 * duration) + flow * 0.025;
-    vec2 uv3 = hdWaterWorldUv(xz, 7.0) + hdWaterFrame(20.0 * duration) + flow * 0.025;
+    vec2 uv1 = hdWaterWorldUv(xz, 3.0, size).yx - hdWaterFrame(30.0 * duration) + flow * 0.025;
+    vec2 uv2 = hdWaterWorldUv(xz, 5.0, size) + hdWaterFrame(24.0 * duration) + flow * 0.025;
+    vec2 uv3 = hdWaterWorldUv(xz, 7.0, size) + hdWaterFrame(20.0 * duration) + flow * 0.025;
     float layer = hdWaterMaps.x;
     vec3 n1 = hdToSrgb(texture(uHdFlowMaps, vec3(uv1, layer)).xyz);
     vec3 n2 = hdToSrgb(texture(uHdFlowMaps, vec3(uv2, layer)).xyz);
@@ -433,7 +433,22 @@ vec3 hdWaterNormal(vec2 xz, int type, out vec2 flow) {
     n1 = -vec3((n1.x * 2.0 - 1.0) * strength, n1.z, (n1.y * 2.0 - 1.0) * strength);
     n2 = -vec3((n2.x * 2.0 - 1.0) * strength, n2.z, (n2.y * 2.0 - 1.0) * strength);
     n3 = -vec3((n3.x * 2.0 - 1.0) * strength, n3.z, (n3.y * 2.0 - 1.0) * strength);
-    return normalize(n1 + n2 + n3);
+    return n1 + n2 + n3;
+}
+
+// The surface's normal (world space) at world [xz] for water [type], and its flow ([flow]): the layers
+// at the area's size; while an environment's transition runs (hdWaterClock.z under 1) crossfaded from
+// the layers at the size shown before it (the size blended instead scaled the pattern, laid in world
+// space, about the world's origin: a sweep of hundreds of repeats over the three seconds).
+vec3 hdWaterNormal(vec2 xz, int type, out vec2 flow) {
+    vec3 n = hdWaterLayers(xz, type, hdWaterParams.w, flow);
+    if (hdWaterClock.z < 1.0) {
+        vec2 fromFlow;
+        vec3 from = hdWaterLayers(xz, type, hdWaterClock.y, fromFlow);
+        n = mix(from, n, hdWaterClock.z);
+        flow = mix(fromFlow, flow, hdWaterClock.z);
+    }
+    return normalize(n);
 }
 
 // What the surface reflects (sRGB) for a fresnel share [finalFresnel]: a gradient of the area's

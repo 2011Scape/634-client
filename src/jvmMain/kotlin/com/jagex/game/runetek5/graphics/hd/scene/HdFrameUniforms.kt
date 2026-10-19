@@ -77,7 +77,8 @@ class HdFrameUniforms {
         private const val GRID_PARAMS: Int = SCENE_SIZE + 16
         private const val LIGHT_GRID: Int = GRID_PARAMS + 16
         private const val GROUND_FOG: Int = LIGHT_GRID + MAX_LIGHTS * 16
-        const val SIZE: Int = GROUND_FOG + 16
+        private const val WATER_CLOCK: Int = GROUND_FOG + 16
+        const val SIZE: Int = WATER_CLOCK + 16
     }
 
     private var buffer: Int = 0
@@ -205,8 +206,16 @@ class HdFrameUniforms {
         }
     }
 
-    /** The area's water: waves' height, speed, glint and size (1 each by default). */
+    /** The area's water: waves' height, speed (the water clock's rate), glint and the ripples' size (1 each by default). */
     fun setWaterParams(waves: Float, speed: Float, glint: Float, size: Float) = putVec4(WATER_PARAMS, waves, speed, glint, size)
+
+    /**
+     * The water clock (634HD's surface, the caustics): [seconds] of water time (advanced at the area's
+     * speed, so a change of speed never moves the ripples' phase); [fromSize], the ripples' size shown
+     * before the environment's transition, and the transition's progress [transition] (0 to 1): under 1
+     * the surface crossfades the ripples from that size to the area's.
+     */
+    fun setWaterClock(seconds: Float, fromSize: Float, transition: Float) = putVec4(WATER_CLOCK, seconds, fromSize, transition, 0.0f)
 
     /** The environment's tints of the sun's and the ambient light (HD_ENV_LIGHT); 1 leaves the game's. */
     fun setEnvironmentLight(sunR: Float, sunG: Float, sunB: Float, ambientR: Float, ambientG: Float, ambientB: Float) {

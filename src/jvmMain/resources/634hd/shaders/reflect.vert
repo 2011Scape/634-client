@@ -4,7 +4,8 @@
 // (HdReflections, HdSettings.reflections): placed by its captured world matrix, mirrored about the
 // water plane in world space and projected (uWorldToClip), lit as scene.vert lights it (the sun and
 // the anti-sun in eye space, no point lights), fogged by its distance from the mirrored eye, and
-// clipped to what lies above the water.
+// clipped to what lies above the water, less a band of HD_REFLECT_SURFACE_BAND over it (a decal
+// on the water is not mirrored: reflect_dynamic.vert).
 
 #include "hd_lib.glsl"
 
@@ -41,7 +42,7 @@ void main() {
     mat4 model = mat4(texelFetch(uModels, base), texelFetch(uModels, base + 1), texelFetch(uModels, base + 2), texelFetch(uModels, base + 3));
     vec4 world = model * vec4(aPosition, 1.0);
     gl_Position = uWorldToClip * world;
-    gl_ClipDistance[0] = uPlane - world.y;
+    gl_ClipDistance[0] = uPlane - HD_REFLECT_SURFACE_BAND - world.y;
     vMaterial = int(aMaterial);
     vec4 material = texelFetch(uMaterials, vMaterial * 2);
     vec4 scroll = texelFetch(uMaterials, vMaterial * 2 + 1);

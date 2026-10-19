@@ -374,7 +374,7 @@ void main() {
     }
     if (uHdUnderwater != 0 && hdOn(HD_CAUSTICS)) {
         vec3 world = (hdViewToWorld * vec4(FF_VIEW_POS, 1.0)).xyz;
-        float light = hdCaustics(world.xz + hdSceneSize.zw, hdTime.x * hdWaterParams.y);
+        float light = hdCaustics(world.xz + hdSceneSize.zw, hdWaterClock.x);
         color.rgb += color.rgb * light * 0.55 * (hdSunDirection.w > 0.5 ? 1.0 : 0.4) * hdSunStrength();
     }
     if (!modelled && !unlit && !surface) color = hdApplyShadow(color, FF_VIEW_POS, FF_NORMAL);

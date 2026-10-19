@@ -4,6 +4,9 @@
 // is on when its bit is set in hdFlags.x and the draw is part of the 3D view (uHdScene); with every
 // bit clear the shaders compute exactly what the game draws without 634HD's features.
 
+// The water's reflection (reflect.vert, reflect_dynamic.vert) leaves out this band (world units,
+// 512 a tile) over the water plane: a decal lying on the water would be mirrored in place.
+#define HD_REFLECT_SURFACE_BAND 16.0
 #define HD_LINEAR 1
 #define HD_PIXEL_LIGHTING 2
 #define HD_SHADOWS 4
@@ -74,7 +77,8 @@ layout(std140) uniform HdFrame {
     // the environment's tints of the sun's (light 0) and the ambient light (HD_ENV_LIGHT)
     vec4 hdEnvSun;
     vec4 hdEnvAmbient;
-    // the area's water (HD_WATER): x waves' height, y speed, z glint, w wave size (1 each by default)
+    // the area's water (HD_WATER): x waves' height, y speed (the water clock's rate, hdWaterClock), z glint,
+    // w the ripples' size (1 each by default)
     vec4 hdWaterParams;
     // the characters grass bends away from (HD_GRASS): x how many; their world x, z
     vec4 hdActorInfo;
@@ -98,6 +102,12 @@ layout(std140) uniform HdFrame {
     // the ground fog (HD_FOG, environments.json groundFog): x its start, y its end (world y, negative is up: full
     // below the start, none above the end), z its opacity (0: none), w: unused
     vec4 hdGroundFog;
+    // the water clock (HD_WATER_SURFACE, the caustics): x seconds of water time, advanced at the area's
+    // speed (a speed blended over an environment's transition moved the phase through many repeats when
+    // it scaled the frame's seconds instead), y the ripples' size shown before the transition, z the
+    // transition's progress (0 to 1; under 1 the surface crossfades the ripples from y to hdWaterParams.w:
+    // a blended size scales the world-space pattern about the world's origin, a sweep of hundreds of repeats)
+    vec4 hdWaterClock;
 };
 
 // The inverse of the composite's tonemap (post_composite.frag): the linear value that, after the

@@ -527,9 +527,8 @@ class HdShadows {
     // with a cape, for one) recorded into [late] and drawn into the next frame's map from [previous]
     private val casters: Casters = Casters()
 
-    /** Every list, for a stream about to orphan; the two the reflection draws; a per-draw scratch (no per-frame allocation). */
+    /** Every list, for a stream about to orphan; a per-draw scratch (no per-frame allocation). */
     private val lists: Array<Casters> by lazy { arrayOf(previous, late, casters) }
-    private val reflectedLists: Array<Casters> by lazy { arrayOf(casters, previous) }
     private val have: BooleanArray = BooleanArray(3)
     private var late: Casters = Casters()
     private var previous: Casters = Casters()
@@ -1006,7 +1005,12 @@ class HdShadows {
         var skippedRetained: Int = 0
         var skippedIndices: Int = 0
         var noColour: Int = 0
-        for (list in reflectedLists) {
+        // [previous] and [late] swap objects every frame (beginFrame), so the pair is taken fresh here:
+        // an array of the two made once held the one object through both its roles, and last frame's
+        // translucent casters were replayed every other frame (the frames it was the list being
+        // filled, empty at this point): their reflections strobed
+        for (pair in 0 until 2) {
+            val list: Casters = if (pair == 0) casters else previous
             if (list.count == 0) continue
             if ((which == 1 && list !== casters) || (which == 2 && list !== previous)) continue
             if (list.indices.position() > 0 && list.indexBuffer == 0) { skippedIndices += list.count; continue }

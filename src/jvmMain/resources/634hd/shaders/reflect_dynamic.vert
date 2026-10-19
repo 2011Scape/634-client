@@ -4,7 +4,10 @@
 // locs) drawn again into the water's reflection (HdReflections, HdShadows.drawReflected): from its
 // recorded draw, placed by its model-to-world matrix, mirrored and projected (uMatrix), lit as the
 // fixed-function pipeline lit it (the sun and the anti-sun in eye space, uModelView), fogged by its
-// distance from the mirrored eye, and clipped to what lies above the water.
+// distance from the mirrored eye, and clipped to what lies above the water, less a band of
+// HD_REFLECT_SURFACE_BAND over it: a decal lying on the water (a fishing spot's NPC carries a
+// quad a few units over its tile, facing down, that the eye never sees) was mirrored in place
+// as a dark square.
 
 #include "hd_lib.glsl"
 
@@ -33,7 +36,7 @@ void main() {
     vec4 position = vec4(aPosition, 1.0);
     gl_Position = uMatrix * position;
     vec4 world = uModelWorld * position;
-    gl_ClipDistance[0] = uPlane - world.y;
+    gl_ClipDistance[0] = uPlane - HD_REFLECT_SURFACE_BAND - world.y;
     vTexCoord = aTexCoord;
     if (uLit != 0) {
         vec3 n = normalize(mat3(uModelView) * aNormal);
