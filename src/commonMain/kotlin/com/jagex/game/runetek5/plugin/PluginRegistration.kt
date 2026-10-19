@@ -6,11 +6,12 @@ import kotlin.jvm.JvmField
 
 /**
  * Not part of the original client: one plugin the client knows about, built in or from a jar, and
- * where it is in its life. [plugin] is null when the jar could not be loaded ([error] says why).
+ * where it is in its life. [plugin] is null until the plugin is first started, when [factory] makes
+ * it; both are null when the jar could not be loaded ([error] says why).
  */
 class PluginRegistration(
 	@JvmField val descriptor: PluginDescriptor,
-	@JvmField val plugin: Plugin?,
+	@JvmField var plugin: Plugin?,
 	@JvmField val builtIn: Boolean,
 	/** Where it came from: the jar's file name, or "built in". */
 	@JvmField val source: String,
@@ -18,6 +19,10 @@ class PluginRegistration(
 
 	@JvmField
 	var state: Int = LOADED
+
+	/** Makes [plugin] when it is first started; null for a built-in plugin and for a jar that could not be loaded. */
+	@JvmField
+	var factory: PluginFactory? = null
 
 	/** What went wrong, for [FAILED]. */
 	@JvmField
@@ -29,6 +34,11 @@ class PluginRegistration(
 	/** The class loader of a plugin from a jar, for the platform side. */
 	@JvmField
 	var loader: Any? = null
+
+	/** Whether the plugin exists or can be made: false for a jar the loader refused. */
+	fun loadable(): Boolean {
+		return plugin != null || factory != null
+	}
 
 	fun stateName(): String {
 		return when (state) {

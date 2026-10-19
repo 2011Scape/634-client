@@ -1,10 +1,14 @@
 package com.jagex.game.runetek5.plugin.loader
 
+import com.jagex.game.runetek5.plugin.PluginFactory
 import com.jagex.game.runetek5.plugin.PluginRegistration
 import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.PluginApi
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
 import java.io.File
+import java.lang.reflect.Constructor
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Modifier
 import java.util.Enumeration
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
@@ -13,7 +17,9 @@ import java.util.jar.JarFile
  * Not part of the original client: loads the plugin jars of a folder (docs/PLUGINS.md), in the
  * order of their names. Each jar gets a registration: with its plugin, or failed with the reason
  * when the jar's manifest, contents or class are not what a plugin's should be, so that `::plugins`
- * can say so. Nothing is started here.
+ * can say so. Nothing is started here, and nothing of the plugin's runs: its class is looked at
+ * without being initialised, and its object is made when the plugin is first turned on
+ * (PluginFactory), so a plugin the player turned off stays inert.
  */
 object PluginLoader {
 
@@ -58,12 +64,9 @@ object PluginLoader {
 			}
 			descriptor = manifest.descriptor
 			loader = PluginClassLoader(file, PluginLoader::class.java.classLoader)
-			val pluginClass: Class<*> = Class.forName(manifest.className, true, loader)
-			if (!Plugin::class.java.isAssignableFrom(pluginClass)) {
-				throw PluginLoadException(manifest.className + " does not implement " + Plugin::class.java.name)
-			}
-			val plugin: Plugin = pluginClass.getDeclaredConstructor().newInstance() as Plugin
-			val registration: PluginRegistration = PluginRegistration(manifest.descriptor, plugin, false, file.name)
+			val constructor: Constructor<*> = pluginConstructor(manifest.className, loader)
+			val registration: PluginRegistration = PluginRegistration(manifest.descriptor, null, false, file.name)
+			registration.factory = PluginFactory { create(constructor) }
 			registration.loader = loader
 			return registration
 		} catch (error: PluginLoadException) {
@@ -76,6 +79,27 @@ object PluginLoader {
 			System.err.println("Plugin " + file.name + " cannot be loaded:")
 			System.err.println(error.stackTraceToString())
 			return failed(file, descriptor, loader, error.toString())
+		}
+	}
+
+	/** The public no-argument constructor of the plugin class [className], without initialising the class. */
+	private fun pluginConstructor(className: String, loader: PluginClassLoader): Constructor<*> {
+		val pluginClass: Class<*> = Class.forName(className, false, loader)
+		if (!Plugin::class.java.isAssignableFrom(pluginClass)) {
+			throw PluginLoadException(className + " does not implement " + Plugin::class.java.name)
+		}
+		if (!Modifier.isPublic(pluginClass.modifiers)) {
+			throw PluginLoadException(className + " is not public")
+		}
+		return pluginClass.getConstructor()
+	}
+
+	/** The plugin's object, when it is first turned on; what its constructor or class initialiser throws comes through as itself. */
+	private fun create(constructor: Constructor<*>): Plugin {
+		try {
+			return constructor.newInstance() as Plugin
+		} catch (error: InvocationTargetException) {
+			throw error.cause ?: error
 		}
 	}
 

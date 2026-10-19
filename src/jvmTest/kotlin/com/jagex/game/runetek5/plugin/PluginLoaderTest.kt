@@ -14,6 +14,8 @@ import javax.tools.JavaCompiler
 import javax.tools.ToolProvider
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -32,7 +34,28 @@ class PluginLoaderTest {
 		import com.jagex.game.runetek5.plugin.api.PluginContext;
 		public class Hello implements Plugin {
 			public static int started;
+			static { System.setProperty("fixture.hello.initialised", "yes"); }
+			public Hello() { System.setProperty("fixture.hello.made", "yes"); }
 			public void start(PluginContext context) { started++; }
+		}
+	""".trimIndent()
+
+	private val hiddenSource: String = """
+		package fixture;
+		import com.jagex.game.runetek5.plugin.api.Plugin;
+		import com.jagex.game.runetek5.plugin.api.PluginContext;
+		class Hidden implements Plugin {
+			public void start(PluginContext context) { }
+		}
+	""".trimIndent()
+
+	private val throwingSource: String = """
+		package fixture;
+		import com.jagex.game.runetek5.plugin.api.Plugin;
+		import com.jagex.game.runetek5.plugin.api.PluginContext;
+		public class Throwing implements Plugin {
+			public Throwing() { throw new IllegalStateException("not today"); }
+			public void start(PluginContext context) { }
 		}
 	""".trimIndent()
 
@@ -99,7 +122,9 @@ class PluginLoaderTest {
 	)
 
 	@Test
-	fun aPluginJarLoadsThroughItsOwnClassLoader() {
+	fun aPluginJarLoadsThroughItsOwnClassLoaderAndRunsNothingUntilMade() {
+		System.clearProperty("fixture.hello.initialised")
+		System.clearProperty("fixture.hello.made")
 		inTempDir { dir ->
 			jar(dir, "hello", helloAttributes, mapOf("fixture.Hello" to helloSource))
 			val loaded: Array<PluginRegistration> = PluginLoader.load(dir)
@@ -112,11 +137,40 @@ class PluginLoaderTest {
 			assertEquals("1.2", registration.descriptor.version)
 			assertEquals("tests", registration.descriptor.author)
 			assertEquals("hello.jar", registration.source)
-			val plugin: Any = assertNotNull(registration.plugin)
+			assertNull(registration.plugin, "not made at load")
+			assertTrue(registration.loadable())
+			assertNull(System.getProperty("fixture.hello.initialised"), "the class is not initialised at load")
+			assertNull(System.getProperty("fixture.hello.made"))
+			val plugin: Any = assertNotNull(registration.factory).create()
+			assertEquals("yes", System.getProperty("fixture.hello.initialised"))
+			assertEquals("yes", System.getProperty("fixture.hello.made"))
 			assertEquals("fixture.Hello", plugin.javaClass.name)
 			val loader: PluginClassLoader = assertNotNull(plugin.javaClass.classLoader as? PluginClassLoader)
 			assertSame(PluginLoader::class.java.classLoader, loader.parent, "the client's loader is the parent")
 			assertSame(loader, registration.loader)
+		}
+	}
+
+	@Test
+	fun aClassThatIsNotPublicIsRefused() {
+		inTempDir { dir ->
+			jar(dir, "hidden", helloAttributes + ("Plugin-Class" to "fixture.Hidden"), mapOf("fixture.Hidden" to hiddenSource))
+			val registration: PluginRegistration = PluginLoader.load(dir)[0]
+			assertEquals(PluginRegistration.FAILED, registration.state)
+			assertFalse(registration.loadable())
+			assertTrue(registration.error!!.contains("not public"), registration.error)
+		}
+	}
+
+	@Test
+	fun aThrowingConstructorIsRefusedWhenThePluginIsMadeNotWhenItIsLoaded() {
+		inTempDir { dir ->
+			jar(dir, "throwing", helloAttributes + ("Plugin-Class" to "fixture.Throwing"), mapOf("fixture.Throwing" to throwingSource))
+			val registration: PluginRegistration = PluginLoader.load(dir)[0]
+			assertEquals(PluginRegistration.LOADED, registration.state)
+			assertNull(registration.error)
+			val error: Throwable = assertFailsWith<IllegalStateException> { registration.factory!!.create() }
+			assertEquals("not today", error.message, "the constructor's own exception, not the reflection wrapper")
 		}
 	}
 

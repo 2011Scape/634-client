@@ -4,8 +4,9 @@
  *
  * It compiles against the client's plugin API jar, runetek5-plugin-api-<version>.jar, from a client
  * release (https://github.com/2011Scape/634-client/releases) or a client build (./gradlew releaseApi
- * puts it in build/release). Say where it is with -PapiJar=<path>; without that, the newest one in
- * ../build/release is used, which suits this folder inside the client repository.
+ * puts it in build/release). Say where it is with -PapiJar=<path>, absolute or relative to this folder
+ * (Gradle resolves it against the project, not against where you ran it); without that, the newest
+ * one in ../build/release is used, which suits this folder inside the client repository.
  *
  * The API and the Kotlin standard library are compileOnly: the client has both, and a plugin jar that
  * carries its own copy is refused. The Kotlin version here must not be newer than the client's.
@@ -20,7 +21,7 @@ version = "0.1"
 val apiJar: File = providers.gradleProperty("apiJar").orNull?.let { file(it) }
     ?: file("../build/release").listFiles { f -> f.name.startsWith("runetek5-plugin-api-") && f.name.endsWith(".jar") && !f.name.endsWith("-sources.jar") }
         ?.maxByOrNull { it.lastModified() }
-    ?: error("No plugin API jar: pass -PapiJar=<path to runetek5-plugin-api-<version>.jar>, or build the client with ./gradlew releaseApi")
+    ?: error("No plugin API jar: pass -PapiJar=<path to runetek5-plugin-api-<version>.jar> (absolute, or relative to this folder), or build the client with ./gradlew releaseApi")
 
 dependencies {
     compileOnly(files(apiJar))

@@ -42,7 +42,7 @@ jobs:
       - name: Build the plugin template against the API jar
         run: |
           ./gradlew releaseApi --console=plain
-          ./gradlew -p plugin-template jar -PapiJar="$(ls build/release/runetek5-plugin-api-*.jar | grep -v sources)" --console=plain
+          ./gradlew -p plugin-template jar -PapiJar="$PWD/$(ls build/release/runetek5-plugin-api-*.jar | grep -v sources)" --console=plain
 
       - name: Upload the release jar
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

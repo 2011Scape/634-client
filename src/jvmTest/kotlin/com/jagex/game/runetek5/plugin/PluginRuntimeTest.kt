@@ -70,6 +70,31 @@ class PluginRuntimeTest {
 	}
 
 	@Test
+	fun aClosedContextRegistersNothing() {
+		val plugin: PluginRegistration = registration("late")
+		val other: PluginRegistration = registration("other")
+		val context: PluginContextImpl = PluginContextImpl(plugin)
+		val listener: EventListener<com.jagex.game.runetek5.plugin.api.events.GameTick> = EventListener { }
+		val before: Int = PluginRuntime.bus.listenerCount(Events.GAME_TICK)
+		try {
+			assertTrue(context.registerCommand("late", CommandHandler { _, _ -> }))
+			plugin.context = context
+			PluginRuntime.release(plugin)
+			assertTrue(context.closed, "stopping the plugin closes its context")
+			assertFalse(context.registerCommand("late", CommandHandler { _, _ -> }))
+			assertEquals(-1, context.registerMenuAction(MenuAction { _, _, _, _ -> }))
+			context.events().subscribe(Events.GAME_TICK, listener)
+			context.addOverlay { _, _ -> }
+			assertEquals(before, PluginRuntime.bus.listenerCount(Events.GAME_TICK))
+			assertTrue(PluginRuntime.registerCommand(other, "late", CommandHandler { _, _ -> }), "the name was given back")
+		} finally {
+			PluginRuntime.bus.unsubscribe(Events.GAME_TICK, listener)
+			PluginRuntime.release(plugin)
+			PluginRuntime.release(other)
+		}
+	}
+
+	@Test
 	fun menuActionsGetTheirOwnClickTypes() {
 		val plugin: PluginRegistration = registration("menu")
 		val action: MenuAction = MenuAction { _, _, _, _ -> }

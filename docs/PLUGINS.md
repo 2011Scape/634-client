@@ -48,7 +48,7 @@ In the game, the developer console (the `` ` `` key) has:
 | Command | What it does |
 |---|---|
 | `::plugins` | Lists every plugin: id, name, version, whether it is on, off or failed (and why), and its jar. |
-| `::plugin <id> off` | Turns a plugin off, now and on later starts (kept in `~/.634-client/plugins.properties`). |
+| `::plugin <id> off` | Turns a plugin off, now and on later starts (kept in `~/.634-client/plugins.properties`). A plugin that is off runs nothing: its class is not even initialised until it is turned on. |
 | `::plugin <id> on` | Turns it on again, or tries again one that failed. |
 
 A plugin's own settings are in `~/.634-client/plugin-config/<id>.properties`.
@@ -103,7 +103,8 @@ Start from [`plugin-template/`](../plugin-template): copy the folder, and change
   `ViewportDraw`, `FrameDraw`, `KeyPressed`, `MouseClicked`, `MenuEntryAdded`, `MenuOptionClicked`,
   `ConsoleCommand`) are reused: read them in the listener, keep nothing.
 - `stop()` runs when the player turns the plugin off or the client quits. Everything the plugin
-  registered through its context is removed for it afterwards.
+  registered through its context is removed for it afterwards, and the context registers nothing
+  more: a listener or thread the plugin forgot cannot bring it back.
 - A throw anywhere disables the plugin ([above](#installing-plugins)).
 
 ### The pieces
@@ -114,7 +115,7 @@ Start from [`plugin-template/`](../plugin-template): copy the folder, and change
 | `events()` | `subscribe(Events.X, listener)` and `unsubscribe`. |
 | `config()` | `PluginConfig`: `get`/`set` (and `Int`/`Boolean`), `save()`. |
 | `addOverlay(overlay)` | Draws on the game view every frame, after the scene and the client's own overlays, before the interfaces. The minimap, the orbs and the chat box cover what is under them; the client's experience drops start 300 pixels left of the view's right edge for that reason. |
-| `registerCommand(name, handler)` | `::name` in the console. False when the name is taken or the client's own. |
+| `registerCommand(name, handler)` | `::name` in the console, after the client's own commands have had their turn; a plugin's command is not sent to the server, and Tab (completion) never runs it. False when the name is taken or the client's own. |
 | `registerMenuAction(action)` | A click type to give `client().addMenuEntry(label, clickType)` from a `MenuEntryAdded` listener. The action gets the target kind, the scene tile and the id (npc index, player index, item id, location id). |
 | `log(message)` | Standard error, with the plugin id. |
 
@@ -139,7 +140,8 @@ API than its own, with a message to update the client.
 The template's `build.gradle.kts` is the whole of it:
 
 - `compileOnly(files(apiJar))`, where the jar comes from a release or from `./gradlew releaseApi` in
-  the client repository (`build/release`); `-PapiJar=<path>` says where.
+  the client repository (`build/release`); `-PapiJar=<path>` says where (absolute, or relative to
+  the template folder: Gradle resolves it against the project, not against where you ran it).
 - `compileOnly(kotlin("stdlib"))` and `kotlin.stdlib.default.dependency=false`: the client has the
   standard library, and a plugin that bundles one is refused. The plugin's Kotlin version must not
   be newer than the client's (2.2.20 at the time of writing).
@@ -177,7 +179,8 @@ built-in plugins):
   and `varpChanged` from `GameTick`, `clientTick`, `keyPressed`, `mouseClicked`, `drawFrame` and
   `stop` from `client`, `stepChanged` from `MainLogicStepTransition`, `toolkitChanged` from
   `ToolkitRebuild`, `chatMessage` from `ChatLineWriter`, `consoleCommand` from
-  `ClientCommandProcessor`, `menuClicked` from `MiniMenuActionExecutor`, `menuTarget` from
+  `ClientCommandProcessor` (after the client's own commands, before the line goes to the server),
+  `menuClicked` from `MiniMenuActionExecutor`, `menuTarget` from
   `ViewportMiniMenuPicking`, `MiniMenuBuilder` and `MiniMenu`, and `start` from `LoadingStageWork`
   at stage 15.
 - `EventBusImpl` dispatches from arrays, allocating nothing; a listener that throws is reported to

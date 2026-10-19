@@ -114,10 +114,6 @@ object ClientCommandProcessor {
 	@JvmStatic
 	fun executeCommand(@OriginalArg(0) string: String?, @OriginalArg(1) clientCommand: Boolean, @OriginalArg(2) tabComplete: Boolean) {
 		try {
-			// Not part of the original client: the plugins' commands (plugins, plugin <id> on|off, and what they registered).
-			if (string != null && PluginRuntime.consoleCommand(string)) {
-				return
-			}
 			// Not part of the original client: msaa, smaa and renderscale change the OpenGL anti-aliasing.
 			@Pc(0) val antialiasing: String? = ClientFeatures.antialiasingCommand(string, ClientState.activeToolkit)
 			if (antialiasing != null) {
@@ -870,6 +866,12 @@ object ClientCommandProcessor {
 					}
 					return
 				}
+				// Not part of the original client: the plugins' commands (plugins, plugin <id> on|off, and what they
+				// registered) come after every command of the client's own, and never on Tab, which sends the line
+				// to the server for completion. A plugin's command is not sent to the server.
+				if (!tabComplete && PluginRuntime.consoleCommand(string)) {
+					return
+				}
 				if (ClientState.mainLogicStep === MainLogicStep.STEP_GAME_SCREEN) {
 					packet = TcpPacket.createPacket(ClientProt.CLIENT_CHEAT, TcpPacket.isaac)
 					packet!!.buffer!!.writeByte(string.length + 3)
@@ -886,6 +888,9 @@ object ClientCommandProcessor {
 				Console.printToConsole(LocalizedText.ERROR_EXECUTING_COMMAND.get(ClientState.language))
 				return
 			}
+		} else if (!tabComplete && PluginRuntime.consoleCommand(string!!)) {
+			// Not part of the original client: without the developer commands, the plugins' commands still run.
+			return
 		}
 		if (ClientState.mainLogicStep !== MainLogicStep.STEP_GAME_SCREEN) {
 			Console.printToConsole(LocalizedText.UNKNOWN_DEV_COMMAND.get(ClientState.language) + string)

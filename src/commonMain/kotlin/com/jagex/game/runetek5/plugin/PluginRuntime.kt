@@ -14,6 +14,7 @@ import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.MenuAction
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.plugin.api.Overlay
+import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.Viewport
 import com.jagex.game.runetek5.plugin.api.events.ChatMessage
 import com.jagex.game.runetek5.plugin.api.events.ClientTick
@@ -55,8 +56,12 @@ object PluginRuntime {
 
 	private const val MAX_MENU_ACTIONS: Int = MiniMenuAction.PLUGIN_LAST - MiniMenuAction.PLUGIN_FIRST + 1
 
-	/** The client's own console commands a plugin from a jar may not take over. */
-	private val RESERVED_COMMANDS: Array<String> = arrayOf("plugins", "plugin", "commands", "help", "cls", "displayfps", "renderer", "heap", "tk0", "tk1", "tk2", "tk3", "tk5", "tk6", "grounditems", "npclabels", "xpdrops", "tilemarkers", "shiftdrop", "msaa", "smaa", "renderscale", "hd", "hdsettings")
+	/**
+	 * Console commands the client answers itself, so that a plugin from a jar learns at registration
+	 * that the name is taken: the client's own commands run first whatever a plugin registered
+	 * (ClientCommandProcessor), so a name missing here is never reached rather than taken over.
+	 */
+	private val RESERVED_COMMANDS: Array<String> = arrayOf("plugins", "plugin", "commands", "help", "cls", "displayfps", "renderer", "heap", "tk0", "tk1", "tk2", "tk3", "tk5", "tk6", "grounditems", "npclabels", "xpdrops", "tilemarkers", "shiftdrop", "msaa", "smaa", "renderscale", "hd", "hdsettings", "printfps", "occlude", "fpson", "fpsoff", "fps", "systemmem", "rebuild", "zoom", "errortest", "nativememerror", "heapdump", "setoutput", "closeoutput", "runscript")
 
 	@JvmField
 	val bus: EventBusImpl = EventBusImpl()
@@ -162,7 +167,7 @@ object PluginRuntime {
 		}
 		for (i in 0 until count) {
 			val registration: PluginRegistration = registrations[i]!!
-			if (registration.state == PluginRegistration.FAILED || registration.plugin == null) {
+			if (registration.state == PluginRegistration.FAILED || !registration.loadable()) {
 				continue
 			}
 			if (registration.builtIn || PluginSettings.isEnabled(registration.descriptor.id)) {
@@ -225,11 +230,23 @@ object PluginRuntime {
 	}
 
 	private fun startPlugin(registration: PluginRegistration) {
+		registration.error = null
+		var plugin: Plugin? = registration.plugin
+		if (plugin == null) {
+			// a plugin from a jar is made when it is first turned on, so one that is off runs nothing
+			val factory: PluginFactory = registration.factory ?: return
+			try {
+				plugin = factory.create()
+			} catch (error: Throwable) {
+				fail(registration, error)
+				return
+			}
+			registration.plugin = plugin
+		}
 		val context: PluginContextImpl = PluginContextImpl(registration)
 		registration.context = context
-		registration.error = null
 		try {
-			registration.plugin!!.start(context)
+			plugin.start(context)
 			registration.state = PluginRegistration.STARTED
 		} catch (error: Throwable) {
 			fail(registration, error)
@@ -237,14 +254,17 @@ object PluginRuntime {
 	}
 
 	private fun stopPlugin(registration: PluginRegistration) {
-		if (registration.context != null && registration.plugin != null) {
+		val context: PluginContextImpl? = registration.context
+		if (context != null && registration.plugin != null) {
 			try {
-				registration.plugin.stop()
+				registration.plugin!!.stop()
 			} catch (error: Throwable) {
 				lang.printlnErr("Plugin " + registration.descriptor + " threw while stopping: " + error)
 				lang.printlnErr(error.stackTraceToString())
 			}
 		}
+		// whatever the plugin registers from now on, from a thread or a callback it kept, is refused
+		context?.closed = true
 		removeAll(registration)
 		registration.context = null
 		if (registration.state != PluginRegistration.FAILED) {
@@ -255,6 +275,7 @@ object PluginRuntime {
 	/** Takes back everything [registration] registered, without stopping its plugin: for the tests. */
 	@JvmStatic
 	fun release(registration: PluginRegistration) {
+		registration.context?.closed = true
 		removeAll(registration)
 		registration.context = null
 	}
@@ -606,8 +627,9 @@ object PluginRuntime {
 	}
 
 	/**
-	 * A console command, before the client's own: `plugins` and `plugin <id> on|off`, then the
-	 * commands the plugins registered, then the ConsoleCommand event. True when handled.
+	 * A console command the client did not answer itself, before it would go to the server: `plugins`
+	 * and `plugin <id> on|off`, then the commands the plugins registered, then the ConsoleCommand
+	 * event. True when handled. Not called for Tab completion.
 	 */
 	@JvmStatic
 	fun consoleCommand(line: String): Boolean {
@@ -691,7 +713,7 @@ object PluginRuntime {
 				Console.printToConsole(registration.descriptor.name + " is already on")
 				return
 			}
-			if (registration.plugin == null) {
+			if (!registration.loadable()) {
 				Console.printToConsole(registration.descriptor.name + " cannot be turned on: " + registration.error)
 				return
 			}

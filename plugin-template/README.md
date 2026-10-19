@@ -14,7 +14,8 @@ cd plugin-template
 ./gradlew jar
 ```
 
-Anywhere else, say where the API jar from a [client release](https://github.com/2011Scape/634-client/releases) is:
+Anywhere else, say where the API jar from a [client release](https://github.com/2011Scape/634-client/releases) is
+(an absolute path, or one relative to this folder):
 
 ```bash
 ./gradlew jar -PapiJar=/path/to/runetek5-plugin-api-<version>.jar

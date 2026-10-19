@@ -10,17 +10,26 @@ import com.jagex.game.runetek5.plugin.api.PluginDescriptor
 import com.jagex.game.runetek5.plugin.api.events.EventBus
 import com.jagex.game.runetek5.plugin.api.events.EventListener
 import com.jagex.game.runetek5.plugin.api.events.EventType
+import kotlin.jvm.JvmField
 
 /**
  * Not part of the original client: what one plugin is given. Everything it registers is tagged
- * with its registration, so that stopping the plugin removes it all.
+ * with its registration, so that stopping the plugin removes it all; once stopped, the context is
+ * [closed] and registers nothing more, so a plugin that kept it cannot come back to life.
  */
 class PluginContextImpl(private val registration: PluginRegistration) : PluginContext {
+
+	/** Set when the plugin is stopped or disabled: every registration through this context is refused from then on. */
+	@JvmField
+	var closed: Boolean = false
 
 	private val config: PluginConfigImpl = PluginConfigImpl(registration.descriptor.id)
 
 	private val events: EventBus = object : EventBus {
 		override fun <E> subscribe(type: EventType<E>, listener: EventListener<E>) {
+			if (closed) {
+				return
+			}
 			PluginRuntime.bus.subscribe(type, listener, registration)
 		}
 
@@ -46,6 +55,9 @@ class PluginContextImpl(private val registration: PluginRegistration) : PluginCo
 	}
 
 	override fun addOverlay(overlay: Overlay) {
+		if (closed) {
+			return
+		}
 		PluginRuntime.addOverlay(registration, overlay)
 	}
 
@@ -54,10 +66,16 @@ class PluginContextImpl(private val registration: PluginRegistration) : PluginCo
 	}
 
 	override fun registerCommand(name: String, handler: CommandHandler): Boolean {
+		if (closed) {
+			return false
+		}
 		return PluginRuntime.registerCommand(registration, name, handler)
 	}
 
 	override fun registerMenuAction(action: MenuAction): Int {
+		if (closed) {
+			return -1
+		}
 		return PluginRuntime.registerMenuAction(registration, action)
 	}
 
