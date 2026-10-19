@@ -16,6 +16,10 @@ class HdFrameUniforms {
         const val BINDING: Int = 0
         const val MAX_LIGHTS: Int = 64
 
+        /** A light with no ceiling over it, and one standing on no known floor (setLightGrid, setLightFloor). */
+        const val NO_CEILING: Float = -1.0e9f
+        const val NO_FLOOR: Float = 1.0e9f
+
         const val HD_LINEAR: Int = 1
         const val HD_PIXEL_LIGHTING: Int = 2
         const val HD_SHADOWS: Int = 4
@@ -120,6 +124,10 @@ class HdFrameUniforms {
         data.putFloat(at, x).putFloat(at + 4, y).putFloat(at + 8, z).putFloat(at + 12, w)
     }
 
+    fun putFloat(at: Int, x: Float) {
+        data.putFloat(at, x)
+    }
+
     fun putMat4(at: Int, m: FloatArray) {
         for (i in 0 until 16) data.putFloat(at + i * 4, m[i])
     }
@@ -177,8 +185,11 @@ class HdFrameUniforms {
     /** The room fill's strength this frame and its texels per tile (HD_LIGHT_GRID, HdLightGrid). */
     fun setGridParams(strength: Float, texelsPerTile: Float) = putVec4(GRID_PARAMS, strength, texelsPerTile, 0.0f, 0.0f)
 
-    /** Light [index]'s wall visibility patch (HD_LIGHT_GRID): its layer (0: none), the light's world x and z. */
-    fun setLightGrid(index: Int, layer: Float, x: Float, z: Float) = putVec4(LIGHT_GRID + index * 16, layer, x, z, 0.0f)
+    /** Light [index]'s wall visibility patch (HD_LIGHT_GRID): its layer (0: none), the patch's centre (world x, z), and the light's ceiling (world y; NO_CEILING for none). */
+    fun setLightGrid(index: Int, layer: Float, x: Float, z: Float, ceiling: Float) = putVec4(LIGHT_GRID + index * 16, layer, x, z, ceiling)
+
+    /** The floor light [index] stands on (world y; NO_FLOOR for none), in its colour's w (HD_LIGHT_GRID). */
+    fun setLightFloor(index: Int, floor: Float) = putFloat(LIGHT_COLOUR + index * 16 + 12, floor)
 
     /** Day and night: the sun's or moon's eye-space direction replacing light 0 ([on]), the moon's world direction and the night (0 to 1). */
     fun setDayNight(x: Float, y: Float, z: Float, on: Boolean, moonX: Float, moonY: Float, moonZ: Float, night: Float) {
