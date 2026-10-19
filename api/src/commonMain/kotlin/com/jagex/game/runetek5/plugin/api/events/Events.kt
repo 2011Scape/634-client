@@ -44,7 +44,10 @@ object Events {
 	@JvmField
 	val MENU_OPTION_CLICKED: EventType<MenuOptionClicked> = EventType(9, "MenuOptionClicked")
 
-	/** The client moved between the login screen, the lobby and the game. */
+	/**
+	 * The client moved between the login screen, the lobby and the game. An error screen (a lost
+	 * connection to the cache server, say) is not a state: nothing is posted for it.
+	 */
 	@JvmField
 	val GAME_STATE_CHANGED: EventType<GameStateChanged> = EventType(10, "GameStateChanged")
 
@@ -65,4 +68,8 @@ object Events {
 	val MOUSE_CLICKED: EventType<MouseClicked> = EventType(14, "MouseClicked")
 
 	const val COUNT: Int = 15
+
+	/** Every event type, at the index of its id. */
+	@JvmField
+	val ALL: Array<EventType<*>> = arrayOf(CLIENT_TICK, GAME_TICK, VIEWPORT_DRAW, FRAME_DRAW, STAT_CHANGED, VARP_CHANGED, CHAT_MESSAGE, ITEM_CONTAINER_CHANGED, MENU_ENTRY_ADDED, MENU_OPTION_CLICKED, GAME_STATE_CHANGED, TOOLKIT_CHANGED, CONSOLE_COMMAND, KEY_PRESSED, MOUSE_CLICKED)
 }

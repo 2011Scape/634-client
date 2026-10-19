@@ -39,7 +39,9 @@ class EventBusImpl : EventBus {
 
 	fun <E> subscribe(type: EventType<E>, listener: EventListener<E>, owner: PluginRegistration?) {
 		val id: Int = type.id
-		if (id < 0 || id >= Events.COUNT) {
+		// only the client's own types: a type made up by a plugin, with the id of another, would hand its
+		// listeners the wrong class of event
+		if (id < 0 || id >= Events.COUNT || Events.ALL[id] !== type) {
 			return
 		}
 		var list: Array<Any?> = listeners[id]
@@ -120,19 +122,19 @@ class EventBusImpl : EventBus {
 		if (n == 0) {
 			return
 		}
-		val list: Array<Any?> = listeners[id]
-		val own: Array<PluginRegistration?> = owners[id]
 		depth++
 		var i: Int = 0
 		while (i < n) {
-			val listener: Any? = list[i]
+			// read from the arrays as they are now, not a copy: a subscribe during the post may have grown
+			// them, and an unsubscribe after that writes its hole into the new ones
+			val listener: Any? = listeners[id][i]
 			if (listener != null) {
 				try {
 					(listener as EventListener<E>).on(event)
 				} catch (error: Throwable) {
 					val handler: FailureHandler? = onFailure
 					if (handler != null) {
-						handler.failed(own[i], error)
+						handler.failed(owners[id][i], error)
 					} else {
 						lang.printlnErr("Plugins: a listener for " + type.name + " threw " + error)
 					}

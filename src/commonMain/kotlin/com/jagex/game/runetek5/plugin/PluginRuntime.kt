@@ -127,6 +127,21 @@ object PluginRuntime {
 
 	private val menuActionOwners: Array<PluginRegistration?> = arrayOfNulls<PluginRegistration?>(MAX_MENU_ACTIONS)
 
+	/**
+	 * How many times each click-type slot has been given back: an entry carries the number of the
+	 * tenant that made it (menuParam0), so that a click on an entry built before its plugin stopped
+	 * does not go to whichever plugin has the slot now.
+	 */
+	private val menuActionGenerations: IntArray = IntArray(MAX_MENU_ACTIONS)
+
+	private const val GENERATION_SHIFT: Int = 19
+
+	private const val GENERATION_MASK: Int = 0xFFF
+
+	private const val KIND_SHIFT: Int = 16
+
+	private const val KIND_MASK: Int = 7
+
 	/** The menu entry target being built, while a MenuEntryAdded listener runs. */
 	private var menuBuilding: Boolean = false
 
@@ -312,8 +327,27 @@ object PluginRuntime {
 			if (menuActionOwners[i] === registration) {
 				menuActions[i] = null
 				menuActionOwners[i] = null
+				menuActionGenerations[i] = (menuActionGenerations[i] + 1) and GENERATION_MASK
 			}
 		}
+	}
+
+	/** [text] as a plain chat or console line: no markup a plugin's name or error could carry, and no line breaks. */
+	private fun plain(text: String): String {
+		val out: StringBuilder = StringBuilder(text.length)
+		for (i in 0 until text.length) {
+			val c: Char = text[i]
+			if (c == '<') {
+				out.append('(')
+			} else if (c == '>') {
+				out.append(')')
+			} else if (c == '\n' || c == '\r') {
+				out.append(' ')
+			} else {
+				out.append(c)
+			}
+		}
+		return out.toString()
 	}
 
 	/** Disables [owner] after it threw [error]: its plugin is stopped and everything it registered removed. */
@@ -333,9 +367,10 @@ object PluginRuntime {
 		lang.printlnErr(message)
 		lang.printlnErr(error.stackTraceToString())
 		stopPlugin(owner)
-		Console.printToConsole(message)
+		val line: String = plain(message)
+		Console.printToConsole(line)
 		if (ClientState.mainLogicStep === MainLogicStep.STEP_GAME_SCREEN) {
-			ChatLineWriter.writeUnfilterableMessage(message)
+			ChatLineWriter.writeUnfilterableMessage(line)
 		}
 	}
 
@@ -586,7 +621,7 @@ object PluginRuntime {
 		menuBuilding = false
 	}
 
-	/** Adds a plugin's entry for the target being built: the kind goes in the high half of param0, the tile in param1 and the low half. */
+	/** Adds a plugin's entry for the target being built: the tile's y in param1, and [menuParam0] in param0. */
 	fun addMenuEntry(label: String, clickType: Int) {
 		if (!menuBuilding || clickType < MiniMenuAction.PLUGIN_FIRST || clickType > MiniMenuAction.PLUGIN_LAST) {
 			return
@@ -594,7 +629,14 @@ object PluginRuntime {
 		if (menuActions[clickType - MiniMenuAction.PLUGIN_FIRST] == null) {
 			return
 		}
-		MiniMenu.addEntry(false, "", menuSceneY, true, (menuSceneX and 0xFFFF) or (menuKind shl 16), -1, true, clickType, 0L, label, menuEntityUid, -1)
+		MiniMenu.addEntry(false, "", menuSceneY, true, menuParam0(menuSceneX, menuKind, clickType), -1, true, clickType, 0L, label, menuEntityUid, -1)
+	}
+
+	/** A plugin entry's param0: the tile's x in the low 16 bits, the target's kind above it, and the click-type slot's generation above that. */
+	@JvmStatic
+	fun menuParam0(sceneX: Int, kind: Int, clickType: Int): Int {
+		val generation: Int = menuActionGenerations[clickType - MiniMenuAction.PLUGIN_FIRST]
+		return (sceneX and 0xFFFF) or ((kind and KIND_MASK) shl KIND_SHIFT) or (generation shl GENERATION_SHIFT)
 	}
 
 	/** A menu entry was clicked; true when it was a plugin's and has been handled. */
@@ -617,9 +659,13 @@ object PluginRuntime {
 		}
 		val index: Int = clickType - MiniMenuAction.PLUGIN_FIRST
 		val action: MenuAction = menuActions[index] ?: return true
+		if ((entry.param0 ushr GENERATION_SHIFT) and GENERATION_MASK != menuActionGenerations[index]) {
+			// an entry from before the plugin that made it stopped: the slot's new plugin never asked for this click
+			return true
+		}
 		val owner: PluginRegistration? = menuActionOwners[index]
 		try {
-			action.clicked(MenuTarget.ofKind(entry.param0 ushr 16), entry.param0 and 0xFFFF, entry.param1, entry.entityUid.toInt())
+			action.clicked(MenuTarget.ofKind((entry.param0 ushr KIND_SHIFT) and KIND_MASK), entry.param0 and 0xFFFF, entry.param1, entry.entityUid.toInt())
 		} catch (error: Throwable) {
 			fail(owner, error)
 		}
@@ -687,7 +733,7 @@ object PluginRuntime {
 				line.append(": ").append(registration.error)
 			}
 			line.append("] ").append(registration.source)
-			Console.printToConsole(line.toString())
+			Console.printToConsole(plain(line.toString()))
 		}
 		Console.printToConsole("plugin <id> on|off turns one on or off; a built-in plugin has its own command")
 	}

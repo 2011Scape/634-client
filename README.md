@@ -45,7 +45,8 @@ It connects to [2011Scape](https://2011.rs) (`play.2011.rs`). For your own serve
   render distance and a wider zoom.
 - **Developer tools**: ids on right-click menus, coordinates on screen, a better console.
 - **Plugins**: jars in `~/.634-client/plugins` that read the game, draw on it and add menu entries
-  and commands, on a small stable API ([docs/PLUGINS.md](docs/PLUGINS.md)).
+  and commands, on a small stable API ([docs/PLUGINS.md](docs/PLUGINS.md)). A plugin runs with
+  everything the client can do, so install only ones from people you trust.
 - **In a browser**: the same game on WebGL 2 ([below](#the-browser-client)).
 
 ## Options

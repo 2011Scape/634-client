@@ -248,6 +248,21 @@ class PluginLoaderTest {
 	}
 
 	@Test
+	fun aJarThatPullsInOthersOrIsMultiReleaseIsRefused() {
+		inTempDir { dir ->
+			jar(dir, "classpath", helloAttributes + ("Class-Path" to "other.jar"), mapOf("fixture.Hello" to helloSource))
+			jar(dir, "multirelease", helloAttributes + ("Multi-Release" to "true"), mapOf("fixture.Hello" to helloSource))
+			val loaded: Array<PluginRegistration> = PluginLoader.load(dir)
+			assertEquals(2, loaded.size)
+			assertEquals(PluginRegistration.FAILED, loaded[0].state)
+			assertTrue(loaded[0].error!!.contains("Class-Path"), loaded[0].error)
+			assertEquals("hello", loaded[0].descriptor.id, "refused with its descriptor")
+			assertEquals(PluginRegistration.FAILED, loaded[1].state)
+			assertTrue(loaded[1].error!!.contains("Multi-Release"), loaded[1].error)
+		}
+	}
+
+	@Test
 	fun filesThatAreNotJarsAreIgnored() {
 		inTempDir { dir ->
 			File(dir, "notes.txt").writeText("not a plugin")

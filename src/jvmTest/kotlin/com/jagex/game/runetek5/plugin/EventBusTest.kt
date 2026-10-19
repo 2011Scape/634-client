@@ -35,6 +35,48 @@ class EventBusTest {
 	}
 
 	@Test
+	fun aListenerRemovedDuringAPostThatGrewTheListDoesNotRun() {
+		val bus: EventBusImpl = EventBusImpl()
+		val tick: com.jagex.game.runetek5.plugin.api.events.GameTick = com.jagex.game.runetek5.plugin.api.events.GameTick()
+		var secondRuns: Int = 0
+		var lateRuns: Int = 0
+		val second: EventListener<com.jagex.game.runetek5.plugin.api.events.GameTick> = EventListener { secondRuns++ }
+		val late: EventListener<com.jagex.game.runetek5.plugin.api.events.GameTick> = EventListener { lateRuns++ }
+		// the first listener subscribes enough to grow the arrays (they start at 4), then removes the second
+		bus.subscribe(Events.GAME_TICK, EventListener {
+			bus.subscribe(Events.GAME_TICK, late)
+			bus.subscribe(Events.GAME_TICK, late)
+			bus.subscribe(Events.GAME_TICK, late)
+			bus.unsubscribe(Events.GAME_TICK, second)
+		})
+		bus.subscribe(Events.GAME_TICK, second)
+		bus.post(Events.GAME_TICK, tick)
+		assertEquals(0, secondRuns, "removed before its turn, in the grown arrays")
+		assertEquals(0, lateRuns, "subscribed during the post: not in this one")
+		assertEquals(4, bus.listenerCount(Events.GAME_TICK))
+		bus.post(Events.GAME_TICK, tick)
+		assertEquals(0, secondRuns)
+		assertEquals(3, lateRuns)
+	}
+
+	@Test
+	fun anEventTypeThatIsNotTheClientsIsIgnored() {
+		val bus: EventBusImpl = EventBusImpl()
+		val constructor: java.lang.reflect.Constructor<com.jagex.game.runetek5.plugin.api.events.EventType<*>> = com.jagex.game.runetek5.plugin.api.events.EventType::class.java.getDeclaredConstructor(Int::class.javaPrimitiveType, String::class.java)
+		@Suppress("UNCHECKED_CAST")
+		val forged: com.jagex.game.runetek5.plugin.api.events.EventType<com.jagex.game.runetek5.plugin.api.events.ClientTick> = constructor.newInstance(Events.GAME_TICK.id, "Forged") as com.jagex.game.runetek5.plugin.api.events.EventType<com.jagex.game.runetek5.plugin.api.events.ClientTick>
+		var runs: Int = 0
+		bus.subscribe(forged, EventListener { runs++ })
+		assertEquals(0, bus.listenerCount(Events.GAME_TICK), "a made-up type with a real id subscribes nothing")
+		bus.post(Events.GAME_TICK, com.jagex.game.runetek5.plugin.api.events.GameTick())
+		assertEquals(0, runs)
+		assertEquals(Events.COUNT, Events.ALL.size)
+		for (i in 0 until Events.COUNT) {
+			assertEquals(i, Events.ALL[i].id)
+		}
+	}
+
+	@Test
 	fun throwingListenerIsReportedAndTheOthersStillRun() {
 		val bus: EventBusImpl = EventBusImpl()
 		val bad: PluginRegistration = registration("bad")

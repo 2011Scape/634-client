@@ -38,7 +38,10 @@ jobs:
       - name: Check the classes on Java 25
         run: ./gradlew checkClasses -PcheckClasses.java=25 -Porg.gradle.java.installations.fromEnv=JAVA_HOME_25_X64 --console=plain
 
-      # The plugin template builds against the API jar a release ships, as a plugin author's build does
+      # The plugin template builds against the API jar a release ships, as a plugin author's build does.
+      # The template is a separate Gradle build with no dependency verification of its own (it fetches the
+      # Kotlin plugin from the Plugin Portal like any plugin author's build); only the client's build is
+      # verified against gradle/verification-metadata.xml.
       - name: Build the plugin template against the API jar
         run: |
           ./gradlew releaseApi --console=plain

@@ -23,7 +23,11 @@ import java.util.jar.JarFile
  */
 object PluginLoader {
 
-	/** Packages a plugin jar may not carry: it would shadow the client's or the standard library's classes. */
+	/**
+	 * Packages a plugin jar may not carry: it would shadow the client's or the standard library's classes.
+	 * The jar's own entries are all a plugin can load from: PluginManifest refuses a `Class-Path` and
+	 * a `Multi-Release` jar, whose other classes this look would miss.
+	 */
 	private val FORBIDDEN_PREFIXES: Array<String> = arrayOf("com/jagex/", "kotlin/", "org/lwjgl/", "jaggl/", "jaclib/", "jagdx/")
 
 	@JvmStatic

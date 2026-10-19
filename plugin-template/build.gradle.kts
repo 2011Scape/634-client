@@ -18,10 +18,16 @@ plugins {
 group = "example"
 version = "0.1"
 
-val apiJar: File = providers.gradleProperty("apiJar").orNull?.let { file(it) }
-    ?: file("../build/release").listFiles { f -> f.name.startsWith("runetek5-plugin-api-") && f.name.endsWith(".jar") && !f.name.endsWith("-sources.jar") }
-        ?.maxByOrNull { it.lastModified() }
-    ?: error("No plugin API jar: pass -PapiJar=<path to runetek5-plugin-api-<version>.jar> (absolute, or relative to this folder), or build the client with ./gradlew releaseApi")
+// looked up when the compiler asks for its classpath, so that a missing jar fails compileKotlin and
+// nothing else (and the configuration cache has nothing to track here)
+val projectDir: Directory = layout.projectDirectory
+val apiJar: Provider<File> = providers.gradleProperty("apiJar").map { projectDir.file(it).asFile }.orElse(
+    providers.provider {
+        projectDir.dir("../build/release").asFile.listFiles { f -> f.name.startsWith("runetek5-plugin-api-") && f.name.endsWith(".jar") && !f.name.endsWith("-sources.jar") }
+            ?.maxByOrNull { it.lastModified() }
+            ?: error("No plugin API jar: pass -PapiJar=<path to runetek5-plugin-api-<version>.jar> (absolute, or relative to this folder), or build the client with ./gradlew releaseApi")
+    },
+)
 
 dependencies {
     compileOnly(files(apiJar))

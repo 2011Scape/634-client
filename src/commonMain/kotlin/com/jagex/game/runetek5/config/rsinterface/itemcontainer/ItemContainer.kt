@@ -30,7 +30,8 @@ class ItemContainer : Node(), ApiItemContainer {
 	/* Not part of the original client: the plugin API's view of an inventory (plugin.api.ItemContainer). */
 
 	override fun size(): Int {
-		return this.itemIds!!.size
+		val ids: IntArray = this.itemIds ?: return 0
+		return ids.size
 	}
 
 	override fun itemId(slot: Int): Int {

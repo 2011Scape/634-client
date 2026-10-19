@@ -56,6 +56,13 @@ class PluginManifest(@JvmField val className: String, @JvmField val descriptor: 
 			if (attributes.getValue(DEPENDS) != null) {
 				throw PluginLoadException(DEPENDS + " is not supported yet", descriptor)
 			}
+			// either would bring in classes the loader's look through the jar's entries never saw
+			if (attributes.getValue(Attributes.Name.CLASS_PATH) != null) {
+				throw PluginLoadException("the manifest has a Class-Path: a plugin is one jar, with nothing pulled in beside it", descriptor)
+			}
+			if ("true".equals(attributes.getValue(Attributes.Name.MULTI_RELEASE)?.trim(), ignoreCase = true)) {
+				throw PluginLoadException("the jar is Multi-Release, which plugins may not be: build plain class files", descriptor)
+			}
 			return PluginManifest(className, descriptor)
 		}
 	}

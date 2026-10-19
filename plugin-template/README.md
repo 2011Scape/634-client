@@ -23,6 +23,10 @@ Anywhere else, say where the API jar from a [client release](https://github.com/
 
 The plugin is `build/libs/example-plugin-0.1.jar`.
 
+This build fetches the Kotlin Gradle plugin from the Gradle Plugin Portal and checks nothing
+against a verification file, unlike the client's build: add `gradle/verification-metadata.xml`
+(`./gradlew --write-verification-metadata sha256 jar`) if your plugin's build should.
+
 ## Trying it
 
 Copy the jar into `~/.634-client/plugins` and start the client, or point the client at the build

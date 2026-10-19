@@ -580,7 +580,7 @@ object MiniMenu {
 				}
 			}
 			// Not part of the original client: the plugins' entries for the player (PluginRuntime).
-			PluginRuntime.menuTarget(MenuTarget.PLAYER, playerEntity.x shr 9, playerEntity.z shr 9, playerEntity.level.toInt(), playerEntity.playerIndex, playerEntity.playerIndex.toLong())
+			PluginRuntime.menuTarget(MenuTarget.PLAYER, (playerEntity.x - (playerEntity.getSize() - 1) * 256) shr 9, (playerEntity.z - (playerEntity.getSize() - 1) * 256) shr 9, playerEntity.level.toInt(), playerEntity.playerIndex, playerEntity.playerIndex.toLong())
 			if (!onDifferentPlane) {
 				@Pc(450) var miniMenuEntryInner: MiniMenuEntry? = MiniMenu.entryList.first() as MiniMenuEntry?
 				while (miniMenuEntryInner != null) {

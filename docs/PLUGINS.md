@@ -87,8 +87,10 @@ Start from [`plugin-template/`](../plugin-template): copy the folder, and change
    | `Plugin-Api-Version` | The `PluginApi.VERSION` it was written against (1 if missing). The client refuses a plugin that needs a newer API than it has. |
    | `Plugin-Author`, `Plugin-Description` | For `::plugins`. |
 
-   One plugin a jar. The jar must not carry the client's classes (`com/jagex/...`) or the Kotlin
-   standard library (`kotlin/...`): the client has them, and a jar that bundles them is refused.
+   One plugin a jar, and the jar is all of it: one that carries the client's classes (`com/jagex/...`)
+   or the Kotlin standard library (`kotlin/...`) is refused, since the client has them, and so is one
+   whose manifest has a `Class-Path` or `Multi-Release: true`, which would load classes from outside
+   that check. The check is on the jar's entry names; it is a guard against a shaded build, not a sandbox.
 
 ### What happens when
 
@@ -116,7 +118,7 @@ Start from [`plugin-template/`](../plugin-template): copy the folder, and change
 | `config()` | `PluginConfig`: `get`/`set` (and `Int`/`Boolean`), `save()`. |
 | `addOverlay(overlay)` | Draws on the game view every frame, after the scene and the client's own overlays, before the interfaces. The minimap, the orbs and the chat box cover what is under them; the client's experience drops start 300 pixels left of the view's right edge for that reason. |
 | `registerCommand(name, handler)` | `::name` in the console, after the client's own commands have had their turn; a plugin's command is not sent to the server, and Tab (completion) never runs it. False when the name is taken or the client's own. |
-| `registerMenuAction(action)` | A click type to give `client().addMenuEntry(label, clickType)` from a `MenuEntryAdded` listener. The action gets the target kind, the scene tile and the id (npc index, player index, item id, location id). |
+| `registerMenuAction(action)` | A click type to give `client().addMenuEntry(label, clickType)` from a `MenuEntryAdded` listener. The action gets the target kind, the scene tile (an npc's or player's south-west tile) and the id (npc index, player index, item id, location id). |
 | `log(message)` | Standard error, with the plugin id. |
 
 `Graphics` (in overlays and the draw events) draws lines, rectangles and text in the client's small

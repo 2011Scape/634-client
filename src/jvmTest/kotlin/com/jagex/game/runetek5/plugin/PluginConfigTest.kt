@@ -44,6 +44,27 @@ class PluginConfigTest {
 	}
 
 	@Test
+	fun awkwardTextRoundTripsThroughTheFile() {
+		inTempHome {
+			val config: PluginConfigImpl = PluginConfigImpl("awkward")
+			config.set("a=b#c", " two\nlines\tand a tab\\ ")
+			config.set("#not a comment", "=")
+			config.set("spaced key", "plain")
+			config.set("empty", "")
+			assertTrue(config.save())
+			val again: PluginConfigImpl = PluginConfigImpl("awkward")
+			assertEquals(4, again.size())
+			assertEquals(" two\nlines\tand a tab\\ ", again.get("a=b#c", "?"))
+			assertEquals("=", again.get("#not a comment", "?"))
+			assertEquals("plain", again.get("spaced key", "?"))
+			assertEquals("", again.get("empty", "?"))
+			val text: String = java.io.File(PluginPaths.homeOverride, ".634-client/plugin-config/awkward.properties").readText()
+			assertTrue(text.contains("a\\=b\\#c=\\ two\\nlines\\tand a tab\\\\ \n"), text)
+			assertEquals(5, text.lines().filter { it.isNotEmpty() }.size, "one line a setting, plus the header")
+		}
+	}
+
+	@Test
 	fun aPluginTurnedOffStaysOff() {
 		inTempHome {
 			assertTrue(PluginSettings.isEnabled("example"))

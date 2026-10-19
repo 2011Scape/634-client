@@ -5,6 +5,8 @@ import com.jagex.game.runetek5.plugin.api.PluginConfig
 /**
  * Not part of the original client: a plugin's settings, name=value lines in
  * `plugin-config/<id>.properties` under the plugins folder, read when made and written by [save].
+ * A backslash, a line break, a tab, and in a name `=`, `#` and a space, are written escaped the
+ * way java.util.Properties writes them, so that any text round-trips.
  */
 class PluginConfigImpl(private val id: String) : PluginConfig {
 
@@ -16,12 +18,15 @@ class PluginConfigImpl(private val id: String) : PluginConfig {
 			val lines: Array<String>? = PluginPaths.readLines(file)
 			if (lines != null) {
 				for (i in 0 until lines.size) {
-					val line: String = lines[i]
-					val at: Int = line.indexOf('=')
+					var line: String = lines[i]
+					if (line.endsWith("\r")) {
+						line = line.substring(0, line.length - 1)
+					}
+					val at: Int = separator(line)
 					if (at <= 0 || line.startsWith("#")) {
 						continue
 					}
-					values[line.substring(0, at).trim()] = line.substring(at + 1).trim()
+					values[unescape(line.substring(0, at))] = unescape(line.substring(at + 1))
 				}
 			}
 		}
@@ -67,9 +72,79 @@ class PluginConfigImpl(private val id: String) : PluginConfig {
 		val file: io.File = PluginPaths.configFile(id) ?: return false
 		val out: StringBuilder = StringBuilder("# Settings of the plugin ").append(id).append(", written by the client\n")
 		for (entry in values.entries) {
-			out.append(entry.key).append('=').append(entry.value).append('\n')
+			out.append(escape(entry.key, true)).append('=').append(escape(entry.value, false)).append('\n')
 		}
 		return PluginPaths.writeText(file, out.toString())
+	}
+
+	companion object {
+		/** Where the first `=` that is not escaped is in [line], or -1. */
+		private fun separator(line: String): Int {
+			var i: Int = 0
+			while (i < line.length) {
+				val c: Char = line[i]
+				if (c == '\\') {
+					i += 2
+					continue
+				}
+				if (c == '=') {
+					return i
+				}
+				i++
+			}
+			return -1
+		}
+
+		private fun escape(text: String, key: Boolean): String {
+			val out: StringBuilder = StringBuilder(text.length + 8)
+			for (i in 0 until text.length) {
+				val c: Char = text[i]
+				if (c == '\\') {
+					out.append("\\\\")
+				} else if (c == '\n') {
+					out.append("\\n")
+				} else if (c == '\r') {
+					out.append("\\r")
+				} else if (c == '\t') {
+					out.append("\\t")
+				} else if (key && (c == '=' || c == '#' || c == ' ')) {
+					out.append('\\').append(c)
+				} else if (!key && c == ' ' && i == 0) {
+					out.append("\\ ")
+				} else {
+					out.append(c)
+				}
+			}
+			return out.toString()
+		}
+
+		private fun unescape(text: String): String {
+			if (text.indexOf('\\') < 0) {
+				return text
+			}
+			val out: StringBuilder = StringBuilder(text.length)
+			var i: Int = 0
+			while (i < text.length) {
+				val c: Char = text[i]
+				if (c != '\\' || i + 1 == text.length) {
+					out.append(c)
+					i++
+					continue
+				}
+				val next: Char = text[i + 1]
+				if (next == 'n') {
+					out.append('\n')
+				} else if (next == 'r') {
+					out.append('\r')
+				} else if (next == 't') {
+					out.append('\t')
+				} else {
+					out.append(next)
+				}
+				i += 2
+			}
+			return out.toString()
+		}
 	}
 
 	/** How many settings there are, for the tests. */

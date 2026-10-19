@@ -172,7 +172,7 @@ object MiniMenuBuilder {
 		// Not part of the original client: the debug suffix, empty unless client.debug is set.
 		MiniMenu.addEntry(differentLevel, "<col=ffff00>" + string + ClientFeatures.debugSuffix(npcType.id, (npcEntity.x shr 9) + MapRegion.sceneBaseX - npcEntity.npcType!!.size + 1, (npcEntity.z shr 9) + MapRegion.sceneBaseY - npcEntity.npcType!!.size + 1, npcEntity.level.toInt()), 0, false, 0, -1, true, MiniMenuAction.OPNPC6, npcEntity.playerIndex.toLong(), LocalizedText.aClass351_24.get(ClientState.language), npcEntity.playerIndex.toLong(), MiniMenu.examineCursor)
 		// Not part of the original client: the plugins' entries for the npc (PluginRuntime).
-		PluginRuntime.menuTarget(MenuTarget.NPC, npcEntity.x shr 9, npcEntity.z shr 9, npcEntity.level.toInt(), npcEntity.playerIndex, npcEntity.playerIndex.toLong())
+		PluginRuntime.menuTarget(MenuTarget.NPC, (npcEntity.x - (npcEntity.getSize() - 1) * 256) shr 9, (npcEntity.z - (npcEntity.getSize() - 1) * 256) shr 9, npcEntity.level.toInt(), npcEntity.playerIndex, npcEntity.playerIndex.toLong())
 	}
 	@OriginalMember(owner = "client!fs", name = "a", descriptor = "([Ljava/lang/String;I)[Ljava/lang/String;")
 	@JvmStatic

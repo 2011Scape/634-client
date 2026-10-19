@@ -1,8 +1,10 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.client.menu.MiniMenuEntry
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.plugin.api.CommandHandler
 import com.jagex.game.runetek5.plugin.api.MenuAction
+import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
 import com.jagex.game.runetek5.plugin.api.events.EventListener
 import com.jagex.game.runetek5.plugin.api.events.Events
@@ -91,6 +93,42 @@ class PluginRuntimeTest {
 			PluginRuntime.bus.unsubscribe(Events.GAME_TICK, listener)
 			PluginRuntime.release(plugin)
 			PluginRuntime.release(other)
+		}
+	}
+
+	@Test
+	fun aClickOnAnEntryFromBeforeThePluginStoppedGoesNowhere() {
+		val first: PluginRegistration = registration("first")
+		val second: PluginRegistration = registration("second")
+		val wasStarted: Boolean = PluginRuntime.started
+		PluginRuntime.started = true
+		var firstClicks: Int = 0
+		var secondClicks: Int = 0
+		var secondTarget: MenuTarget? = null
+		var secondX: Int = -1
+		try {
+			val slot: Int = PluginRuntime.registerMenuAction(first, MenuAction { _, _, _, _ -> firstClicks++ })
+			val stale: MiniMenuEntry = MiniMenuEntry("Hello", "", -1, slot, -1, 12L, PluginRuntime.menuParam0(5, MenuTarget.NPC.kind, slot), 7, false, true, 0L, false)
+			assertTrue(PluginRuntime.menuClicked(stale, slot))
+			assertEquals(1, firstClicks)
+			PluginRuntime.release(first)
+			assertEquals(slot, PluginRuntime.registerMenuAction(second, MenuAction { target, x, _, _ ->
+				secondClicks++
+				secondTarget = target
+				secondX = x
+			}), "the slot is reused")
+			assertTrue(PluginRuntime.menuClicked(stale, slot), "handled: nobody's")
+			assertEquals(1, firstClicks)
+			assertEquals(0, secondClicks)
+			val fresh: MiniMenuEntry = MiniMenuEntry("Hello", "", -1, slot, -1, 12L, PluginRuntime.menuParam0(5, MenuTarget.NPC.kind, slot), 7, false, true, 0L, false)
+			assertTrue(PluginRuntime.menuClicked(fresh, slot))
+			assertEquals(1, secondClicks)
+			assertEquals(MenuTarget.NPC, secondTarget)
+			assertEquals(5, secondX)
+		} finally {
+			PluginRuntime.started = wasStarted
+			PluginRuntime.release(first)
+			PluginRuntime.release(second)
 		}
 	}
 

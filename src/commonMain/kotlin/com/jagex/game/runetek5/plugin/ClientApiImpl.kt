@@ -1,7 +1,6 @@
 package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.ChatLineWriter
-import com.jagex.game.runetek5.InterfaceManager
 import com.jagex.game.runetek5.MapRegion
 import com.jagex.game.runetek5.NPCList
 import com.jagex.game.runetek5.OverlayManager
@@ -144,9 +143,7 @@ object ClientApiImpl : ClientApi {
 		if (interfaceId < 0 || componentId < 0 || interfaceId >= interfaces.size) {
 			return null
 		}
-		if (interfaces[interfaceId] == null && !InterfaceManager.loadInterface(interfaceId)) {
-			return null
-		}
+		// a read: an interface the client has not loaded is not loaded here either
 		val components: Array<Component?> = interfaces[interfaceId] ?: return null
 		return if (componentId < components.size) components[componentId] else null
 	}
