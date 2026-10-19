@@ -521,10 +521,6 @@ class HdShadows {
         val effect: BooleanArray = BooleanArray(MAX_CASTERS)
         // a retained model's own emulated draw (its translucent parts): the reflection has it already
         val retained: BooleanArray = BooleanArray(MAX_CASTERS)
-        // placed on a water tile (a fishing spot's NPC, a wading player): the reflection clips it at its own
-        // tile's surface, where it is higher than the level's mean water plane (the Lumbridge river's spots
-        // stand 40 units over the mean, and the spot's quad escaped the band over the plane)
-        val onWater: BooleanArray = BooleanArray(MAX_CASTERS)
     }
 
     // the opaque entities of this frame; the translucent ones (drawn after the map is made: players
@@ -957,16 +953,6 @@ class HdShadows {
         // a model placed at the local player's position is the player (its body, worn items, cape)
         val player = PlayerUpdate.localPlayer
         list.atPlayer[i] = player != null && kotlin.math.abs(list.modelView[at + 12] - player.x) < 48.0f && kotlin.math.abs(list.modelView[at + 14] - player.z) < 48.0f
-        list.onWater[i] = onWaterTile(list.modelView[at + 12], list.modelView[at + 14])
-    }
-
-    /** Whether world [x],[z] lies on a water tile of the local player's level's ground. */
-    private fun onWaterTile(x: Float, z: Float): Boolean {
-        val grounds = com.jagex.game.runetek5.scene.Scene.aClass65Array2 ?: return false
-        val level: Int = PlayerUpdate.currentLevel
-        if (level !in grounds.indices) return false
-        val ground = grounds[level] as? com.jagex.game.runetek5.graphics.hd.HdGround ?: return false
-        return ground.hdWaterTile(kotlin.math.floor(x / 512.0f).toInt(), kotlin.math.floor(z / 512.0f).toInt())
     }
 
     /** The draw's colour (0), texture coordinate (1) and normal (2) attributes, for the reflection. */
@@ -998,8 +984,10 @@ class HdShadows {
      * 634HD reflections: this frame's opaque casters and last frame's translucent ones drawn again in
      * colour with [program] (reflect_dynamic.vert: uMatrix world to clip through the mirror times the
      * model's world matrix, uModelView the eye's, uModelWorld, uTextured, the texture on [textureUnit]);
-     * [plane] the water plane the scene is mirrored about (world y): a caster on a water tile is clipped
-     * at its own origin's height instead where that is higher (reflect_dynamic.vert's band over uPlane).
+     * [plane] the water plane the scene is mirrored about (world y): a caster is clipped at its own
+     * origin's height instead where that is higher (reflect_dynamic.vert's band over uPlane: a decal at a
+     * model's base, a fishing spot's quad, is never seen from above, whether the spot stands on the river,
+     * 40 units over the level's mean water plane, or on a shore tile with its quad over the water).
      */
     fun drawReflected(program: WebGLProgram, worldToClip: FloatArray, view: FloatArray, textureUnit: Int, which: Int = 0, plane: Float = 0.0f) {
         if (vao == 0) ensurePrograms()
@@ -1043,8 +1031,8 @@ class HdShadows {
                 }
                 if (list.elementBuffer[i] == -1 && list.indexBuffer == 0) continue
                 for (k in 0 until 16) matrix[k] = list.modelView[i * 16 + k]
-                // world y grows downwards: the higher of the mean plane and the caster's own tile's surface
-                GL33C.glUniform1f(uPlane, if (list.onWater[i]) minOf(plane, matrix[13]) else plane)
+                // world y grows downwards: the higher of the mean plane and the caster's own origin
+                GL33C.glUniform1f(uPlane, minOf(plane, matrix[13]))
                 matrixBuffer.clear()
                 matrixBuffer.put(Mat4.multiply(worldToClip, matrix)).flip()
                 GL33C.glUniformMatrix4fv(uMatrix, false, matrixBuffer)
