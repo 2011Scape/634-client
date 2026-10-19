@@ -74,7 +74,8 @@ layout(std140) uniform HdFrame {
     // the environment's tints of the sun's (light 0) and the ambient light (HD_ENV_LIGHT)
     vec4 hdEnvSun;
     vec4 hdEnvAmbient;
-    // the area's water (HD_WATER): x waves' height, y speed, z glint, w wave size (1 each by default)
+    // the area's water (HD_WATER): x waves' height, y speed (the water clock's rate, hdWaterClock), z glint,
+    // w the ripples' size (1 each by default)
     vec4 hdWaterParams;
     // the characters grass bends away from (HD_GRASS): x how many; their world x, z
     vec4 hdActorInfo;
@@ -98,6 +99,12 @@ layout(std140) uniform HdFrame {
     // the ground fog (HD_FOG, environments.json groundFog): x its start, y its end (world y, negative is up: full
     // below the start, none above the end), z its opacity (0: none), w: unused
     vec4 hdGroundFog;
+    // the water clock (HD_WATER_SURFACE, the caustics): x seconds of water time, advanced at the area's
+    // speed (a speed blended over an environment's transition moved the phase through many repeats when
+    // it scaled the frame's seconds instead), y the ripples' size shown before the transition, z the
+    // transition's progress (0 to 1; under 1 the surface crossfades the ripples from y to hdWaterParams.w:
+    // a blended size scales the world-space pattern about the world's origin, a sweep of hundreds of repeats)
+    vec4 hdWaterClock;
 };
 
 // The inverse of the composite's tonemap (post_composite.frag): the linear value that, after the

@@ -94,6 +94,11 @@ class HdFeatures {
     private var cachedVersion: Int = -1
     private var eased: Boolean = false
     private var lastNanos: Long = 0L
+    // the water clock: seconds of water time, advanced every frame at the area's water speed (a speed
+    // that scaled the frame's seconds moved the ripples' phase through many repeats when it blended at an
+    // environment's edge); wraps hourly, as the frame's seconds do
+    private var waterClock: Float = 0.0f
+    private var waterClockNanos: Long = 0L
     private val target: FloatArray = FloatArray(14)
 
     /** The sun's shadow map (HdSettings.shadows). */
@@ -148,6 +153,12 @@ class HdFeatures {
         this.environment(toolkit.hdContent, state)
         uniforms.setWater(water[0], water[1], water[2], water[3])
         uniforms.setWaterParams(waterParams[0], waterParams[1], waterParams[2], waterParams[3])
+        val nanos: Long = System.nanoTime()
+        // a stall (a map build, a paused window) advances the clock a quarter second at most
+        val dt: Float = if (waterClockNanos == 0L) 0.0f else minOf(0.25f, (nanos - waterClockNanos) / 1.0e9f)
+        waterClockNanos = nanos
+        waterClock = (waterClock + dt * waterParams[1]) % 3600.0f
+        uniforms.setWaterClock(waterClock, fromWaterParams[3], transitionProgress)
         uniforms.setActors(actors, if (HdSettings.grassDisplacement) findActors() else 0)
         // day and night: the sun or moon replaces the game's light; its colour and the ambient tint the
         // environment's, and the shadow sun follows it
@@ -307,6 +318,9 @@ class HdFeatures {
             liveWater[i] += (waterTarget[i] - liveWater[i]) * step
             liveWaterParams[i] += (paramsTarget[i] - liveWaterParams[i]) * step
         }
+        // the ripples' size takes its target at once: the surface crossfades the ripples between two fixed
+        // sizes over the transition, and an eased size would slide the pattern it fades in
+        liveWaterParams[3] = paramsTarget[3]
         liveSunPitch = easeAngle(liveSunPitch, environment?.sunPitch ?: Float.NaN, step)
         liveSunYaw = easeAngle(liveSunYaw, environment?.sunYaw ?: Float.NaN, step)
         // The transition: a new environment blends in from what was shown over TRANSITION_SECONDS
@@ -339,6 +353,10 @@ class HdFeatures {
             water[i] = fromWater[i] + (liveWater[i] - fromWater[i]) * t
             waterParams[i] = fromWaterParams[i] + (liveWaterParams[i] - fromWaterParams[i]) * t
         }
+        // the ripples' size is not blended: the surface crossfades the ripples from the size shown when the
+        // environment changed (fromWaterParams[3], uploaded with the water clock) to the area's over the
+        // transition (a blended size scales the world-space pattern about the world's origin: a sweep)
+        waterParams[3] = liveWaterParams[3]
         sunPitch = easeAngle(fromSunPitch, liveSunPitch, t)
         sunYaw = easeAngle(fromSunYaw, liveSunYaw, t)
     }
