@@ -64,7 +64,6 @@ class NPCEntity : PathingEntity(), Npc {
 		return this.playerIndex
 	}
 
-
 	@OriginalMember(owner = "client!ff", name = "Bd", descriptor = "Lclient!bb;")
 	@JvmField
 	var npcType: NPCType? = null

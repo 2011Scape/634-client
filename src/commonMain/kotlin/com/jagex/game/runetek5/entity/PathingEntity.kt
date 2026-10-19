@@ -76,7 +76,6 @@ abstract class PathingEntity : AbstractInteractiveEntity, Actor {
 		return SceneDrawer.timesSceneRendered == this.drawCycle
 	}
 
-
 	// Not part of the original client: where this entity stood at the previous and the current game
 	// cycle, and where it really is while a frame shows it between the two; see ClientFeatures.blendEntities.
 	@JvmField

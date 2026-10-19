@@ -43,7 +43,6 @@ class ItemContainer : Node(), ApiItemContainer {
 		return if (slot >= 0 && slot < counts.size) counts[slot] else 0
 	}
 
-
 	@OriginalMember(owner = "client!ie", name = "r", descriptor = "[I")
 	@JvmField
 	var itemIds: IntArray? = intArrayOf(-1)

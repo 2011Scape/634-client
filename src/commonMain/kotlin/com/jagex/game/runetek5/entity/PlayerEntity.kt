@@ -70,7 +70,6 @@ class PlayerEntity : PathingEntity(), Player {
 		return this === PlayerUpdate.localPlayer
 	}
 
-
 	@OriginalMember(owner = "client!ke", name = "td", descriptor = "I")
 	private var basId: Int = 0
 
