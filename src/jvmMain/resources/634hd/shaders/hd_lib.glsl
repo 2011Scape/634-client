@@ -4,6 +4,9 @@
 // is on when its bit is set in hdFlags.x and the draw is part of the 3D view (uHdScene); with every
 // bit clear the shaders compute exactly what the game draws without 634HD's features.
 
+// The water's reflection (reflect.vert, reflect_dynamic.vert) leaves out this band (world units,
+// 512 a tile) over the water plane: a decal lying on the water would be mirrored in place.
+#define HD_REFLECT_SURFACE_BAND 16.0
 #define HD_LINEAR 1
 #define HD_PIXEL_LIGHTING 2
 #define HD_SHADOWS 4
