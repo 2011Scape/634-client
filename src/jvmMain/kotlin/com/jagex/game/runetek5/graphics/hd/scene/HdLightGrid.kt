@@ -100,6 +100,16 @@ class HdLightGrid {
         private const val BLOCKWALK: Int = 0x200000
 
         private const val DIAGONAL: Float = 1.4142135f
+
+        /** A storey's height (the terrain's level step). */
+        private const val STOREY: Float = 960.0f
+
+        /**
+         * Visibility patches for the moving lights (the carried light, NPCs, projectiles, spot
+         * animations): this many layers after the loc lights', given out nearest first each frame and
+         * flooded again only when a light's tile, level or reach changes.
+         */
+        private const val POOL: Int = 8
     }
 
     /** Set when the scene is built or changes; the grid is flooded again on the next frame. */
@@ -140,8 +150,16 @@ class HdLightGrid {
     private var gridTexture: Int = 0
     private var gridWidth: Int = 0
 
-    // the visibility patches: one per lights.json loc light (layer index + 1), layer 0 all 255
+    // the visibility patches: one per lights.json loc light (layer index + 1), layer 0 all 255, then
+    // POOL layers for the moving lights
     private var patchLayers: Int = 0
+    private var staticLayers: Int = 0
+    // the pool's slots: the tile, level and reach each was last flooded for (poolValid false: none)
+    private val poolTileX: IntArray = IntArray(POOL)
+    private val poolTileZ: IntArray = IntArray(POOL)
+    private val poolLevel: IntArray = IntArray(POOL)
+    private val poolReach: IntArray = IntArray(POOL)
+    private val poolValid: BooleanArray = BooleanArray(POOL)
     private var patches: ByteArray = ByteArray(0)
     private var patchPixels: ByteBuffer? = null
     private var patchTexture: Int = 0
@@ -155,6 +173,7 @@ class HdLightGrid {
     private var heapCount: Int = 0
 
     private val DEBUG: Boolean = System.getProperty("client.test.hdDebug") != null
+    private var debugFrame: Int = 0
     private var builds: Int = 0
 
     /** A wall or loc changed on tile ([x], [z]) of [level]: the seeds whose reach covers it are flooded again next frame. */
@@ -170,6 +189,9 @@ class HdLightGrid {
                 seedStale[s] = true
                 partial = true
             }
+        }
+        for (p in 0 until POOL) {
+            if (poolValid[p] && poolLevel[p] == level && Math.abs(x - poolTileX[p]) <= poolReach[p] && Math.abs(z - poolTileZ[p]) <= poolReach[p]) poolValid[p] = false
         }
     }
 
@@ -194,14 +216,90 @@ class HdLightGrid {
         bind()
         val strength: Float = if (night < 0.0f) PLAIN_STRENGTH else DAY_STRENGTH + (1.0f - DAY_STRENGTH) * night
         uniforms.setGridParams(strength, TEXELS_PER_TILE.toFloat())
-        // each light written this frame: its wall visibility patch, and where the patch is centred
+        // each light written this frame: its wall visibility patch and the tile the patch is centred
+        // on (the seed's for a loc light: its flame may burn on the next tile), and its storey
+        val level: Int = com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate.localPlayer?.level?.toInt() ?: 0
+        val debug: Boolean = DEBUG && (debugFrame++ % 50) == 0
+        var slot: Int = 0
         for (i in 0 until lights.used) {
-            uniforms.setLightGrid(i, layerOf(lights.usedLocIndex(i)).toFloat(), lights.usedX(i), lights.usedZ(i))
+            val loc: Int = lights.usedLocIndex(i)
+            val tileX: Int
+            val tileZ: Int
+            var layer: Int
+            if (loc >= 0) {
+                val def = lights.locLightDef(loc)
+                tileX = (lights.locLightX(loc) + (def?.offsetX?.toInt() ?: 0)) shr 9
+                tileZ = (lights.locLightZ(loc) + (def?.offsetZ?.toInt() ?: 0)) shr 9
+                layer = layerOf(loc)
+            } else {
+                tileX = lights.usedX(i).toInt() shr 9
+                tileZ = lights.usedZ(i).toInt() shr 9
+                // a moving light: a pool slot while there are any, flooded afresh when its key changes
+                layer = 0
+                if (slot < POOL && staticLayers > 0 && staticLayers + POOL == patchLayers) {
+                    val reach: Int = minOf(MAX_REACH, kotlin.math.ceil(minOf(MAX_REACH.toFloat(), maxOf(MIN_REACH, lights.usedRadius(i) * FILL_REACH)).toDouble()).toInt())
+                    layer = staticLayers + slot
+                    if (!poolValid[slot] || poolTileX[slot] != tileX || poolTileZ[slot] != tileZ || poolLevel[slot] != level || poolReach[slot] != reach) {
+                        floodPool(slot, tileX, tileZ, level, reach)
+                    }
+                    slot++
+                }
+            }
+            val floor: Float = floorAt(level, tileX, tileZ)
+            val ceiling: Float = ceilingAt(level, tileX, tileZ, floor)
+            uniforms.setLightGrid(i, layer.toFloat(), (tileX * 512 + 256).toFloat(), (tileZ * 512 + 256).toFloat(), ceiling)
+            uniforms.setLightFloor(i, floor)
+            if (debug && i < 8) {
+                println("HDDEBUG light " + i + " loc " + loc + " layer " + layer + " tile " + tileX + "," + tileZ + " level " + level + " floor " + floor.toInt() + " ceiling " + (if (ceiling <= HdFrameUniforms.NO_CEILING) "none" else ceiling.toInt().toString()))
+            }
         }
     }
 
+    /** Floods pool slot [slot] for a moving light on tile ([tileX], [tileZ]) of [level] with [reach], and uploads its layer. */
+    private fun floodPool(slot: Int, tileX: Int, tileZ: Int, level: Int, reach: Int) {
+        val started: Long = System.nanoTime()
+        val layer: Int = staticLayers + slot
+        val patchAt: Int = layer * PATCH * PATCH
+        java.util.Arrays.fill(patches, patchAt, patchAt + PATCH * PATCH, 0.toByte())
+        val r: Int = minOf(MAX_REACH, reach)
+        if (dijkstra(tileX, tileZ, level, reach.toFloat())) writePatch(layer, r, 2 * r + 1, reach.toFloat(), boxDistance)
+        uploadPatch(layer)
+        poolTileX[slot] = tileX
+        poolTileZ[slot] = tileZ
+        poolLevel[slot] = level
+        poolReach[slot] = reach
+        poolValid[slot] = true
+        if (DEBUG) println("HDDEBUG light grid pool slot " + slot + " flooded at " + tileX + "," + tileZ + " level " + level + " reach " + reach + " in " + (System.nanoTime() - started) / 1000L + " us")
+    }
+
+    /** The floor of tile ([x], [z]) on [level] (world y), or NO_FLOOR where the level has no ground there. */
+    private fun floorAt(level: Int, x: Int, z: Int): Float {
+        if (level < 0 || level >= LEVELS || x < 0 || z < 0 || x >= size || z >= size) return HdFrameUniforms.NO_FLOOR
+        val column = Scene.aClass65Array1?.getOrNull(level)?.tileHeights?.getOrNull(x) ?: return HdFrameUniforms.NO_FLOOR
+        if (z >= column.size) return HdFrameUniforms.NO_FLOOR
+        if (level > 0) {
+            val map: CollisionMap = MapRegion.aClass104Array3[level] ?: return HdFrameUniforms.NO_FLOOR
+            if ((flags(map, x, z) and BLOCKWALK) != 0) return HdFrameUniforms.NO_FLOOR
+        }
+        return column[z].toFloat()
+    }
+
+    /**
+     * What is over tile ([x], [z]) of [level] (world y): the floor of the level above where it has one,
+     * a storey up where the tile is under a roof (the roof-hiding flag), else NO_CEILING.
+     */
+    private fun ceilingAt(level: Int, x: Int, z: Int, floor: Float): Float {
+        if (x < 0 || z < 0 || x >= size || z >= size) return HdFrameUniforms.NO_CEILING
+        val above: Float = floorAt(level + 1, x, z)
+        if (above < HdFrameUniforms.NO_FLOOR) return above
+        val masks = SettingsBits.tileFunctionMasks
+        val row = masks?.getOrNull(level)?.getOrNull(x)
+        if (row != null && z < row.size && (row[z].toInt() and TileFlag.REMOVE_ROOF) != 0 && floor < HdFrameUniforms.NO_FLOOR) return floor - STOREY
+        return HdFrameUniforms.NO_CEILING
+    }
+
     /** The visibility layer of lights.json loc light [locIndex] (HdLights' index), 0 when none. */
-    fun layerOf(locIndex: Int): Int = if (locIndex < 0 || locIndex + 1 >= patchLayers) 0 else locIndex + 1
+    fun layerOf(locIndex: Int): Int = if (locIndex < 0 || locIndex + 1 >= staticLayers) 0 else locIndex + 1
 
     private fun rebuild(lights: HdLights, content: HdContent, uniforms: HdFrameUniforms) {
         val started: Long = System.nanoTime()
@@ -220,7 +318,8 @@ class HdLightGrid {
         }
         collectSeeds(lights, content)
         val locs: Int = lights.locLightCount()
-        patchLayers = locs + 1
+        staticLayers = locs + 1
+        patchLayers = staticLayers + POOL
         if (patches.size != patchLayers * PATCH * PATCH) {
             patches = ByteArray(patchLayers * PATCH * PATCH)
             patchPixels = ByteBuffer.allocateDirect(patchLayers * PATCH * PATCH).order(ByteOrder.nativeOrder())
@@ -416,7 +515,7 @@ class HdLightGrid {
             cache = FloatArray(side * side)
             seedDistance[s] = cache
         }
-        if (!dijkstra(s, seedLevel[s])) {
+        if (!dijkstra(seedX[s], seedZ[s], seedLevel[s], seedReach[s])) {
             java.util.Arrays.fill(cache, Float.MAX_VALUE)
             return
         }
@@ -433,6 +532,7 @@ class HdLightGrid {
         }
         java.util.Arrays.fill(patches, 0.toByte())
         java.util.Arrays.fill(patches, 0, PATCH * PATCH, (-1).toByte())
+        java.util.Arrays.fill(poolValid, false)
         for (s in 0 until seedCount) {
             val reach: Float = seedReach[s]
             if (reach <= 0.0f) continue
@@ -445,7 +545,7 @@ class HdLightGrid {
                     distances = seedDistance[s] ?: continue
                 } else {
                     // a game light that grows upwards: its upper levels flooded afresh (they are few)
-                    if (!dijkstra(s, level)) continue
+                    if (!dijkstra(seedX[s], seedZ[s], level, seedReach[s])) continue
                     distances = boxDistance
                 }
                 deposit(s, level, r, side, distances)
@@ -454,17 +554,16 @@ class HdLightGrid {
     }
 
     /**
-     * Dijkstra from seed [s] over the tiles of [level] within its reach, into boxDistance (the box
-     * (2r + 1)^2 about the seed); false when the level has no collision map.
+     * Dijkstra from tile ([fromX], [fromZ]) over the tiles of [level] within [reach], into boxDistance
+     * (the box (2r + 1)^2 about the tile); false when the level has no collision map.
      */
-    private fun dijkstra(s: Int, level: Int): Boolean {
-        val reach: Float = seedReach[s]
+    private fun dijkstra(fromX: Int, fromZ: Int, level: Int, reach: Float): Boolean {
         val r: Int = minOf(MAX_REACH, kotlin.math.ceil(reach.toDouble()).toInt())
         val side: Int = 2 * r + 1
         val cells: Int = side * side
-        val originX: Int = seedX[s] - r
-        val originZ: Int = seedZ[s] - r
-        val map: CollisionMap = MapRegion.aClass104Array3[clipLevel(level, seedX[s], seedZ[s])] ?: return false
+        val originX: Int = fromX - r
+        val originZ: Int = fromZ - r
+        val map: CollisionMap = MapRegion.aClass104Array3[clipLevel(level, fromX, fromZ)] ?: return false
         run {
             for (i in 0 until cells) {
                 boxDistance[i] = Float.MAX_VALUE
@@ -525,7 +624,6 @@ class HdLightGrid {
             val red: Float = seedRed[s] * FILL_SCALE
             val green: Float = seedGreen[s] * FILL_SCALE
             val blue: Float = seedBlue[s] * FILL_SCALE
-            val patchAt: Int = seedLayer[s] * PATCH * PATCH
             for (i in 0 until cells) {
                 val d: Float = distances[i]
                 val cx: Int = i % side
@@ -548,22 +646,33 @@ class HdLightGrid {
                         }
                     }
                 }
-                if (seedLayer[s] > 0 && level == seedLevel[s]) {
-                    val px: Int = cx - r + PATCH_HALF
-                    val pz: Int = cz - r + PATCH_HALF
-                    if (px in 0 until PATCH && pz in 0 until PATCH) {
-                        val ex: Float = (cx - r).toFloat()
-                        val ez: Float = (cz - r).toFloat()
-                        val straight: Float = kotlin.math.sqrt(ex * ex + ez * ez)
-                        var vis: Float = 0.0f
-                        if (d < reach && straight < reach) {
-                            val ratio: Float = (1.0f - d / reach) / (1.0f - straight / reach)
-                            vis = (ratio * ratio).coerceIn(0.0f, 1.0f)
-                        }
-                        patches[patchAt + pz * PATCH + px] = (vis * 255.0f + 0.5f).toInt().toByte()
-                    }
-                }
             }
+            if (seedLayer[s] > 0 && level == seedLevel[s]) writePatch(seedLayer[s], r, side, reach, distances)
+        }
+    }
+
+    /**
+     * Visibility patch [layer] from a flood's box of path [distances] ((2[r] + 1)^2 cells, [side] a
+     * row, within [reach]): how the path distance compares with the straight one, squared.
+     */
+    private fun writePatch(layer: Int, r: Int, side: Int, reach: Float, distances: FloatArray) {
+        val patchAt: Int = layer * PATCH * PATCH
+        for (i in 0 until side * side) {
+            val cx: Int = i % side
+            val cz: Int = i / side
+            val px: Int = cx - r + PATCH_HALF
+            val pz: Int = cz - r + PATCH_HALF
+            if (px < 0 || pz < 0 || px >= PATCH || pz >= PATCH) continue
+            val d: Float = distances[i]
+            val ex: Float = (cx - r).toFloat()
+            val ez: Float = (cz - r).toFloat()
+            val straight: Float = kotlin.math.sqrt(ex * ex + ez * ez)
+            var vis: Float = 0.0f
+            if (d < reach && straight < reach) {
+                val ratio: Float = (1.0f - d / reach) / (1.0f - straight / reach)
+                vis = (ratio * ratio).coerceIn(0.0f, 1.0f)
+            }
+            patches[patchAt + pz * PATCH + px] = (vis * 255.0f + 0.5f).toInt().toByte()
         }
     }
 
@@ -1210,6 +1319,22 @@ class HdLightGrid {
         GL33C.glPixelStorei(GL33C.GL_UNPACK_ALIGNMENT, 4)
         GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + previous)
         uploadNanos = System.nanoTime() - started
+    }
+
+    /** Uploads patch [layer] alone (a pool slot flooded again); nothing until the texture holds every layer. */
+    private fun uploadPatch(layer: Int) {
+        if (patchTexture == 0 || patchTextureLayers != patchLayers) return
+        val previous: Int = HdGl.state.activeTextureUnit
+        val patchData: ByteBuffer = patchPixels!!
+        patchData.clear()
+        patchData.put(patches, layer * PATCH * PATCH, PATCH * PATCH)
+        patchData.position(0).limit(PATCH * PATCH)
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + VIS_UNIT)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_2D_ARRAY, patchTexture)
+        GL33C.glPixelStorei(GL33C.GL_UNPACK_ALIGNMENT, 1)
+        GL33C.glTexSubImage3D(GL33C.GL_TEXTURE_2D_ARRAY, 0, 0, 0, layer, PATCH, PATCH, 1, GL33C.GL_RED, GL33C.GL_UNSIGNED_BYTE, patchData)
+        GL33C.glPixelStorei(GL33C.GL_UNPACK_ALIGNMENT, 4)
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + previous)
     }
 
     /** Binds both textures on their units (the emulator tracks the active unit, so it is put back). */

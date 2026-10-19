@@ -199,7 +199,8 @@ vec3 hdPointHighlights(vec3 viewPos, vec3 normal, float gloss) {
     if (!hdOn(HD_LIGHTS)) return sum;
     vec3 view = normalize(-viewPos);
     bool walls = hdOn(HD_LIGHT_GRID);
-    vec3 world = walls ? (hdViewToWorld * vec4(viewPos, 1.0)).xyz : vec3(0.0);
+    // half a tile out along the normal, as hdPointLights samples it
+    vec3 world = walls ? (hdViewToWorld * vec4(viewPos, 1.0)).xyz + mat3(hdViewToWorld) * normal * 256.0 : vec3(0.0);
     for (int i = 0; i < hdLightInfo.x; i++) {
         vec3 toLight = hdLightPosition[i].xyz - viewPos;
         float dist = length(toLight);

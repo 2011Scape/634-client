@@ -363,6 +363,7 @@ class HdLights {
     fun usedLocIndex(i: Int): Int = locIndex[i]
     fun usedX(i: Int): Float = x[i]
     fun usedZ(i: Int): Float = z[i]
+    fun usedRadius(i: Int): Float = def[i]?.radius ?: 0.0f
 
     /** The loc lights found in the scene (HdLightGrid seeds its flood from them): how many, and each one's world position, level and definition. */
     fun locLightCount(): Int = locCount

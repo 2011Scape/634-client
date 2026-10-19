@@ -55,7 +55,7 @@ layout(std140) uniform HdFrame {
     ivec4 hdLightInfo;
     // eye-space position, w: radius
     vec4 hdLightPosition[HD_MAX_LIGHTS];
-    // colour times intensity, w: unused
+    // colour times intensity, w: the floor the light stands on (world y; 1e9 none; HD_LIGHT_GRID)
     vec4 hdLightColour[HD_MAX_LIGHTS];
     // world space to the occlusion height map's (u, v, depth) (HD_AO)
     mat4 hdAoMatrix;
@@ -92,7 +92,8 @@ layout(std140) uniform HdFrame {
     vec4 hdSceneSize;
     // the room fill (HD_LIGHT_GRID, HdLightGrid): x strength this frame, y the grid's texels per tile
     vec4 hdGridParams;
-    // each point light's wall visibility patch (HD_LIGHT_GRID): x its layer (0 none), y, z the light's world x, z
+    // each point light's wall visibility patch (HD_LIGHT_GRID): x its layer (0 none), y, z the world x, z
+    // of the tile it is centred on, w the light's ceiling (world y; -1e9 none)
     vec4 hdLightGrid[HD_MAX_LIGHTS];
     // the ground fog (HD_FOG, environments.json groundFog): x its start, y its end (world y, negative is up: full
     // below the start, none above the end), z its opacity (0: none), w: unused
@@ -435,20 +436,36 @@ float hdPointFalloff(float dist, float radius) {
 }
 
 // How much of point light [i] gets round the walls to world position [world] (HD_LIGHT_GRID): its
-// visibility patch (HdLightGrid), 32 x 32 tiles about the light; 1 for a light without one.
+// visibility patch (HdLightGrid), 32 x 32 tiles about the light (1 for a light without one), and its
+// storey: nothing past the ceiling over the light (the floor above, or a storey up under a roof) and
+// nothing from half a storey below the floor it stands on. The game's y grows downwards.
 float hdLightVisibility(int i, vec3 world) {
     float layer = hdLightGrid[i].x;
-    if (layer < 0.5) return 1.0;
-    vec2 uv = (world.xz / 512.0 - floor(hdLightGrid[i].yz / 512.0) + 16.0) / 32.0;
-    return texture(uHdLightVisibility, vec3(uv, layer)).r;
+    float v = 1.0;
+    if (layer >= 0.5) {
+        vec2 uv = (world.xz / 512.0 - floor(hdLightGrid[i].yz / 512.0) + 16.0) / 32.0;
+        v = texture(uHdLightVisibility, vec3(uv, layer)).r;
+    }
+    float ceiling = hdLightGrid[i].w;
+    if (ceiling > -1.0e8) v *= smoothstep(ceiling - 160.0, ceiling + 32.0, world.y);
+    float floorY = hdLightColour[i].w;
+    if (floorY < 1.0e8) v *= 1.0 - smoothstep(floorY + 500.0, floorY + 850.0, world.y);
+    return v;
 }
 
 vec3 hdPointLights(vec3 viewPos, vec3 normal) {
     vec3 sum = vec3(0.0);
     float normalLength = length(normal);
     vec3 n = normalLength > 0.0001 ? normal / normalLength : vec3(0.0);
+    // the side the viewer sees: a wall is two-sided, and its back face carries the front's normal
+    if (normalLength > 0.0001 && dot(n, -viewPos) < 0.0) n = -n;
     bool walls = hdOn(HD_LIGHT_GRID);
-    vec3 world = walls ? (hdViewToWorld * vec4(viewPos, 1.0)).xyz : vec3(0.0);
+    vec3 world = vec3(0.0);
+    if (walls) {
+        // half a tile out along the normal: the visibility patch is a texel a tile, and a wall face on
+        // the tile edge read half of the room beyond it
+        world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz + mat3(hdViewToWorld) * n * 256.0;
+    }
     for (int i = 0; i < hdLightInfo.x; i++) {
         vec3 toLight = hdLightPosition[i].xyz - viewPos;
         float dist = length(toLight);
@@ -456,7 +473,9 @@ vec3 hdPointLights(vec3 viewPos, vec3 normal) {
         if (dist >= radius) continue;
         float falloff = hdPointFalloff(dist, radius);
         if (walls) falloff *= hdLightVisibility(i, world);
-        float facing = normalLength > 0.0001 ? max(dot(n, toLight / max(dist, 0.0001)), 0.0) * 0.8 + 0.2 : 1.0;
+        // a soft wrap past the terminator, and nothing beyond it: with a floor of 0.2 a roof's top
+        // took a fifth of every lamp in the room below
+        float facing = normalLength > 0.0001 ? clamp(dot(n, toLight / max(dist, 0.0001)) * 0.8 + 0.2, 0.0, 1.0) : 1.0;
         sum += hdLightColour[i].rgb * falloff * facing;
     }
     return hdOn(HD_LINEAR) ? sum : sum * 0.8;
@@ -466,21 +485,28 @@ vec3 hdPointLights(vec3 viewPos, vec3 normal) {
 // through the room on the tile grid, read from the level whose floor the fragment stands on (the
 // highest floor at or below it; the game's y grows downwards) at this frame's strength.
 // The grid level whose floor a fragment at world position [world] stands on (the highest floor at
-// or below it; the game's y grows downwards), or -1 when no level has a floor there.
-int hdLightFillLevel(vec3 world) {
+// or below it; the game's y grows downwards), or -1 when no level has a floor there; [floorY] that
+// floor's y.
+int hdLightFillLevel(vec3 world, out float floorY) {
     ivec3 gridSize = textureSize(uHdLightGrid, 0);
     vec2 uv = world.xz * hdGridParams.y / (512.0 * vec2(gridSize.xy));
     ivec2 texel = clamp(ivec2(uv * vec2(gridSize.xy)), ivec2(0), gridSize.xy - 1);
     int level = -1;
     float best = 1.0e9;
     for (int l = 0; l < gridSize.z; l++) {
-        float floorY = texelFetch(uHdLightGrid, ivec3(texel, l), 0).a;
-        if (floorY < 59000.0 && floorY >= world.y - 96.0 && floorY < best) {
-            best = floorY;
+        float y = texelFetch(uHdLightGrid, ivec3(texel, l), 0).a;
+        if (y < 59000.0 && y >= world.y - 96.0 && y < best) {
+            best = y;
             level = l;
         }
     }
+    floorY = best;
     return level;
+}
+
+int hdLightFillLevel(vec3 world) {
+    float floorY;
+    return hdLightFillLevel(world, floorY);
 }
 
 // The grid's texel of [level] at [world], as uploaded (the overlay's raw view).
@@ -490,12 +516,22 @@ vec4 hdLightGridRaw(vec3 world, int level) {
     return texture(uHdLightGrid, vec3(uv, float(level)));
 }
 
-vec3 hdLightFill(vec3 world) {
-    int level = hdLightFillLevel(world);
+// [upness]: how far the surface faces up (0 a wall, 1 a floor or roof). The fill is the room's: a
+// storey (960) up it is the roof, lit from below through nothing. An upward face loses the fill from
+// 700 units above its floor (a roof's eaves; tables stay), a wall keeps it to its top.
+vec3 hdLightFill(vec3 world, float upness) {
+    float floorY;
+    int level = hdLightFillLevel(world, floorY);
     if (level < 0) return vec3(0.0);
     ivec3 gridSize = textureSize(uHdLightGrid, 0);
     vec2 uv = world.xz * hdGridParams.y / (512.0 * vec2(gridSize.xy));
-    return texture(uHdLightGrid, vec3(uv, float(level))).rgb * hdGridParams.x;
+    float above = floorY - world.y;
+    float fade = upness > 0.3 ? 1.0 - smoothstep(700.0, 1000.0, above) : 1.0 - smoothstep(960.0, 1250.0, above);
+    return texture(uHdLightGrid, vec3(uv, float(level))).rgb * hdGridParams.x * fade;
+}
+
+vec3 hdLightFill(vec3 world) {
+    return hdLightFill(world, 0.0);
 }
 
 // [color] with the point lights added on its unlit colour [base] (HD_LIGHTS), and the room fill
@@ -508,8 +544,14 @@ vec4 hdAddPointLights(vec4 color, vec4 base, vec3 viewPos, vec3 normal) {
         // on the tile edge, so without this the outside face read the room's fill
         vec3 world = (hdViewToWorld * vec4(viewPos, 1.0)).xyz;
         float normalLength = length(normal);
-        if (normalLength > 0.0001) world += mat3(hdViewToWorld) * (normal / normalLength) * 128.0;
-        light += hdLightFill(world);
+        float upness = 0.0;
+        if (normalLength > 0.0001) {
+            vec3 worldNormal = mat3(hdViewToWorld) * (normal / normalLength);
+            world += worldNormal * 128.0;
+            // the world's up is -y
+            upness = abs(worldNormal.y);
+        }
+        light += hdLightFill(world, upness);
     }
     vec3 lit = color.rgb + base.rgb * light;
     // in linear colour no further than the lit colour's ceiling (hdLitColour): the fill and the point
