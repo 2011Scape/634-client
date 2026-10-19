@@ -983,9 +983,13 @@ class HdShadows {
     /**
      * 634HD reflections: this frame's opaque casters and last frame's translucent ones drawn again in
      * colour with [program] (reflect_dynamic.vert: uMatrix world to clip through the mirror times the
-     * model's world matrix, uModelView the eye's, uModelWorld, uTextured, the texture on [textureUnit]).
+     * model's world matrix, uModelView the eye's, uModelWorld, uTextured, the texture on [textureUnit]);
+     * [plane] the water plane the scene is mirrored about (world y): a caster is clipped at its own
+     * origin's height instead where that is higher (reflect_dynamic.vert's band over uPlane: a decal at a
+     * model's base, a fishing spot's quad, is never seen from above, whether the spot stands on the river,
+     * 40 units over the level's mean water plane, or on a shore tile with its quad over the water).
      */
-    fun drawReflected(program: WebGLProgram, worldToClip: FloatArray, view: FloatArray, textureUnit: Int, which: Int = 0) {
+    fun drawReflected(program: WebGLProgram, worldToClip: FloatArray, view: FloatArray, textureUnit: Int, which: Int = 0, plane: Float = 0.0f) {
         if (vao == 0) ensurePrograms()
         GL33C.glBindVertexArray(vao)
         // the shadow pass enables attribute 0 on this VAO, but may not have run (shadows and AO off)
@@ -995,6 +999,7 @@ class HdShadows {
         val uModelWorld: Int = GL33C.glGetUniformLocation(program.id, "uModelWorld")
         val uTextured: Int = GL33C.glGetUniformLocation(program.id, "uTextured")
         val uLit: Int = GL33C.glGetUniformLocation(program.id, "uLit")
+        val uPlane: Int = GL33C.glGetUniformLocation(program.id, "uPlane")
         GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uTexture"), textureUnit)
         GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + textureUnit)
         // this frame's opaque casters and last frame's translucent ones (players are drawn translucent);
@@ -1026,6 +1031,8 @@ class HdShadows {
                 }
                 if (list.elementBuffer[i] == -1 && list.indexBuffer == 0) continue
                 for (k in 0 until 16) matrix[k] = list.modelView[i * 16 + k]
+                // world y grows downwards: the higher of the mean plane and the caster's own origin
+                GL33C.glUniform1f(uPlane, minOf(plane, matrix[13]))
                 matrixBuffer.clear()
                 matrixBuffer.put(Mat4.multiply(worldToClip, matrix)).flip()
                 GL33C.glUniformMatrix4fv(uMatrix, false, matrixBuffer)
