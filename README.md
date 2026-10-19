@@ -44,6 +44,9 @@ It connects to [2011Scape](https://2011.rs) (`play.2011.rs`). For your own serve
 - **Extras**: tile markers, experience drops, NPC and ground item labels, shift-drop, a longer
   render distance and a wider zoom.
 - **Developer tools**: ids on right-click menus, coordinates on screen, a better console.
+- **Plugins**: jars in `~/.634-client/plugins` that read the game, draw on it and add menu entries
+  and commands, on a small stable API ([docs/PLUGINS.md](docs/PLUGINS.md)). A plugin runs with
+  everything the client can do, so install only ones from people you trust.
 - **In a browser**: the same game on WebGL 2 ([below](#the-browser-client)).
 
 ## Options
@@ -111,6 +114,7 @@ are off unless the client is started with `--dev-commands`.
 | `--no-console` | Turn off the console's command history, word editing and tab completion. |
 | `--dev` | `--debug` with the wider zoom and the better console. |
 | `--dev-commands` | Allow the console commands that read or write local files. |
+| `--plugins <dir>` | Load the plugin jars in `dir` instead of `~/.634-client/plugins` ([docs/PLUGINS.md](docs/PLUGINS.md)). `--no-plugins` loads none. |
 
 ## Platforms
 
@@ -140,7 +144,7 @@ git clone https://github.com/2011Scape/634-client.git
 cd 634-client
 ./gradlew run                                    # the launcher, connecting to play.2011.rs
 ./gradlew run --args="--address localhost"       # options go in --args
-./gradlew release                                # the release jar and browser zip, in build/release
+./gradlew release                                # the release jar, the plugin API jar and browser zip, in build/release
 ./gradlew installDist                            # a folder with start scripts, in build/install
 ```
 
@@ -186,6 +190,7 @@ original client".
 | [CONFIG.md](docs/CONFIG.md) | Items, NPCs, locations and the other config types. |
 | [CACHE.md](docs/CACHE.md) | The disk cache and JS5. |
 | [CS2.md](docs/CS2.md) | Interfaces and client scripts. |
+| [PLUGINS.md](docs/PLUGINS.md) | Plugins: installing them, writing one, the API, and how the runtime hooks into the client. |
 
 **Trying and checking a change**
 

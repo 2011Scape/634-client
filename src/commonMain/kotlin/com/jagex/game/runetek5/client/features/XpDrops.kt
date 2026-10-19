@@ -1,6 +1,17 @@
 package com.jagex.game.runetek5.client.features
 
 import com.jagex.game.runetek5.client.ClientState
+import com.jagex.game.runetek5.plugin.api.CommandHandler
+import com.jagex.game.runetek5.plugin.api.GameState
+import com.jagex.game.runetek5.plugin.api.Overlay
+import com.jagex.game.runetek5.plugin.api.Plugin
+import com.jagex.game.runetek5.plugin.api.PluginApi
+import com.jagex.game.runetek5.plugin.api.PluginContext
+import com.jagex.game.runetek5.plugin.api.PluginDescriptor
+import com.jagex.game.runetek5.plugin.api.events.EventListener
+import com.jagex.game.runetek5.plugin.api.events.Events
+import com.jagex.game.runetek5.plugin.api.events.GameStateChanged
+import com.jagex.game.runetek5.plugin.api.events.StatChanged
 import com.jagex.game.runetek5.rendering.Renderers
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
@@ -10,8 +21,14 @@ import kotlin.jvm.JvmStatic
  * near the top of the game view, left of the minimap, and fades. The first update of each skill after login only
  * records its experience, so logging in shows no drops. On only with `client.xpDrops=true`;
  * the console command `xpdrops` turns it on and off while playing.
+ *
+ * A built-in plugin (BuiltinPlugins, docs/PLUGINS.md): it hears of each stat update, the logout
+ * and the frame through the plugin API, as a plugin from a jar would, and shows what the API is for.
  */
-object XpDrops {
+object XpDrops : Plugin {
+
+	@JvmField
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("xpdrops", "Experience drops", "1", PluginApi.VERSION, "A \"+N Skill\" drop near the minimap when experience goes up (::xpdrops turns it on and off).", "634-client")
 
 	@JvmField
 	var enabled: Boolean = lang.getBoolean("client.xpDrops")
@@ -49,6 +66,37 @@ object XpDrops {
 	/** The text of the newest drop, for the smoke test. */
 	@JvmField
 	var lastDropText: String? = null
+
+	private var context: PluginContext? = null
+
+	/* The plugin's listeners, made once. */
+
+	private val statListener: EventListener<StatChanged> = EventListener { event -> statUpdated(event.skill, event.oldXp, event.newXp) }
+
+	private val stateListener: EventListener<GameStateChanged> = EventListener { event ->
+		if (event.previous === GameState.LOGGED_IN) {
+			reset()
+		}
+	}
+
+	private val overlay: Overlay = Overlay { _, view -> draw(view.x, view.y, view.width) }
+
+	private val toggle: CommandHandler = CommandHandler { _, _ ->
+		enabled = !enabled
+		context?.client()?.consolePrint(if (enabled) "Experience drops enabled." else "Experience drops disabled.")
+	}
+
+	override fun start(context: PluginContext) {
+		this.context = context
+		context.events().subscribe(Events.STAT_CHANGED, statListener)
+		context.events().subscribe(Events.GAME_STATE_CHANGED, stateListener)
+		context.addOverlay(overlay)
+		context.registerCommand("xpdrops", toggle)
+	}
+
+	override fun stop() {
+		context = null
+	}
 
 	/**
 	 * Called with each stat update the server sends, before the client stores the new experience.

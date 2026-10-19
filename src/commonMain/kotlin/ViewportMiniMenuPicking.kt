@@ -1,3 +1,5 @@
+import com.jagex.game.runetek5.plugin.api.MenuTarget
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.features.TileMarkers
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.ByteArrayPool
@@ -151,6 +153,8 @@ object ViewportMiniMenuPicking {
 					if (TileMarkers.enabled) {
 						MiniMenu.addEntry(false, "", tileY, true, tileX, -1, true, MiniMenuAction.TILE_MARKER, (tileY or (tileX shl 0)).toLong(), if (TileMarkers.isMarked(tileX, tileY)) "Unmark tile" else "Mark tile", 0L, -1)
 					}
+					// Not part of the original client: the plugins' entries for the tile (PluginRuntime).
+					PluginRuntime.menuTarget(MenuTarget.TILE, tileX, tileY, PlayerUpdate.localPlayer!!.level.toInt(), 0, 0L)
 					MiniMenu.addEntry(false, "", tileY, true, tileX, -1, true, MiniMenuAction.WALK, (tileY or (tileX shl 0)).toLong(), MiniMenu.walkHereText, 0L, CursorManager.activeCursorId)
 				}
 			}
@@ -327,6 +331,8 @@ object ViewportMiniMenuPicking {
 								}
 								// Not part of the original client: the debug suffix, empty unless client.debug is set.
 								MiniMenu.addEntry(pickableEntity.entity!!.level != PlayerUpdate.localPlayer!!.level, "<col=ff9040>" + objType!!.name + ClientFeatures.debugSuffix(objType.id), startZ, false, startX, -1, true, MiniMenuAction.OPOBJ6, objEntryIndex.toLong(), LocalizedText.aClass351_24.get(ClientState.language), objStackEntry.id.toLong(), MiniMenu.examineCursor)
+								// Not part of the original client: the plugins' entries for the item (PluginRuntime).
+								PluginRuntime.menuTarget(MenuTarget.GROUND_ITEM, startX, startZ, pickableEntity.entity!!.level.toInt(), objStackEntry.id, objStackEntry.id.toLong())
 								objStackEntry = objStack.groundItems.previous() as ObjStackEntry?
 								objEntryIndex++
 							}
@@ -381,6 +387,8 @@ object ViewportMiniMenuPicking {
 								}
 								// Not part of the original client: the debug suffix, empty unless client.debug is set.
 								MiniMenu.addEntry(pickableEntity.entity!!.level != PlayerUpdate.localPlayer!!.level, "<col=00ffff>" + locType.name + ClientFeatures.debugSuffix(locType.id, startX + MapRegion.sceneBaseX, startZ + MapRegion.sceneBaseY, pickableEntity.entity!!.level.toInt()), startZ, false, startX, -1, true, MiniMenuAction.OPLOC6, location.hashCode().toLong(), LocalizedText.aClass351_24.get(ClientState.language), locType.id.toLong(), MiniMenu.examineCursor)
+								// Not part of the original client: the plugins' entries for the location (PluginRuntime).
+								PluginRuntime.menuTarget(MenuTarget.LOC, startX, startZ, pickableEntity.entity!!.level.toInt(), locType.id, locType.id.toLong())
 							}
 						}
 					}

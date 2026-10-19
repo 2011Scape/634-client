@@ -1,3 +1,4 @@
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.features.TileMarkers
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.network.packet.TcpPacket
@@ -49,6 +50,10 @@ object MiniMenuActionExecutor {
 		}
 		@Pc(32) val entityUid: Long = miniMenuEntryInner.entityUid
 		@Pc(53) var packet: TcpPacket?
+		// Not part of the original client: the plugins hear of the click, and a plugin's own entry is theirs (PluginRuntime).
+		if (PluginRuntime.menuClicked(miniMenuEntryInner, clickType)) {
+			return
+		}
 		// Not part of the original client: a tile marker entry (TileMarkers).
 		if (clickType == MiniMenuAction.TILE_MARKER) {
 			TileMarkers.toggle(param0, param1)

@@ -50,6 +50,10 @@ kotlin {
         allWarningsAsErrors.set(true)
     }
     sourceSets {
+        /* The plugin API (api/): the client's common code implements it and plugins compile against it. */
+        commonMain.dependencies {
+            api(project(":api"))
+        }
         jvmMain.dependencies {
             implementation(files("lib/stub.jar"))
             /*
@@ -159,7 +163,7 @@ tasks.register<JavaExec>("runClient") {
     javaLauncher = clientLauncher
     jvmArgs = clientJvmArgs
     args = listOf("3594", "3594", "0", "live", "english", "game0")
-    listOf("client.debug", "client.zoom", "client.renderDistance", "client.console", "client.devCommands", "client.shiftDrop", "client.msaa", "client.smaa", "client.renderScale", "client.a2c", "client.server", "client.packets", "client.fps", "client.scale", "client.address", "client.port",
+    listOf("client.debug", "client.zoom", "client.renderDistance", "client.console", "client.devCommands", "client.shiftDrop", "client.msaa", "client.smaa", "client.renderScale", "client.a2c", "client.server", "client.packets", "client.fps", "client.scale", "client.address", "client.port", "client.plugins",
         "client.test", "client.test.user", "client.test.password", "client.test.frames", "client.test.timeout",
         "client.test.shot", "client.test.reference", "client.test.tolerance", "client.test.detailTolerance", "client.test.command", "client.test.commandFrames", "client.test.chat", "client.test.chatFrames", "client.test.windowModes", "client.test.subInterfaces", "client.test.menuWalk", "client.test.menuWalkHome", "client.test.media", "client.test.markers", "client.tileMarkers", "client.xpDrops", "client.npcLabels", "client.groundItemLabels", "client.test.groundItems", "client.test.npcLabels", "client.test.xpDrops", "client.test.toolkit", "client.test.bench", "client.test.benchMode",
         "client.test.scenes", "client.test.sceneCommand", "client.test.npcDump", "client.test.sceneFrames", "client.test.sceneReferenceToolkit", "client.test.scenePixelTolerance", "client.test.sceneMaxDifferent", "client.toolkit", "client.test.hdFail", "client.test.findText", "client.test.benchWindow", "client.test.scenePosition", "client.test.hdDebug", "client.test.hdNoTextures", "client.test.hdWideShot", "client.hd.dataDir", "client.hd.uncompressedMaps", "client.test.hdOverlay", "client.test.hdPanelShot", "client.test.hdGlVersion", "client.test.sceneBurst", "client.test.sceneSpin", "client.test.hdCycle", "client.test.sceneWalk", "client.test.hdShadowParts", "client.test.toggleRounds", "client.test.hdDebugCasters", "client.test.hdDebugCastersRadius", "client.test.soak", "client.test.soakFrames", "client.test.soakToggle", "client.test.characterShadows", "client.test.wear", "client.test.materialScan", "client.test.sceneWalkTiles", "client.test.sceneWalkEvery", "client.test.sceneBurstLoc", "client.test.sceneBurstSave", "client.test.sceneLumaJump", "client.test.sceneLumaLog", "client.test.inspect", "client.test.inspectRadius", "client.test.timeOfDay", "client.test.hdFloorTally", "client.test.hdLocScan", "client.test.openAt", "client.test.openMode", "client.test.timeRuns", "client.test.hdItemScan", "client.test.carry", "client.test.hdReflectionShot", "client.test.hdReflectionParts", "client.test.hdSceneMax", "client.test.hdOverlayRaw", "client.test.hdGpu", "client.test.hdGridDump")
@@ -230,10 +234,31 @@ val releaseBrowser = tasks.register<Zip>("releaseBrowser") {
     from(tasks.named("jsBrowserDistribution"))
 }
 
+/*
+ * The plugin API for plugin authors: api/'s JVM jar and its sources, renamed to go beside the client jar
+ * as runetek5-plugin-api-<version>.jar and -sources.jar (docs/PLUGINS.md). The same classes are inside the
+ * client jar too; this copy is what a plugin's build compiles against. Not "runetek5-634-...": the Void
+ * launcher takes the first runetek5-634-*.jar in a release's SHA256SUMS as the client.
+ */
+val releaseApi = tasks.register<Copy>("releaseApi") {
+    group = "distribution"
+    description = "Copies the plugin API jar and its sources beside the release jar."
+    // local values, so that the rename lambdas capture strings and not the build script (configuration cache)
+    val apiJarName: String = "runetek5-plugin-api-" + (project.version.toString().takeUnless { it == "unspecified" } ?: "dev-build") + ".jar"
+    val apiSourcesName: String = apiJarName.removeSuffix(".jar") + "-sources.jar"
+    from(project(":api").tasks.named("jvmJar")) {
+        rename { apiJarName }
+    }
+    from(project(":api").tasks.named("jvmSourcesJar")) {
+        rename { apiSourcesName }
+    }
+    into(layout.buildDirectory.dir("release"))
+}
+
 tasks.register("release") {
     group = "distribution"
-    description = "Builds the release jar and the browser zip."
-    dependsOn(releaseJar, releaseBrowser)
+    description = "Builds the release jar, the plugin API jar and the browser zip."
+    dependsOn(releaseJar, releaseBrowser, releaseApi)
 }
 
 /*
@@ -268,6 +293,11 @@ tasks.register<JavaExec>("checkClasses") {
 
 tasks.check {
     dependsOn("checkClasses")
+}
+
+// both put files in build/release: the class check reads the release jar there after the API copy, never beside it
+tasks.named("checkClasses") {
+    mustRunAfter(releaseApi)
 }
 
 /*
@@ -306,5 +336,5 @@ detekt {
     baseline = file("config/detekt-baseline.xml")
     buildUponDefaultConfig = true
     config.setFrom(file("config/detekt.yml"))
-    source.setFrom("src/commonMain/kotlin", "src/jvmMain/kotlin", "src/jsMain/kotlin", "src/jvmTest/kotlin")
+    source.setFrom("src/commonMain/kotlin", "src/jvmMain/kotlin", "src/jsMain/kotlin", "src/jvmTest/kotlin", "api/src/commonMain/kotlin")
 }

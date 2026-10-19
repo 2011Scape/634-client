@@ -1,5 +1,4 @@
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
-import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.core.constants.MainLogicStep
 import com.jagex.game.runetek5.client.login.LoginStep
@@ -37,7 +36,6 @@ object ClientLogout {
 			Connection.connection = null
 		}
 		LoginManager.loginStep = LoginStep.IDLE
-		XpDrops.reset() // Not part of the original client: see XpDrops.
 		HdOptionsScreen.reset() // Not part of the original client: the 634HD page of Graphics Options
 		TypeLists.resetAllCaches()
 		Scene.destroy()

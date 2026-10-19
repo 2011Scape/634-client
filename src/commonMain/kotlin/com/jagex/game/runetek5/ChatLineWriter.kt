@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5
 
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.menu.MiniMenu
 import com.jagex.game.runetek5.interaction.chat.ChatBox
@@ -27,6 +28,7 @@ object ChatLineWriter {
 		ChatBox.CHAT_LINES[0] = chatLine
 		MiniMenu.lastChatMessageTick = ClientState.serverTick
 		ChatBox.NUM_CHAT_LINES++
+		PluginRuntime.chatMessage(type, name, message, clan) // Not part of the original client: the plugins' ChatMessage.
 	}
 
 	@OriginalMember(owner = "client!di", name = "a", descriptor = "(Ljava/lang/String;IBILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V")

@@ -1,10 +1,10 @@
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.features.GroundItemLabels
 import com.jagex.game.runetek5.client.features.HdSettings
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
 import com.jagex.game.runetek5.client.features.HdFallback
 import com.jagex.game.runetek5.graphics.ToolkitType
 import com.jagex.game.runetek5.client.features.NpcLabels
-import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.client.features.TileMarkers
 import com.jagex.game.runetek5.network.packet.TcpPacket
 import com.jagex.game.runetek5.client.window.WindowModeType
@@ -130,12 +130,6 @@ object ClientCommandProcessor {
 			if (string.equals("npclabels", ignoreCase = true)) {
 				NpcLabels.enabled = !NpcLabels.enabled
 				Console.printToConsole(if (NpcLabels.enabled) "Npc labels enabled." else "Npc labels disabled.")
-				return
-			}
-			// Not part of the original client: turns the experience drops on and off (XpDrops).
-			if (string.equals("xpdrops", ignoreCase = true)) {
-				XpDrops.enabled = !XpDrops.enabled
-				Console.printToConsole(if (XpDrops.enabled) "Experience drops enabled." else "Experience drops disabled.")
 				return
 			}
 			// Not part of the original client: turns the tile markers on and off (TileMarkers).
@@ -872,6 +866,12 @@ object ClientCommandProcessor {
 					}
 					return
 				}
+				// Not part of the original client: the plugins' commands (plugins, plugin <id> on|off, and what they
+				// registered) come after every command of the client's own, and never on Tab, which sends the line
+				// to the server for completion. A plugin's command is not sent to the server.
+				if (!tabComplete && PluginRuntime.consoleCommand(string)) {
+					return
+				}
 				if (ClientState.mainLogicStep === MainLogicStep.STEP_GAME_SCREEN) {
 					packet = TcpPacket.createPacket(ClientProt.CLIENT_CHEAT, TcpPacket.isaac)
 					packet!!.buffer!!.writeByte(string.length + 3)
@@ -888,6 +888,9 @@ object ClientCommandProcessor {
 				Console.printToConsole(LocalizedText.ERROR_EXECUTING_COMMAND.get(ClientState.language))
 				return
 			}
+		} else if (!tabComplete && PluginRuntime.consoleCommand(string!!)) {
+			// Not part of the original client: without the developer commands, the plugins' commands still run.
+			return
 		}
 		if (ClientState.mainLogicStep !== MainLogicStep.STEP_GAME_SCREEN) {
 			Console.printToConsole(LocalizedText.UNKNOWN_DEV_COMMAND.get(ClientState.language) + string)

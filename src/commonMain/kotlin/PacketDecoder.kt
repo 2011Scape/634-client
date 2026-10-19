@@ -1,7 +1,7 @@
 // The warnings of the original (deobfuscated) code, left as it was: the build treats warnings as errors.
 @file:Suppress("SENSELESS_COMPARISON")
 
-import com.jagex.game.runetek5.client.features.XpDrops
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.config.iftype.SubInterfaceType
 import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.client.window.WindowModeType
@@ -434,6 +434,7 @@ object PacketDecoder {
 									ItemContainer.setItemInContainer(containerId, negativeKey, slot, itemAmount, itemIdPlusOne - 1)
 								}
 								ItemContainer.RECENTLY_USED_ITEM_CONTAINERS[client.recentlyUsedItemContainersCursorPos++ and 0x1F] = containerId
+								PluginRuntime.containerChanged(containerId) // Not part of the original client: the plugins' ItemContainerChanged.
 								BufferedConnectionContext.currentPacket = null
 								return true
 							} else if (BufferedConnectionContext.currentPacket === ServerProt.LOGOUT_FULL) {
@@ -1838,7 +1839,7 @@ object PacketDecoder {
 													val level: Int = BufferedConnectionContext.receivedBuffer.readUByteSubtract()
 													val skillId: Int = BufferedConnectionContext.receivedBuffer.readUByteInverse()
 													val xp: Int = BufferedConnectionContext.receivedBuffer.readUIntMiddle()
-													XpDrops.statUpdated(skillId, client.statXp!![skillId], xp) // Not part of the original client: see XpDrops.
+													PluginRuntime.statChanged(skillId, client.statXp!![skillId], xp, level) // Not part of the original client: the plugins' StatChanged (the experience drops among them).
 													client.statXp!![skillId] = xp
 													client.statLevels!![skillId] = level
 													StatBaseLevels.statBaseLevels[skillId] = 1
@@ -1880,6 +1881,7 @@ object PacketDecoder {
 														ItemContainer.setItemInContainer(containerId, negativeKey, slot, itemAmount, itemId - 1)
 													}
 													ItemContainer.RECENTLY_USED_ITEM_CONTAINERS[client.recentlyUsedItemContainersCursorPos++ and 0x1F] = containerId
+													PluginRuntime.containerChanged(containerId) // Not part of the original client: the plugins' ItemContainerChanged.
 													BufferedConnectionContext.currentPacket = null
 													return true
 												} else if (ServerProt.MINIMAP_FLAG === BufferedConnectionContext.currentPacket) {

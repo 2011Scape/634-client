@@ -1,5 +1,7 @@
 package com.jagex.game.runetek5.client.menu
 
+import com.jagex.game.runetek5.plugin.api.MenuTarget
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.entity.NPCEntity
 import com.jagex.game.runetek5.entity.NPCEntityNode
 import com.jagex.game.runetek5.entity.PlayerEntity
@@ -577,6 +579,8 @@ object MiniMenu {
 					i--
 				}
 			}
+			// Not part of the original client: the plugins' entries for the player (PluginRuntime).
+			PluginRuntime.menuTarget(MenuTarget.PLAYER, (playerEntity.x - (playerEntity.getSize() - 1) * 256) shr 9, (playerEntity.z - (playerEntity.getSize() - 1) * 256) shr 9, playerEntity.level.toInt(), playerEntity.playerIndex, playerEntity.playerIndex.toLong())
 			if (!onDifferentPlane) {
 				@Pc(450) var miniMenuEntryInner: MiniMenuEntry? = MiniMenu.entryList.first() as MiniMenuEntry?
 				while (miniMenuEntryInner != null) {

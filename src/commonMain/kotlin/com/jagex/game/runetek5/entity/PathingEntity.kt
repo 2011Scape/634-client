@@ -3,6 +3,8 @@
 
 package com.jagex.game.runetek5.entity
 
+import com.jagex.game.runetek5.plugin.api.Actor
+import com.jagex.game.runetek5.SceneDrawer
 import com.jagex.game.runetek5.graphics.hint.HintDetails
 import com.jagex.game.runetek5.config.sequence.MovingSequence
 import com.jagex.game.runetek5.core.util.Arrays
@@ -42,7 +44,37 @@ import kotlin.jvm.JvmStatic
 import withLock
 
 @OriginalClass("client!kda")
-abstract class PathingEntity : AbstractInteractiveEntity {
+abstract class PathingEntity : AbstractInteractiveEntity, Actor {
+
+	/* Not part of the original client: the plugin API's view of a player or npc (plugin.api.Actor). */
+
+	override fun x(): Int {
+		return this.x
+	}
+
+	override fun z(): Int {
+		return this.z
+	}
+
+	override fun level(): Int {
+		return this.level.toInt()
+	}
+
+	override fun sizeInTiles(): Int {
+		return this.getSize()
+	}
+
+	override fun overheadHeight(): Int {
+		return this.getOverheadHeight()
+	}
+
+	override fun healthRatio(): Int {
+		return this.healthRatio
+	}
+
+	override fun isDrawnThisFrame(): Boolean {
+		return SceneDrawer.timesSceneRendered == this.drawCycle
+	}
 
 	// Not part of the original client: where this entity stood at the previous and the current game
 	// cycle, and where it really is while a frame shows it between the two; see ClientFeatures.blendEntities.

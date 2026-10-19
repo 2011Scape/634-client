@@ -3,6 +3,7 @@
 
 package com.jagex.game.runetek5.config.rsinterface.itemcontainer
 
+import com.jagex.game.runetek5.plugin.api.ItemContainer as ApiItemContainer
 import com.jagex.game.runetek5.cache.node.Node
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerAppearance
 import com.jagex.game.runetek5.config.bas.BasType
@@ -24,7 +25,24 @@ import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
 @OriginalClass("client!ie")
-class ItemContainer : Node() {
+class ItemContainer : Node(), ApiItemContainer {
+
+	/* Not part of the original client: the plugin API's view of an inventory (plugin.api.ItemContainer). */
+
+	override fun size(): Int {
+		val ids: IntArray = this.itemIds ?: return 0
+		return ids.size
+	}
+
+	override fun itemId(slot: Int): Int {
+		val ids: IntArray = this.itemIds ?: return -1
+		return if (slot >= 0 && slot < ids.size) ids[slot] else -1
+	}
+
+	override fun amount(slot: Int): Int {
+		val counts: IntArray = this.amounts ?: return 0
+		return if (slot >= 0 && slot < counts.size) counts[slot] else 0
+	}
 
 	@OriginalMember(owner = "client!ie", name = "r", descriptor = "[I")
 	@JvmField

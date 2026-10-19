@@ -1,3 +1,4 @@
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.client.login.LoginStep
 import com.jagex.game.runetek5.client.window.WindowModeType
@@ -368,6 +369,7 @@ class client : GameShell() {
 
 	@OriginalMember(owner = "client!client", name = "a", descriptor = "(I)V")
 	override fun mainquit() {
+		PluginRuntime.stop() // Not part of the original client: the plugins stop first.
 		if (VarcTypeList.clientIsActive) {
 			VarcTypeList.savePersistentVarcs()
 		}
@@ -415,6 +417,7 @@ class client : GameShell() {
 		}
 		// Not part of the original client: says once in game why 634HD fell back (HdFallback).
 		HdFallback.tick()
+		PluginRuntime.clientTick() // Not part of the original client: the plugins' ClientTick.
 		if (GamePreferences.uid!!.toolkit!!.getValue() != 2) {
 			this.pulse()
 			return
@@ -796,6 +799,7 @@ class client : GameShell() {
 					client.maximumHeldKeys++
 				}
 			} else if (type == 0 && KeyRecorder.keyCachePointerPoss < 75) {
+				PluginRuntime.keyPressed(keyLog) // Not part of the original client: the plugins' KeyPressed.
 				KeyRecorder.KEYS_PRESSED[KeyRecorder.keyCachePointerPoss] = keyLog
 				KeyRecorder.keyCachePointerPoss++
 			}
@@ -817,6 +821,7 @@ class client : GameShell() {
 					ClientFeatures.wheelDelta = mouseEvent.getMeta()
 				}
 			} else if (MouseLog.isMousePressType(clickType)) {
+				PluginRuntime.mouseClicked(mouseEvent, clickType) // Not part of the original client: the plugins' MouseClicked.
 				MouseManager.MOUSE_MOVEMENTS.addLast(mouseEvent)
 				if (MouseManager.MOUSE_MOVEMENTS.size() > 10) {
 					MouseManager.MOUSE_MOVEMENTS.removeFirst()
@@ -980,6 +985,7 @@ class client : GameShell() {
 		if (Console.isOpen()) {
 			Console.renderConsole(ClientState.activeToolkit)
 		}
+		PluginRuntime.drawFrame(GameShell.screenCanvasWidth, GameShell.screenCanvasHeight) // Not part of the original client: the plugins' FrameDraw, over everything.
 		if (GameShell.signLink!!.microsoftJava && MainLogicManager.isLoginLobbyOrGameScreen(ClientState.mainLogicStep) && InterfaceManager.interfaceDebugMode == 0 && WindowMode.getWindowMode() === WindowModeType.FIXED && !drawBackground) {
 			var flipCount: Int = 0
 			var componentIndex: Int = 0

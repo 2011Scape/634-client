@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.entity
 
+import com.jagex.game.runetek5.plugin.api.Player
 import com.jagex.game.runetek5.client.features.SmokeTest
 import com.jagex.game.runetek5.buffer.Packet
 import com.jagex.game.runetek5.ExplicitRuntimeException
@@ -49,7 +50,25 @@ import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
 @OriginalClass("client!ke")
-class PlayerEntity : PathingEntity() {
+class PlayerEntity : PathingEntity(), Player {
+
+	/* Not part of the original client: the plugin API's view of a player (plugin.api.Player). */
+
+	override fun name(): String? {
+		return this.username
+	}
+
+	override fun combatLevel(): Int {
+		return this.combatLevel
+	}
+
+	override fun index(): Int {
+		return this.playerIndex
+	}
+
+	override fun isLocalPlayer(): Boolean {
+		return this === PlayerUpdate.localPlayer
+	}
 
 	@OriginalMember(owner = "client!ke", name = "td", descriptor = "I")
 	private var basId: Int = 0

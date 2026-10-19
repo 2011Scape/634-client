@@ -1,3 +1,4 @@
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.core.constants.MainLogicStep
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalMember
@@ -28,6 +29,7 @@ object ToolkitRebuild {
 		StaticMedia.initializeChatIcons(StaticMedia.nameIconSprites)
 		InterfaceRectangles.invalidateAllRectangles()
 		GraphicCacheReset.resetGraphicCaches()
+		PluginRuntime.toolkitChanged(toolkitId) // Not part of the original client: the plugins' ToolkitChanged, with the fonts and sprites new.
 		if (ClientState.mainLogicStep === MainLogicStep.STEP_LOGIN_SCREEN) {
 			MainLogicStepTransition.setMainLogicStep(MainLogicStep.STEP_LOGIN_SCREEN_MAP_BUILD)
 		} else if (ClientState.mainLogicStep === MainLogicStep.STEP_LOBBY_SCREEN) {
