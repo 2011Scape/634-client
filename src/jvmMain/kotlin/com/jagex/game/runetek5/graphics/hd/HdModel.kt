@@ -47,6 +47,7 @@ import com.jagex.game.runetek5.core.util.Arrays
 import com.jagex.game.runetek5.core.crypto.GpuModelRetainMasks
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
+import org.lwjgl.opengl.GL33C
 
 class HdModel : Model {
 
@@ -2650,7 +2651,22 @@ class HdModel : Model {
 		RenderStats.category = RenderStats.CATEGORY_MODEL
 		// 634HD: a retained model's emulated draws are its own (the reflection replays dynamic models only)
 		HdGl.state.hdRetainedDraw = this.retainedObject >= 0 && this.glToolkit.sceneRetained()
+		// 634HD: a model of the game's underwater pass (the whirlpool at Baxtorian Falls, 2512,3509) is
+		// drawn a little nearer the eye, so where its lip lies on the water's surface it wins the depth
+		// test outright. The surface, drawn after it, ties with the lip along the model's outer ring,
+		// and the tie fell either way in stripes that crawled as the camera moved: the game's
+		// translucent sheet hides them, 634HD's own surface (HdSettings.water 2) showed them.
+		val underwater: Boolean = HdGl.state.hdUnderwater != 0
+		if (underwater) {
+			HdGl.flushImmediate()
+			GL33C.glEnable(GL33C.GL_POLYGON_OFFSET_FILL)
+			GL33C.glPolygonOffset(-2.0f, -2.0f)
+		}
 		this.drawOpaqueFaces()
+		if (underwater) {
+			HdGl.flushImmediate()
+			GL33C.glDisable(GL33C.GL_POLYGON_OFFSET_FILL)
+		}
 		HdGl.state.hdRetainedDraw = false
 		RenderStats.category = RenderStats.CATEGORY_OTHER
 		this.glToolkit.popMatrix()
