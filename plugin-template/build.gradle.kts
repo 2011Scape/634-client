@@ -47,7 +47,7 @@ tasks.jar {
             "Plugin-Name" to "Example plugin",
             "Plugin-Version" to version.toString(),
             // the PluginApi.VERSION the plugin was written against; the client refuses a newer one than its own
-            "Plugin-Api-Version" to "1",
+            "Plugin-Api-Version" to "2",
             "Plugin-Author" to "you",
             "Plugin-Description" to "Says hello on the game view and in the chat.",
         )

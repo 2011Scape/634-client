@@ -532,6 +532,7 @@ object PlayerUpdate {
 		OutPlayerIndexCount.NUM_OUT_PLAYER_INDICES = 0
 		PlayerUpdate.OUT_PLAYER_INDICES[OutPlayerIndexCount.NUM_OUT_PLAYER_INDICES++] = myPlayerIndex
 		PlayerUpdate.OUT_PLAYER_UPDATE_STATE[myPlayerIndex] = 0
+		PluginRuntime.playerSpawned(playerEntity) // Not part of the original client: the plugins' PlayerSpawned for the local player.
 		WorldMap.numInactivePlayerIndices = 0
 		@Pc(147) var i: Int = 1
 		while (i < 2048) {

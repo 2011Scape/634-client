@@ -71,7 +71,7 @@ class PlayerEntity : PathingEntity(), Player {
 	}
 
 	override fun displayName(): String? {
-		return this.displayName
+		return this.getUsernameWithTitle()
 	}
 
 	override fun prayerIcon(): Int {

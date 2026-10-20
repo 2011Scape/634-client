@@ -423,6 +423,10 @@ object NPCList {
 	@JvmStatic
 	fun resetNpcsOnAreaChange() {
 		if (MapRegion.areaMode == AreaMode.CLEAR_LOCAL_NPCS || MapRegion.areaMode == AreaMode.ALLOW_OUT_OF_BOUNDS || MapRegion.areaMode != NPCList.previousAreaMode && (MapRegion.areaMode == AreaMode.STATIC_AREA || NPCList.previousAreaMode == AreaMode.STATIC_AREA)) {
+			// Not part of the original client: the plugins' NpcDespawned for every npc the area change drops.
+			for (i in 0 until NPCList.npcCount) {
+				PluginRuntime.npcDespawned(NPCList.NPC_ARRAY[i]?.npc)
+			}
 			NPCList.npcCount = 0
 			NPCList.NPC_UPDATE_INDEX = 0
 			NPCList.NPC_MAP.clear()

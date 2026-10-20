@@ -10,7 +10,7 @@ interface Player : Actor {
 
 	fun isLocalPlayer(): Boolean
 
-	/** The name as shown, with the title and the display name the player chose, or null when unknown. */
+	/** The name as the client draws it, with the player's title in front when there is one. */
 	fun displayName(): String?
 
 	/** The prayer icon over the player's head, an index into the prayer icons sprite group, or -1 for none. */

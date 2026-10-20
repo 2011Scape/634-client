@@ -59,7 +59,7 @@ class NPCEntity : PathingEntity(), Npc {
 
 	override fun combatLevel(): Int {
 		val type: NPCType = shownType() ?: return 0
-		return type.combatLevel
+		return if (type.combatLevel < 0) 0 else type.combatLevel
 	}
 
 	override fun index(): Int {

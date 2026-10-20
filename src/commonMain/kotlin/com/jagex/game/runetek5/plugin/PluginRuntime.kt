@@ -3,6 +3,7 @@ package com.jagex.game.runetek5.plugin
 import com.jagex.game.runetek5.ChatLineWriter
 import com.jagex.game.runetek5.cache.node.ObjStack
 import com.jagex.game.runetek5.cache.node.ObjStackEntry
+import com.jagex.game.runetek5.core.datastruct.key.DequeIterator
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.input.console.Console
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecord
@@ -669,10 +670,12 @@ object PluginRuntime {
 		if (!started || !bus.hasListeners(Events.ITEM_DESPAWNED)) {
 			return
 		}
-		var entry: ObjStackEntry? = pile.groundItems.first() as ObjStackEntry?
+		// a cursor of its own: the caller is walking the piles with the shared one, and a listener may walk them too
+		val entries: DequeIterator = DequeIterator(pile.groundItems)
+		var entry: ObjStackEntry? = entries.first() as ObjStackEntry?
 		while (entry != null) {
 			bus.post(Events.ITEM_DESPAWNED, GroundItem(entry.id, entry.count, sceneX, sceneY, level))
-			entry = pile.groundItems.next() as ObjStackEntry?
+			entry = entries.next() as ObjStackEntry?
 		}
 	}
 

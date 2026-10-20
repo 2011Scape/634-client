@@ -6,7 +6,9 @@ import com.jagex.game.runetek5.NPCList
 import com.jagex.game.runetek5.OverlayManager
 import com.jagex.game.runetek5.cache.node.Node
 import com.jagex.game.runetek5.cache.node.ObjStack
+import com.jagex.game.runetek5.cache.node.HashTableIterator
 import com.jagex.game.runetek5.cache.node.ObjStackEntry
+import com.jagex.game.runetek5.core.datastruct.key.DequeIterator
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.input.console.Console
 import com.jagex.game.runetek5.config.TypeLists
@@ -99,7 +101,9 @@ object ClientApiImpl : ClientApi {
 	}
 
 	override fun groundItems(visitor: GroundItemVisitor) {
-		var node: Node? = ObjStack.GROUND_ITEMS.first()
+		// cursors of their own: the client walks these lists with their shared cursors, and a plugin may ask from inside such a walk
+		val piles: HashTableIterator = HashTableIterator(ObjStack.GROUND_ITEMS)
+		var node: Node? = piles.first()
 		while (node != null) {
 			// the key packs level << 28 | absolute y << 14 | absolute x (ObjStack.addGroundItem)
 			val key: Long = node.key
@@ -107,12 +111,13 @@ object ClientApiImpl : ClientApi {
 			val sceneX: Int = (key and 0x3FFFL).toInt() - MapRegion.sceneBaseX
 			val sceneY: Int = (key shr 14 and 0x3FFFL).toInt() - MapRegion.sceneBaseY
 			val pile: ObjStack = node as ObjStack
-			var entry: ObjStackEntry? = pile.groundItems.first() as ObjStackEntry?
+			val entries: DequeIterator = DequeIterator(pile.groundItems)
+			var entry: ObjStackEntry? = entries.first() as ObjStackEntry?
 			while (entry != null) {
 				visitor.visit(sceneX, sceneY, level, entry.id, entry.count)
-				entry = pile.groundItems.next() as ObjStackEntry?
+				entry = entries.next() as ObjStackEntry?
 			}
-			node = ObjStack.GROUND_ITEMS.next()
+			node = piles.next()
 		}
 	}
 

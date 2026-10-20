@@ -39,7 +39,7 @@ interface Actor {
 	 */
 	fun orientation(): Int
 
-	/** Whether the actor's last step was at a run. */
+	/** Whether the step the actor is taking is a run step; false while it stands. */
 	fun isRunning(): Boolean
 
 	/** The text over the actor's head, or null while none shows. */
@@ -48,10 +48,10 @@ interface Actor {
 	/** How many hit splat slots an actor has; the slot methods take 0 until this. */
 	fun hitsplatSlots(): Int
 
-	/** The type of the hit splat in [slot], an id in the cache's hit mark list, or -1 for an empty slot. */
+	/** The type of the hit splat in [slot], an id in the cache's hit mark list, or -1 for a slot that is empty or whose splat has gone. */
 	fun hitsplatType(slot: Int): Int
 
-	/** The damage the hit splat in [slot] shows. */
+	/** The damage the hit splat in [slot] shows, 0 for an empty slot. */
 	fun hitsplatDamage(slot: Int): Int
 
 	/** The client cycle the splat in [slot] shows until: it is on screen while [ClientApi.clientCycle] is below this. */

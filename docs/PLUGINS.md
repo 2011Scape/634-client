@@ -205,7 +205,7 @@ built-in plugins):
   copies its jar beside the release jar.
 
 A new extra for the client should be a built-in plugin on this API where the API suffices, as
-`XpDrops` is; where it does not, extend the API (additively, keeping `PluginApi.VERSION`) rather
+`XpDrops` is; where it does not, extend the API (additively, raising `PluginApi.VERSION`) rather
 than adding another one-off hook.
 
 ## What comes next

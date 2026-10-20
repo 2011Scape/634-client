@@ -74,15 +74,15 @@ object Events {
 	@JvmField
 	val NPC_SPAWNED: EventType<Npc> = EventType(15, "NpcSpawned")
 
-	/** An npc is leaving the scene; the event is the npc, still whole. A logout or a reconnect drops everyone without this. */
+	/** An npc is leaving the scene, or the area change that drops it is happening; the event is the npc, still whole. A logout or a reconnect drops everyone without this. */
 	@JvmField
 	val NPC_DESPAWNED: EventType<Npc> = EventType(16, "NpcDespawned")
 
-	/** A player entered the scene; the event is the player. */
+	/** A player entered the scene, the local player included (at login); the event is the player. */
 	@JvmField
 	val PLAYER_SPAWNED: EventType<Player> = EventType(17, "PlayerSpawned")
 
-	/** A player is leaving the scene; the event is the player, still whole. */
+	/** A player is leaving the scene; the event is the player, still whole. A logout or a reconnect drops everyone without this. */
 	@JvmField
 	val PLAYER_DESPAWNED: EventType<Player> = EventType(18, "PlayerDespawned")
 

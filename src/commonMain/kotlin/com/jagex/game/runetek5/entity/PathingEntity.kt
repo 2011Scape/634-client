@@ -103,7 +103,9 @@ abstract class PathingEntity : AbstractInteractiveEntity, Actor {
 	}
 
 	override fun isRunning(): Boolean {
-		return this.movementQueueSpeed[0].toInt() == MoveSpeed.RUNNING
+		// the step being taken is at pathPointer - 1 (EntityUpdating); index 0 is the newest queued one
+		val step: Int = this.pathPointer
+		return step > 0 && this.movementQueueSpeed[step - 1].toInt() == MoveSpeed.RUNNING
 	}
 
 	override fun overheadText(): String? {
@@ -115,11 +117,12 @@ abstract class PathingEntity : AbstractInteractiveEntity, Actor {
 	}
 
 	override fun hitsplatType(slot: Int): Int {
-		return if (slot >= 0 && slot < PathingEntity.maximumHits) this.activeHitsplatIds[slot] else -1
+		// the arrays are never cleared: a slot is empty once its cycle has passed
+		return if (slot >= 0 && slot < PathingEntity.maximumHits && this.hitsplatCycles[slot] > ClientState.clientCycle) this.activeHitsplatIds[slot] else -1
 	}
 
 	override fun hitsplatDamage(slot: Int): Int {
-		return if (slot >= 0 && slot < PathingEntity.maximumHits) this.hitsplatText[slot] else 0
+		return if (slot >= 0 && slot < PathingEntity.maximumHits && this.hitsplatCycles[slot] > ClientState.clientCycle) this.hitsplatText[slot] else 0
 	}
 
 	override fun hitsplatEndCycle(slot: Int): Int {
