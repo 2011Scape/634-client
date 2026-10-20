@@ -24,6 +24,9 @@ interface PluginConfig {
 	/** Forgets [key]; [save] writes that too. */
 	fun remove(key: String)
 
+	/** Every key that has a value, in the order they were first set: a plugin may keep one setting per item id and read them all back. */
+	fun keys(): Array<String>
+
 	/** Writes the settings; false when they cannot be written (no home folder, or a test run). */
 	fun save(): Boolean
 }

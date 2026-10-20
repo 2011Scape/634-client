@@ -154,7 +154,9 @@ pixels, with ARGB colours whose alpha blends, within a `clip` of its own if it w
 and the font go back to the client's after each overlay. World to screen: `ClientApi.projectTile`,
 `projectPoint` (scene units, 512 a tile) and `projectActor` write the view-relative point into an
 `IntArray(2)` and say whether it is on screen, and `tilePolygon` gives a tile's four corners for
-`polygon` and `fillPolygon`; `projectMinimap` places a tile on the minimap.
+`polygon` and `fillPolygon`; `projectMinimap` places a tile on the minimap. Text's `y` is its
+baseline, and `fontHeight()` is the font's line height: a panel's first baseline sits one of them
+below its top.
 
 ## Cookbook
 

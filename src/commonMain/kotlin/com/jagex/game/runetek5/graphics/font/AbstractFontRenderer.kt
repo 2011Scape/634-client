@@ -19,6 +19,11 @@ abstract class AbstractFontRenderer {
 	private val fontMetrics: FontMetrics?
 
 	/** Not part of the original client: the width of [string] in this font, for the plugin API (ToolkitGraphics). */
+	/** Not part of the original client: the font's line height, baseline to baseline, for the plugin API. */
+	fun lineHeight(): Int {
+		return this.fontMetrics!!.verticalSpacing
+	}
+
 	fun textWidth(string: String?): Int {
 		return this.fontMetrics!!.getWidthNoSprites(string)
 	}

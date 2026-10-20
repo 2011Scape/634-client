@@ -94,6 +94,11 @@ object ToolkitGraphics : Graphics {
 		return font.textWidth(text)
 	}
 
+	override fun fontHeight(): Int {
+		val font: AbstractFontRenderer = currentFont() ?: return 0
+		return font.lineHeight()
+	}
+
 	override fun fontReady(): Boolean {
 		return Renderers.FONT_RENDERER != null
 	}

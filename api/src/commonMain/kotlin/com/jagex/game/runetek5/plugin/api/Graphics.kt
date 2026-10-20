@@ -29,6 +29,9 @@ interface Graphics {
 	/** How wide [text] draws in the current font, in pixels. */
 	fun textWidth(text: String): Int
 
+	/** The current font's line height, baseline to baseline: put the first baseline one of these below a panel's top, and each next line one lower. */
+	fun fontHeight(): Int
+
 	/** Whether the font exists yet: false before the first toolkit has loaded its fonts. */
 	fun fontReady(): Boolean
 
@@ -67,7 +70,8 @@ interface Graphics {
 
 	/**
 	 * Draws the 36 by 32 icon of [quantity] of item [itemId], as an inventory shows it, with its
-	 * top-left corner at ([x], [y]). False, and nothing drawn, for the frame or two the icon takes to render.
+	 * top-left corner at ([x], [y]); a [quantity] above the stack the client can show is drawn as that stack. False,
+	 * and nothing drawn, for the frame or two the icon takes to render.
 	 */
 	fun itemIcon(itemId: Int, quantity: Int, x: Int, y: Int): Boolean
 }
