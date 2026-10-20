@@ -129,6 +129,16 @@ object LoadingStageWork {
 			}
 			ActiveToolkitInit.prepareForRendering(null, 0, true)
 			LoadingScreenSpriteCache.useRawLoadingSprites = !JpegDecoderProbe.supportsJpegDecoding()
+			// Not part of the original client: a cache without the JPEG loading sprites (archive 32) but
+			// with the raw ones (34) used to hang the loading screen at 2%, waiting for an index that never comes
+			if (!LoadingScreenSpriteCache.useRawLoadingSprites && !RequestManager.requestManager!!.hasArchive(Js5Archive.LOADING_SPRITES)) {
+				if (RequestManager.requestManager!!.hasArchive(Js5Archive.LOADING_SPRITES_RAW)) {
+					LoadingScreenSpriteCache.useRawLoadingSprites = true
+					lang.printlnErr("Loading: the cache has no archive " + Js5Archive.LOADING_SPRITES + " (JPEG loading sprites), using the raw ones from archive " + Js5Archive.LOADING_SPRITES_RAW)
+				} else {
+					lang.printlnErr("Loading: the cache has neither archive " + Js5Archive.LOADING_SPRITES + " nor " + Js5Archive.LOADING_SPRITES_RAW + " (loading sprites): the loading screen cannot finish")
+				}
+			}
 			Resource.LOADING_SPRITES = Resource.createProvider(false, if (LoadingScreenSpriteCache.useRawLoadingSprites) Js5Archive.LOADING_SPRITES_RAW else Js5Archive.LOADING_SPRITES, 1)
 			Resource.GAME_TIPS = Resource.createProvider(false, Js5Archive.LOADING_SCREENS, 1)
 			Resource.FONT_METRICS = Resource.createProvider(false, Js5Archive.FONTMETRICS, 1)

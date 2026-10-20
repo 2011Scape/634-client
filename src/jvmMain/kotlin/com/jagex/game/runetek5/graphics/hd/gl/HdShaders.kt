@@ -28,14 +28,19 @@ object HdShaders {
         return stream.use { String(it.readBytes(), Charsets.UTF_8) }
     }
 
-    private fun expand(name: String, included: HashSet<String>): String {
+    /**
+     * [name] with its includes pasted in, read through [read] (a file on a Windows checkout with
+     * core.autocrlf, or saved by an editor, ends its lines in CRLF: those are made LF first, or the
+     * strip of an include's #version line misses and the driver reports a second version directive).
+     */
+    internal fun expand(name: String, included: HashSet<String>, read: (String) -> String = ::read): String {
         val out = StringBuilder()
-        for (line in read(name).split('\n')) {
+        for (line in read(name).replace("\r\n", "\n").split('\n')) {
             val trimmed = line.trim()
             if (trimmed.startsWith("#include")) {
                 val file = trimmed.substringAfter('"').substringBefore('"')
                 if (included.add(file)) {
-                    out.append(expand(file, included).replace("#version 330 core\n", "")).append('\n')
+                    out.append(expand(file, included, read).replace("#version 330 core\n", "")).append('\n')
                 }
                 continue
             }

@@ -1,0 +1,5 @@
+# 634HD shader sources are read as text; keep them LF on every platform so a Windows checkout with
+# core.autocrlf=true compiles them unchanged (HdShaders.expand tolerates CRLF too).
+*.vert text eol=lf
+*.frag text eol=lf
+*.glsl text eol=lf
