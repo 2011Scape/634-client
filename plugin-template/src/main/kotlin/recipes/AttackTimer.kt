@@ -11,8 +11,10 @@ import com.jagex.game.runetek5.plugin.api.events.Events
  * the last attack animation, and once the player has neither animated nor fought for a while the
  * bar says "Idle" and a sound plays. The weapon is slot 3 of the worn equipment (container 94), its
  * speed the item's parameter 14 in ticks (4 when unarmed or unknown), read again whenever the
- * equipment changes. Everything else is read from the local player each [Events.GAME_TICK], which
- * is a client cycle of 20 ms (a tick of the server is 30 of them).
+ * equipment changes. Only an attack restarts the bar: an animation that arrives in the same cycle
+ * as a hit on the player while the player is fighting nobody is the block animation, remembered by
+ * id and ignored from then on. Everything else is read from the local player each
+ * [Events.GAME_TICK], which is a client cycle of 20 ms (a tick of the server is 30 of them).
  */
 class AttackTimer : Plugin {
     private val equipment = 94
@@ -23,6 +25,8 @@ class AttackTimer : Plugin {
     private val idleCycles = 15 * 50
     private var attackTicks = defaultTicks
     private var weaponName = "Unarmed"
+    private val blockAnimations = HashSet<Int>()
+    private var hitCycle = -100
     private var cooldown = 0
     private var idleTicks = 0
     private var warned = false
@@ -34,12 +38,20 @@ class AttackTimer : Plugin {
         context.events().subscribe(Events.ITEM_CONTAINER_CHANGED) { event ->
             if (event.containerId == equipment) readWeapon(client, context)
         }
+        context.events().subscribe(Events.HITSPLAT_APPLIED) { event ->
+            if (event.actor === client.localPlayer()) hitCycle = client.clientCycle()
+        }
         context.events().subscribe(Events.ANIMATION_CHANGED) { event ->
-            if (event.actor === client.localPlayer() && event.animationId != -1) {
-                cooldown = attackTicks * cyclesPerTick
-                idleTicks = 0
-                warned = false
+            val me = client.localPlayer()
+            if (event.actor !== me || event.animationId == -1 || me == null) return@subscribe
+            idleTicks = 0
+            warned = false
+            if (event.animationId in blockAnimations) return@subscribe
+            if (client.clientCycle() - hitCycle <= 1 && me.interacting() == null) {
+                blockAnimations.add(event.animationId) // hit while fighting nobody: this is the block animation
+                return@subscribe
             }
+            cooldown = attackTicks * cyclesPerTick
         }
         context.events().subscribe(Events.GAME_TICK) { _ ->
             if (cooldown > 0) cooldown--
@@ -69,7 +81,6 @@ class AttackTimer : Plugin {
             } else {
                 g.fillRect(x, y, 40, 5, 0xFF40FF40.toInt())
             }
-            g.text(x + 44, y + 6, weaponName + " (" + attackTicks + ")", 0xFFFFFFFF.toInt(), 0xFF000000.toInt())
         }
     }
 
