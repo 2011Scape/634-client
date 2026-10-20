@@ -75,10 +75,8 @@ object PluginManagerScreen {
 
 	private const val TAB_Y: Int = 41
 
-	/** The stock button background, plain and lit. */
+	/** The stock button background. */
 	private const val TAB_BUTTON: Int = 761
-
-	private const val TAB_BUTTON_LIT: Int = 762
 
 	/** The icon's sprite id: none the cache has, so the component sprite cache is the only place it is found. */
 	private const val ICON_SPRITE: Int = 0x7FFF027B
@@ -120,8 +118,6 @@ object PluginManagerScreen {
 	private const val A_SET_CHOICE: Int = 13
 	private const val A_ITEM: Int = 14
 	private const val A_POPUP_CLOSE: Int = 15
-	private const val A_TAB_HOVER: Int = 16
-	private const val A_TAB_LEAVE: Int = 17
 
 	/** Whether the window is open with our page in it. */
 	@JvmField
@@ -144,10 +140,8 @@ object PluginManagerScreen {
 
 	private var popupFor: Choice? = null
 
-	/** The Plugins button's hit component in the Settings tab, and the slot of its background under 261:0. */
+	/** The Plugins button's hit component in the Settings tab. */
 	private var tabButton: Component? = null
-
-	private var tabBackground: Int = -1
 
 	private var icon: NativeSprite? = null
 
@@ -192,7 +186,6 @@ object PluginManagerScreen {
 				}
 			}
 		}
-		tabBackground = list.size
 		list.add(ClientPage.sprite(TAB_ROOT, list.size, TAB_X_PLUGINS, TAB_Y, 40, 40, TAB_BUTTON, false, false, false))
 		if (iconAvailable) {
 			list.add(ClientPage.sprite(TAB_ROOT, list.size, TAB_X_PLUGINS + 4, TAB_Y + 4, 32, 32, ICON_SPRITE, false, false, false))
@@ -202,8 +195,6 @@ object PluginManagerScreen {
 		hit.addOptionName(0, "Plugins")
 		hit.opBase = ""
 		hit.params = arrayOf<Any?>(SENTINEL, A_OPEN, 0)
-		hit.onMouseOver = arrayOf<Any?>(SENTINEL, A_TAB_HOVER, 0)
-		hit.onMouseLeaveScript = arrayOf<Any?>(SENTINEL, A_TAB_LEAVE, 0)
 		list.add(hit)
 		root.slotChildren = list.toTypedArray<Component?>()
 		tabButton = hit
@@ -396,11 +387,10 @@ object PluginManagerScreen {
 		if (page >= pages) {
 			page = pages - 1
 		}
-		children.add(ClientPage.text(BODY, children.size, 0, 0, WIDTH, 18, ClientPage.FONT_SMALL, "Built in, and the jars in the plugins folder. On and off take effect at once and are kept.", ClientPage.TEXT, 1, 1, false))
 		val onWidth: Int = maxOf(ClientPage.textWidth(ClientPage.FONT_BUTTON, "On"), ClientPage.textWidth(ClientPage.FONT_BUTTON, "Off")) + 30
 		val settingsWidth: Int = ClientPage.textWidth(ClientPage.FONT_BUTTON, "Settings") + 30
 		val x0: Int = 12
-		var y: Int = 22
+		var y: Int = 10
 		val first: Int = page * ROWS_PER_PAGE
 		val last: Int = minOf(PluginRuntime.count, first + ROWS_PER_PAGE)
 		for (i in first until last) {
@@ -632,10 +622,6 @@ object PluginManagerScreen {
 			}
 			return
 		}
-		if (action == A_TAB_HOVER || action == A_TAB_LEAVE) {
-			ClientPage.setSprite(TAB_ROOT, tabBackground, if (action == A_TAB_HOVER) TAB_BUTTON_LIT else TAB_BUTTON)
-			return
-		}
 		if (!open) {
 			return
 		}
@@ -701,8 +687,6 @@ object PluginManagerScreen {
 				}
 			}
 			A_POPUP_CLOSE -> closePopup()
-			A_TAB_HOVER -> ClientPage.setSprite(TAB_ROOT, tabBackground, TAB_BUTTON_LIT)
-			A_TAB_LEAVE -> ClientPage.setSprite(TAB_ROOT, tabBackground, TAB_BUTTON)
 		}
 	}
 
