@@ -4,17 +4,13 @@ import CS2Interpreter
 import MapRebuild
 import SubInterfaceCloser
 import ToolkitSwitch
-import com.jagex.game.runetek5.FontMetricsLoader
 import com.jagex.game.runetek5.InterfaceManager
 import com.jagex.game.runetek5.client.input.console.Console
-import com.jagex.game.runetek5.config.Resource
 import com.jagex.game.runetek5.config.rsinterface.Component
-import com.jagex.game.runetek5.config.rsinterface.ComponentType
 import com.jagex.game.runetek5.config.rsinterface.HookRequest
 import com.jagex.game.runetek5.config.rsinterface.Interface
 import com.jagex.game.runetek5.config.rsinterface.SubInterface
 import com.jagex.game.runetek5.graphics.ToolkitType
-import com.jagex.game.runetek5.graphics.sprite.StaticMedia
 import com.jagex.game.runetek5.preference.GamePreferences
 import hdAvailable
 import kotlin.jvm.JvmField
@@ -69,32 +65,21 @@ object HdOptionsScreen {
 
 	private const val CUSTOM_CUSTOM: Int = (977 shl 16) or 14
 
-	private const val EV_COM: Int = -2147483645
+	private const val EV_COM: Int = ClientPage.EV_COM
 
-	private const val EV_COMSUBID: Int = -2147483643
-
-	// the stock look
-	private const val FONT_SMALL: Int = 494
-	private const val FONT_LABEL: Int = 495
-	private const val FONT_TITLE: Int = 4040
-	private const val FONT_BUTTON: Int = 3793
-	private const val TEXT: Int = 0xebe0bc
-	private const val BOX_FILL: Int = 0x2e2b26
-	private const val BOX_LINE: Int = 0x5f5b52
-	private const val BOX_LINE_HOVER: Int = 0x80786d
-	private const val BOX_LINE_OPEN: Int = 0xb2aa9f
-	private const val ITEM_HOVER: Int = 0x26527b
-
-	/** A value at its highest (On, or the last choice), as the stock Custom page colours a maximum. */
-	private const val TEXT_TOP: Int = 0x00b1e1
-	private const val BEVEL_FILL: Int = 0x383530
-	private const val ARROW: Int = 2554
-	private const val ARROW_OPEN: Int = 2556
-	private const val ROW_PITCH: Int = 20
-	private const val ITEM_HEIGHT: Int = 15
-	private val BUTTON_NORMAL: IntArray = intArrayOf(4037, 4031, 4034)
-	private val BUTTON_HOVER: IntArray = intArrayOf(4038, 4032, 4035)
-	private val BUTTON_SELECTED: IntArray = intArrayOf(4039, 4033, 4036)
+	// the stock look, from the shared page kit
+	private const val FONT_SMALL: Int = ClientPage.FONT_SMALL
+	private const val FONT_LABEL: Int = ClientPage.FONT_LABEL
+	private const val FONT_TITLE: Int = ClientPage.FONT_TITLE
+	private const val FONT_BUTTON: Int = ClientPage.FONT_BUTTON
+	private const val TEXT: Int = ClientPage.TEXT
+	private const val BOX_LINE: Int = ClientPage.BOX_LINE
+	private const val BOX_LINE_HOVER: Int = ClientPage.BOX_LINE_HOVER
+	private const val BOX_LINE_OPEN: Int = ClientPage.BOX_LINE_OPEN
+	private const val TEXT_TOP: Int = ClientPage.TEXT_TOP
+	private const val ARROW: Int = ClientPage.ARROW
+	private const val ARROW_OPEN: Int = ClientPage.ARROW_OPEN
+	private const val ROW_PITCH: Int = ClientPage.ROW_PITCH
 
 	// actions
 	private const val A_OPEN: Int = 1
@@ -161,22 +146,19 @@ object HdOptionsScreen {
 	/** A row with a dropdown list: its hit component and the slots of its parts under BODY. */
 	private class Dropdown(val row: Row, val hit: Component, val outline: Int, val arrow: Int, val valueText: Int)
 
-	/** A preset-style button: its hooked label, the slots of its three sprites under [parentHash], and whether it draws selected. */
-	private class Button(val label: Component, val parentHash: Int, val slots: IntArray, val selected: Boolean)
-
-	private val buttons: ArrayList<Button> = ArrayList()
+	private val buttons: ArrayList<ClientPage.Button> = ArrayList()
 
 	private val dropdowns: ArrayList<Dropdown> = ArrayList()
 
-	/** The dropdown whose list is open, its values, and what 742:0's click hook was before. */
+	/** The dropdown whose list is open, and its values. */
 	private var popupFor: Dropdown? = null
 
 	private var popupValues: Array<String> = arrayOf()
 
-	private var rootClickBefore: Array<Any?>? = null
+	private val popup: ClientPage.Popup = ClientPage.Popup(ROOT, BODY, POPUP, POPUP_ITEMS, POPUP_SCROLL, SENTINEL, A_ITEM, A_CLOSE)
 
 	/** The "634HD" button in the stock preset row, or null. */
-	private var stockButton: Button? = null
+	private var stockButton: ClientPage.Button? = null
 
 	// --- the game tick ---
 
@@ -216,11 +198,11 @@ object HdOptionsScreen {
 			return
 		}
 		val rowComponent: Component = Interface.getComponent(row) ?: return
-		val present: Button? = stockButton
+		val present: ClientPage.Button? = stockButton
 		if (present != null && rowComponent.slotChildren != null && present.label.slotId < rowComponent.slotChildren!!.size && rowComponent.slotChildren!![present.label.slotId] === present.label) {
 			val selected: Boolean = GamePreferences.uid!!.toolkit!!.getValue() == ToolkitType.HD
 			if (selected != present.selected) {
-				stockButton = Button(present.label, present.parentHash, present.slots, selected)
+				stockButton = ClientPage.Button(present.label, present.parentHash, present.slots, selected)
 				paint(stockButton!!, false)
 			}
 			return
@@ -422,143 +404,35 @@ object HdOptionsScreen {
 		Component.redrawComponent(body)
 	}
 
-	// --- the widgets, as the cache scripts make them ---
+	// --- the widgets, from the shared page kit ---
 
-	private fun child(parentHash: Int, slot: Int, type: ComponentType): Component {
-		val c: Component = Component()
-		c.type = type
-		c.idHash = parentHash
-		c.parentId = parentHash
-		c.slotId = slot
-		return c
-	}
+	private fun place(c: Component, x: Int, y: Int, width: Int, height: Int) = ClientPage.place(c, x, y, width, height)
 
-	private fun place(c: Component, x: Int, y: Int, width: Int, height: Int) {
-		c.basePositionX = x
-		c.basePositionY = y
-		c.aspectXType = 0
-		c.aspectYType = 0
-		c.baseWidth = width
-		c.baseHeight = height
-		c.aspectWidthType = 0
-		c.aspectHeightType = 0
-	}
+	private fun text(parentHash: Int, slot: Int, x: Int, y: Int, width: Int, height: Int, font: Int, text: String, colour: Int, halign: Int, valign: Int, shadow: Boolean): Component = ClientPage.text(parentHash, slot, x, y, width, height, font, text, colour, halign, valign, shadow)
 
-	private fun text(parentHash: Int, slot: Int, x: Int, y: Int, width: Int, height: Int, font: Int, text: String, colour: Int, halign: Int, valign: Int, shadow: Boolean): Component {
-		val c: Component = child(parentHash, slot, ComponentType.TEXT)
-		place(c, x, y, width, height)
-		c.fontId = font
-		c.text = text
-		c.color = colour
-		c.textHorizontalAli = halign
-		c.textVerticalAli = valign
-		c.shadow = shadow
-		return c
-	}
+	private fun rect(parentHash: Int, slot: Int, x: Int, y: Int, width: Int, height: Int, colour: Int, filled: Boolean): Component = ClientPage.rect(parentHash, slot, x, y, width, height, colour, filled)
 
-	private fun rect(parentHash: Int, slot: Int, x: Int, y: Int, width: Int, height: Int, colour: Int, filled: Boolean): Component {
-		val c: Component = child(parentHash, slot, ComponentType.FIGURE)
-		place(c, x, y, width, height)
-		c.color = colour
-		c.filled = filled
-		return c
-	}
+	private fun bevelBox(children: ArrayList<Component>, x: Int, y: Int, width: Int, height: Int) = ClientPage.bevelBox(BODY, children, x, y, width, height)
 
-	/** [hflip] mirrors left to right and [vflip] top to bottom (the fields are honest; only the cc_set*flip opcodes are named crosswise). */
-	private fun sprite(parentHash: Int, slot: Int, x: Int, y: Int, width: Int, height: Int, spriteId: Int, tiling: Boolean, hflip: Boolean, vflip: Boolean): Component {
-		val c: Component = child(parentHash, slot, ComponentType.SPRITE)
-		place(c, x, y, width, height)
-		c.spriteId = spriteId
-		c.tiling = tiling
-		c.flipHorizontal = hflip
-		c.flipVertical = vflip
-		return c
-	}
-
-	/** The stock bevelled box: a fill and eight edge pieces. */
-	private fun bevelBox(children: ArrayList<Component>, x: Int, y: Int, width: Int, height: Int) {
-		children.add(rect(BODY, children.size, x + 8, y + 8, width - 16, height - 16, BEVEL_FILL, true))
-		children.add(sprite(BODY, children.size, x, y, 8, 8, 2642, false, false, false))
-		children.add(sprite(BODY, children.size, x + width - 8, y, 8, 8, 2642, false, true, false))
-		children.add(sprite(BODY, children.size, x, y + height - 8, 8, 8, 2642, false, false, true))
-		children.add(sprite(BODY, children.size, x + width - 8, y + height - 8, 8, 8, 2642, false, true, true))
-		children.add(sprite(BODY, children.size, x + 8, y, width - 16, 8, 2643, true, false, false))
-		children.add(sprite(BODY, children.size, x + 8, y + height - 8, width - 16, 8, 2643, true, false, true))
-		children.add(sprite(BODY, children.size, x, y + 8, 8, height - 16, 2644, true, false, false))
-		children.add(sprite(BODY, children.size, x + width - 8, y + 8, 8, height - 16, 2644, true, true, false))
-	}
-
-	/**
-	 * A stock preset-style button at ([x], [y]), [width] by 27, appended to [children] (the next slots
-	 * under [parentHash]): the tiled middle, the two caps, and the label over the whole button, which
-	 * takes the hover and the click ([action] with [index]).
-	 */
+	/** A preset-style button whose hover and click come back to [hook] with [action] and [index]. */
 	private fun button(parentHash: Int, children: ArrayList<Component>, label: String, selected: Boolean, action: Int, index: Int, x: Int, y: Int, width: Int) {
-		val sprites: IntArray = if (selected) BUTTON_SELECTED else BUTTON_NORMAL
-		val slots: IntArray = IntArray(3)
-		slots[0] = children.size
-		children.add(sprite(parentHash, children.size, x + 3, y, width - 6, 26, sprites[0], true, false, false))
-		slots[1] = children.size
-		children.add(sprite(parentHash, children.size, x, y, 26, 26, sprites[1], false, false, false))
-		slots[2] = children.size
-		children.add(sprite(parentHash, children.size, x + width - 26, y, 26, 26, sprites[2], false, false, false))
-		val t: Component = text(parentHash, children.size, x, y - 3, width, 27, FONT_BUTTON, label, TEXT, 1, 1, false)
-		val b: Int = buttons.size
-		buttons.add(Button(t, parentHash, slots, selected))
-		t.hasScript = true
-		t.addOptionName(0, label)
-		t.opBase = ""
-		t.params = arrayOf<Any?>(SENTINEL, action, index)
-		t.onMouseOver = arrayOf<Any?>(SENTINEL, A_HOVER, b)
-		t.onMouseLeaveScript = arrayOf<Any?>(SENTINEL, A_LEAVE, b)
-		children.add(t)
+		buttons.add(ClientPage.button(parentHash, children, label, selected, SENTINEL, action, index, A_HOVER, A_LEAVE, buttons.size, x, y, width))
 	}
 
-	/** Sets a button's three sprites: hover, else selected, else normal (what script 3929 does). */
-	private fun paint(button: Button, hover: Boolean) {
-		val sprites: IntArray = if (hover) BUTTON_HOVER else if (button.selected) BUTTON_SELECTED else BUTTON_NORMAL
-		val parent: Component = Interface.getComponent(button.parentHash) ?: return
-		val parts: Array<Component?> = parent.slotChildren ?: return
-		for (i in 0 until 3) {
-			val part: Component = (if (button.slots[i] < parts.size) parts[button.slots[i]] else null) ?: return
-			part.spriteId = sprites[i]
-			Component.redrawComponent(part)
-		}
-	}
+	private fun paint(button: ClientPage.Button, hover: Boolean) = ClientPage.paint(button, hover)
 
-	/**
-	 * A stock dropdown: the value box (fill and outline) with its right edge at [right], the value,
-	 * the arrow, and an unseen container over the box that takes the hover (script 2691) and the click.
-	 */
+	/** A stock dropdown for [row] with its right edge at [right]; its hit component comes back to [hook] as A_ROW. */
 	private fun dropdownRow(children: ArrayList<Component>, row: Row, value: String, right: Int, y: Int, boxWidth: Int) {
-		val x: Int = right - boxWidth
-		children.add(rect(BODY, children.size, x, y, boxWidth, 16, BOX_FILL, true))
-		val outline: Int = children.size
-		children.add(rect(BODY, children.size, x, y, boxWidth, 16, BOX_LINE, false))
-		val valueText: Int = children.size
-		children.add(text(BODY, children.size, x + 2, y, boxWidth - 21, 16, FONT_SMALL, shown(row.name, value), valueColour(row, value), 1, 1, false))
-		val arrow: Int = children.size
-		children.add(sprite(BODY, children.size, right - 17, y, 16, 16, ARROW, false, false, false))
-		val hit: Component = text(BODY, children.size, x, y, boxWidth, 16, FONT_SMALL, "", TEXT, 1, 1, false)
-		hit.hasScript = true
-		hit.addOptionName(0, "Select")
-		hit.opBase = row.label
-		hit.params = arrayOf<Any?>(SENTINEL, A_ROW, dropdowns.size)
-		hit.onMouseOver = arrayOf<Any?>(2691, EV_COM, arrow, 1, outline, BOX_LINE_HOVER, 1)
-		hit.onMouseLeaveScript = arrayOf<Any?>(2691, EV_COM, arrow, 0, outline, BOX_LINE, 1)
-		children.add(hit)
-		dropdowns.add(Dropdown(row, hit, outline, arrow, valueText))
+		val slots: IntArray = IntArray(3)
+		val hit: Component = ClientPage.dropdown(BODY, children, row.label, shown(row.name, value), valueColour(row, value), SENTINEL, A_ROW, dropdowns.size, right, y, boxWidth, slots)
+		dropdowns.add(Dropdown(row, hit, slots[0], slots[1], slots[2]))
 	}
 
 	// --- the dropdown list ---
 
-	/** Opens the list under [d]'s box (above it when it would pass the window's bottom), as script 2695 does. */
+	/** Opens the list under [d]'s box, with the choices other than the current one. */
 	private fun openPopup(d: Dropdown) {
 		closePopup()
-		val root: Component = Interface.getComponent(ROOT) ?: return
-		val body: Component = Interface.getComponent(BODY) ?: return
-		val popup: Component = Interface.getComponent(POPUP) ?: return
-		val items: Component = Interface.getComponent(POPUP_ITEMS) ?: return
 		val current: String = current(d.row.name)
 		val values: ArrayList<String> = ArrayList()
 		for (choice in d.row.choices) {
@@ -567,92 +441,30 @@ object HdOptionsScreen {
 			}
 		}
 		popupValues = values.toTypedArray()
-		val height: Int = ITEM_HEIGHT * values.size + 2
-		var y: Int = root.y + body.y - body.scrollY + d.hit.y + d.hit.height - 1
-		if (y + height > root.y + root.height) {
-			y = root.y + body.y - body.scrollY + d.hit.y - height + 1
+		val shown: Array<String> = Array(popupValues.size) { shown(d.row.name, popupValues[it]) }
+		val colours: IntArray = IntArray(popupValues.size) { valueColour(d.row, popupValues[it]) }
+		popup.open(d.hit, popupValues, shown, colours)
+		if (!popup.open) {
+			return
 		}
-		place(popup, root.x + body.x - body.scrollX + d.hit.x, y, d.hit.width, height)
-		popup.hidden = false
-		InterfaceManager.relayoutAgainstParent(popup)
-		items.baseWidth = 2
-		items.aspectWidthType = 1
-		val children: Array<Component?> = arrayOfNulls(values.size)
-		for (i in values.indices) {
-			val colour: Int = valueColour(d.row, values[i])
-			val t: Component = text(POPUP_ITEMS, i, 0, i * ITEM_HEIGHT, 2, ITEM_HEIGHT, FONT_SMALL, shown(d.row.name, values[i]), colour, 1, 1, false)
-			t.aspectXType = 1
-			t.aspectWidthType = 1
-			t.hasScript = true
-			t.addOptionName(0, "Select")
-			t.opBase = shown(d.row.name, values[i])
-			t.params = arrayOf<Any?>(SENTINEL, A_ITEM, i)
-			t.onMouseOver = arrayOf<Any?>(1356, EV_COM, EV_COMSUBID, ITEM_HOVER)
-			t.onMouseLeaveScript = arrayOf<Any?>(1356, EV_COM, EV_COMSUBID, colour)
-			children[i] = t
-		}
-		items.slotChildren = children
-		items.scrollWidth = 0
-		items.scrollHeight = 0
-		val scroll: Component? = Interface.getComponent(POPUP_SCROLL)
-		if (scroll != null) {
-			scroll.hidden = true
-		}
-		Component.layoutChildren(false, popup)
-		Component.redrawComponent(popup)
 		// the arrow open, the outline lit, the hover kept off the outline while the list is open
-		setSprite(d.arrow, ARROW_OPEN)
-		setColour(d.outline, BOX_LINE_OPEN)
+		ClientPage.setSprite(BODY, d.arrow, ARROW_OPEN)
+		ClientPage.setColour(BODY, d.outline, BOX_LINE_OPEN)
 		d.hit.onMouseOver = arrayOf<Any?>(2691, EV_COM, d.arrow, 1, d.outline, BOX_LINE_HOVER, 0)
 		d.hit.onMouseLeaveScript = arrayOf<Any?>(2691, EV_COM, d.arrow, 0, d.outline, BOX_LINE, 0)
-		// a click anywhere on the window closes it (script 2696's way)
-		rootClickBefore = root.onClick
-		root.onClick = arrayOf<Any?>(SENTINEL, A_CLOSE, 0)
-		root.hasScript = true
 		popupFor = d
 	}
 
 	private fun closePopup() {
 		val d: Dropdown = popupFor ?: return
 		popupFor = null
-		val popup: Component? = Interface.getComponent(POPUP)
-		if (popup != null) {
-			popup.hidden = true
-			Component.redrawComponent(popup)
-		}
-		val items: Component? = Interface.getComponent(POPUP_ITEMS)
-		if (items != null) {
-			items.slotChildren = null
-		}
-		val root: Component? = Interface.getComponent(ROOT)
-		if (root != null) {
-			root.onClick = rootClickBefore
-		}
-		rootClickBefore = null
+		popup.close()
 		if (open) {
-			setSprite(d.arrow, ARROW)
-			setColour(d.outline, BOX_LINE)
+			ClientPage.setSprite(BODY, d.arrow, ARROW)
+			ClientPage.setColour(BODY, d.outline, BOX_LINE)
 			d.hit.onMouseOver = arrayOf<Any?>(2691, EV_COM, d.arrow, 1, d.outline, BOX_LINE_HOVER, 1)
 			d.hit.onMouseLeaveScript = arrayOf<Any?>(2691, EV_COM, d.arrow, 0, d.outline, BOX_LINE, 1)
 		}
-	}
-
-	private fun bodyChild(slot: Int): Component? {
-		val body: Component = Interface.getComponent(BODY) ?: return null
-		val children: Array<Component?> = body.slotChildren ?: return null
-		return if (slot < children.size) children[slot] else null
-	}
-
-	private fun setSprite(slot: Int, spriteId: Int) {
-		val c: Component = bodyChild(slot) ?: return
-		c.spriteId = spriteId
-		Component.redrawComponent(c)
-	}
-
-	private fun setColour(slot: Int, colour: Int) {
-		val c: Component = bodyChild(slot) ?: return
-		c.color = colour
-		Component.redrawComponent(c)
 	}
 
 	// --- our hooks ---
@@ -778,13 +590,9 @@ object HdOptionsScreen {
 	/** The value text's colour: blue at the row's highest choice (On, 4096, 16x, ...), else the stock text colour. */
 	private fun valueColour(row: Row, value: String): Int = if (value == row.choices[row.choices.size - 1]) TEXT_TOP else TEXT
 
-	private fun capital(text: String): String = if (text.isEmpty()) text else text.substring(0, 1).uppercase() + text.substring(1)
+	private fun capital(text: String): String = ClientPage.capital(text)
 
-	/** The width of [text] in the cache font [fontId] (what the scripts' STRINGWIDTH gives), or a guess before the font loads. */
-	private fun textWidth(fontId: Int, text: String): Int {
-		val metrics = FontMetricsLoader.getFontMetrics(fontId, Resource.FONT_METRICS)
-		return metrics?.getTextWidth(text, StaticMedia.nameIconSprites) ?: (text.length * 7)
-	}
+	private fun textWidth(fontId: Int, text: String): Int = ClientPage.textWidth(fontId, text)
 
 	// --- for the smoke test: the same actions the clicks take ---
 

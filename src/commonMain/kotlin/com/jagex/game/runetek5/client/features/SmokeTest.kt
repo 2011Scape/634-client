@@ -47,6 +47,8 @@ import com.jagex.game.runetek5.client.login.LoginStep
 import com.jagex.game.runetek5.preference.GamePreferences
 import com.jagex.game.runetek5.client.ClientState
 import kotlin.jvm.JvmField
+import com.jagex.game.runetek5.plugin.PluginRegistration
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import kotlin.jvm.JvmStatic
 import lang.Class
 import lang.jClass
@@ -246,6 +248,15 @@ object SmokeTest {
 
 	/** client.test.menuCheck: run a finished scene menu and a component menu through the runtime, for the plugins that edit menus. */
 	private val MENU_CHECK: Boolean = "true" == lang.getProperty("client.test.menuCheck")
+
+	/** client.test.pluginManager: open the plugin manager's window, switch a built-in, open a settings page, step a number, close; frames in build/smoke/plugins-*.png. */
+	private val PLUGIN_MANAGER: Boolean = "true" == lang.getProperty("client.test.pluginManager")
+
+	private var pluginManagerStep: Int = 0
+
+	private var pluginManagerFrame: Int = -1
+
+	private var pluginManagerTipLines: Int = -1
 
 	private const val MENU_WALK_FRAMES: Int = 400
 
@@ -790,6 +801,10 @@ object SmokeTest {
 			if (MENU_CHECK) {
 				menuCheck()
 			}
+		}
+		if (PLUGIN_MANAGER && pluginManagerStep < 4) {
+			pluginManagerCheck()
+			return
 		}
 		if (commandFrame >= 0) {
 			val slots: Array<PathingEntitySpotAnimation> = arrayOf(player.primarySpotAnimation, player.secondarySpotAnimation)
@@ -3009,6 +3024,101 @@ object SmokeTest {
 			}
 		}
 		return fallback
+	}
+
+	/**
+	 * The plugin manager's window, as its clicks take it: open, a frame of the list; a built-in switched off
+	 * and on again (its own flag follows), the idle notifier's settings page, a frame of it; its wait stepped
+	 * up once (its config follows), Back, close.
+	 */
+	private fun pluginManagerCheck() {
+		if (pluginManagerStep == 0) {
+			// the Settings tab's stone (548:102 fixed, 746:47 resizable), so the frame shows the tab
+			val stone: Component? = Interface.getComponent(if (ClientState.BASE_WINDOW_ID == 548) (548 shl 16) or 102 else (746 shl 16) or 47)
+			if (stone != null) {
+				InterfaceOptionInteract.ifOptionInteract(-1, stone.options?.getOrNull(0) ?: "", 1, stone.idHash)
+			}
+			pluginManagerFrame = gameFrames
+			pluginManagerStep = 1
+			return
+		}
+		if (gameFrames - pluginManagerFrame < 30) {
+			return
+		}
+		if (pluginManagerStep == 1) {
+			saveFrame("build/smoke/plugins-tab.png")
+			// the Plugins button the client keeps in the Settings tab, clicked as a player clicks it
+			val button: Component? = PluginManagerScreen.tabButton()
+			val graphics: Component? = Interface.getComponent((261 shl 16) or 16)
+			if (button == null || graphics == null) {
+				fail("no Plugins button in the Settings tab")
+				return
+			}
+			println("SMOKE plugin manager: Plugins button at " + button.basePositionX + "," + button.basePositionY + " in the Settings tab, Graphics Settings moved to x " + graphics.basePositionX)
+			InterfaceOptionInteract.ifOptionInteract(button.slotId, "Plugins", 1, 261 shl 16)
+			if (!PluginManagerScreen.open) {
+				fail("the Plugins button did not open the plugin manager")
+			}
+			// the tooltip over a row, as hovering it shows it; in the frame the next step saves
+			pluginManagerTipLines = PluginManagerScreen.hoverRow("idle")
+			if (pluginManagerTipLines < 1) {
+				fail("no tooltip over the idle notifier's row")
+			}
+			pluginManagerFrame = gameFrames
+			pluginManagerStep = 2
+			return
+		}
+		if (pluginManagerStep == 2) {
+			val rows: Int = PluginManagerScreen.rowsShown()
+			saveFrame("build/smoke/plugins-list.png")
+			if (rows < 5) {
+				fail("the plugin manager lists " + rows + " plugins, fewer than the built-ins")
+			}
+			val before: Boolean = XpDrops.enabled
+			if (!PluginManagerScreen.clickToggle("xpdrops") || XpDrops.enabled == before) {
+				fail("the experience drops' switch in the plugin manager did not take: " + before + " still")
+			}
+			PluginManagerScreen.clickToggle("xpdrops")
+			if (XpDrops.enabled != before) {
+				fail("the experience drops' switch did not go back")
+			}
+			if (!PluginManagerScreen.clickSettings("idle")) {
+				fail("the idle notifier's Settings did not open its page")
+			}
+			println("SMOKE plugin manager: " + rows + " rows; the idle notifier's tooltip of " + pluginManagerTipLines + " lines; experience drops switched off and on; the idle notifier's settings page open")
+			pluginManagerFrame = gameFrames
+			pluginManagerStep = 3
+			return
+		}
+		saveFrame("build/smoke/plugins-settings.png")
+		val idle: PluginRegistration? = PluginRuntime.find("idle")
+		if (idle == null || idle.context == null) {
+			fail("no running idle notifier")
+			return
+		}
+		val secondsBefore: Int = idle.context!!.config().getInt("seconds", 15)
+		if (!PluginManagerScreen.typeNumber("seconds", "45")) {
+			fail("the idle notifier's seconds box took no typing")
+		}
+		val secondsAfter: Int = idle.context!!.config().getInt("seconds", 15)
+		if (secondsAfter != 45) {
+			fail("the idle notifier's seconds went from " + secondsBefore + " to " + secondsAfter + ", not 45")
+		}
+		// out of range is held to the range
+		PluginManagerScreen.typeNumber("seconds", "99999")
+		if (idle.context!!.config().getInt("seconds", 15) != 600) {
+			fail("the idle notifier's seconds were not held to 600")
+		}
+		PluginManagerScreen.typeNumber("seconds", secondsBefore.toString())
+		if (!PluginManagerScreen.clickBack()) {
+			fail("Back did not leave the settings page")
+		}
+		PluginManagerScreen.close()
+		if (PluginManagerScreen.open) {
+			fail("the plugin manager did not close")
+		}
+		println("SMOKE plugin manager: seconds typed " + secondsBefore + " to " + secondsAfter + ", 99999 held to 600, back to " + secondsBefore + "; Back; closed")
+		pluginManagerStep = 4
 	}
 
 	/** The verb of the menu's top row, which is the last entry of the list. */

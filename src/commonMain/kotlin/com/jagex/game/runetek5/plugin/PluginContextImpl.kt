@@ -7,6 +7,7 @@ import com.jagex.game.runetek5.plugin.api.Overlay
 import com.jagex.game.runetek5.plugin.api.PluginConfig
 import com.jagex.game.runetek5.plugin.api.PluginContext
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
+import com.jagex.game.runetek5.plugin.api.SettingsSchema
 import com.jagex.game.runetek5.plugin.api.Task
 import com.jagex.game.runetek5.plugin.api.events.EventBus
 import com.jagex.game.runetek5.plugin.api.events.EventListener
@@ -25,6 +26,10 @@ class PluginContextImpl(private val registration: PluginRegistration) : PluginCo
 	var closed: Boolean = false
 
 	private val config: PluginConfigImpl = PluginConfigImpl(registration.descriptor.id)
+
+	/** The settings the plugin declared, for the plugin manager. */
+	@JvmField
+	val schema: PluginSchemaImpl = PluginSchemaImpl()
 
 	private val events: EventBus = object : EventBus {
 		override fun <E> subscribe(type: EventType<E>, listener: EventListener<E>) {
@@ -78,6 +83,10 @@ class PluginContextImpl(private val registration: PluginRegistration) : PluginCo
 			return -1
 		}
 		return PluginRuntime.registerMenuAction(registration, action)
+	}
+
+	override fun settings(): SettingsSchema {
+		return schema
 	}
 
 	override fun log(message: String) {

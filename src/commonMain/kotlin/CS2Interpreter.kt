@@ -79,6 +79,7 @@ import com.jagex.game.runetek5.client.event.keyboard.FriendOrSelfCheck
 import com.jagex.game.runetek5.client.event.mouse.DelayedIfTextUpdate
 import com.jagex.game.runetek5.client.features.ClientFeatures
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
+import com.jagex.game.runetek5.client.features.PluginManagerScreen
 import com.jagex.game.runetek5.client.web.ClientURLTools
 import com.jagex.game.runetek5.rendering.MessageBox
 import com.jagex.game.runetek5.graphics.map.worldmap.WorldMap
@@ -5543,6 +5544,11 @@ object CS2Interpreter {
 		if (scriptId == HdOptionsScreen.SENTINEL) {
 			// Not part of the original client: a hook of the 634HD settings page, handled in Kotlin.
 			HdOptionsScreen.hook(hook)
+			return
+		}
+		if (scriptId == PluginManagerScreen.SENTINEL) {
+			// Not part of the original client: a hook of the plugin manager's window, handled in Kotlin.
+			PluginManagerScreen.hook(hook)
 			return
 		}
 		@Pc(12) var clientScript: ClientScript? = ClientScript.getClientScript(scriptId)

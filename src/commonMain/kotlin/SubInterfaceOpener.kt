@@ -10,6 +10,7 @@ import com.jagex.game.runetek5.client.menu.MiniMenu
 import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
+import com.jagex.game.runetek5.client.features.PluginManagerScreen
 import kotlin.jvm.JvmStatic
 
 object SubInterfaceOpener {
@@ -19,6 +20,7 @@ object SubInterfaceOpener {
 	fun openSubInterface(@OriginalArg(0) interfaceId: Int, @OriginalArg(1) parentHash: Int, @OriginalArg(2) openType: SubInterfaceType?, @OriginalArg(3) suppressScripts: Boolean): SubInterface? {
 		if (interfaceId == 742) {
 			HdOptionsScreen.reset() // Not part of the original client: Graphics Options opened anew, its 634HD page forgotten
+			PluginManagerScreen.reset() // Not part of the original client: the plugin manager's window, if it was this one, is over
 		}
 		@Pc(17) val subInterface: SubInterface = SubInterface()
 		subInterface.interfaceId = interfaceId

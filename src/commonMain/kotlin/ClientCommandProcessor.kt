@@ -2,6 +2,7 @@ import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.features.GroundItemLabels
 import com.jagex.game.runetek5.client.features.HdSettings
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
+import com.jagex.game.runetek5.client.features.PluginManagerScreen
 import com.jagex.game.runetek5.client.features.HdFallback
 import com.jagex.game.runetek5.graphics.ToolkitType
 import com.jagex.game.runetek5.client.features.NpcLabels
@@ -418,6 +419,11 @@ object ClientCommandProcessor {
 				// Not part of the original client: 634HD's settings page of Graphics Options (HdOptionsScreen).
 				if (string.equals("hdsettings", ignoreCase = true)) {
 					HdOptionsScreen.openFromCommand()
+					return
+				}
+				// Not part of the original client: the plugin manager's window (PluginManagerScreen).
+				if (string.equals("pluginmanager", ignoreCase = true)) {
+					PluginManagerScreen.openFromCommand()
 					return
 				}
 				// Not part of the original client: ::hd preset <off|low|medium|high|ultra> (see HdSettings.applyPreset)

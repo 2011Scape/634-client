@@ -25,8 +25,10 @@ package com.jagex.game.runetek5.plugin.api
  *   game thread from a tick or from another thread ([PluginContext.invokeLater]).
  * - 5: [Player.isAttackable] and [Player.teamId]; [ClientApi.friendsChatName], [ClientApi.isFriend]
  *   and [ClientApi.isInFriendsChat].
+ * - 6: [PluginContext.settings], the [SettingsSchema] a plugin declares for the plugin manager, and
+ *   [events.Events.SETTING_CHANGED].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 5
+	const val VERSION: Int = 6
 }

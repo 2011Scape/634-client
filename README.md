@@ -93,6 +93,7 @@ are off unless the client is started with `--dev-commands`.
 | `--inventory-value` | What your backpack is worth, with its three most valuable items, at the top of the game view. | `::invvalue` |
 | `--name-plates` | Other players' names over their heads: red when they can attack you, green for friends, blue for your friends chat with its name underneath. | `::nameplates` |
 | | Make an option the left click of its menu, wherever it appears (a menu entry swapper). | `::swap <option> [target]`, `::unswap <option>`, `::swaps` |
+| | The plugin manager: every plugin with its switch and its settings, from the Plugins button in the Settings tab. | `::pluginmanager` |
 | `--npc-labels` | NPC names, with their combat level, above their heads. | `::npclabels` |
 | `--ground-items` | The names (and counts) of the items on each tile, above it. | `::grounditems` |
 | `--no-shift-drop` | Turn off dropping an item with Shift and a left click. | `::shiftdrop` |
