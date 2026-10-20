@@ -1,6 +1,9 @@
 package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.ChatLineWriter
+import com.jagex.game.runetek5.cache.node.ObjStack
+import com.jagex.game.runetek5.cache.node.ObjStackEntry
+import com.jagex.game.runetek5.core.datastruct.key.DequeIterator
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.input.console.Console
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecord
@@ -9,13 +12,17 @@ import com.jagex.game.runetek5.client.menu.MiniMenu
 import com.jagex.game.runetek5.client.menu.MiniMenuEntry
 import com.jagex.game.runetek5.core.constants.MainLogicStep
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
+import com.jagex.game.runetek5.plugin.api.Actor
 import com.jagex.game.runetek5.plugin.api.CommandHandler
 import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.MenuAction
 import com.jagex.game.runetek5.plugin.api.MenuTarget
+import com.jagex.game.runetek5.plugin.api.Npc
 import com.jagex.game.runetek5.plugin.api.Overlay
+import com.jagex.game.runetek5.plugin.api.Player
 import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.Viewport
+import com.jagex.game.runetek5.plugin.api.events.AnimationChanged
 import com.jagex.game.runetek5.plugin.api.events.ChatMessage
 import com.jagex.game.runetek5.plugin.api.events.ClientTick
 import com.jagex.game.runetek5.plugin.api.events.ConsoleCommand
@@ -23,11 +30,16 @@ import com.jagex.game.runetek5.plugin.api.events.Events
 import com.jagex.game.runetek5.plugin.api.events.FrameDraw
 import com.jagex.game.runetek5.plugin.api.events.GameStateChanged
 import com.jagex.game.runetek5.plugin.api.events.GameTick
+import com.jagex.game.runetek5.plugin.api.events.GroundItem
+import com.jagex.game.runetek5.plugin.api.events.HitsplatApplied
 import com.jagex.game.runetek5.plugin.api.events.ItemContainerChanged
 import com.jagex.game.runetek5.plugin.api.events.KeyPressed
 import com.jagex.game.runetek5.plugin.api.events.MenuEntryAdded
 import com.jagex.game.runetek5.plugin.api.events.MenuOptionClicked
 import com.jagex.game.runetek5.plugin.api.events.MouseClicked
+import com.jagex.game.runetek5.plugin.api.events.OverheadTextChanged
+import com.jagex.game.runetek5.plugin.api.events.ProjectileSpawned
+import com.jagex.game.runetek5.plugin.api.events.SpotAnimSpawned
 import com.jagex.game.runetek5.plugin.api.events.StatChanged
 import com.jagex.game.runetek5.plugin.api.events.ToolkitChanged
 import com.jagex.game.runetek5.plugin.api.events.VarpChanged
@@ -596,6 +608,130 @@ object PluginRuntime {
 		mouseClickedEvent.y = record.getMouseY()
 		mouseClickedEvent.button = clickType
 		bus.post(Events.MOUSE_CLICKED, mouseClickedEvent)
+	}
+
+	/** An npc entered the scene, with its type set. */
+	@JvmStatic
+	fun npcSpawned(npc: Npc?) {
+		if (!started || npc == null || !bus.hasListeners(Events.NPC_SPAWNED)) {
+			return
+		}
+		bus.post(Events.NPC_SPAWNED, npc)
+	}
+
+	/** An npc is about to leave the scene, its type still set. */
+	@JvmStatic
+	fun npcDespawned(npc: Npc?) {
+		if (!started || npc == null || !bus.hasListeners(Events.NPC_DESPAWNED)) {
+			return
+		}
+		bus.post(Events.NPC_DESPAWNED, npc)
+	}
+
+	/** A player entered the scene, placed and with its appearance. */
+	@JvmStatic
+	fun playerSpawned(player: Player?) {
+		if (!started || player == null || !bus.hasListeners(Events.PLAYER_SPAWNED)) {
+			return
+		}
+		bus.post(Events.PLAYER_SPAWNED, player)
+	}
+
+	/** A player is about to leave the scene. */
+	@JvmStatic
+	fun playerDespawned(player: Player?) {
+		if (!started || player == null || !bus.hasListeners(Events.PLAYER_DESPAWNED)) {
+			return
+		}
+		bus.post(Events.PLAYER_DESPAWNED, player)
+	}
+
+	/** An item was put on the ground at scene tile ([sceneX], [sceneY]). */
+	@JvmStatic
+	fun groundItemSpawned(itemId: Int, amount: Int, sceneX: Int, sceneY: Int, level: Int) {
+		if (!started || !bus.hasListeners(Events.ITEM_SPAWNED)) {
+			return
+		}
+		bus.post(Events.ITEM_SPAWNED, GroundItem(itemId, amount, sceneX, sceneY, level))
+	}
+
+	/** An item is about to leave the ground at scene tile ([sceneX], [sceneY]). */
+	@JvmStatic
+	fun groundItemDespawned(itemId: Int, amount: Int, sceneX: Int, sceneY: Int, level: Int) {
+		if (!started || !bus.hasListeners(Events.ITEM_DESPAWNED)) {
+			return
+		}
+		bus.post(Events.ITEM_DESPAWNED, GroundItem(itemId, amount, sceneX, sceneY, level))
+	}
+
+	/** A whole pile is about to leave the ground: one ItemDespawned for each item in it. */
+	@JvmStatic
+	fun groundPileDespawned(pile: ObjStack, sceneX: Int, sceneY: Int, level: Int) {
+		if (!started || !bus.hasListeners(Events.ITEM_DESPAWNED)) {
+			return
+		}
+		// a cursor of its own: the caller is walking the piles with the shared one, and a listener may walk them too
+		val entries: DequeIterator = DequeIterator(pile.groundItems)
+		var entry: ObjStackEntry? = entries.first() as ObjStackEntry?
+		while (entry != null) {
+			bus.post(Events.ITEM_DESPAWNED, GroundItem(entry.id, entry.count, sceneX, sceneY, level))
+			entry = entries.next() as ObjStackEntry?
+		}
+	}
+
+	/** The server hit [actor]; see HitsplatApplied. */
+	@JvmStatic
+	fun hitsplatApplied(actor: Actor, type: Int, damage: Int, soakType: Int, soakDamage: Int, delay: Int) {
+		if (!started || !bus.hasListeners(Events.HITSPLAT_APPLIED)) {
+			return
+		}
+		bus.post(Events.HITSPLAT_APPLIED, HitsplatApplied(actor, type, damage, soakType, soakDamage, delay))
+	}
+
+	/** The server set [actor]'s animations: [animationIds] is one id for each movement type, the first for standing. */
+	@JvmStatic
+	fun animationChanged(actor: Actor?, animationIds: IntArray?) {
+		if (!started || actor == null || !bus.hasListeners(Events.ANIMATION_CHANGED)) {
+			return
+		}
+		val animationId: Int = if (animationIds == null || animationIds.isEmpty()) -1 else animationIds[0]
+		bus.post(Events.ANIMATION_CHANGED, AnimationChanged(actor, animationId))
+	}
+
+	/** [actor]'s target changed; the actor itself is the event. */
+	@JvmStatic
+	fun interactingChanged(actor: Actor?) {
+		if (!started || actor == null || !bus.hasListeners(Events.INTERACTING_CHANGED)) {
+			return
+		}
+		bus.post(Events.INTERACTING_CHANGED, actor)
+	}
+
+	/** [text] appeared over [actor]'s head. */
+	@JvmStatic
+	fun overheadTextChanged(actor: Actor?, text: String?) {
+		if (!started || actor == null || text == null || !bus.hasListeners(Events.OVERHEAD_TEXT_CHANGED)) {
+			return
+		}
+		bus.post(Events.OVERHEAD_TEXT_CHANGED, OverheadTextChanged(actor, text))
+	}
+
+	/** A projectile was fired; the coordinates are in scene units, the cycles client cycles. */
+	@JvmStatic
+	fun projectileSpawned(id: Int, level: Int, startX: Int, startY: Int, endX: Int, endY: Int, startCycle: Int, endCycle: Int, sourceIndex: Int, targetIndex: Int) {
+		if (!started || !bus.hasListeners(Events.PROJECTILE_SPAWNED)) {
+			return
+		}
+		bus.post(Events.PROJECTILE_SPAWNED, ProjectileSpawned(id, level, startX, startY, endX, endY, startCycle, endCycle, sourceIndex, targetIndex))
+	}
+
+	/** A graphic plays on scene tile ([sceneX], [sceneY]). */
+	@JvmStatic
+	fun spotAnimSpawned(id: Int, sceneX: Int, sceneY: Int, level: Int) {
+		if (!started || !bus.hasListeners(Events.SPOT_ANIM_SPAWNED)) {
+			return
+		}
+		bus.post(Events.SPOT_ANIM_SPAWNED, SpotAnimSpawned(id, sceneX, sceneY, level))
 	}
 
 	/**

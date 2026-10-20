@@ -2,7 +2,7 @@
 
 How to add to the client without changing it: a plugin is a jar in a folder, written against a
 small, stable API, that reads the game, draws on it, adds menu entries and commands, and keeps its
-own settings. The experience drops (`XpDrops`) are one, built in, so the client's own code shows the
+own settings. The experience drops (`XpDrops`) and the idle notifier (`IdleNotifier`) are two, built in, so the client's own code shows the
 way.
 
 ## Contents
@@ -21,15 +21,18 @@ way.
 A plugin follows the rule RuneLite's do: it **reads** the game and **shows** things; it does not play
 the game for you.
 
-- Read: the players, npcs and items on the ground in the scene; skills, player variables (varps and
-  varbits), inventories, interface components; the names of items, npcs and locations; where any of
-  it is on the screen.
+- Read: the players, npcs and items on the ground in the scene, and what each actor is doing (its
+  animation, graphic, target, facing, hit splats, overhead text and icons); skills, player variables
+  (varps and varbits), inventories, interface components; the item, npc and location types from the
+  cache (names, options, sizes, values); the locations and the movement flags of any tile; where any
+  of it is on the screen.
 - Draw: on the game view every frame (under the interfaces), or over the whole frame.
 - Add: entries to the right-click menu of a tile, npc, player, ground item or location, with an action
   of its own; console commands (`::name`); lines in the chat box and the developer console.
 - Hear: every client cycle and game tick, every stat update, variable change, chat line and inventory
-  update, the menu being built and clicked, keys and mouse buttons, logins and logouts, and the
-  graphics mode changing.
+  update, the menu being built and clicked, keys and mouse buttons, logins and logouts, the graphics
+  mode changing; every npc, player and ground item appearing and leaving, every hit, animation,
+  change of target and line of overhead text, and every projectile and graphic.
 - Keep: settings of its own, saved beside the plugins.
 
 It cannot send anything to the server, click or walk for you, or change the game's files. That is
@@ -132,10 +135,11 @@ The API is the package `com.jagex.game.runetek5.plugin.api`, published with ever
 `runetek5-plugin-api-<version>.jar` with a `-sources.jar` beside it; its KDoc is the reference. The jar
 is also inside the client jar, which is what runs the plugin.
 
-`PluginApi.VERSION` is the API's version. Changes that only add (a new event, a new method with a
-default) keep the number; a changed signature or a removal raises it. A plugin built against version
-N runs on every client whose API is N or newer, and a client refuses a plugin that needs a newer
-API than its own, with a message to update the client.
+`PluginApi.VERSION` is the API's version, and goes up with every release that adds to the API (its
+KDoc lists what each version brought). Nothing is removed or changed in a way that breaks an older
+plugin: one built against version N runs on every client whose API is N or newer, and a client
+refuses a plugin that needs a newer API than its own, with a message to update the client, rather
+than failing inside it when the plugin reaches for what is not there.
 
 ## Building
 
@@ -201,7 +205,7 @@ built-in plugins):
   copies its jar beside the release jar.
 
 A new extra for the client should be a built-in plugin on this API where the API suffices, as
-`XpDrops` is; where it does not, extend the API (additively, keeping `PluginApi.VERSION`) rather
+`XpDrops` is; where it does not, extend the API (additively, raising `PluginApi.VERSION`) rather
 than adding another one-off hook.
 
 ## What comes next
@@ -209,5 +213,7 @@ than adding another one-off hook.
 Not built yet, in the order it is likely to come: a Plugins page in Graphics Options to turn plugins
 on and off and edit their settings; a plugin hub in the Void launcher (a signed list of plugins to
 install and update, verified by SHA-256); plugins in the browser client; dependencies between
-plugins and reloading one without a restart; more events (npc spawn and despawn, interfaces opening
-and closing, projectiles, hit splats) and the power to cancel a menu click or a key.
+plugins and reloading one without a restart; the interfaces in detail (children, items, sprites,
+options) and their opening and closing; menu entries on interface components and the power to edit
+the menu, cancel a click or a key; sprites, icons and polygons in overlays; the camera and the
+minimap; sounds; and a way for work on another thread to come back to the game thread.

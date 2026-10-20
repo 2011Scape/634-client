@@ -1,5 +1,7 @@
 package com.jagex.game.runetek5
 
+import com.jagex.game.runetek5.plugin.PluginRuntime
+
 import com.jagex.game.runetek5.entity.NPCEntity
 import com.jagex.game.runetek5.entity.NPCEntityNode
 import com.jagex.game.runetek5.NpcUpdate
@@ -142,6 +144,7 @@ object NPCList {
 						npcEntity.yawSpeed = npcEntity.npcType!!.turnDirection shl 3
 						npcEntity.turn(((npcEntity.npcType!!.respawnDirection + 4) and 0x9CE00007.toInt()) shl 11, true)
 						npcEntity.clearPath(sceneZ, true, sceneX, npcEntity.getSize(), level)
+						PluginRuntime.npcSpawned(npcEntity) // Not part of the original client: the plugins' NpcSpawned.
 					}
 				}
 			}
@@ -210,6 +213,9 @@ object NPCList {
 						npcEntity.turn(rotation, true)
 					}
 					npcEntity.clearPath(PlayerUpdate.localPlayer!!.movementBaseY[0] + offsetY, teleport == 1, PlayerUpdate.localPlayer!!.movementBaseX[0] + offsetX, npcEntity.getSize(), plane)
+					if (isNew) {
+						PluginRuntime.npcSpawned(npcEntity) // Not part of the original client: the plugins' NpcSpawned.
+					}
 					if (npcEntity.npcType!!.hasSounds()) {
 						AmbientSound.createAmbientSoundEffect(npcEntity, npcEntity.level.toInt(), npcEntity.movementBaseY[0], npcEntity.movementBaseX[0], null, null, 0)
 					}
@@ -372,10 +378,12 @@ object NPCList {
 				if (npcEntity.faceEntity == 65535) {
 					npcEntity.faceEntity = -1
 				}
+				PluginRuntime.interactingChanged(npcEntity) // Not part of the original client: the plugins' InteractingChanged.
 			}
 			if ((updateFlag and 0x1) != 0) {
 				npcEntity.hintDetails.text = BufferedConnectionContext.receivedBuffer.readString()
 				npcEntity.hintDetails.ticksLeft = 100
+				PluginRuntime.overheadTextChanged(npcEntity, npcEntity.hintDetails.text) // Not part of the original client: the plugins' OverheadTextChanged.
 			}
 			if ((updateFlag and 0x800) != 0) {
 				val secondaryBarData: Int = BufferedConnectionContext.receivedBuffer.readUShort()
@@ -415,6 +423,10 @@ object NPCList {
 	@JvmStatic
 	fun resetNpcsOnAreaChange() {
 		if (MapRegion.areaMode == AreaMode.CLEAR_LOCAL_NPCS || MapRegion.areaMode == AreaMode.ALLOW_OUT_OF_BOUNDS || MapRegion.areaMode != NPCList.previousAreaMode && (MapRegion.areaMode == AreaMode.STATIC_AREA || NPCList.previousAreaMode == AreaMode.STATIC_AREA)) {
+			// Not part of the original client: the plugins' NpcDespawned for every npc the area change drops.
+			for (i in 0 until NPCList.npcCount) {
+				PluginRuntime.npcDespawned(NPCList.NPC_ARRAY[i]?.npc)
+			}
 			NPCList.npcCount = 0
 			NPCList.NPC_UPDATE_INDEX = 0
 			NPCList.NPC_MAP.clear()

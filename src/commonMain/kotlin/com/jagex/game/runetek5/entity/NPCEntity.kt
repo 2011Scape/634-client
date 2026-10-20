@@ -1,6 +1,8 @@
 package com.jagex.game.runetek5.entity
 
 import com.jagex.game.runetek5.plugin.api.Npc
+import com.jagex.game.runetek5.plugin.api.NpcDefinition
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.config.bas.BasType
 import com.jagex.game.runetek5.config.npc.NPCType
 import com.jagex.game.runetek5.config.sequence.spot.SpotAnimationType
@@ -57,11 +59,20 @@ class NPCEntity : PathingEntity(), Npc {
 
 	override fun combatLevel(): Int {
 		val type: NPCType = shownType() ?: return 0
-		return type.combatLevel
+		return if (type.combatLevel < 0) 0 else type.combatLevel
 	}
 
 	override fun index(): Int {
 		return this.playerIndex
+	}
+
+	override fun headIcon(): Int {
+		val type: NPCType = shownType() ?: return -1
+		return type.headIcons
+	}
+
+	override fun type(): NpcDefinition? {
+		return shownType()
 	}
 
 	@OriginalMember(owner = "client!ff", name = "Bd", descriptor = "Lclient!bb;")
@@ -630,6 +641,7 @@ class NPCEntity : PathingEntity(), Npc {
 		@OriginalMember(owner = "client!jf", name = "a", descriptor = "(IB[ILclient!ff;)V")
 		@JvmStatic
 		fun animateNpc(@OriginalArg(0) speed: Int, @OriginalArg(2) animations: IntArray?, @OriginalArg(3) npcEntity: NPCEntity?) {
+			PluginRuntime.animationChanged(npcEntity, animations) // Not part of the original client: the plugins' AnimationChanged.
 			@Pc(10) val local10: Boolean
 			@Pc(12) var i: Int
 			if (npcEntity!!.currentAnimations != null) {

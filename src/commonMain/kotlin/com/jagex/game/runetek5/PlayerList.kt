@@ -1,5 +1,7 @@
 package com.jagex.game.runetek5
 
+import com.jagex.game.runetek5.plugin.PluginRuntime
+
 import com.jagex.game.runetek5.buffer.BitPacket
 import com.jagex.game.runetek5.entity.PlayerEntity
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
@@ -65,6 +67,7 @@ object PlayerList {
 			playerEntity.move(baseY, baseX)
 			playerEntity.hasPendingPositionUpdate = false
 			PlayerUpdate.PLAYER_UPDATES[playerIndex] = null
+			PluginRuntime.playerSpawned(playerEntity) // Not part of the original client: the plugins' PlayerSpawned.
 			return true
 		} else if (updateType == LowResolutionPlayerUpdate.CHANGE_LEVEL) {
 			val levelDelta: Int = bitPacket.gbit(2)
@@ -307,6 +310,7 @@ object PlayerList {
 			if (playerEntity.isNpc > 0) {
 				AmbientSound.unlinkPlayerSound(playerEntity)
 			}
+			PluginRuntime.playerDespawned(playerEntity) // Not part of the original client: the plugins' PlayerDespawned.
 			PlayerUpdate.players[playerIndex] = null
 			if (bitPacket.gbit(1) != 0) {
 				PlayerList.decodeMovementUpdate(playerIndex, bitPacket)

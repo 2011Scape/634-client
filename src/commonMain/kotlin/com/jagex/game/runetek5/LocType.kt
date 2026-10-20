@@ -1,5 +1,7 @@
 package com.jagex.game.runetek5
 
+import com.jagex.game.runetek5.plugin.api.LocDefinition
+
 import com.jagex.game.runetek5.core.constants.LocShapes
 import com.jagex.game.runetek5.cache.node.IntNode
 import com.jagex.game.runetek5.core.datastruct.key.IterableHashTable
@@ -31,7 +33,38 @@ import kotlin.jvm.JvmStatic
 import withLock
 
 @OriginalClass("client!iv")
-class LocType {
+class LocType : LocDefinition {
+
+	/* Not part of the original client: the plugin API's view of a location type (plugin.api.LocDefinition). */
+
+	override fun id(): Int {
+		return this.id
+	}
+
+	override fun name(): String? {
+		return this.name
+	}
+
+	override fun action(i: Int): String? {
+		val actions: Array<String?> = this.actions ?: return null
+		return if (i >= 0 && i < actions.size) actions[i] else null
+	}
+
+	override fun sizeX(): Int {
+		return this.sizeX
+	}
+
+	override fun sizeY(): Int {
+		return this.sizeY
+	}
+
+	override fun isMembers(): Boolean {
+		return this.members
+	}
+
+	override fun mapIconId(): Int {
+		return this.mapIconId
+	}
 
 	@OriginalMember(owner = "client!iv", name = "g", descriptor = "[B")
 	private var recolorDPalette: ByteArray? = null

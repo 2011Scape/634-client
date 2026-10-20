@@ -1,5 +1,7 @@
 package com.jagex.game.runetek5.config.npc
 
+import com.jagex.game.runetek5.plugin.api.NpcDefinition
+
 import com.jagex.game.runetek5.config.sequence.frameset.FrameSet
 import com.jagex.game.runetek5.config.sequence.PathingEntitySequence
 import com.jagex.game.runetek5.config.sequence.SeqType
@@ -29,7 +31,41 @@ import kotlin.jvm.JvmField
 import withLock
 
 @OriginalClass("client!bb")
-class NPCType {
+class NPCType : NpcDefinition {
+
+	/* Not part of the original client: the plugin API's view of an npc type (plugin.api.NpcDefinition). */
+
+	override fun id(): Int {
+		return this.id
+	}
+
+	override fun name(): String? {
+		return this.name
+	}
+
+	override fun action(i: Int): String? {
+		return if (i >= 0 && i < this.actions.size) this.actions[i] else null
+	}
+
+	override fun size(): Int {
+		return this.size
+	}
+
+	override fun combatLevel(): Int {
+		return if (this.combatLevel < 0) 0 else this.combatLevel
+	}
+
+	override fun isVisible(): Boolean {
+		return this.visible
+	}
+
+	override fun isOnMinimap(): Boolean {
+		return this.displayOnMinimap
+	}
+
+	override fun headIcon(): Int {
+		return this.headIcons
+	}
 
 	@OriginalMember(owner = "client!bb", name = "d", descriptor = "[S")
 	private var recolorSrc: ShortArray? = null

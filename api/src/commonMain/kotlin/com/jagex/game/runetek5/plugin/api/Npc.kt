@@ -11,4 +11,10 @@ interface Npc : Actor {
 
 	/** The npc's index on this world. */
 	fun index(): Int
+
+	/** The icon over the npc's head, an index into the head icons sprite group, or -1 for none. */
+	fun headIcon(): Int
+
+	/** The npc's type as it shows now, or null once the npc has left the scene. */
+	fun type(): NpcDefinition?
 }

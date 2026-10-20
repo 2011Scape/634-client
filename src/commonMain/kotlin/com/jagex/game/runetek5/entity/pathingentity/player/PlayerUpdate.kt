@@ -1,5 +1,7 @@
 package com.jagex.game.runetek5.entity.pathingentity.player
 
+import com.jagex.game.runetek5.plugin.PluginRuntime
+
 import org.openrs2.deob.annotation.OriginalMember
 import com.jagex.game.runetek5.entity.NPCEntityNode
 import com.jagex.game.runetek5.entity.PathingEntity
@@ -179,6 +181,7 @@ object PlayerUpdate {
 				faceEntityIndex = -1
 			}
 			playerEntity!!.faceEntity = faceEntityIndex
+			PluginRuntime.interactingChanged(playerEntity) // Not part of the original client: the plugins' InteractingChanged.
 		}
 		@Pc(46) var local46: IntArray?
 		@Pc(49) var local49: IntArray?
@@ -220,6 +223,7 @@ object PlayerUpdate {
 				ChatLineWriter.writeMessage(playerEntity.getDisplayName(), 2, 0, playerEntity.hintDetails.text, playerEntity.getUsernameWithTitle(), playerEntity.username)
 			}
 			playerEntity.hintDetails.ticksLeft = 150
+			PluginRuntime.overheadTextChanged(playerEntity, playerEntity.hintDetails.text) // Not part of the original client: the plugins' OverheadTextChanged.
 			playerEntity.hintDetails.drawType = 0
 			playerEntity.hintDetails.colorType = 0
 		}
@@ -423,6 +427,7 @@ object PlayerUpdate {
 	@OriginalMember(owner = "client!sba", name = "a", descriptor = "(I[IILclient!ke;)V")
 	@JvmStatic
 	fun animate(@OriginalArg(1) animationIds: IntArray?, @OriginalArg(2) speed: Int, @OriginalArg(3) playerEntity: PlayerEntity) {
+		PluginRuntime.animationChanged(playerEntity, animationIds) // Not part of the original client: the plugins' AnimationChanged.
 		@Pc(10) var local10: Boolean
 		@Pc(12) var index: Int
 		if (playerEntity.currentAnimations != null) {
@@ -527,6 +532,7 @@ object PlayerUpdate {
 		OutPlayerIndexCount.NUM_OUT_PLAYER_INDICES = 0
 		PlayerUpdate.OUT_PLAYER_INDICES[OutPlayerIndexCount.NUM_OUT_PLAYER_INDICES++] = myPlayerIndex
 		PlayerUpdate.OUT_PLAYER_UPDATE_STATE[myPlayerIndex] = 0
+		PluginRuntime.playerSpawned(playerEntity) // Not part of the original client: the plugins' PlayerSpawned for the local player.
 		WorldMap.numInactivePlayerIndices = 0
 		@Pc(147) var i: Int = 1
 		while (i < 2048) {

@@ -16,6 +16,7 @@ import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.cache.node.ObjStack
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
 import com.jagex.game.runetek5.config.TypeLists
 import com.jagex.game.runetek5.rendering.Renderers
@@ -78,6 +79,7 @@ object UpdateZonePacketDecoder {
 				}
 				@Pc(192) val spotAnimation: SpotAnimation = SpotAnimation(spotAnimId, delay, ClientState.clientCycle, UpdateZonePacketDecoder.updateZonePlane, virtualLevel, fineX, Scene.tileHeightForAbsolutePosition(fineX, UpdateZonePacketDecoder.updateZonePlane, fineY) - height, fineY, sceneX, sceneX, sceneY, sceneY, rotation)
 				Renderers.activeToolkit.addLast(PositionedGfx(spotAnimation))
+				PluginRuntime.spotAnimSpawned(spotAnimId, sceneX, sceneY, UpdateZonePacketDecoder.updateZonePlane) // Not part of the original client: the plugins' SpotAnimSpawned.
 			}
 			return
 		}
@@ -208,6 +210,7 @@ object UpdateZonePacketDecoder {
 					@Pc(888) val projectileAnimation: ProjectileAnimation = ProjectileAnimation(projectileId, UpdateZonePacketDecoder.updateZonePlane, UpdateZonePacketDecoder.updateZonePlane, startX, startY, startHeight, startTime + ClientState.clientCycle, endTime + ClientState.clientCycle, angle, slope, sourceIndex, targetIndex, endHeight, adjustToTerrainHeight, wornSlot)
 					projectileAnimation.target(Scene.tileHeightForAbsolutePosition(endX, UpdateZonePacketDecoder.updateZonePlane, endY) - endHeight, endY, startTime + ClientState.clientCycle, endX)
 					ProjectileAnimation.aClass341_24.addLast(ProjectileAnimationNode(projectileAnimation))
+					PluginRuntime.projectileSpawned(projectileId, UpdateZonePacketDecoder.updateZonePlane, startX, startY, endX, endY, startTime + ClientState.clientCycle, endTime + ClientState.clientCycle, sourceIndex, targetIndex) // Not part of the original client: the plugins' ProjectileSpawned.
 				}
 			} else if (packet === UpdateZonePacket.REMOVE_GROUND_ITEM) {
 				val itemId: Int = BufferedConnectionContext.receivedBuffer!!.readUShortAddLittle()
@@ -221,6 +224,7 @@ object UpdateZonePacketDecoder {
 					@Pc(968) var objStackEntry: ObjStackEntry? = objStack.groundItems.first() as ObjStackEntry?
 					while (objStackEntry != null) {
 						if (objStackEntry.id == (itemId and 0x7FFF)) {
+							PluginRuntime.groundItemDespawned(objStackEntry.id, objStackEntry.count, sceneX, sceneY, UpdateZonePacketDecoder.updateZonePlane) // Not part of the original client: the plugins' ItemDespawned.
 							objStackEntry.unlink()
 							break
 						}
@@ -244,6 +248,7 @@ object UpdateZonePacketDecoder {
 				@Pc(1074) val withinScene: Boolean = sceneX >= 0 && sceneY >= 0 && MapRegion.sceneSizeX > sceneX && MapRegion.sceneSizeY > sceneY
 				if (withinScene || MapRegion.allowsOutOfBounds(MapRegion.areaMode)) {
 					ObjStack.addGroundItem(ObjStackEntry(itemId, itemCount), UpdateZonePacketDecoder.updateZonePlane, absoluteY, absoluteX)
+					PluginRuntime.groundItemSpawned(itemId, itemCount, sceneX, sceneY, UpdateZonePacketDecoder.updateZonePlane) // Not part of the original client: the plugins' ItemSpawned.
 					if (withinScene) {
 						ObjStackEntity.refreshObjStack(sceneY, sceneX, UpdateZonePacketDecoder.updateZonePlane)
 					}
@@ -274,9 +279,11 @@ object UpdateZonePacketDecoder {
 						@Pc(1251) var objStackEntry2: ObjStackEntry? = objStack2.groundItems.first() as ObjStackEntry?
 						while (objStackEntry2 != null) {
 							if (objStackEntry2.id == (itemId and 0x7FFF) && oldCount == objStackEntry2.count) {
+								PluginRuntime.groundItemDespawned(objStackEntry2.id, oldCount, sceneX, sceneY, UpdateZonePacketDecoder.updateZonePlane) // Not part of the original client: the plugins' ItemDespawned, then ItemSpawned with the new amount.
 								objStackEntry2.unlink()
 								objStackEntry2.count = newCount
 								ObjStack.addGroundItem(objStackEntry2, UpdateZonePacketDecoder.updateZonePlane, absoluteY, absoluteX)
+								PluginRuntime.groundItemSpawned(objStackEntry2.id, newCount, sceneX, sceneY, UpdateZonePacketDecoder.updateZonePlane)
 								break
 							}
 							objStackEntry2 = objStack2.groundItems.next() as ObjStackEntry?
@@ -299,6 +306,7 @@ object UpdateZonePacketDecoder {
 					@Pc(1381) val withinScene: Boolean = sceneX >= 0 && sceneY >= 0 && MapRegion.sceneSizeX > sceneX && MapRegion.sceneSizeY > sceneY
 					if (withinScene || MapRegion.allowsOutOfBounds(MapRegion.areaMode)) {
 						ObjStack.addGroundItem(ObjStackEntry(itemId, itemCount), UpdateZonePacketDecoder.updateZonePlane, absoluteY, absoluteX)
+						PluginRuntime.groundItemSpawned(itemId, itemCount, sceneX, sceneY, UpdateZonePacketDecoder.updateZonePlane) // Not part of the original client: the plugins' ItemSpawned.
 						if (withinScene) {
 							ObjStackEntity.refreshObjStack(sceneY, sceneX, UpdateZonePacketDecoder.updateZonePlane)
 						}
@@ -333,6 +341,7 @@ object UpdateZonePacketDecoder {
 					@Pc(1605) val projectileAnimation2: ProjectileAnimation = ProjectileAnimation(projectileId, UpdateZonePacketDecoder.updateZonePlane, UpdateZonePacketDecoder.updateZonePlane, startX, startY, startHeight, startTime + ClientState.clientCycle, ClientState.clientCycle + endTime, angle, slope, 0, targetIndex, endHeight, useFloorHeight, -1)
 					projectileAnimation2.target(Scene.tileHeightForAbsolutePosition(endX, UpdateZonePacketDecoder.updateZonePlane, endY) - endHeight, endY, startTime + ClientState.clientCycle, endX)
 					ProjectileAnimation.aClass341_24.addLast(ProjectileAnimationNode(projectileAnimation2))
+					PluginRuntime.projectileSpawned(projectileId, UpdateZonePacketDecoder.updateZonePlane, startX, startY, endX, endY, startTime + ClientState.clientCycle, endTime + ClientState.clientCycle, 0, targetIndex) // Not part of the original client: the plugins' ProjectileSpawned.
 				}
 			} else if (UpdateZonePacket.TILE_MESSAGE === packet) {
 				BufferedConnectionContext.receivedBuffer!!.readUByte()

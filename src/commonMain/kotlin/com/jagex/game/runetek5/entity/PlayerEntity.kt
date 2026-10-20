@@ -70,6 +70,18 @@ class PlayerEntity : PathingEntity(), Player {
 		return this === PlayerUpdate.localPlayer
 	}
 
+	override fun displayName(): String? {
+		return this.getUsernameWithTitle()
+	}
+
+	override fun prayerIcon(): Int {
+		return this.prayerHeadIconId
+	}
+
+	override fun skullIcon(): Int {
+		return this.skullId
+	}
+
 	@OriginalMember(owner = "client!ke", name = "td", descriptor = "I")
 	private var basId: Int = 0
 

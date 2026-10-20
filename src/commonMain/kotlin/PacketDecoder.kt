@@ -998,6 +998,7 @@ object PacketDecoder {
 													playerEntity2.hintDetails.colorType = chatEffects shr 8
 													playerEntity2.hintDetails.drawType = chatEffects and 0xFF
 													playerEntity2.hintDetails.ticksLeft = 150
+													PluginRuntime.overheadTextChanged(playerEntity2, playerEntity2.hintDetails.text) // Not part of the original client: the plugins' OverheadTextChanged.
 													var chatMessageType: Int
 													if (playerRights == 1 || playerRights == 2) {
 														chatMessageType = if (isQuickChat) 17 else 1
@@ -1651,6 +1652,7 @@ object PacketDecoder {
 														val absY: Int = ((objStack.key shr 14) and 0x3FFFL).toInt()
 														var localY: Int = absY - MapRegion.sceneBaseY
 														if (stackPlane == UpdateZonePacketDecoder.updateZonePlane && localX >= UpdateZonePacket.updateZoneX && localX < UpdateZonePacket.updateZoneX + 8 && localY >= UpdateZonePacket.updateZoneY && UpdateZonePacket.updateZoneY + 8 > localY) {
+															PluginRuntime.groundPileDespawned(objStack, localX, localY, stackPlane) // Not part of the original client: the plugins' ItemDespawned for each item of a pile the server clears.
 															objStack.unlink()
 															if (localX >= 0 && localY >= 0 && localX < MapRegion.sceneSizeX && MapRegion.sceneSizeY > localY) {
 																ObjStackEntity.refreshObjStack(localY, localX, UpdateZonePacketDecoder.updateZonePlane)
