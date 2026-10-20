@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.client.features.IdleNotifier
 import com.jagex.game.runetek5.client.features.XpDrops
 import kotlin.jvm.JvmStatic
 
@@ -14,6 +15,7 @@ object BuiltinPlugins {
 	fun all(): Array<PluginRegistration> {
 		return arrayOf(
 			PluginRegistration(XpDrops.DESCRIPTOR, XpDrops, true, "built in"),
+			PluginRegistration(IdleNotifier.DESCRIPTOR, IdleNotifier, true, "built in"),
 		)
 	}
 }

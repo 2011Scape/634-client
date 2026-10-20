@@ -2,7 +2,7 @@
 
 How to add to the client without changing it: a plugin is a jar in a folder, written against a
 small, stable API, that reads the game, draws on it, adds menu entries and commands, and keeps its
-own settings. The experience drops (`XpDrops`) are one, built in, so the client's own code shows the
+own settings. The experience drops (`XpDrops`) and the idle notifier (`IdleNotifier`) are two, built in, so the client's own code shows the
 way.
 
 ## Contents
