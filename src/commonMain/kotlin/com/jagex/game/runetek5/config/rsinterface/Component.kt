@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.config.rsinterface
 
 import com.jagex.game.runetek5.plugin.api.Widget
+import com.jagex.game.runetek5.plugin.api.WidgetVisitor
 import com.jagex.game.runetek5.Skybox
 import com.jagex.game.runetek5.graphics.sprite.SpriteType
 import com.jagex.game.runetek5.entity.ParticleSystem
@@ -87,6 +88,150 @@ class Component : Widget {
 
 	override fun isHidden(): Boolean {
 		return this.hidden
+	}
+
+	override fun id(): Int {
+		return this.idHash
+	}
+
+	override fun type(): Int {
+		val type: ComponentType = this.type ?: return -1
+		return type.id
+	}
+
+	override fun parentId(): Int {
+		return this.parentId
+	}
+
+	override fun slot(): Int {
+		return this.slotId
+	}
+
+	override fun screenX(): Int {
+		var x: Int = this.x
+		var parent: Component? = parentComponent()
+		var depth: Int = 0
+		while (parent != null && depth < 32) {
+			x += parent.x - parent.scrollX
+			parent = parent.parentComponent()
+			depth++
+		}
+		return x
+	}
+
+	override fun screenY(): Int {
+		var y: Int = this.y
+		var parent: Component? = parentComponent()
+		var depth: Int = 0
+		while (parent != null && depth < 32) {
+			y += parent.y - parent.scrollY
+			parent = parent.parentComponent()
+			depth++
+		}
+		return y
+	}
+
+	/** The component this one is inside, read without loading anything: the parent by id, or the component a sub-interface is open in. */
+	private fun parentComponent(): Component? {
+		var parentHash: Int = this.parentId
+		if (parentHash == -1) {
+			val interfaceId: Int = this.idHash ushr 16
+			val open: HashTableIterator = HashTableIterator(InterfaceManager.OPEN_INTERFACES)
+			var sub: SubInterface? = open.first() as SubInterface?
+			while (sub != null) {
+				if (sub.interfaceId == interfaceId) {
+					parentHash = sub.key.toInt()
+					break
+				}
+				sub = open.next() as SubInterface?
+			}
+			if (parentHash == -1) {
+				return null
+			}
+		}
+		return Interface.peekComponent(parentHash)
+	}
+
+	override fun itemId(): Int {
+		return this.containerItemId
+	}
+
+	override fun itemQuantity(): Int {
+		return this.itemStackSize
+	}
+
+	override fun spriteId(): Int {
+		return this.spriteId
+	}
+
+	override fun modelId(): Int {
+		return if (this.mediaType === MediaType.RAW_MODEL) this.primaryMediaId else -1
+	}
+
+	override fun colour(): Int {
+		return this.color
+	}
+
+	override fun transparency(): Int {
+		return this.transparency
+	}
+
+	override fun actionCount(): Int {
+		val options: Array<String?> = this.options ?: return 0
+		return options.size
+	}
+
+	override fun action(i: Int): String? {
+		val options: Array<String?> = this.options ?: return null
+		return if (i >= 0 && i < options.size) options[i] else null
+	}
+
+	override fun targetText(): String? {
+		return this.opBase
+	}
+
+	override fun name(): String? {
+		return this.name
+	}
+
+	override fun scrollX(): Int {
+		return this.scrollX
+	}
+
+	override fun scrollY(): Int {
+		return this.scrollY
+	}
+
+	override fun scrollWidth(): Int {
+		return this.scrollWidth
+	}
+
+	override fun scrollHeight(): Int {
+		return this.scrollHeight
+	}
+
+	override fun contentType(): Int {
+		return this.contentType
+	}
+
+	override fun childCount(): Int {
+		val children: Array<Component?> = this.slotChildren ?: return 0
+		return children.size
+	}
+
+	override fun child(i: Int): Widget? {
+		val children: Array<Component?> = this.slotChildren ?: return null
+		return if (i >= 0 && i < children.size) children[i] else null
+	}
+
+	override fun staticChildren(visitor: WidgetVisitor) {
+		val components: Array<Component?> = Interface.peekComponents(this.idHash ushr 16) ?: return
+		for (i in 0 until components.size) {
+			val component: Component = components[i] ?: continue
+			if (component.parentId == this.idHash) {
+				visitor.visit(component)
+			}
+		}
 	}
 
 	@OriginalMember(owner = "client!at", name = "a", descriptor = "[Ljava/lang/Object;")

@@ -8,6 +8,7 @@ import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.config.rsinterface.Interface
 import com.jagex.game.runetek5.InterfaceManager
 import com.jagex.game.runetek5.client.menu.MiniMenu
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
 import kotlin.jvm.JvmStatic
@@ -22,6 +23,7 @@ object SubInterfaceCloser {
 		if (type == 742) {
 			HdOptionsScreen.reset() // Not part of the original client: the 634HD page lives in Graphics Options
 		}
+		PluginRuntime.interfaceClosed(type, pointer, subInterface.openType) // Not part of the original client: the plugins' InterfaceClosed, while the interface is still open.
 		subInterface.unlink()
 		if (unload) {
 			Interface.unloadInterface(type)

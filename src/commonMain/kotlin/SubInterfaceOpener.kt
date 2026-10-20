@@ -7,6 +7,7 @@ import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.config.rsinterface.Interface
 import com.jagex.game.runetek5.InterfaceManager
 import com.jagex.game.runetek5.client.menu.MiniMenu
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
 import kotlin.jvm.JvmStatic
@@ -42,6 +43,7 @@ object SubInterfaceOpener {
 		if (!suppressScripts && ClientState.BASE_WINDOW_ID != -1) {
 			Static683.runSubInterfaceHooks(ClientState.BASE_WINDOW_ID, 1)
 		}
+		PluginRuntime.interfaceOpened(interfaceId, parentHash, openType) // Not part of the original client: the plugins' InterfaceOpened, once the interface is loaded, laid out and its scripts have run.
 		return subInterface
 	}
 }

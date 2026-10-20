@@ -10,8 +10,9 @@ import com.jagex.game.runetek5.plugin.api.events.Events
 /**
  * An example plugin: a line of text on the game view (with what the player is fighting), a `::hello`
  * command that writes to the chat, a "Hello" entry on the right-click menu of every npc, a line in
- * the chat for every hit on the player, a log line for every npc that appears, and a count of how
- * often it was started, kept in the plugin's settings.
+ * the chat for every hit on the player, a "Value" entry on every item in an interface, a log line for
+ * every npc that appears and every interface that opens, and a count of how often it was started,
+ * kept in the plugin's settings.
  *
  * Every callback runs on the game thread. The event objects of the events that happen every frame
  * are reused, so read them in the listener and keep nothing.
@@ -57,10 +58,19 @@ class ExamplePlugin : Plugin {
             val npc = (0 until client.npcCount()).mapNotNull { client.npc(it) }.firstOrNull { it.index() == id }
             client.chatMessage("Hello, ${npc?.name() ?: target.name} at ($sceneX, $sceneY)!")
         }
+        val valueAction = context.registerMenuAction { _, slot, widgetId, itemId ->
+            val item = client.item(itemId)
+            client.chatMessage("Example plugin: ${item?.name()} in slot $slot of component ${widgetId shr 16}:${widgetId and 0xFFFF} is worth ${item?.value()} coins")
+        }
         context.events().subscribe(Events.MENU_ENTRY_ADDED) { event ->
             if (event.target === MenuTarget.NPC && helloAction >= 0) {
                 client.addMenuEntry("Hello", helloAction)
+            } else if (event.target === MenuTarget.WIDGET && event.itemId >= 0 && valueAction >= 0) {
+                client.addMenuEntry("Value", valueAction)
             }
+        }
+        context.events().subscribe(Events.INTERFACE_OPENED) { event ->
+            context.log("interface ${event.interfaceId} opened in component ${event.parentWidgetId shr 16}:${event.parentWidgetId and 0xFFFF}")
         }
 
         // a word in the chat when experience goes up

@@ -118,9 +118,29 @@ object Events {
 	@JvmField
 	val SPOT_ANIM_SPAWNED: EventType<SpotAnimSpawned> = EventType(26, "SpotAnimSpawned")
 
-	const val COUNT: Int = 27
+	/** An interface opened inside a component, is loaded and laid out, and its scripts have run. */
+	@JvmField
+	val INTERFACE_OPENED: EventType<InterfaceChanged> = EventType(27, "InterfaceOpened")
+
+	/** An interface is closing; its components are still there. */
+	@JvmField
+	val INTERFACE_CLOSED: EventType<InterfaceChanged> = EventType(28, "InterfaceClosed")
+
+	/** The root interface changed: login, the lobby, the fixed and the resizable game screen, -1 at logout. */
+	@JvmField
+	val TOP_INTERFACE_CHANGED: EventType<TopInterfaceChanged> = EventType(29, "TopInterfaceChanged")
+
+	/**
+	 * Every game tick while the menu is not open: the entries for what is under the mouse are
+	 * complete, and the left click and the right-click menu are resolved after the listeners.
+	 * The time to read and edit the menu through the ClientApi menu methods.
+	 */
+	@JvmField
+	val MENU_BUILT: EventType<MenuBuilt> = EventType(30, "MenuBuilt")
+
+	const val COUNT: Int = 31
 
 	/** Every event type, at the index of its id. */
 	@JvmField
-	val ALL: Array<EventType<*>> = arrayOf(CLIENT_TICK, GAME_TICK, VIEWPORT_DRAW, FRAME_DRAW, STAT_CHANGED, VARP_CHANGED, CHAT_MESSAGE, ITEM_CONTAINER_CHANGED, MENU_ENTRY_ADDED, MENU_OPTION_CLICKED, GAME_STATE_CHANGED, TOOLKIT_CHANGED, CONSOLE_COMMAND, KEY_PRESSED, MOUSE_CLICKED, NPC_SPAWNED, NPC_DESPAWNED, PLAYER_SPAWNED, PLAYER_DESPAWNED, ITEM_SPAWNED, ITEM_DESPAWNED, HITSPLAT_APPLIED, ANIMATION_CHANGED, INTERACTING_CHANGED, OVERHEAD_TEXT_CHANGED, PROJECTILE_SPAWNED, SPOT_ANIM_SPAWNED)
+	val ALL: Array<EventType<*>> = arrayOf(CLIENT_TICK, GAME_TICK, VIEWPORT_DRAW, FRAME_DRAW, STAT_CHANGED, VARP_CHANGED, CHAT_MESSAGE, ITEM_CONTAINER_CHANGED, MENU_ENTRY_ADDED, MENU_OPTION_CLICKED, GAME_STATE_CHANGED, TOOLKIT_CHANGED, CONSOLE_COMMAND, KEY_PRESSED, MOUSE_CLICKED, NPC_SPAWNED, NPC_DESPAWNED, PLAYER_SPAWNED, PLAYER_DESPAWNED, ITEM_SPAWNED, ITEM_DESPAWNED, HITSPLAT_APPLIED, ANIMATION_CHANGED, INTERACTING_CHANGED, OVERHEAD_TEXT_CHANGED, PROJECTILE_SPAWNED, SPOT_ANIM_SPAWNED, INTERFACE_OPENED, INTERFACE_CLOSED, TOP_INTERFACE_CHANGED, MENU_BUILT)
 }

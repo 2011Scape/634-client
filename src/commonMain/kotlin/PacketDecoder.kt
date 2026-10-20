@@ -1749,6 +1749,7 @@ object PacketDecoder {
 													if (openType == 2) {
 														Static671.closeWorldMap()
 													}
+													PluginRuntime.topInterfaceChanged(ClientState.BASE_WINDOW_ID, topInterfaceId) // Not part of the original client: the plugins' TopInterfaceChanged.
 													ClientState.BASE_WINDOW_ID = topInterfaceId
 													Interface.resetComponentSequences(topInterfaceId)
 													WindowMode.interfaceResize(false)

@@ -6,6 +6,8 @@ package com.jagex.game.runetek5.plugin.api
  * a player's south-west tile when it is bigger than one), and [id]
  * what it is: an npc's index for [MenuTarget.NPC], a player's index for [MenuTarget.PLAYER], an
  * item id for [MenuTarget.GROUND_ITEM], a location id for [MenuTarget.LOC], 0 for [MenuTarget.TILE].
+ * For [MenuTarget.WIDGET] the three are the component's slot (-1 for none), its [Widget.id] and the
+ * item it shows (-1 for none).
  */
 fun interface MenuAction {
 	fun clicked(target: MenuTarget, sceneX: Int, sceneY: Int, id: Int)

@@ -32,6 +32,7 @@ object MiniMenuBuilder {
 	@OriginalMember(owner = "client!ti", name = "a", descriptor = "(IILclient!at;B)V")
 	@JvmStatic
 	fun interfaceComponentHovered(@OriginalArg(0) relativeY: Int, @OriginalArg(1) relativeX: Int, @OriginalArg(2) component: Component?) {
+		PluginRuntime.menuTargetWidget(component) // Not part of the original client: the plugins' MenuEntryAdded for a component.
 		if (MiniMenu.interfaceSelectionActive) {
 			@Pc(13) val paramType: ParamType? = if (MiniMenu.targetParamId == -1) null else TypeLists.PARAMS!!.list(MiniMenu.targetParamId)
 			if (InterfaceManager.getComponentSettings(component)!!.isTargetableByUse() && (MiniMenu.useTargetMask and 0x20) != 0 && (paramType == null || component!!.getIntParam(paramType.defaultInt, MiniMenu.targetParamId) != paramType.defaultInt)) {

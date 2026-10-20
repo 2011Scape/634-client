@@ -1,5 +1,6 @@
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.client.menu.MiniMenu
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.menu.MiniMenuEntry
 import com.jagex.game.runetek5.Preferences
 import com.jagex.game.runetek5.DraggedComponentLayer
@@ -47,6 +48,10 @@ object MiniMenuInputTick {
 		}
 		MiniMenu.aClass341_46.transferAllTo(MiniMenu.entryList)
 		MiniMenu.aClass341_36.transferAllTo(MiniMenu.entryList)
+		if (PluginRuntime.menuBuilt()) {
+			// Not part of the original client: the plugins' MenuBuilt, where they read and edit the finished menu; one they shortened may fit uncollapsed
+			MiniMenu.isCollapsed = MiniMenu.maxVisibleEntries != -1 && MiniMenu.entryCount >= MiniMenu.maxVisibleEntries || GameShell.screenCanvasHeight < MiniMenu.entryCount * 16 + (if (FontMetrics.useBoldFont) 26 else 22)
+		}
 		if (MiniMenu.entryCount > 1) {
 			if (MiniMenu.shiftClickEnabled && KeyRecorder.keyRecorder!!.isPressed(SimpleKeyboardMonitorConstants.KEY_CODE_SHIFT) && MiniMenu.entryCount > 2) {
 				MiniMenu.aClass2_Sub6_Sub3_1 = MiniMenu.entryList.sentinel.previous!!.previous as MiniMenuEntry?
@@ -59,6 +64,11 @@ object MiniMenuInputTick {
 				if (drop != null) {
 					MiniMenu.aClass2_Sub6_Sub3_1 = drop
 				}
+			}
+			val promoted: MiniMenuEntry? = PluginRuntime.promotedDefault()
+			if (promoted != null) {
+				// Not part of the original client: a plugin's left click for an option the top row cannot show.
+				MiniMenu.aClass2_Sub6_Sub3_1 = promoted
 			}
 			MiniMenu.aClass2_Sub6_Sub3_3 = MiniMenu.entryList.sentinel.previous as MiniMenuEntry?
 		} else {
