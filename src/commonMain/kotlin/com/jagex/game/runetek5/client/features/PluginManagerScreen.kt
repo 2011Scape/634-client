@@ -440,6 +440,7 @@ object PluginManagerScreen {
 			val registration: PluginRegistration = PluginRuntime.registrations[i] ?: continue
 			// the row's hit, under everything else in it: hovering it shows the plugin's description
 			val hit: Component = ClientPage.text(BODY, children.size, 6, y - 4, WIDTH - 12, ROW_PITCH - 3, ClientPage.FONT_SMALL, "", ClientPage.TEXT, 0, 0, false)
+			hit.hasScript = true // the input pass visits only components flagged so; no option, so no menu entry
 			hit.onMouseOver = arrayOf<Any?>(SENTINEL, A_ROW_HOVER, i)
 			hit.onMouseLeaveScript = arrayOf<Any?>(SENTINEL, A_ROW_LEAVE, i)
 			children.add(hit)
@@ -948,21 +949,27 @@ object PluginManagerScreen {
 		return true
 	}
 
-	/** Shows the tooltip of the row of plugin [id], as hovering it does; the tip's line count, or -1. */
+	/** The canvas position of the middle of plugin [id]'s row, for the smoke test's pointer; null when not listed. */
 	@JvmStatic
-	fun hoverRow(id: String): Int {
+	fun rowCentre(id: String): IntArray? {
 		for (i in 0 until PluginRuntime.count) {
 			val registration: PluginRegistration = PluginRuntime.registrations[i] ?: continue
 			if (registration.descriptor.id == id) {
-				showTip(i)
-				if (tipFor != i) {
-					return -1
-				}
-				val popupComponent: Component = Interface.getComponent(POPUP) ?: return -1
-				return (popupComponent.slotChildren?.size ?: 2) - 2
+				val hit: Component = rowHits[i] ?: return null
+				return intArrayOf(hit.screenX() + 40, hit.screenY() + hit.height / 2)
 			}
 		}
-		return -1
+		return null
+	}
+
+	/** The lines of the tooltip up now, 0 when none. */
+	@JvmStatic
+	fun tipLines(): Int {
+		if (tipFor < 0) {
+			return 0
+		}
+		val popupComponent: Component = Interface.getComponent(POPUP) ?: return 0
+		return (popupComponent.slotChildren?.size ?: 2) - 2
 	}
 
 	/** Types [text] into the selected plugin's number setting [key] and presses Enter, as a player does. */
