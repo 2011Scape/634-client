@@ -99,7 +99,21 @@ class MouseManager @OriginalMember(owner = "client!aea", name = "<init>", descri
 	}
 
 	@OriginalMember(owner = "client!aea", name = "a", descriptor = "(III)V")
+	/** Not part of the original client: the smoke test puts the pointer at ([x], [y]) on the canvas, as a mouse move does. */
+	@Synchronized
+	fun smokeMoveTo(x: Int, y: Int) {
+		this.smokePinned = false
+		this.setPosition(x, y)
+		this.smokePinned = x >= 0
+	}
+
+	/** Not part of the original client: while the smoke test holds the pointer, the real mouse's moves are ignored. */
+	private var smokePinned: Boolean = false
+
 	private fun setPosition(@OriginalArg(0) snapshotMouseX: Int, @OriginalArg(2) x: Int) {
+		if (this.smokePinned) {
+			return
+		}
 		this.snapshotMouseY = x
 		this.snapshotMouseX = snapshotMouseX
 		if (this.canvasInitialized) {

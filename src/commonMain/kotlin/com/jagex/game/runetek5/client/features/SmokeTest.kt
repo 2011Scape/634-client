@@ -47,6 +47,8 @@ import com.jagex.game.runetek5.client.login.LoginStep
 import com.jagex.game.runetek5.preference.GamePreferences
 import com.jagex.game.runetek5.client.ClientState
 import kotlin.jvm.JvmField
+import com.jagex.game.runetek5.client.input.mouse.MouseManager
+import com.jagex.game.runetek5.client.input.mouse.MouseRecord
 import com.jagex.game.runetek5.plugin.PluginRegistration
 import com.jagex.game.runetek5.plugin.PluginRuntime
 import kotlin.jvm.JvmStatic
@@ -3059,18 +3061,26 @@ object SmokeTest {
 			if (!PluginManagerScreen.open) {
 				fail("the Plugins button did not open the plugin manager")
 			}
-			// the tooltip over a row, as hovering it shows it; in the frame the next step saves
-			pluginManagerTipLines = PluginManagerScreen.hoverRow("idle")
-			if (pluginManagerTipLines < 1) {
-				fail("no tooltip over the idle notifier's row")
+			// the pointer over the idle notifier's row: its tooltip, through the hover hook, in the frame the next step saves
+			val centre: IntArray? = PluginManagerScreen.rowCentre("idle")
+			if (centre == null) {
+				fail("no row for the idle notifier")
+				return
 			}
+			println("SMOKE plugin manager: pointer to " + centre[0] + "," + centre[1] + " over the idle notifier's row")
+			(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(centre[0], centre[1])
 			pluginManagerFrame = gameFrames
 			pluginManagerStep = 2
 			return
 		}
 		if (pluginManagerStep == 2) {
 			val rows: Int = PluginManagerScreen.rowsShown()
+			pluginManagerTipLines = PluginManagerScreen.tipLines()
 			saveFrame("build/smoke/plugins-list.png")
+			if (pluginManagerTipLines < 1) {
+				fail("no tooltip over the idle notifier's row after the pointer moved there")
+			}
+			(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(-1, -1)
 			if (rows < 5) {
 				fail("the plugin manager lists " + rows + " plugins, fewer than the built-ins")
 			}
