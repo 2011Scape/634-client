@@ -21,8 +21,8 @@ import kotlin.jvm.JvmStatic
  * with the three most valuable items drawn as their inventory icons. On only with
  * `client.inventoryValue=true` or after `::invvalue`, kept in the plugin's settings.
  *
- * A built-in plugin (BuiltinPlugins, docs/PLUGINS.md) on API 4: the item icons and the bold font
- * are what API 3 lacked; the values come from the item types (API 2).
+ * A built-in plugin (BuiltinPlugins, docs/PLUGINS.md) on API 4: the item icons, the bold font and
+ * its line height are what API 3 lacked; the values come from the item types (API 2).
  */
 object InventoryValue : Plugin {
 
@@ -134,9 +134,11 @@ object InventoryValue : Plugin {
 		}
 		lastTotal = total
 		val x: Int = view.x + 8
-		var y: Int = view.y + 48
-		g.fillRect(x - 4, y - 14, 220, 20 + shown * 34, PANEL)
+		val top: Int = view.y + 34
+		g.fillRect(x - 4, top, 220, 6 + 34 * (shown + 1), PANEL)
 		g.font(Font.BOLD)
+		// the first baseline sits one line height below the panel's top
+		var y: Int = top + g.fontHeight()
 		g.text(x, y, "Backpack: " + withCommas(total) + " coins", TITLE_COLOUR, SHADOW)
 		g.font(Font.SMALL)
 		y += 8
