@@ -98,11 +98,16 @@ class PluginRuntimeTest {
 				seen.add(PluginRuntime.menuEntry(1)?.option())
 				assertNull(PluginRuntime.menuEntry(2))
 			}, plugin)
-			PluginRuntime.menuBuilt()
+			assertTrue(PluginRuntime.menuBuilt(), "edited")
 			assertEquals(listOf<String?>("Third", "First", "Renamed"), seen)
 			assertEquals("Renamed", third.opBase)
 			assertTrue(first === MiniMenu.entryList.sentinel.previous, "the promoted entry is last in the list, which draws on top and takes the left click")
 			assertEquals(0, PluginRuntime.menuEntryCount(), "closed again after the listeners")
+			MiniMenu.isOpen = true
+			seen.clear()
+			assertFalse(PluginRuntime.menuBuilt(), "an open menu is frozen: no MenuBuilt")
+			assertTrue(seen.isEmpty())
+			MiniMenu.isOpen = false
 		} finally {
 			PluginRuntime.started = wasStarted
 			PluginRuntime.release(plugin)
@@ -111,6 +116,35 @@ class PluginRuntimeTest {
 			if (!secondRemoved) {
 				MiniMenu.removeEntry(second)
 			}
+			MiniMenu.isOpen = wasOpen
+		}
+	}
+
+	@Test
+	fun anOptionSixToTenIsPromotedAsTheLeftClickWithoutMoving() {
+		val plugin: PluginRegistration = registration("menu-x2")
+		val wasStarted: Boolean = PluginRuntime.started
+		PluginRuntime.started = true
+		val wasOpen: Boolean = MiniMenu.isOpen
+		MiniMenu.isOpen = false
+		val drop: MiniMenuEntry = MiniMenuEntry("Drop", "<col=ff9040>Bones", -1, MiniMenuAction.IF_BUTTONX2, 526, 7L, 3, 149 shl 16, false, false, 0L, true)
+		val use: MiniMenuEntry = MiniMenuEntry("Use", "<col=ff9040>Bones", -1, MiniMenuAction.IF_BUTTONT, 526, 0L, 3, 149 shl 16, false, false, 0L, true)
+		try {
+			MiniMenu.addEntry(drop)
+			MiniMenu.addEntry(use)
+			PluginRuntime.bus.subscribe(Events.MENU_BUILT, EventListener { _ ->
+				assertEquals("Use", PluginRuntime.menuEntry(0)?.option())
+				assertTrue(PluginRuntime.promoteMenuEntry(1))
+				assertEquals("Use", PluginRuntime.menuEntry(0)?.option(), "the row stays where it is")
+			}, plugin)
+			assertFalse(PluginRuntime.menuBuilt(), "nothing moved")
+			assertTrue(use === MiniMenu.entryList.sentinel.previous)
+			assertTrue(drop === PluginRuntime.promotedDefault(), "but the left click is Drop")
+		} finally {
+			PluginRuntime.started = wasStarted
+			PluginRuntime.release(plugin)
+			MiniMenu.removeEntry(drop)
+			MiniMenu.removeEntry(use)
 			MiniMenu.isOpen = wasOpen
 		}
 	}

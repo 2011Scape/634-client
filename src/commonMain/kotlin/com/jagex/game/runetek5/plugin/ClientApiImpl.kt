@@ -158,13 +158,9 @@ object ClientApiImpl : ClientApi {
 	}
 
 	override fun widget(interfaceId: Int, componentId: Int): Widget? {
-		val interfaces: Array<Array<Component?>?> = Interface.interfaces ?: return null
-		if (interfaceId < 0 || componentId < 0 || interfaceId >= interfaces.size) {
-			return null
-		}
 		// a read: an interface the client has not loaded is not loaded here either
-		val components: Array<Component?> = interfaces[interfaceId] ?: return null
-		return if (componentId < components.size) components[componentId] else null
+		val components: Array<Component?> = Interface.peekComponents(interfaceId) ?: return null
+		return if (componentId >= 0 && componentId < components.size) components[componentId] else null
 	}
 
 	override fun itemName(id: Int): String? {

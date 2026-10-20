@@ -13,6 +13,7 @@ import com.jagex.game.runetek5.client.input.keyboard.KeyRecord
 import com.jagex.game.runetek5.client.input.mouse.MouseRecord
 import com.jagex.game.runetek5.client.menu.MiniMenu
 import com.jagex.game.runetek5.client.menu.MiniMenuEntry
+import com.jagex.game.runetek5.config.rsinterface.ComponentType
 import com.jagex.game.runetek5.core.constants.MainLogicStep
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.plugin.api.Actor
@@ -75,6 +76,9 @@ object PluginRuntime {
 
 	private const val MAX_MENU_ACTIONS: Int = MiniMenuAction.PLUGIN_LAST - MiniMenuAction.PLUGIN_FIRST + 1
 
+	/** The most entries a menu holds (MiniMenu.addEntry). */
+	private const val MAX_MENU_ENTRIES: Int = 500
+
 	/**
 	 * Console commands the client answers itself, so that a plugin from a jar learns at registration
 	 * that the name is taken: the client's own commands run first whatever a plugin registered
@@ -126,6 +130,20 @@ object PluginRuntime {
 
 	/** Whether a MenuBuilt listener is running: the only time the menu may be read and edited. */
 	private var menuEditing: Boolean = false
+
+	/** The menu's entries from the top while a MenuBuilt listener runs, so that reading entry i costs nothing. */
+	private val menuEntries: Array<MiniMenuEntry?> = arrayOfNulls<MiniMenuEntry?>(MAX_MENU_ENTRIES)
+
+	private var menuEntryTotal: Int = 0
+
+	/** Whether a MenuBuilt listener took an entry out or moved one. */
+	private var menuEdited: Boolean = false
+
+	/** An entry a plugin promoted that cannot be the top row (a component's options 6 to 10): the left click runs it all the same. */
+	private var promotedDefault: MiniMenuEntry? = null
+
+	/** The root interface the last tick saw, for TopInterfaceChanged from whoever sets it. */
+	private var lastTopInterface: Int = -1
 
 	private var lastState: GameState = GameState.LOADING
 
@@ -193,6 +211,7 @@ object PluginRuntime {
 		}
 		started = true
 		lastState = ClientApiImpl.stateOf(ClientState.mainLogicStep)
+		lastTopInterface = ClientState.BASE_WINDOW_ID
 		PluginSettings.load()
 		val builtIns: Array<PluginRegistration> = BuiltinPlugins.all()
 		for (i in 0 until builtIns.size) {
@@ -491,6 +510,10 @@ object PluginRuntime {
 		if (!started) {
 			return
 		}
+		if (ClientState.BASE_WINDOW_ID != lastTopInterface) {
+			// login, the lobby and the logout set the root interface without a packet
+			topInterfaceChanged(lastTopInterface, ClientState.BASE_WINDOW_ID)
+		}
 		clientTickEvent.cycle = ClientState.clientCycle
 		bus.post(Events.CLIENT_TICK, clientTickEvent)
 	}
@@ -783,6 +806,9 @@ object PluginRuntime {
 		if (!started || component == null || !bus.hasListeners(Events.MENU_ENTRY_ADDED)) {
 			return
 		}
+		if (component.containerItemId == -1 && component.type === ComponentType.CONTAINER && !hasOption(component)) {
+			return // a plain layer under the mouse, one of several nested ones: no entries of the client's, none of the plugins' either
+		}
 		menuBuilding = true
 		menuKind = MenuTarget.WIDGET.kind
 		menuParam0Low = component.slotId and 0xFFFF
@@ -863,39 +889,61 @@ object PluginRuntime {
 		return true
 	}
 
-	/** The menu for what is under the mouse is complete and nothing has been done with it: the plugins may edit it. */
-	@JvmStatic
-	fun menuBuilt() {
-		if (!started || !bus.hasListeners(Events.MENU_BUILT)) {
-			return
+	private fun hasOption(component: Component): Boolean {
+		val options: Array<String?> = component.options ?: return false
+		for (i in 0 until options.size) {
+			if (options[i] != null) {
+				return true
+			}
 		}
-		menuBuiltEvent.entryCount = MiniMenu.entryCount
-		menuEditing = true
-		bus.post(Events.MENU_BUILT, menuBuiltEvent)
-		menuEditing = false
+		return false
 	}
 
-	/** The menu's entry [i] from the top (the last of the list draws first and takes the left click), while a MenuBuilt listener runs. */
-	private fun menuEntryAt(i: Int): MiniMenuEntry? {
-		if (!menuEditing || i < 0) {
-			return null
+	/**
+	 * The menu for what is under the mouse is complete and nothing has been done with it: the plugins
+	 * may edit it. Not while the menu is open, when the entries are frozen. True when a listener took
+	 * an entry out or moved one.
+	 */
+	@JvmStatic
+	fun menuBuilt(): Boolean {
+		promotedDefault = null
+		if (!started || MiniMenu.isOpen || !bus.hasListeners(Events.MENU_BUILT)) {
+			return false
 		}
-		var left: Int = i
+		// the entries from the top: the last of the list draws first and takes the left click
+		menuEntryTotal = 0
 		var node: Node? = MiniMenu.entryList.sentinel.previous
-		while (node != null && node !== MiniMenu.entryList.sentinel) {
+		while (node != null && node !== MiniMenu.entryList.sentinel && menuEntryTotal < MAX_MENU_ENTRIES) {
 			if (node is MiniMenuEntry) {
-				if (left == 0) {
-					return node
-				}
-				left--
+				menuEntries[menuEntryTotal++] = node
 			}
 			node = node.previous
 		}
-		return null
+		menuBuiltEvent.entryCount = menuEntryTotal
+		menuEdited = false
+		menuEditing = true
+		bus.post(Events.MENU_BUILT, menuBuiltEvent)
+		menuEditing = false
+		for (i in 0 until menuEntryTotal) {
+			menuEntries[i] = null
+		}
+		menuEntryTotal = 0
+		return menuEdited
+	}
+
+	/** The entry a plugin promoted at MenuBuilt that the top row cannot show, for the left click; null for none. */
+	@JvmStatic
+	fun promotedDefault(): MiniMenuEntry? {
+		return promotedDefault
+	}
+
+	/** The menu's entry [i] from the top, while a MenuBuilt listener runs. */
+	private fun menuEntryAt(i: Int): MiniMenuEntry? {
+		return if (menuEditing && i >= 0 && i < menuEntryTotal) menuEntries[i] else null
 	}
 
 	fun menuEntryCount(): Int {
-		return if (menuEditing) MiniMenu.entryCount else 0
+		return if (menuEditing) menuEntryTotal else 0
 	}
 
 	fun menuEntry(i: Int): MenuEntry? {
@@ -908,6 +956,14 @@ object PluginRuntime {
 			return false
 		}
 		MiniMenu.removeEntry(entry)
+		for (j in i until menuEntryTotal - 1) {
+			menuEntries[j] = menuEntries[j + 1]
+		}
+		menuEntries[--menuEntryTotal] = null
+		if (promotedDefault === entry) {
+			promotedDefault = null
+		}
+		menuEdited = true
 		return true
 	}
 
@@ -919,9 +975,20 @@ object PluginRuntime {
 		if (i == 0) {
 			return true
 		}
+		if (entry.clickType == MiniMenuAction.IF_BUTTONX2) {
+			// a component's options 6 to 10 on the top row would turn the left click into a right click
+			// (MiniMenu.isTopEntryInterfaceAction): the row stays where it is and the left click runs it
+			promotedDefault = entry
+			return true
+		}
 		// out and in again: addEntry appends, and the last entry is the top row and the left click
 		MiniMenu.removeEntry(entry)
 		MiniMenu.addEntry(entry)
+		for (j in i downTo 1) {
+			menuEntries[j] = menuEntries[j - 1]
+		}
+		menuEntries[0] = entry
+		menuEdited = true
 		return true
 	}
 
@@ -952,6 +1019,7 @@ object PluginRuntime {
 	/** The root interface is about to change from [previous] to [interfaceId]. */
 	@JvmStatic
 	fun topInterfaceChanged(previous: Int, interfaceId: Int) {
+		lastTopInterface = interfaceId
 		if (!started || previous == interfaceId || !bus.hasListeners(Events.TOP_INTERFACE_CHANGED)) {
 			return
 		}

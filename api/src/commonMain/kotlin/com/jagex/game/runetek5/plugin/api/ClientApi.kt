@@ -131,7 +131,11 @@ interface ClientApi {
 	/** Takes entry [i] out of the menu. False for Cancel, or outside MenuBuilt. */
 	fun removeMenuEntry(i: Int): Boolean
 
-	/** Makes entry [i] the top row, and so the left click's choice. False for Cancel, or outside MenuBuilt. */
+	/**
+	 * Makes entry [i] the top row, and so the left click's choice. A component's options 6 to 10 stay
+	 * where they are (on the top row they would turn the left click into a right click) but take the
+	 * left click all the same. False for Cancel, or outside MenuBuilt.
+	 */
 	fun promoteMenuEntry(i: Int): Boolean
 
 	/** Changes entry [i]'s [option][MenuEntry.option] text. False outside MenuBuilt. */

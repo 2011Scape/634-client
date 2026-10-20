@@ -89,27 +89,6 @@ object MenuSwapper : Plugin {
 		context.config().save()
 	}
 
-	/** [text] without its colour tags, trimmed. */
-	@JvmStatic
-	fun plain(text: String?): String {
-		if (text == null) {
-			return ""
-		}
-		val out: StringBuilder = StringBuilder(text.length)
-		var inTag: Boolean = false
-		for (i in 0 until text.length) {
-			val c: Char = text[i]
-			if (c == '<') {
-				inTag = true
-			} else if (c == '>') {
-				inTag = false
-			} else if (!inTag) {
-				out.append(c)
-			}
-		}
-		return out.toString().trim()
-	}
-
 	private fun swap(args: Array<String>) {
 		val context: PluginContext = this.context ?: return
 		if (args.isEmpty() || args[0].indexOf(';') >= 0 || args[0].indexOf('|') >= 0) {
@@ -183,8 +162,8 @@ object MenuSwapper : Plugin {
 		val count: Int = client.menuEntryCount()
 		for (i in 0 until count) {
 			val entry: MenuEntry = client.menuEntry(i) ?: continue
-			val option: String = plain(entry.option())
-			val target: String = plain(entry.target())
+			val option: String = ClientFeatures.plainText(entry.option())
+			val target: String = ClientFeatures.plainText(entry.target())
 			for (r in 0 until ruleOptions.size) {
 				if (optionMatches(option, ruleOptions[r]) && (ruleTargets[r].isEmpty() || target.contains(ruleTargets[r], ignoreCase = true))) {
 					if (i > 0 && client.promoteMenuEntry(i)) {

@@ -658,6 +658,15 @@ object ClientFeatures {
 		}
 	}
 
+	/** [text] without its colour and image tags, trimmed; "" for null. */
+	@JvmStatic
+	fun plainText(text: String?): String {
+		if (text == null) {
+			return ""
+		}
+		return text.javaReplaceAll("<[^>]*>", "").javaTrim()
+	}
+
 	/**
 	 * The inventory item's Drop entry among the menu entries, or null when the pointer is not over an
 	 * item that can be dropped.
@@ -672,7 +681,7 @@ object ClientFeatures {
 				continue
 			}
 			val entry: MiniMenuEntry = node
-			if ((entry.clickType == MiniMenuAction.IF_BUTTONX1 || entry.clickType == MiniMenuAction.IF_BUTTONX2) && entry.param1 ushr 16 == INVENTORY && entry.opBase != null && drop!!.equals((entry.opBase!!.javaReplaceAll("<[^>]*>", "")).javaTrim(), ignoreCase = true)) {
+			if ((entry.clickType == MiniMenuAction.IF_BUTTONX1 || entry.clickType == MiniMenuAction.IF_BUTTONX2) && entry.param1 ushr 16 == INVENTORY && drop!!.equals(plainText(entry.opBase), ignoreCase = true)) {
 				return entry
 			}
 			node = node.previous

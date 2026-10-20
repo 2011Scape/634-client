@@ -149,14 +149,7 @@ class Component : Widget {
 				return null
 			}
 		}
-		val interfaces: Array<Array<Component?>?> = Interface.interfaces ?: return null
-		val interfaceId: Int = parentHash ushr 16
-		if (interfaceId >= interfaces.size) {
-			return null
-		}
-		val components: Array<Component?> = interfaces[interfaceId] ?: return null
-		val index: Int = parentHash and 0xFFFF
-		return if (index < components.size) components[index] else null
+		return Interface.peekComponent(parentHash)
 	}
 
 	override fun itemId(): Int {
@@ -232,12 +225,7 @@ class Component : Widget {
 	}
 
 	override fun staticChildren(visitor: WidgetVisitor) {
-		val interfaces: Array<Array<Component?>?> = Interface.interfaces ?: return
-		val interfaceId: Int = this.idHash ushr 16
-		if (interfaceId >= interfaces.size) {
-			return
-		}
-		val components: Array<Component?> = interfaces[interfaceId] ?: return
+		val components: Array<Component?> = Interface.peekComponents(this.idHash ushr 16) ?: return
 		for (i in 0 until components.size) {
 			val component: Component = components[i] ?: continue
 			if (component.parentId == this.idHash) {

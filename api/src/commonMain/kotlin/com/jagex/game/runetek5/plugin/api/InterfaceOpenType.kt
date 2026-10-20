@@ -10,4 +10,6 @@ object InterfaceOpenType {
 
 	/** An overlay the client opened by itself. */
 	const val OVERLAY_CLIENT: Int = 3
+
+	const val UNKNOWN: Int = -1
 }

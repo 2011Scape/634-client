@@ -61,6 +61,24 @@ object Interface {
 		}
 	}
 
+	/** Not part of the original client: the components of [interfaceId] as loaded, or null, loading nothing (the plugin API). */
+	@JvmStatic
+	fun peekComponents(interfaceId: Int): Array<Component?>? {
+		val interfaces: Array<Array<Component?>?> = Interface.interfaces ?: return null
+		return if (interfaceId >= 0 && interfaceId < interfaces.size) interfaces[interfaceId] else null
+	}
+
+	/** Not part of the original client: the component [idHash] as loaded, or null, loading nothing (the plugin API). */
+	@JvmStatic
+	fun peekComponent(idHash: Int): Component? {
+		if (idHash < 0) {
+			return null
+		}
+		val components: Array<Component?> = peekComponents(idHash ushr 16) ?: return null
+		val componentId: Int = idHash and 0xFFFF
+		return if (componentId < components.size) components[componentId] else null
+	}
+
 	@OriginalMember(owner = "client!da", name = "a", descriptor = "(II)Lclient!at;")
 	@JvmStatic
 	fun getComponent(@OriginalArg(1) idHash: Int): Component? {

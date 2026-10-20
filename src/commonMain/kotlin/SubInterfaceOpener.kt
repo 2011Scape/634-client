@@ -24,7 +24,6 @@ object SubInterfaceOpener {
 		subInterface.interfaceId = interfaceId
 		subInterface.openType = openType
 		InterfaceManager.OPEN_INTERFACES.put(parentHash.toLong(), subInterface)
-		PluginRuntime.interfaceOpened(interfaceId, parentHash, openType) // Not part of the original client: the plugins' InterfaceOpened.
 		Interface.resetComponentSequences(interfaceId)
 		@Pc(38) val component: Component? = Interface.getComponent(parentHash)
 		if (component != null) {
@@ -44,6 +43,7 @@ object SubInterfaceOpener {
 		if (!suppressScripts && ClientState.BASE_WINDOW_ID != -1) {
 			Static683.runSubInterfaceHooks(ClientState.BASE_WINDOW_ID, 1)
 		}
+		PluginRuntime.interfaceOpened(interfaceId, parentHash, openType) // Not part of the original client: the plugins' InterfaceOpened, once the interface is loaded, laid out and its scripts have run.
 		return subInterface
 	}
 }

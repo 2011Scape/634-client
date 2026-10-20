@@ -15,4 +15,7 @@ object WidgetType {
 	const val MODEL: Int = 6
 
 	const val LINE: Int = 9
+
+	/** A type without a name here; the other ids are the cache's own. */
+	const val UNKNOWN: Int = -1
 }

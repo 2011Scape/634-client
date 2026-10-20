@@ -118,7 +118,7 @@ object Events {
 	@JvmField
 	val SPOT_ANIM_SPAWNED: EventType<SpotAnimSpawned> = EventType(26, "SpotAnimSpawned")
 
-	/** An interface opened inside a component. */
+	/** An interface opened inside a component, is loaded and laid out, and its scripts have run. */
 	@JvmField
 	val INTERFACE_OPENED: EventType<InterfaceChanged> = EventType(27, "InterfaceOpened")
 
@@ -126,7 +126,7 @@ object Events {
 	@JvmField
 	val INTERFACE_CLOSED: EventType<InterfaceChanged> = EventType(28, "InterfaceClosed")
 
-	/** The root interface changed: login, the lobby, the fixed and the resizable game screen. */
+	/** The root interface changed: login, the lobby, the fixed and the resizable game screen, -1 at logout. */
 	@JvmField
 	val TOP_INTERFACE_CHANGED: EventType<TopInterfaceChanged> = EventType(29, "TopInterfaceChanged")
 

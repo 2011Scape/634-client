@@ -9,7 +9,9 @@ import kotlin.jvm.JvmField
  * id by the target's kind, and 0 for a tile. Call
  * [ClientApi.addMenuEntry][com.jagex.game.runetek5.plugin.api.ClientApi.addMenuEntry] in the
  * listener to add an entry for it. For [MenuTarget.WIDGET] the tile fields are 0 and [widgetId],
- * [slot] and [itemId] say which component, which of its slots and which item. One reused instance.
+ * [slot] and [itemId] say which component, which of its slots and which item; it comes for each
+ * component under the mouse that has options or an item, not for the plain layers around it. One
+ * reused instance.
  */
 class MenuEntryAdded {
 	@JvmField
