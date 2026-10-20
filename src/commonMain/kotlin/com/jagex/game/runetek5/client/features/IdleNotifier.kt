@@ -13,6 +13,7 @@ import com.jagex.game.runetek5.plugin.api.events.EventListener
 import com.jagex.game.runetek5.plugin.api.events.Events
 import com.jagex.game.runetek5.plugin.api.events.GameStateChanged
 import com.jagex.game.runetek5.plugin.api.events.GameTick
+import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
@@ -88,10 +89,24 @@ object IdleNotifier : Plugin {
 
 	private val command: CommandHandler = CommandHandler { _, args -> command(args) }
 
+	/** The plugin manager changed a setting: read them back and arm the notifier again. */
+	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
+		val context: PluginContext? = this.context
+		if (event.pluginId == DESCRIPTOR.id && context != null) {
+			enabled = context.config().getBoolean("enabled", enabled)
+			waitSeconds = clampSeconds(context.config().getInt("seconds", waitSeconds))
+			notified = false
+		}
+	}
+
 	override fun start(context: PluginContext) {
 		this.context = context
-		enabled = context.config().getBoolean("enabled", lang.getBoolean("client.idleNotifier"))
+		val default: Boolean = lang.getBoolean("client.idleNotifier")
+		enabled = context.config().getBoolean("enabled", default)
 		waitSeconds = clampSeconds(context.config().getInt("seconds", DEFAULT_SECONDS))
+		context.settings().toggle("enabled", "Idle notifier", default)
+		context.settings().number("seconds", "Seconds idle before the warning", DEFAULT_SECONDS, MIN_SECONDS, MAX_SECONDS, 1)
+		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
 		context.events().subscribe(Events.GAME_TICK, tickListener)
 		context.events().subscribe(Events.GAME_STATE_CHANGED, stateListener)
 		context.addOverlay(overlay)

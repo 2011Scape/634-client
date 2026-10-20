@@ -37,6 +37,9 @@ interface PluginContext {
 	/** Writes [message] to the client's log (standard error), prefixed with the plugin id. */
 	fun log(message: String)
 
+	/** Where the plugin declares, in [Plugin.start], the settings the plugin manager offers the player for it. */
+	fun settings(): SettingsSchema
+
 	/**
 	 * Runs [task] on the game thread at the next client cycle. The one method a plugin may call from
 	 * another thread: the way work done elsewhere comes back to the game. Dropped if the plugin stops first.

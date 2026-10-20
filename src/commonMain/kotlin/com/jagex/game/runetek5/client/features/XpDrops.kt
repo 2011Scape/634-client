@@ -11,6 +11,7 @@ import com.jagex.game.runetek5.plugin.api.PluginDescriptor
 import com.jagex.game.runetek5.plugin.api.events.EventListener
 import com.jagex.game.runetek5.plugin.api.events.Events
 import com.jagex.game.runetek5.plugin.api.events.GameStateChanged
+import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import com.jagex.game.runetek5.plugin.api.events.StatChanged
 import com.jagex.game.runetek5.rendering.Renderers
 import kotlin.jvm.JvmField
@@ -19,8 +20,8 @@ import kotlin.jvm.JvmStatic
 /**
  * Not part of the original client: when a skill's experience goes up, a "+N Skill" drop rises
  * near the top of the game view, left of the minimap, and fades. The first update of each skill after login only
- * records its experience, so logging in shows no drops. On only with `client.xpDrops=true`;
- * the console command `xpdrops` turns it on and off while playing.
+ * records its experience, so logging in shows no drops. On with `client.xpDrops=true`, the console
+ * command `xpdrops` or the plugin manager, kept in the plugin's settings.
  *
  * A built-in plugin (BuiltinPlugins, docs/PLUGINS.md): it hears of each stat update, the logout
  * and the frame through the plugin API, as a plugin from a jar would, and shows what the API is for.
@@ -31,7 +32,7 @@ object XpDrops : Plugin {
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("xpdrops", "Experience drops", "1", PluginApi.VERSION, "A \"+N Skill\" drop near the minimap when experience goes up (::xpdrops turns it on and off).", "634-client")
 
 	@JvmField
-	var enabled: Boolean = lang.getBoolean("client.xpDrops")
+	var enabled: Boolean = false
 
 	/** The skills, in the order the server numbers them. */
 	private val SKILL_NAMES: Array<String?> = arrayOf("Attack", "Defence", "Strength", "Constitution", "Ranged", "Prayer", "Magic", "Cooking", "Woodcutting", "Fletching", "Fishing", "Firemaking", "Crafting", "Smithing", "Mining", "Herblore", "Agility", "Thieving", "Slayer", "Farming", "Runecrafting", "Hunter", "Construction", "Summoning", "Dungeoneering")
@@ -83,11 +84,24 @@ object XpDrops : Plugin {
 
 	private val toggle: CommandHandler = CommandHandler { _, _ ->
 		enabled = !enabled
+		context?.config()?.setBoolean("enabled", enabled)
+		context?.config()?.save()
 		context?.client()?.consolePrint(if (enabled) "Experience drops enabled." else "Experience drops disabled.")
+	}
+
+	/** The plugin manager changed a setting: read it back. */
+	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
+		if (event.pluginId == DESCRIPTOR.id) {
+			enabled = context?.config()?.getBoolean("enabled", enabled) ?: enabled
+		}
 	}
 
 	override fun start(context: PluginContext) {
 		this.context = context
+		val default: Boolean = lang.getBoolean("client.xpDrops")
+		enabled = context.config().getBoolean("enabled", default)
+		context.settings().toggle("enabled", "Experience drops", default)
+		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
 		context.events().subscribe(Events.STAT_CHANGED, statListener)
 		context.events().subscribe(Events.GAME_STATE_CHANGED, stateListener)
 		context.addOverlay(overlay)

@@ -50,6 +50,7 @@ import com.jagex.game.runetek5.plugin.api.events.MouseClicked
 import com.jagex.game.runetek5.plugin.api.events.MouseWheel
 import com.jagex.game.runetek5.plugin.api.events.OverheadTextChanged
 import com.jagex.game.runetek5.plugin.api.events.ProjectileSpawned
+import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import com.jagex.game.runetek5.plugin.api.events.SpotAnimSpawned
 import com.jagex.game.runetek5.plugin.api.events.StatChanged
 import com.jagex.game.runetek5.plugin.api.events.ToolkitChanged
@@ -90,7 +91,7 @@ object PluginRuntime {
 	 * that the name is taken: the client's own commands run first whatever a plugin registered
 	 * (ClientCommandProcessor), so a name missing here is never reached rather than taken over.
 	 */
-	private val RESERVED_COMMANDS: Array<String> = arrayOf("plugins", "plugin", "commands", "help", "cls", "displayfps", "renderer", "heap", "tk0", "tk1", "tk2", "tk3", "tk5", "tk6", "grounditems", "npclabels", "xpdrops", "tilemarkers", "shiftdrop", "msaa", "smaa", "renderscale", "hd", "hdsettings", "printfps", "occlude", "fpson", "fpsoff", "fps", "systemmem", "rebuild", "zoom", "errortest", "nativememerror", "heapdump", "setoutput", "closeoutput", "runscript")
+	private val RESERVED_COMMANDS: Array<String> = arrayOf("plugins", "plugin", "commands", "help", "cls", "displayfps", "renderer", "heap", "tk0", "tk1", "tk2", "tk3", "tk5", "tk6", "grounditems", "npclabels", "xpdrops", "tilemarkers", "shiftdrop", "msaa", "smaa", "renderscale", "hd", "hdsettings", "pluginmanager", "printfps", "occlude", "fpson", "fpsoff", "fps", "systemmem", "rebuild", "zoom", "errortest", "nativememerror", "heapdump", "setoutput", "closeoutput", "runscript")
 
 	@JvmField
 	val bus: EventBusImpl = EventBusImpl()
@@ -1332,32 +1333,49 @@ object PluginRuntime {
 			Console.printToConsole(registration.descriptor.name + " is built in; it has its own command")
 			return
 		}
-		val on: Boolean = words[2].equals("on", ignoreCase = true)
+		Console.printToConsole(setPluginEnabled(registration, words[2].equals("on", ignoreCase = true)))
+	}
+
+	/**
+	 * Turns a plugin from a jar on or off, now and on later starts, for the console and the plugin
+	 * manager alike; the line to tell the player. A built-in is never stopped: its own setting is its switch.
+	 */
+	fun setPluginEnabled(registration: PluginRegistration, on: Boolean): String {
+		val name: String = registration.descriptor.name
+		if (registration.builtIn) {
+			return name + " is built in; its own setting turns it off"
+		}
 		if (on) {
 			if (registration.context != null) {
-				Console.printToConsole(registration.descriptor.name + " is already on")
-				return
+				return name + " is already on"
 			}
 			if (!registration.loadable()) {
-				Console.printToConsole(registration.descriptor.name + " cannot be turned on: " + registration.error)
-				return
+				return name + " cannot be turned on: " + registration.error
 			}
 			registration.state = PluginRegistration.LOADED
 			startPlugin(registration)
-			if (registration.state == PluginRegistration.STARTED) {
-				PluginSettings.setEnabled(registration.descriptor.id, true)
-				Console.printToConsole(registration.descriptor.name + " on")
+			if (registration.state != PluginRegistration.STARTED) {
+				return name + " failed: " + registration.error
 			}
-		} else {
-			if (registration.context == null) {
-				Console.printToConsole(registration.descriptor.name + " is already off")
-				return
-			}
-			stopPlugin(registration)
-			registration.state = PluginRegistration.STOPPED
-			registration.error = null
-			PluginSettings.setEnabled(registration.descriptor.id, false)
-			Console.printToConsole(registration.descriptor.name + " off")
+			PluginSettings.setEnabled(registration.descriptor.id, true)
+			return name + " on"
 		}
+		if (registration.context == null) {
+			return name + " is already off"
+		}
+		stopPlugin(registration)
+		registration.state = PluginRegistration.STOPPED
+		registration.error = null
+		PluginSettings.setEnabled(registration.descriptor.id, false)
+		return name + " off"
+	}
+
+	/** The plugin manager wrote [key] of [registration]'s settings and saved it: SettingChanged, for its plugin and anyone else listening. */
+	@JvmStatic
+	fun settingChanged(registration: PluginRegistration, key: String) {
+		if (!started || !bus.hasListeners(Events.SETTING_CHANGED)) {
+			return
+		}
+		bus.post(Events.SETTING_CHANGED, SettingChanged(registration.descriptor.id, key))
 	}
 }

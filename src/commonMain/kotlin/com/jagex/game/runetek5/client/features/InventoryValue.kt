@@ -13,6 +13,9 @@ import com.jagex.game.runetek5.plugin.api.PluginApi
 import com.jagex.game.runetek5.plugin.api.PluginContext
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
 import com.jagex.game.runetek5.plugin.api.Viewport
+import com.jagex.game.runetek5.plugin.api.events.EventListener
+import com.jagex.game.runetek5.plugin.api.events.Events
+import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
@@ -60,6 +63,13 @@ object InventoryValue : Plugin {
 
 	private val overlay: Overlay = Overlay { g, view -> draw(g, view) }
 
+	/** The plugin manager changed a setting: read it back. */
+	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
+		if (event.pluginId == DESCRIPTOR.id) {
+			enabled = context?.config()?.getBoolean("enabled", enabled) ?: enabled
+		}
+	}
+
 	private val toggle: CommandHandler = CommandHandler { _, _ ->
 		val context: PluginContext = this.context ?: return@CommandHandler
 		enabled = !enabled
@@ -70,7 +80,10 @@ object InventoryValue : Plugin {
 
 	override fun start(context: PluginContext) {
 		this.context = context
-		enabled = context.config().getBoolean("enabled", lang.getBoolean("client.inventoryValue"))
+		val default: Boolean = lang.getBoolean("client.inventoryValue")
+		enabled = context.config().getBoolean("enabled", default)
+		context.settings().toggle("enabled", "Inventory value", default)
+		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
 		context.addOverlay(overlay)
 		context.registerCommand("invvalue", toggle)
 	}

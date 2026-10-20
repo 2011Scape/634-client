@@ -10,6 +10,7 @@ import com.jagex.game.runetek5.plugin.api.PluginDescriptor
 import com.jagex.game.runetek5.plugin.api.events.EventListener
 import com.jagex.game.runetek5.plugin.api.events.Events
 import com.jagex.game.runetek5.plugin.api.events.MenuBuilt
+import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
@@ -30,6 +31,10 @@ object MenuSwapper : Plugin {
 
 	private const val MAX_RULES: Int = 64
 
+	/** Off from the plugin manager: the rules are kept but not applied. */
+	@JvmField
+	var enabled: Boolean = true
+
 	private val ruleOptions: ArrayList<String> = ArrayList()
 
 	private val ruleTargets: ArrayList<String> = ArrayList()
@@ -48,9 +53,19 @@ object MenuSwapper : Plugin {
 
 	private val listCommand: CommandHandler = CommandHandler { _, _ -> list() }
 
+	/** The plugin manager changed a setting: read it back. */
+	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
+		if (event.pluginId == DESCRIPTOR.id) {
+			enabled = context?.config()?.getBoolean("enabled", enabled) ?: enabled
+		}
+	}
+
 	override fun start(context: PluginContext) {
 		this.context = context
 		load(context.config().get("rules", ""))
+		enabled = context.config().getBoolean("enabled", true)
+		context.settings().toggle("enabled", "Menu swapper", true)
+		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
 		listen()
 		context.registerCommand("swap", swapCommand)
 		context.registerCommand("unswap", unswapCommand)
@@ -167,7 +182,7 @@ object MenuSwapper : Plugin {
 	/** At MenuBuilt: the first entry from the top that a rule matches becomes the top. */
 	@JvmStatic
 	fun apply() {
-		if (ruleOptions.isEmpty()) {
+		if (!enabled || ruleOptions.isEmpty()) {
 			return
 		}
 		val client: ClientApi = context?.client() ?: return

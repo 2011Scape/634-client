@@ -19,6 +19,7 @@ import com.jagex.game.runetek5.plugin.api.events.Events
 import com.jagex.game.runetek5.plugin.api.events.GroundItem
 import com.jagex.game.runetek5.plugin.api.events.HitsplatApplied
 import com.jagex.game.runetek5.plugin.api.events.OverheadTextChanged
+import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -276,6 +277,49 @@ class PluginRuntimeTest {
 		} finally {
 			PluginRuntime.started = wasStarted
 			PluginRuntime.release(plugin)
+		}
+	}
+
+	@Test
+	fun settingsDeclaredInStartStayOnTheContextAndAChangeReachesThePlugin() {
+		val plugin: PluginRegistration = registration("settings")
+		val context: PluginContextImpl = PluginContextImpl(plugin)
+		plugin.context = context
+		val wasStarted: Boolean = PluginRuntime.started
+		PluginRuntime.started = true
+		val seen: ArrayList<String> = ArrayList()
+		try {
+			context.settings().toggle("enabled", "On", true)
+			context.settings().number("seconds", "Seconds", 15, 2, 600, 1)
+			context.settings().choice("colour", "Colour", "red", arrayOf("red", "green"))
+			context.settings().toggle("enabled", "Again", false)
+			assertEquals(3, context.schema.entries.size, "a key declared twice keeps its first entry")
+			assertEquals(PluginSchemaImpl.TOGGLE, context.schema.entries[0].kind)
+			assertEquals("true", context.schema.entries[0].defaultText)
+			assertEquals(PluginSchemaImpl.NUMBER, context.schema.entries[1].kind)
+			assertEquals(600, context.schema.entries[1].max)
+			assertEquals(PluginSchemaImpl.CHOICE, context.schema.entries[2].kind)
+			assertEquals(2, context.schema.entries[2].options!!.size)
+			context.events().subscribe(Events.SETTING_CHANGED, EventListener { event: SettingChanged -> seen.add(event.pluginId + ":" + event.key) })
+			PluginRuntime.settingChanged(plugin, "seconds")
+			assertEquals(listOf("settings:seconds"), seen)
+		} finally {
+			PluginRuntime.started = wasStarted
+			PluginRuntime.release(plugin)
+		}
+	}
+
+	@Test
+	fun theEnablePathTellsWhyItDidNothing() {
+		val builtIn: PluginRegistration = registration("ours", true)
+		val jar: PluginRegistration = registration("theirs")
+		try {
+			assertTrue(PluginRuntime.setPluginEnabled(builtIn, false).contains("built in"))
+			assertTrue(PluginRuntime.setPluginEnabled(jar, true).contains("cannot be turned on"), "no class to make it from")
+			assertTrue(PluginRuntime.setPluginEnabled(jar, false).contains("already off"))
+		} finally {
+			PluginRuntime.release(builtIn)
+			PluginRuntime.release(jar)
 		}
 	}
 
