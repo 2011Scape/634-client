@@ -3090,14 +3090,19 @@ object SmokeTest {
 			return
 		}
 		val secondsBefore: Int = idle.context!!.config().getInt("seconds", 15)
-		if (!PluginManagerScreen.clickStep("seconds", true)) {
-			fail("the idle notifier's seconds did not step")
+		if (!PluginManagerScreen.typeNumber("seconds", "45")) {
+			fail("the idle notifier's seconds box took no typing")
 		}
 		val secondsAfter: Int = idle.context!!.config().getInt("seconds", 15)
-		if (secondsAfter != secondsBefore + 1) {
-			fail("the idle notifier's seconds went from " + secondsBefore + " to " + secondsAfter)
+		if (secondsAfter != 45) {
+			fail("the idle notifier's seconds went from " + secondsBefore + " to " + secondsAfter + ", not 45")
 		}
-		PluginManagerScreen.clickStep("seconds", false)
+		// out of range is held to the range
+		PluginManagerScreen.typeNumber("seconds", "99999")
+		if (idle.context!!.config().getInt("seconds", 15) != 600) {
+			fail("the idle notifier's seconds were not held to 600")
+		}
+		PluginManagerScreen.typeNumber("seconds", secondsBefore.toString())
 		if (!PluginManagerScreen.clickBack()) {
 			fail("Back did not leave the settings page")
 		}
@@ -3105,7 +3110,7 @@ object SmokeTest {
 		if (PluginManagerScreen.open) {
 			fail("the plugin manager did not close")
 		}
-		println("SMOKE plugin manager: seconds stepped " + secondsBefore + " to " + secondsAfter + " and back; Back; closed")
+		println("SMOKE plugin manager: seconds typed " + secondsBefore + " to " + secondsAfter + ", 99999 held to 600, back to " + secondsBefore + "; Back; closed")
 		pluginManagerStep = 4
 	}
 

@@ -4,6 +4,7 @@ import SubInterfaceCloser
 import SubInterfaceOpener
 import com.jagex.game.runetek5.InterfaceManager
 import com.jagex.game.runetek5.client.ClientState
+import com.jagex.game.runetek5.client.input.keyboard.KeyRecord
 import com.jagex.game.runetek5.client.input.console.Console
 import com.jagex.game.runetek5.config.iftype.SubInterfaceType
 import com.jagex.game.runetek5.config.rsinterface.Component
@@ -113,11 +114,19 @@ object PluginManagerScreen {
 	private const val A_HOVER: Int = 8
 	private const val A_LEAVE: Int = 9
 	private const val A_SET_TOGGLE: Int = 10
-	private const val A_SET_MINUS: Int = 11
-	private const val A_SET_PLUS: Int = 12
 	private const val A_SET_CHOICE: Int = 13
 	private const val A_ITEM: Int = 14
 	private const val A_POPUP_CLOSE: Int = 15
+	private const val A_EDIT: Int = 16
+
+	/** The client's codes for Enter, Backspace and Escape (CanvasKeyRecorder.REMAPPED_KEYS). */
+	private const val KEY_ENTER: Int = 84
+	private const val KEY_BACKSPACE: Int = 85
+	private const val KEY_ESCAPE: Int = 13
+
+	private const val NUMBER_BOX_WIDTH: Int = 70
+
+	private const val MAX_DIGITS: Int = 9
 
 	/** Whether the window is open with our page in it. */
 	@JvmField
@@ -139,6 +148,20 @@ object PluginManagerScreen {
 	private val popup: ClientPage.Popup = ClientPage.Popup(ROOT, BODY, POPUP, POPUP_ITEMS, POPUP_SCROLL, SENTINEL, A_ITEM, A_POPUP_CLOSE)
 
 	private var popupFor: Choice? = null
+
+	/** The number setting being typed into, its text so far, and the slots of its box outline and value text. */
+	private var editing: PluginSchemaImpl.Entry? = null
+
+	private var editText: String = ""
+
+	private var editOutline: Int = -1
+
+	private var editValue: Int = -1
+
+	/** Each number row's outline and value slots, by entry index, for [startEdit]. */
+	private val numberOutline: HashMap<Int, Int> = HashMap()
+
+	private val numberValue: HashMap<Int, Int> = HashMap()
 
 	/** The Plugins button's hit component in the Settings tab. */
 	private var tabButton: Component? = null
@@ -352,6 +375,9 @@ object PluginManagerScreen {
 	private fun forget() {
 		buttons.clear()
 		choices.clear()
+		numberOutline.clear()
+		numberValue.clear()
+		editing = null
 	}
 
 	// --- the pages ---
@@ -501,7 +527,6 @@ object PluginManagerScreen {
 		val config: PluginConfig = context.config()
 		val entries: ArrayList<PluginSchemaImpl.Entry> = context.schema.entries
 		val onWidth: Int = maxOf(ClientPage.textWidth(ClientPage.FONT_BUTTON, "On"), ClientPage.textWidth(ClientPage.FONT_BUTTON, "Off")) + 30
-		val stepWidth: Int = ClientPage.textWidth(ClientPage.FONT_BUTTON, "+") + 30
 		var boxWidth: Int = 0
 		for (entry in entries) {
 			val options: Array<String>? = entry.options
@@ -526,10 +551,20 @@ object PluginManagerScreen {
 					button(children, if (on) "On" else "Off", on, A_SET_TOGGLE, i, right - onWidth, y - 2, onWidth)
 				}
 				PluginSchemaImpl.NUMBER -> {
+					// a box to type into: click, digits, Enter; the range beside it
 					val value: Int = config.getInt(entry.key, entry.defaultInt)
-					button(children, "+", false, A_SET_PLUS, i, right - stepWidth, y - 2, stepWidth)
-					children.add(ClientPage.text(BODY, children.size, right - stepWidth - 6 - 60, y, 60, 16, ClientPage.FONT_LABEL, value.toString(), if (value >= entry.max) ON else ClientPage.TEXT, 1, 1, false))
-					button(children, "-", false, A_SET_MINUS, i, right - stepWidth - 6 - 60 - 6 - stepWidth, y - 2, stepWidth)
+					val bx: Int = right - NUMBER_BOX_WIDTH
+					children.add(ClientPage.text(BODY, children.size, 12, y + 1, bx - 18, 16, ClientPage.FONT_SMALL, entry.min.toString() + " to " + entry.max, DIM, 2, 1, false))
+					children.add(ClientPage.rect(BODY, children.size, bx, y - 1, NUMBER_BOX_WIDTH, ClientPage.ITEM_HEIGHT + 4, ClientPage.BOX_FILL, true))
+					numberOutline[i] = children.size
+					children.add(ClientPage.rect(BODY, children.size, bx, y - 1, NUMBER_BOX_WIDTH, ClientPage.ITEM_HEIGHT + 4, ClientPage.BOX_LINE, false))
+					numberValue[i] = children.size
+					val text: Component = ClientPage.text(BODY, children.size, bx, y - 1, NUMBER_BOX_WIDTH, ClientPage.ITEM_HEIGHT + 4, ClientPage.FONT_LABEL, value.toString(), ClientPage.TEXT, 1, 1, false)
+					text.hasScript = true
+					text.addOptionName(0, "Edit")
+					text.opBase = ""
+					text.params = arrayOf<Any?>(SENTINEL, A_EDIT, i)
+					children.add(text)
 				}
 				PluginSchemaImpl.CHOICE -> {
 					val value: String = config.get(entry.key, entry.defaultText)
@@ -557,9 +592,56 @@ object PluginManagerScreen {
 		PluginRuntime.settingChanged(registration, entry.key)
 	}
 
-	private fun step(registration: PluginRegistration, entry: PluginSchemaImpl.Entry, direction: Int) {
+	// --- typing a number ---
+
+	/** The number row [index] takes the keyboard: its box lights and shows the value with a cursor. */
+	private fun startEdit(index: Int) {
+		val registration: PluginRegistration = selected ?: return
 		val context: PluginContextImpl = registration.context ?: return
-		var value: Int = context.config().getInt(entry.key, entry.defaultInt) + direction * entry.step
+		val entry: PluginSchemaImpl.Entry = entryAt(registration, index) ?: return
+		val outline: Int = numberOutline[index] ?: return
+		val value: Int = numberValue[index] ?: return
+		closeEdit()
+		closePopup()
+		editing = entry
+		editText = context.config().getInt(entry.key, entry.defaultInt).toString()
+		editOutline = outline
+		editValue = value
+		ClientPage.setColour(BODY, outline, ClientPage.BOX_LINE_OPEN)
+		showEdit()
+	}
+
+	private fun showEdit() {
+		val c: Component = ClientPage.childOf(BODY, editValue) ?: return
+		c.text = editText + "|"
+		Component.redrawComponent(c)
+	}
+
+	/** Leaves the box as it was, the typed text dropped. */
+	private fun closeEdit() {
+		val entry: PluginSchemaImpl.Entry = editing ?: return
+		editing = null
+		if (!open) {
+			return
+		}
+		ClientPage.setColour(BODY, editOutline, ClientPage.BOX_LINE)
+		val registration: PluginRegistration = selected ?: return
+		val context: PluginContextImpl = registration.context ?: return
+		val c: Component = ClientPage.childOf(BODY, editValue) ?: return
+		c.text = context.config().getInt(entry.key, entry.defaultInt).toString()
+		Component.redrawComponent(c)
+	}
+
+	/** Enter: the typed number, held to the entry's range, saved; nothing typed leaves the value alone. */
+	private fun commitEdit() {
+		val entry: PluginSchemaImpl.Entry = editing ?: return
+		val registration: PluginRegistration? = selected
+		val typed: Int? = editText.toIntOrNull()
+		closeEdit()
+		if (typed == null || registration == null) {
+			return
+		}
+		var value: Int = typed
 		if (value < entry.min) {
 			value = entry.min
 		}
@@ -567,7 +649,45 @@ object PluginManagerScreen {
 			value = entry.max
 		}
 		writeSetting(registration, entry, null, value, false)
+		rebuild()
 	}
+
+	/**
+	 * A typed key while a number box has the keyboard (from the client's key loop, before the
+	 * interfaces and the plugins see it): digits and a leading minus go into the box, Backspace takes
+	 * one off, Enter keeps the number, Escape drops it. True when the key was ours.
+	 */
+	@JvmStatic
+	fun keyTyped(record: KeyRecord): Boolean {
+		val entry: PluginSchemaImpl.Entry = editing ?: return false
+		if (!open) {
+			editing = null
+			return false
+		}
+		val code: Int = record.getKeyCode()
+		val ch: Char = record.getKeyChar()
+		if (code == KEY_ENTER) {
+			commitEdit()
+		} else if (code == KEY_ESCAPE) {
+			closeEdit()
+		} else if (code == KEY_BACKSPACE) {
+			if (editText.isNotEmpty()) {
+				editText = editText.substring(0, editText.length - 1)
+				showEdit()
+			}
+		} else if (ch in '0'..'9' && editText.length < MAX_DIGITS) {
+			editText += ch
+			showEdit()
+		} else if (ch == '-' && entry.min < 0 && editText.isEmpty()) {
+			editText = "-"
+			showEdit()
+		}
+		return true
+	}
+
+	/** While a number box has the keyboard, no key press reaches the server or the interfaces. */
+	@JvmStatic
+	fun keyPressed(): Boolean = editing != null && open
 
 	// --- the choice list ---
 
@@ -626,6 +746,9 @@ object PluginManagerScreen {
 			return
 		}
 		val plugin: PluginRegistration? = selected
+		if (editing != null && action != A_EDIT && action != A_HOVER && action != A_LEAVE) {
+			closeEdit() // a click elsewhere on the page ends the typing
+		}
 		when (action) {
 			A_CLOSE -> close()
 			A_TOGGLE -> if (index < PluginRuntime.count) {
@@ -659,15 +782,12 @@ object PluginManagerScreen {
 				writeSetting(plugin, entry, null, 0, !context.config().getBoolean(entry.key, entry.defaultInt == 1))
 				rebuild()
 			}
-			A_SET_MINUS -> if (plugin != null) {
-				val entry: PluginSchemaImpl.Entry = entryAt(plugin, index) ?: return
-				step(plugin, entry, -1)
-				rebuild()
-			}
-			A_SET_PLUS -> if (plugin != null) {
-				val entry: PluginSchemaImpl.Entry = entryAt(plugin, index) ?: return
-				step(plugin, entry, 1)
-				rebuild()
+			A_EDIT -> if (plugin != null) {
+				if (editing != null && editing === entryAt(plugin, index)) {
+					closeEdit()
+				} else {
+					startEdit(index)
+				}
 			}
 			A_SET_CHOICE -> if (index < choices.size) {
 				val choice: Choice = choices[index]
@@ -728,15 +848,20 @@ object PluginManagerScreen {
 		return true
 	}
 
-	/** Steps the selected plugin's number setting [key] once, as the "+" or "-" button does. */
+	/** Types [text] into the selected plugin's number setting [key] and presses Enter, as a player does. */
 	@JvmStatic
-	fun clickStep(key: String, up: Boolean): Boolean {
+	fun typeNumber(key: String, text: String): Boolean {
 		val registration: PluginRegistration = selected ?: return false
 		val context: PluginContextImpl = registration.context ?: return false
-		for (entry in context.schema.entries) {
-			if (entry.key == key && entry.kind == PluginSchemaImpl.NUMBER) {
-				step(registration, entry, if (up) 1 else -1)
-				rebuild()
+		val entries: ArrayList<PluginSchemaImpl.Entry> = context.schema.entries
+		for (i in 0 until entries.size) {
+			if (entries[i].key == key && entries[i].kind == PluginSchemaImpl.NUMBER) {
+				startEdit(i)
+				if (editing == null) {
+					return false
+				}
+				editText = text
+				commitEdit()
 				return true
 			}
 		}

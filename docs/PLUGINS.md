@@ -81,9 +81,9 @@ The Settings tab (the spanner) has a third button beside Graphics Settings and A
 its id, version, where it came from and its state, an **On**/**Off** switch, and **Settings** for a
 plugin that declared any. A built-in's switch is its own "enabled" setting (so `::xpdrops` and the
 window agree); a jar's starts and stops the plugin, as `::plugin <id> on|off` does. A failed plugin
-shows why. The settings page shows each declared setting as an on/off switch, a number with `-`
-and `+`, or a choice from a list; every change is saved at once and the plugin hears of it
-(`SettingChanged`). `::pluginmanager` opens and closes the window from the console.
+shows why. The settings page shows each declared setting as an on/off switch, a number typed
+into a box (click it, type, Enter; Escape leaves it; a number outside the range is held to it), or
+a choice from a list; every change is saved at once and the plugin hears of it (`SettingChanged`). `::pluginmanager` opens and closes the window from the console.
 
 A plugin that throws is turned off on the spot, with a line in the console and the chat box
 ("Plugin X was disabled: ..."), and the game goes on. `::plugin <id> on` tries it again; the

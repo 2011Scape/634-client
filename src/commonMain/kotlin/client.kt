@@ -2,6 +2,7 @@ import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.client.login.LoginStep
 import com.jagex.game.runetek5.client.window.WindowModeType
+import com.jagex.game.runetek5.client.features.PluginManagerScreen
 import com.jagex.game.runetek5.client.features.SmokeTest
 import com.jagex.game.runetek5.client.features.HdFallback
 import com.jagex.game.runetek5.core.constants.MainLogicStep
@@ -794,12 +795,14 @@ class client : GameShell() {
 					} else {
 						Console.open()
 					}
+				} else if (PluginManagerScreen.keyTyped(keyLog)) {
+					// Not part of the original client: a number box in the plugin manager has the keyboard.
 				} else if (client.maximumHeldKeys < 128 && !PluginRuntime.keyTyped(keyLog)) { // Not part of the original client: the plugins' KeyTyped; a consumed character never reaches the interfaces.
 					client.KEY_RECORDS[client.maximumHeldKeys] = keyLog
 					client.maximumHeldKeys++
 				}
 			} else if (type == 0 && KeyRecorder.keyCachePointerPoss < 75) {
-				if (!PluginRuntime.keyPressed(keyLog)) { // Not part of the original client: the plugins' KeyPressed; a consumed key never reaches the server.
+				if (!PluginManagerScreen.keyPressed() && !PluginRuntime.keyPressed(keyLog)) { // Not part of the original client: the plugin manager's number box, then the plugins' KeyPressed; a consumed key never reaches the server.
 					KeyRecorder.KEYS_PRESSED[KeyRecorder.keyCachePointerPoss] = keyLog
 					KeyRecorder.keyCachePointerPoss++
 				}
