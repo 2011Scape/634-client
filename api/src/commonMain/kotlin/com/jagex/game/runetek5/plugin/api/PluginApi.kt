@@ -23,5 +23,6 @@ package com.jagex.game.runetek5.plugin.api
  *   game thread from a tick or from another thread ([PluginContext.invokeLater]).
  */
 object PluginApi {
+	/** This client's API version. */
 	const val VERSION: Int = 4
 }

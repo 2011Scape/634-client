@@ -4,6 +4,7 @@ import com.jagex.game.runetek5.plugin.api.events.EventBus
 import com.jagex.game.runetek5.plugin.api.events.EventListener
 import com.jagex.game.runetek5.plugin.api.events.EventType
 import com.jagex.game.runetek5.plugin.api.events.Events
+import lang.Runnable
 import kotlin.jvm.JvmField
 
 /**
@@ -31,6 +32,10 @@ class EventBusImpl : EventBus {
 
 	@JvmField
 	var onFailure: FailureHandler? = null
+
+	/** Runs after each listener of a post, when set: the runtime puts the drawing state back between draw listeners. */
+	@JvmField
+	var afterListener: Runnable? = null
 
 	/** The plugin whose context is subscribing, so that the listener is removed with it. */
 	override fun <E> subscribe(type: EventType<E>, listener: EventListener<E>) {
@@ -139,6 +144,7 @@ class EventBusImpl : EventBus {
 						lang.printlnErr("Plugins: a listener for " + type.name + " threw " + error)
 					}
 				}
+				afterListener?.run()
 			}
 			i++
 		}

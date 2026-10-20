@@ -120,6 +120,18 @@ object ClientApiImpl : ClientApi {
 		return node.npc
 	}
 
+	override fun npcByIndex(index: Int): Npc? {
+		if (index < 0) {
+			return null
+		}
+		val node: NPCEntityNode = NPCList.NPC_MAP.get(index.toLong()) as NPCEntityNode? ?: return null
+		return node.npc
+	}
+
+	override fun playerByIndex(index: Int): Player? {
+		return if (index >= 0 && index < PlayerUpdate.players.size) PlayerUpdate.players[index] else null
+	}
+
 	override fun groundItems(visitor: GroundItemVisitor) {
 		// cursors of their own: the client walks these lists with their shared cursors, and a plugin may ask from inside such a walk
 		val piles: HashTableIterator = HashTableIterator(ObjStack.GROUND_ITEMS)

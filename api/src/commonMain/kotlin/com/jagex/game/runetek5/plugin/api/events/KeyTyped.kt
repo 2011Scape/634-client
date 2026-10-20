@@ -20,6 +20,7 @@ class KeyTyped {
 	@JvmField
 	var consumed: Boolean = false
 
+	/** Keeps the character from the interfaces and the chat. */
 	fun consume() {
 		consumed = true
 	}

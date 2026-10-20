@@ -10,5 +10,6 @@ package com.jagex.game.runetek5.plugin.api
  * item it shows (-1 for none).
  */
 fun interface MenuAction {
+	/** The player clicked the plugin's entry. */
 	fun clicked(target: MenuTarget, sceneX: Int, sceneY: Int, id: Int)
 }

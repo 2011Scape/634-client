@@ -12,6 +12,7 @@ package com.jagex.game.runetek5.plugin.api
 interface Plugin {
 	fun start(context: PluginContext)
 
+	/** The plugin is being turned off or the client quits; the context still works here (a last [PluginConfig.save] is fine), and is closed afterwards. */
 	fun stop() {
 	}
 }

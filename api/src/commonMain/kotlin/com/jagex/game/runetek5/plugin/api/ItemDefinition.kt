@@ -4,6 +4,7 @@ package com.jagex.game.runetek5.plugin.api
 interface ItemDefinition {
 	fun id(): Int
 
+	/** The name, "null" for an item that has none. */
 	fun name(): String?
 
 	/** Whether several of the item take one slot. */
@@ -18,6 +19,7 @@ interface ItemDefinition {
 	/** The item's shop value, which the alchemy spells and the order of a ground pile go by. */
 	fun value(): Int
 
+	/** Whether the item is for members' worlds. */
 	fun isMembers(): Boolean
 
 	/** Whether the item can be worn. */
@@ -35,5 +37,6 @@ interface ItemDefinition {
 	/** The item's parameter [key] from the cache, or [default] when it has none. */
 	fun intParam(key: Int, default: Int): Int
 
+	/** The item's text parameter [key] from the cache, or [default] when it has none. */
 	fun stringParam(key: Int, default: String?): String?
 }

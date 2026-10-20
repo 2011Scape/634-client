@@ -64,6 +64,10 @@ class PluginConfigImpl(private val id: String) : PluginConfig {
 		values[key] = if (value) "true" else "false"
 	}
 
+	override fun keys(): Array<String> {
+		return values.keys.toTypedArray()
+	}
+
 	override fun remove(key: String) {
 		values.remove(key)
 	}

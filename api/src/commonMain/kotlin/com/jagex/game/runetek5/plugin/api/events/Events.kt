@@ -11,7 +11,7 @@ object Events {
 	@JvmField
 	val CLIENT_TICK: EventType<ClientTick> = EventType(0, "ClientTick")
 
-	/** Every client cycle while logged in, after the server's packets for it are handled. */
+	/** Every client cycle (20 ms) while logged in, after the server's packets for it are handled; a game tick of the server is 30 of these. */
 	@JvmField
 	val GAME_TICK: EventType<GameTick> = EventType(1, "GameTick")
 
@@ -150,6 +150,7 @@ object Events {
 	@JvmField
 	val MOUSE_WHEEL: EventType<MouseWheel> = EventType(33, "MouseWheel")
 
+	/** How many event types there are; [ALL] holds them by id. */
 	const val COUNT: Int = 34
 
 	/** Every event type, at the index of its id. */

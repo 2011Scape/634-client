@@ -51,7 +51,7 @@ object MenuSwapper : Plugin {
 	override fun start(context: PluginContext) {
 		this.context = context
 		load(context.config().get("rules", ""))
-		context.events().subscribe(Events.MENU_BUILT, menuListener)
+		listen()
 		context.registerCommand("swap", swapCommand)
 		context.registerCommand("unswap", unswapCommand)
 		context.registerCommand("swaps", listCommand)
@@ -76,8 +76,20 @@ object MenuSwapper : Plugin {
 		}
 	}
 
+	/** Subscribed to MenuBuilt only while there are rules, so that a player without any pays nothing per cycle. */
+	private fun listen() {
+		val context: PluginContext = this.context ?: return
+		if (ruleOptions.isEmpty()) {
+			context.events().unsubscribe(Events.MENU_BUILT, menuListener)
+		} else {
+			context.events().unsubscribe(Events.MENU_BUILT, menuListener)
+			context.events().subscribe(Events.MENU_BUILT, menuListener)
+		}
+	}
+
 	private fun save() {
 		val context: PluginContext = this.context ?: return
+		listen()
 		val out: StringBuilder = StringBuilder()
 		for (i in 0 until ruleOptions.size) {
 			if (i > 0) {

@@ -236,6 +236,10 @@ class PluginRuntimeTest {
 			assertEquals(listOf("later"), ran)
 			PluginRuntime.gameTick()
 			assertEquals(listOf("later", "tick 0"), ran)
+			for (i in 0 until 29) {
+				PluginRuntime.gameTick()
+			}
+			assertEquals(listOf("later", "tick 0"), ran, "a game tick is 30 cycles")
 			PluginRuntime.gameTick()
 			assertEquals(listOf("later", "tick 0", "tick 1"), ran)
 			context.invokeLater(Task { ran.add("after the end") })

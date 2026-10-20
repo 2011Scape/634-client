@@ -9,7 +9,9 @@ package com.jagex.game.runetek5.plugin.api.events
  * [ConsoleCommand]) are reused: read them in the listener and keep nothing.
  */
 interface EventBus {
+	/** [listener] gets every event of [type] from now until [unsubscribe] or the plugin stops. */
 	fun <E> subscribe(type: EventType<E>, listener: EventListener<E>)
 
+	/** Takes [listener] off [type]; safe from inside a listener. */
 	fun <E> unsubscribe(type: EventType<E>, listener: EventListener<E>)
 }

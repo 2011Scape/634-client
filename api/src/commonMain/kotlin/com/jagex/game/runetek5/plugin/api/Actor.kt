@@ -6,10 +6,13 @@ package com.jagex.game.runetek5.plugin.api
  * tile in the world), and [level] is the floor, 0 to 3.
  */
 interface Actor {
+	/** The actor's position in scene units, west to east; shift right 9 for the tile. */
 	fun x(): Int
 
+	/** The actor's position in scene units, south to north; shift right 9 for the tile. */
 	fun z(): Int
 
+	/** The floor, 0 to 3. */
 	fun level(): Int
 
 	/** The actor's size in tiles along one side. */

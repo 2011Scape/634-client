@@ -13,6 +13,7 @@ class ConsoleCommand {
 	@JvmField
 	var consumed: Boolean = false
 
+	/** The line was answered: the client does not send it to the server. */
 	fun consume() {
 		consumed = true
 	}

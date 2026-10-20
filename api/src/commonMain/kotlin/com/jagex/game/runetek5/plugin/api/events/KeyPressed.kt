@@ -10,12 +10,14 @@ class KeyPressed {
 	@JvmField
 	var keyChar: Char = '\u0000'
 
+	/** The client's modifier flags; bit 4 is Control. For Shift or Alt ask [com.jagex.game.runetek5.plugin.api.ClientApi.isKeyHeld] with a [com.jagex.game.runetek5.plugin.api.KeyCode]. */
 	@JvmField
 	var modifiers: Int = 0
 
 	@JvmField
 	var consumed: Boolean = false
 
+	/** Keeps the key from the server. */
 	fun consume() {
 		consumed = true
 	}

@@ -4,6 +4,7 @@ interface Npc : Actor {
 	/** The npc's type (config) id, after any transformation the player's state applies to it. */
 	fun typeId(): Int
 
+	/** The npc's name as shown, or null. */
 	fun name(): String?
 
 	/** The combat level, 0 for an npc without one. */
