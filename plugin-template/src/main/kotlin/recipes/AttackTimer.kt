@@ -1,21 +1,28 @@
 package recipes
 
+import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.Font
 import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.PluginContext
 import com.jagex.game.runetek5.plugin.api.events.Events
 
 /**
- * Attack and idle timers: a bar under the player counts down the weapon's cooldown from the
- * last attack animation (`::attackspeed <ticks>` sets it, 4 by default), and once the player has
- * neither animated nor fought for a while the bar says "Idle" and a sound plays. Everything is
- * read from the local player each [Events.GAME_TICK], which is a client cycle of 20 ms (a tick of
- * the server is 30 of them); the animation comes as [Events.ANIMATION_CHANGED].
+ * Attack and idle timers: a bar under the player counts down the equipped weapon's cooldown from
+ * the last attack animation, and once the player has neither animated nor fought for a while the
+ * bar says "Idle" and a sound plays. The weapon is slot 3 of the worn equipment (container 94), its
+ * speed the item's parameter 14 in ticks (4 when unarmed or unknown), read again whenever the
+ * equipment changes. Everything else is read from the local player each [Events.GAME_TICK], which
+ * is a client cycle of 20 ms (a tick of the server is 30 of them).
  */
 class AttackTimer : Plugin {
+    private val equipment = 94
+    private val weaponSlot = 3
+    private val attackSpeedParam = 14
+    private val defaultTicks = 4
     private val cyclesPerTick = 30
     private val idleCycles = 15 * 50
-    private var attackTicks = 4
+    private var attackTicks = defaultTicks
+    private var weaponName = "Unarmed"
     private var cooldown = 0
     private var idleTicks = 0
     private var warned = false
@@ -23,11 +30,9 @@ class AttackTimer : Plugin {
 
     override fun start(context: PluginContext) {
         val client = context.client()
-        attackTicks = context.config().getInt("attackTicks", 4)
-        context.registerCommand("attackspeed") { _, args ->
-            attackTicks = args.firstOrNull()?.toIntOrNull() ?: 4
-            context.config().setInt("attackTicks", attackTicks)
-            context.config().save()
+        readWeapon(client, context)
+        context.events().subscribe(Events.ITEM_CONTAINER_CHANGED) { event ->
+            if (event.containerId == equipment) readWeapon(client, context)
         }
         context.events().subscribe(Events.ANIMATION_CHANGED) { event ->
             if (event.actor === client.localPlayer() && event.animationId != -1) {
@@ -64,6 +69,17 @@ class AttackTimer : Plugin {
             } else {
                 g.fillRect(x, y, 40, 5, 0xFF40FF40.toInt())
             }
+            g.text(x + 44, y + 6, weaponName + " (" + attackTicks + ")", 0xFFFFFFFF.toInt(), 0xFF000000.toInt())
         }
+    }
+
+    /** The equipped weapon's name and speed in ticks; unarmed, or a weapon without the parameter, is 4. */
+    private fun readWeapon(client: ClientApi, context: PluginContext) {
+        val weaponId = client.itemContainer(equipment)?.itemId(weaponSlot) ?: -1
+        val weapon = if (weaponId >= 0) client.item(weaponId) else null
+        weaponName = weapon?.name() ?: "Unarmed"
+        val ticks = weapon?.intParam(attackSpeedParam, defaultTicks) ?: defaultTicks
+        attackTicks = if (ticks in 1..10) ticks else defaultTicks
+        context.log("weapon " + weaponName + ": " + attackTicks + " ticks")
     }
 }
