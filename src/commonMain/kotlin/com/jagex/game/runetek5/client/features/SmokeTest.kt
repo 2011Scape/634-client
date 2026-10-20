@@ -800,7 +800,7 @@ object SmokeTest {
 				menuCheck()
 			}
 		}
-		if (PLUGIN_MANAGER && pluginManagerStep < 3) {
+		if (PLUGIN_MANAGER && pluginManagerStep < 4) {
 			pluginManagerCheck()
 			return
 		}
@@ -3031,6 +3031,20 @@ object SmokeTest {
 	 */
 	private fun pluginManagerCheck() {
 		if (pluginManagerStep == 0) {
+			// the Settings tab's stone (548:102 fixed, 746:47 resizable), so the frame shows the tab
+			val stone: Component? = Interface.getComponent(if (ClientState.BASE_WINDOW_ID == 548) (548 shl 16) or 102 else (746 shl 16) or 47)
+			if (stone != null) {
+				InterfaceOptionInteract.ifOptionInteract(-1, stone.options?.getOrNull(0) ?: "", 1, stone.idHash)
+			}
+			pluginManagerFrame = gameFrames
+			pluginManagerStep = 1
+			return
+		}
+		if (gameFrames - pluginManagerFrame < 30) {
+			return
+		}
+		if (pluginManagerStep == 1) {
+			saveFrame("build/smoke/plugins-tab.png")
 			// the Plugins button the client keeps in the Settings tab, clicked as a player clicks it
 			val button: Component? = PluginManagerScreen.tabButton()
 			val graphics: Component? = Interface.getComponent((261 shl 16) or 16)
@@ -3044,13 +3058,10 @@ object SmokeTest {
 				fail("the Plugins button did not open the plugin manager")
 			}
 			pluginManagerFrame = gameFrames
-			pluginManagerStep = 1
+			pluginManagerStep = 2
 			return
 		}
-		if (gameFrames - pluginManagerFrame < 30) {
-			return
-		}
-		if (pluginManagerStep == 1) {
+		if (pluginManagerStep == 2) {
 			saveFrame("build/smoke/plugins-list.png")
 			val rows: Int = PluginManagerScreen.rowsShown()
 			if (rows < 5) {
@@ -3069,7 +3080,7 @@ object SmokeTest {
 			}
 			println("SMOKE plugin manager: " + rows + " rows; experience drops switched off and on; the idle notifier's settings page open")
 			pluginManagerFrame = gameFrames
-			pluginManagerStep = 2
+			pluginManagerStep = 3
 			return
 		}
 		saveFrame("build/smoke/plugins-settings.png")
@@ -3095,7 +3106,7 @@ object SmokeTest {
 			fail("the plugin manager did not close")
 		}
 		println("SMOKE plugin manager: seconds stepped " + secondsBefore + " to " + secondsAfter + " and back; Back; closed")
-		pluginManagerStep = 3
+		pluginManagerStep = 4
 	}
 
 	/** The verb of the menu's top row, which is the last entry of the list. */

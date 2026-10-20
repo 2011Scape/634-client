@@ -10,6 +10,7 @@ way.
 
 - [What a plugin can do](#what-a-plugin-can-do)
 - [Installing plugins](#installing-plugins)
+- [Managing plugins in the game](#managing-plugins-in-the-game)
 - [Writing a plugin](#writing-a-plugin)
 - [Cookbook: five plugins in a few dozen lines](#cookbook)
 - [The API](#the-api)
@@ -72,6 +73,17 @@ In the game, the developer console (the `` ` `` key) has:
 | `::plugin <id> on` | Turns it on again, or tries again one that failed. |
 
 A plugin's own settings are in `~/.634-client/plugin-config/<id>.properties`.
+
+## Managing plugins in the game
+
+The Settings tab (the spanner) has a third button beside Graphics Settings and Audio Settings:
+**Plugins**. It opens a window listing every plugin, built in and from the plugins folder, with
+its id, version, where it came from and its state, an **On**/**Off** switch, and **Settings** for a
+plugin that declared any. A built-in's switch is its own "enabled" setting (so `::xpdrops` and the
+window agree); a jar's starts and stops the plugin, as `::plugin <id> on|off` does. A failed plugin
+shows why. The settings page shows each declared setting as an on/off switch, a number with `-`
+and `+`, or a choice from a list; every change is saved at once and the plugin hears of it
+(`SettingChanged`). `::pluginmanager` opens and closes the window from the console.
 
 A plugin that throws is turned off on the spot, with a line in the console and the chat box
 ("Plugin X was disabled: ..."), and the game goes on. `::plugin <id> on` tries it again; the
@@ -147,6 +159,7 @@ Start from [`plugin-template/`](../plugin-template): copy the folder, and change
 | `invokeLater(task)` | Runs the task on the game thread at the next client cycle; the one call allowed from another thread. |
 | `schedule(ticks, task)` | Runs the task on the game thread that many game ticks (600 ms) later. `GameTick` itself is a client cycle of 20 ms while logged in, 30 to a tick of the server. |
 | `startThread(name, task)` | Runs the task on a thread of its own, for a web request or a file the game must not wait for; it reads nothing and hands its result to `invokeLater`. |
+| `settings()` | `SettingsSchema`: `toggle(key, label, default)`, `number(key, label, default, min, max, step)`, `choice(key, label, default, options)`, declared in `start`. The plugin manager shows them, writes the value into `config()` under the key and saves; the plugin reads it back on `SettingChanged`. |
 
 `Graphics` (in overlays and the draw events) draws lines, rectangles, circles, polygons, text in
 the client's three fonts (`font(Font.BOLD)`), the cache's sprites (`sprite(id, x, y)`) and the
