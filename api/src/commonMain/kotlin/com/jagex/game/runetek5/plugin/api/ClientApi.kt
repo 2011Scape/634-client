@@ -30,6 +30,12 @@ interface ClientApi {
 	/** The [i]th npc in the scene (0 until [npcCount]), or null. */
 	fun npc(i: Int): Npc?
 
+	/** The npc with [index] ([Npc.index], what the menu events carry), or null when it is not in the scene. */
+	fun npcByIndex(index: Int): Npc?
+
+	/** The player with [index] ([Player.index]), or null when not in the scene. */
+	fun playerByIndex(index: Int): Player?
+
 	/** Calls [visitor] for every item on the ground in the scene, pile by pile, most valuable first. */
 	fun groundItems(visitor: GroundItemVisitor)
 
@@ -48,7 +54,7 @@ interface ClientApi {
 	/** The bit variable [id] (a part of a varp, as the cache defines it), 0 when unknown. */
 	fun varbit(id: Int): Int
 
-	/** The inventory with [id] (93 is the backpack), or null when the server has not sent it. */
+	/** The inventory with [id] (93 is the backpack, which interface 149 component 0 shows), or null when the server has not sent it. */
 	fun itemContainer(id: Int): ItemContainer?
 
 	/** The component, or null when the interface is not loaded. */
@@ -77,8 +83,10 @@ interface ClientApi {
 
 	/**
 	 * Where a point in the scene is in the game view. [sceneX] and [sceneY] are in scene units (512 a
-	 * tile), [heightOffset] how far above the ground. Writes the view-relative x and y into [out]
-	 * (two ints) and returns true, or returns false when the point is off the screen.
+	 * tile, [heightOffset] how far above the ground. Writes the x and y relative to the game view into
+	 * [out] (two ints) and returns true, or returns false when the point is off the screen. The
+	 * view sits at the [Viewport]'s x and y on the screen: add them to draw there (they are 0 on the
+	 * resizable game screen, not on the fixed one).
 	 */
 	fun projectPoint(sceneX: Int, sceneY: Int, level: Int, heightOffset: Int, out: IntArray): Boolean
 
@@ -91,7 +99,8 @@ interface ClientApi {
 	/**
 	 * The four corners of the [size] by [size] tiles whose south-west tile is ([tileX], [tileY]) in
 	 * the game view, for [Graphics.polygon] and [Graphics.fillPolygon]: the x values into [xs] and the
-	 * y values into [ys] (four ints each), south-west first and clockwise. False when any corner is off the screen.
+	 * y values into [ys] (four ints each), south-west first and clockwise, relative to the game view like
+	 * [projectPoint]. False when any corner is off the screen.
 	 */
 	fun tilePolygon(tileX: Int, tileY: Int, level: Int, size: Int, xs: IntArray, ys: IntArray): Boolean
 
@@ -152,7 +161,7 @@ interface ClientApi {
 	/**
 	 * Makes entry [i] the top row, and so the left click's choice. A component's options 6 to 10 stay
 	 * where they are (on the top row they would turn the left click into a right click) but take the
-	 * left click all the same. False for Cancel, or outside MenuBuilt.
+	 * left click all the same; entry 0 is left as it is. False for Cancel, or outside MenuBuilt.
 	 */
 	fun promoteMenuEntry(i: Int): Boolean
 

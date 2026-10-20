@@ -24,7 +24,7 @@ class GroundItemValues : Plugin {
                 client.chatMessage("Valuable drop: " + client.item(item.itemId)?.name() + " (" + value + ")")
             }
         }
-        context.addOverlay { g, _ ->
+        context.addOverlay { g, view ->
             lastX = -1
             lastY = -1
             client.groundItems { sceneX, sceneY, level, itemId, amount ->
@@ -42,7 +42,7 @@ class GroundItemValues : Plugin {
                         else -> 0xFFFFFFFF.toInt()
                     }
                     val text = definition.name() + (if (amount > 1) " (" + amount + ")" else "") + " " + value
-                    g.textCentered(point[0], point[1] - 12 * stack, text, colour, 0xFF000000.toInt())
+                    g.textCentered(view.x + point[0], view.y + point[1] - 12 * stack, text, colour, 0xFF000000.toInt())
                     stack++
                 }
             }

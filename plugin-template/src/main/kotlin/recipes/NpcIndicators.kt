@@ -25,7 +25,7 @@ class NpcIndicators : Plugin {
         }
         context.registerCommand("tag") { _, args -> if (args.isNotEmpty()) { names.add(args.joinToString(" ")); save() } }
         context.registerCommand("untag") { _, args -> names.removeAll { it.equals(args.joinToString(" "), ignoreCase = true) }; save() }
-        context.addOverlay { g, _ ->
+        context.addOverlay { g, view ->
             val me = client.localPlayer()
             for (i in 0 until client.npcCount()) {
                 val npc = client.npc(i) ?: continue
@@ -35,11 +35,15 @@ class NpcIndicators : Plugin {
                 val tileX = npc.x() shr 9
                 val tileY = npc.z() shr 9
                 if (client.tilePolygon(tileX, tileY, npc.level(), npc.sizeInTiles(), xs, ys)) {
+                    for (c in 0 until 4) { // view-relative corners onto the screen
+                        xs[c] += view.x
+                        ys[c] += view.y
+                    }
                     g.fillPolygon(xs, ys, 4, (colour and 0x00FFFFFF) or 0x30000000)
                     g.polygon(xs, ys, 4, colour)
                 }
                 if (client.projectActor(npc, npc.overheadHeight() + 40, head)) {
-                    g.textCentered(head[0], head[1], name + " (" + npc.combatLevel() + ")", colour, 0xFF000000.toInt())
+                    g.textCentered(view.x + head[0], view.y + head[1], name + " (" + npc.combatLevel() + ")", colour, 0xFF000000.toInt())
                 }
             }
         }

@@ -43,6 +43,10 @@ class ExamplePlugin : Plugin {
             if (g.fontReady()) {
                 g.text(view.x + 8, view.y + 20, "Example plugin: hello, ${client.localPlayer()?.name() ?: "stranger"} (last ::hello to $lastHello)", 0xFFFFFF00.toInt(), 0xFF000000.toInt())
                 if (client.hoveredTileX() >= 0 && client.tilePolygon(client.hoveredTileX(), client.hoveredTileY(), client.localPlayer()?.level() ?: 0, 1, xs, ys)) {
+                    for (i in 0 until 4) { // the corners are relative to the game view
+                        xs[i] += view.x
+                        ys[i] += view.y
+                    }
                     g.fillPolygon(xs, ys, 4, 0x40FFFFFF)
                     g.polygon(xs, ys, 4, 0xFFFFFFFF.toInt())
                 }
@@ -62,7 +66,7 @@ class ExamplePlugin : Plugin {
 
         // a right-click entry on every npc, with what it does when clicked
         val helloAction = context.registerMenuAction { target, sceneX, sceneY, id ->
-            val npc = (0 until client.npcCount()).mapNotNull { client.npc(it) }.firstOrNull { it.index() == id }
+            val npc = client.npcByIndex(id)
             client.chatMessage("Hello, ${npc?.name() ?: target.name} at ($sceneX, $sceneY)!")
         }
         val valueAction = context.registerMenuAction { _, slot, widgetId, itemId ->

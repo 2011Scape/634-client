@@ -154,7 +154,8 @@ pixels, with ARGB colours whose alpha blends, within a `clip` of its own if it w
 and the font go back to the client's after each overlay. World to screen: `ClientApi.projectTile`,
 `projectPoint` (scene units, 512 a tile) and `projectActor` write the view-relative point into an
 `IntArray(2)` and say whether it is on screen, and `tilePolygon` gives a tile's four corners for
-`polygon` and `fillPolygon`; `projectMinimap` places a tile on the minimap. Text's `y` is its
+`polygon` and `fillPolygon` (view-relative too: add the viewport's `x` and `y` before drawing, as the recipes do);
+`projectMinimap` places a tile on the minimap, in screen coordinates already. Text's `y` is its
 baseline, and `fontHeight()` is the font's line height: a panel's first baseline sits one of them
 below its top.
 
@@ -168,7 +169,7 @@ to run one, name its class in the template's `Plugin-Class`. What each one leans
 |---|---|---|
 | `LeftClickBank`, a menu entry swapper: "Bank" is the left click, "Examine" is gone | 34 | `MenuBuilt`, then `menuEntryCount`, `menuEntry(i).option()`, `promoteMenuEntry(i)`, `removeMenuEntry(i)`. Entry 0 is the top row and the left click; remove from the bottom up. |
 | `AttackTimer`, attack and idle timers under the player | 69 | `AnimationChanged` for the local player starts the cooldown; `GameTick` counts it and the idle ticks; `projectActor` places the bar; `playSound` and `chatMessage` warn. |
-| `NpcIndicators`, tagged npcs outlined and named, red when they fight you | 47 | `npcCount`/`npc(i)`, `name()`, `interacting() === localPlayer()`, `tilePolygon` with `sizeInTiles()`, `fillPolygon`, `polygon`, `projectActor` with `overheadHeight()`. |
+| `NpcIndicators`, tagged npcs outlined and named, red when they fight you | 51 | `npcCount`/`npc(i)`, `name()`, `interacting() === localPlayer()`, `tilePolygon` with `sizeInTiles()`, `fillPolygon`, `polygon`, `projectActor` with `overheadHeight()`. |
 | `GroundItemValues`, every pile's items with their worth, valuable drops in the chat | 51 | `groundItems { ... }` (piles come most valuable first), `item(id).value()`, `projectTile`, `textCentered`; `ItemSpawned` for the drops. |
 | `ItemTags`, a colour on an item from its right-click menu, drawn around it in the backpack and the bank | 59 | `MenuEntryAdded` for `MenuTarget.WIDGET` with `addMenuEntry`; a `MenuAction` whose id is the item; `widget(149, 0)` and `widget(762, 95)`, their `child(i)`, `itemId()`, `screenX()`, `drawRect`. |
 

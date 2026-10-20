@@ -50,17 +50,17 @@ class AttackTimer : Plugin {
                 idleTicks = 0
             }
         }
-        context.addOverlay { g, _ ->
+        context.addOverlay { g, view ->
             val me = client.localPlayer() ?: return@addOverlay
             if (!client.projectActor(me, 0, point)) return@addOverlay
-            val x = point[0] - 20
-            val y = point[1] + 4
+            val x = view.x + point[0] - 20
+            val y = view.y + point[1] + 4
             g.fillRect(x, y, 40, 5, 0xC0000000.toInt())
             if (cooldown > 0) {
                 g.fillRect(x, y, 40 * cooldown / (attackTicks * cyclesPerTick), 5, 0xFFFF4040.toInt())
             } else if (idleTicks >= idleCycles) {
                 g.font(Font.BOLD)
-                g.textCentered(point[0], y - 4, "Idle", 0xFFFF4040.toInt(), 0xFF000000.toInt())
+                g.textCentered(view.x + point[0], y - 4, "Idle", 0xFFFF4040.toInt(), 0xFF000000.toInt())
             } else {
                 g.fillRect(x, y, 40, 5, 0xFF40FF40.toInt())
             }
