@@ -26,6 +26,7 @@ import com.jagex.game.runetek5.plugin.api.Npc
 import com.jagex.game.runetek5.plugin.api.Overlay
 import com.jagex.game.runetek5.plugin.api.Player
 import com.jagex.game.runetek5.plugin.api.Plugin
+import com.jagex.game.runetek5.plugin.api.Task
 import com.jagex.game.runetek5.plugin.api.Viewport
 import com.jagex.game.runetek5.plugin.api.events.AnimationChanged
 import com.jagex.game.runetek5.plugin.api.events.ChatMessage
@@ -40,10 +41,13 @@ import com.jagex.game.runetek5.plugin.api.events.HitsplatApplied
 import com.jagex.game.runetek5.plugin.api.events.InterfaceChanged
 import com.jagex.game.runetek5.plugin.api.events.ItemContainerChanged
 import com.jagex.game.runetek5.plugin.api.events.KeyPressed
+import com.jagex.game.runetek5.plugin.api.events.KeyReleased
+import com.jagex.game.runetek5.plugin.api.events.KeyTyped
 import com.jagex.game.runetek5.plugin.api.events.MenuBuilt
 import com.jagex.game.runetek5.plugin.api.events.MenuEntryAdded
 import com.jagex.game.runetek5.plugin.api.events.MenuOptionClicked
 import com.jagex.game.runetek5.plugin.api.events.MouseClicked
+import com.jagex.game.runetek5.plugin.api.events.MouseWheel
 import com.jagex.game.runetek5.plugin.api.events.OverheadTextChanged
 import com.jagex.game.runetek5.plugin.api.events.ProjectileSpawned
 import com.jagex.game.runetek5.plugin.api.events.SpotAnimSpawned
@@ -54,6 +58,7 @@ import com.jagex.game.runetek5.plugin.api.events.VarpChanged
 import com.jagex.game.runetek5.plugin.api.events.ViewportDraw
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
+import withLock
 
 /**
  * Not part of the original client: the plugins' runtime (docs/PLUGINS.md). The game calls it from a
@@ -119,6 +124,55 @@ object PluginRuntime {
 	private val keyPressedEvent: KeyPressed = KeyPressed()
 
 	private val mouseClickedEvent: MouseClicked = MouseClicked()
+
+	private val keyTypedEvent: KeyTyped = KeyTyped()
+
+	private val keyReleasedEvent: KeyReleased = KeyReleased()
+
+	private val mouseWheelEvent: MouseWheel = MouseWheel()
+
+	/** The scene tile under the mouse this cycle, -1 for none (ViewportMiniMenuPicking). */
+	@JvmField
+	var hoveredTileX: Int = -1
+
+	@JvmField
+	var hoveredTileY: Int = -1
+
+	/** Where the minimap was last drawn, and the client cycle it was. */
+	@JvmField
+	var minimapX: Int = 0
+
+	@JvmField
+	var minimapY: Int = 0
+
+	@JvmField
+	var minimapWidth: Int = 0
+
+	@JvmField
+	var minimapHeight: Int = 0
+
+	@JvmField
+	var minimapCycle: Int = -100
+
+	/** Work for the game thread from anywhere: taken under [taskLock], run at the next client cycle. */
+	private val taskLock: Any = Any()
+
+	private var pendingTasks: ArrayList<Task> = ArrayList()
+
+	private var pendingOwners: ArrayList<PluginRegistration> = ArrayList()
+
+	private var runningTasks: ArrayList<Task> = ArrayList()
+
+	private var runningOwners: ArrayList<PluginRegistration> = ArrayList()
+
+	/** Work for a later game tick, game thread only. */
+	private val scheduledTasks: ArrayList<Task> = ArrayList()
+
+	private val scheduledOwners: ArrayList<PluginRegistration> = ArrayList()
+
+	private val scheduledDue: ArrayList<Int> = ArrayList()
+
+	private var gameTicks: Int = 0
 
 	private val menuEntryAddedEvent: MenuEntryAdded = MenuEntryAdded()
 
@@ -345,6 +399,25 @@ object PluginRuntime {
 	/** Takes back everything [registration] registered. */
 	private fun removeAll(registration: PluginRegistration) {
 		bus.removeOwner(registration)
+		withLock(taskLock) {
+			var i: Int = pendingOwners.size - 1
+			while (i >= 0) {
+				if (pendingOwners[i] === registration) {
+					pendingOwners.removeAt(i)
+					pendingTasks.removeAt(i)
+				}
+				i--
+			}
+		}
+		var i: Int = scheduledOwners.size - 1
+		while (i >= 0) {
+			if (scheduledOwners[i] === registration) {
+				scheduledOwners.removeAt(i)
+				scheduledTasks.removeAt(i)
+				scheduledDue.removeAt(i)
+			}
+			i--
+		}
 		for (i in 0 until overlayCount) {
 			if (overlayOwners[i] === registration) {
 				overlays[i] = null
@@ -492,6 +565,86 @@ object PluginRuntime {
 		return true
 	}
 
+	/** [task] for the game thread at the next client cycle; from any thread. */
+	fun invokeLater(owner: PluginRegistration, task: Task) {
+		withLock(taskLock) {
+			pendingTasks.add(task)
+			pendingOwners.add(owner)
+		}
+	}
+
+	/** [task] for the game thread [ticks] game ticks from now (0: the next). */
+	fun schedule(owner: PluginRegistration, ticks: Int, task: Task) {
+		scheduledTasks.add(task)
+		scheduledOwners.add(owner)
+		scheduledDue.add(gameTicks + (if (ticks < 0) 0 else ticks) + 1)
+	}
+
+	/** [task] on a thread of its own; what it throws disables [owner], on the game thread. */
+	fun startThread(owner: PluginRegistration, name: String, task: Task) {
+		val thread: lang.Thread = lang.Thread(
+			lang.Runnable {
+				try {
+					task.run()
+				} catch (error: Throwable) {
+					invokeLater(owner, Task { fail(owner, error) })
+				}
+			},
+			"plugin-" + owner.descriptor.id + "-" + name,
+		)
+		thread.setDaemon(true)
+		thread.start()
+	}
+
+	private fun runPendingTasks() {
+		withLock(taskLock) {
+			if (pendingTasks.isEmpty()) {
+				return
+			}
+			// swap the lists, so that a task may queue another without holding the lock
+			val tasks: ArrayList<Task> = pendingTasks
+			val owners: ArrayList<PluginRegistration> = pendingOwners
+			pendingTasks = runningTasks
+			pendingOwners = runningOwners
+			runningTasks = tasks
+			runningOwners = owners
+		}
+		for (i in 0 until runningTasks.size) {
+			val owner: PluginRegistration = runningOwners[i]
+			if (owner.context == null) {
+				continue // stopped since
+			}
+			try {
+				runningTasks[i].run()
+			} catch (error: Throwable) {
+				fail(owner, error)
+			}
+		}
+		runningTasks.clear()
+		runningOwners.clear()
+	}
+
+	private fun runScheduledTasks() {
+		gameTicks++
+		var i: Int = 0
+		while (i < scheduledTasks.size) {
+			if (scheduledDue[i] > gameTicks) {
+				i++
+			} else {
+				val task: Task = scheduledTasks.removeAt(i)
+				val owner: PluginRegistration = scheduledOwners.removeAt(i)
+				scheduledDue.removeAt(i)
+				if (owner.context != null) {
+					try {
+						task.run()
+					} catch (error: Throwable) {
+						fail(owner, error)
+					}
+				}
+			}
+		}
+	}
+
 	fun registerMenuAction(owner: PluginRegistration, action: MenuAction): Int {
 		for (i in 0 until MAX_MENU_ACTIONS) {
 			if (menuActions[i] == null) {
@@ -514,6 +667,10 @@ object PluginRuntime {
 			// login, the lobby and the logout set the root interface without a packet
 			topInterfaceChanged(lastTopInterface, ClientState.BASE_WINDOW_ID)
 		}
+		hoveredTileX = -1
+		hoveredTileY = -1
+		ToolkitGraphics.cycle()
+		runPendingTasks()
 		clientTickEvent.cycle = ClientState.clientCycle
 		bus.post(Events.CLIENT_TICK, clientTickEvent)
 	}
@@ -523,6 +680,7 @@ object PluginRuntime {
 		if (!started) {
 			return
 		}
+		runScheduledTasks()
 		gameTickEvent.cycle = ClientState.clientCycle
 		gameTickEvent.serverTick = ClientState.serverTick
 		bus.post(Events.GAME_TICK, gameTickEvent)
@@ -539,6 +697,7 @@ object PluginRuntime {
 		viewport.width = width
 		viewport.height = height
 		bus.post(Events.VIEWPORT_DRAW, viewportDrawEvent)
+		ToolkitGraphics.reset()
 		if (overlayCount == 0) {
 			return
 		}
@@ -552,6 +711,7 @@ object PluginRuntime {
 				} catch (error: Throwable) {
 					fail(overlayOwners[i], error)
 				}
+				ToolkitGraphics.reset()
 			}
 			i++
 		}
@@ -568,6 +728,7 @@ object PluginRuntime {
 		frameDrawEvent.width = width
 		frameDrawEvent.height = height
 		bus.post(Events.FRAME_DRAW, frameDrawEvent)
+		ToolkitGraphics.reset()
 	}
 
 	@JvmStatic
@@ -621,32 +782,92 @@ object PluginRuntime {
 	@JvmStatic
 	fun toolkitChanged(toolkitId: Int) {
 		this.toolkitId = toolkitId
+		ToolkitGraphics.toolkitChanged()
 		if (!started) {
 			return
 		}
 		bus.post(Events.TOOLKIT_CHANGED, ToolkitChanged(toolkitId))
 	}
 
+	/** A key went down; true when a plugin consumed it, and the client must not send it to the server. */
 	@JvmStatic
-	fun keyPressed(record: KeyRecord) {
+	fun keyPressed(record: KeyRecord): Boolean {
 		if (!started || !bus.hasListeners(Events.KEY_PRESSED)) {
-			return
+			return false
 		}
 		keyPressedEvent.keyCode = record.getKeyCode()
 		keyPressedEvent.keyChar = record.getKeyChar()
 		keyPressedEvent.modifiers = record.getModifierFlags()
+		keyPressedEvent.consumed = false
 		bus.post(Events.KEY_PRESSED, keyPressedEvent)
+		return keyPressedEvent.consumed
+	}
+
+	/** A character for the interfaces (a held key repeats it); true when a plugin consumed it. */
+	@JvmStatic
+	fun keyTyped(record: KeyRecord): Boolean {
+		if (!started || !bus.hasListeners(Events.KEY_TYPED)) {
+			return false
+		}
+		keyTypedEvent.keyCode = record.getKeyCode()
+		keyTypedEvent.keyChar = record.getKeyChar()
+		keyTypedEvent.modifiers = record.getModifierFlags()
+		keyTypedEvent.consumed = false
+		bus.post(Events.KEY_TYPED, keyTypedEvent)
+		return keyTypedEvent.consumed
 	}
 
 	@JvmStatic
-	fun mouseClicked(record: MouseRecord, clickType: Int) {
-		if (!started || !bus.hasListeners(Events.MOUSE_CLICKED)) {
+	fun keyReleased(record: KeyRecord) {
+		if (!started || !bus.hasListeners(Events.KEY_RELEASED)) {
 			return
+		}
+		keyReleasedEvent.keyCode = record.getKeyCode()
+		keyReleasedEvent.modifiers = record.getModifierFlags()
+		bus.post(Events.KEY_RELEASED, keyReleasedEvent)
+	}
+
+	/** A mouse button went down; true when a plugin consumed it, and the client must not act on it. */
+	@JvmStatic
+	fun mouseClicked(record: MouseRecord, clickType: Int): Boolean {
+		if (!started || !bus.hasListeners(Events.MOUSE_CLICKED)) {
+			return false
 		}
 		mouseClickedEvent.x = record.getMouseX()
 		mouseClickedEvent.y = record.getMouseY()
 		mouseClickedEvent.button = clickType
+		mouseClickedEvent.consumed = false
 		bus.post(Events.MOUSE_CLICKED, mouseClickedEvent)
+		return mouseClickedEvent.consumed
+	}
+
+	/** The wheel turned by [rotation]; true when a plugin consumed it. */
+	@JvmStatic
+	fun mouseWheel(rotation: Int): Boolean {
+		if (!started || !bus.hasListeners(Events.MOUSE_WHEEL)) {
+			return false
+		}
+		mouseWheelEvent.rotation = rotation
+		mouseWheelEvent.consumed = false
+		bus.post(Events.MOUSE_WHEEL, mouseWheelEvent)
+		return mouseWheelEvent.consumed
+	}
+
+	/** The ground under the mouse this cycle is scene tile ([tileX], [tileY]). */
+	@JvmStatic
+	fun hoveredTile(tileX: Int, tileY: Int) {
+		hoveredTileX = tileX
+		hoveredTileY = tileY
+	}
+
+	/** The minimap is being drawn at ([x], [y]), [width] by [height]. */
+	@JvmStatic
+	fun minimapDrawn(x: Int, y: Int, width: Int, height: Int) {
+		minimapX = x
+		minimapY = y
+		minimapWidth = width
+		minimapHeight = height
+		minimapCycle = ClientState.clientCycle
 	}
 
 	/** An npc entered the scene, with its type set. */

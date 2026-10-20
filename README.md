@@ -90,6 +90,8 @@ are off unless the client is started with `--dev-commands`.
 | `--tile-markers` | Right-click a tile and choose *Mark tile* to outline it; markers stay until unmarked. | `::tilemarkers` |
 | `--xp-drops` | A "+N Skill" drop rises and fades near the minimap when you gain experience. | `::xpdrops` |
 | `--idle-notifier` | A chat line and a red frame around the game view once you have been idle for 15 seconds. | `::idle`, `::idle <seconds>` |
+| `--inventory-value` | What your backpack is worth, with its three most valuable items, at the top of the game view. | `::invvalue` |
+| | Make an option the left click of its menu, wherever it appears (a menu entry swapper). | `::swap <option> [target]`, `::unswap <option>`, `::swaps` |
 | `--npc-labels` | NPC names, with their combat level, above their heads. | `::npclabels` |
 | `--ground-items` | The names (and counts) of the items on each tile, above it. | `::grounditems` |
 | `--no-shift-drop` | Turn off dropping an item with Shift and a left click. | `::shiftdrop` |

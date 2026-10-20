@@ -1,5 +1,7 @@
 package com.jagex.game.runetek5
 
+import com.jagex.game.runetek5.plugin.PluginRuntime
+
 import com.jagex.game.runetek5.TextureCombineSource
 import com.jagex.game.runetek5.graphics.hint.HintArrow
 import com.jagex.game.runetek5.LocType
@@ -477,6 +479,7 @@ object Minimap {
 			return
 		}
 		toolkit!!.KA(clipLeft, clipTop, clipLeft + component.width, component.height + clipTop)
+		PluginRuntime.minimapDrawn(clipLeft, clipTop, component.width, component.height) // Not part of the original client: the plugins' minimap projection.
 		if (ComponentMinimap.minimapState == 2 || ComponentMinimap.minimapState == 5 || Minimap.aClass46_22 == null) {
 			toolkit.A(-16777216, clippingMask, clipLeft, clipTop)
 			return

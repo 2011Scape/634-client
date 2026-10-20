@@ -16,7 +16,12 @@ package com.jagex.game.runetek5.plugin.api
  * - 3: interface components in detail and on the screen, the open interfaces, menu entries on
  *   components, the menu edited (removed, promoted, renamed) at [events.Events.MENU_BUILT], a
  *   click consumed, and the events from [events.Events.INTERFACE_OPENED] on.
+ * - 4: sprites, item icons, circles, polygons, thick lines, clipping and fonts in [Graphics]; keys
+ *   and clicks consumed, KeyTyped, KeyReleased and MouseWheel; the mouse, held keys and the hovered
+ *   tile; the camera and the minimap; run energy, weight, world, region and membership; sound
+ *   effects; the friends, ignore and friends chat lists; [ChatType]; and work scheduled onto the
+ *   game thread from a tick or from another thread ([PluginContext.invokeLater]).
  */
 object PluginApi {
-	const val VERSION: Int = 3
+	const val VERSION: Int = 4
 }
