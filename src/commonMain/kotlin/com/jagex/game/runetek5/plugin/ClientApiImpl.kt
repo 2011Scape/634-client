@@ -24,7 +24,11 @@ import com.jagex.game.runetek5.plugin.api.Actor
 import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.GroundItemVisitor
+import com.jagex.game.runetek5.InterfaceManager
+import com.jagex.game.runetek5.config.rsinterface.SubInterface
+import com.jagex.game.runetek5.plugin.api.InterfaceVisitor
 import com.jagex.game.runetek5.plugin.api.ItemContainer
+import com.jagex.game.runetek5.plugin.api.MenuEntry
 import com.jagex.game.runetek5.plugin.api.ItemDefinition
 import com.jagex.game.runetek5.plugin.api.LocDefinition
 import com.jagex.game.runetek5.plugin.api.LocKind
@@ -310,5 +314,42 @@ object ClientApiImpl : ClientApi {
 		}
 		val column: IntArray = flags[x] ?: return 0
 		return if (z < column.size) column[z] else 0
+	}
+
+	override fun widgetById(id: Int): Widget? {
+		return if (id < 0) null else widget(id ushr 16, id and 0xFFFF)
+	}
+
+	override fun topInterface(): Int {
+		return ClientState.BASE_WINDOW_ID
+	}
+
+	override fun openInterfaces(visitor: InterfaceVisitor) {
+		val open: HashTableIterator = HashTableIterator(InterfaceManager.OPEN_INTERFACES)
+		var sub: SubInterface? = open.first() as SubInterface?
+		while (sub != null) {
+			visitor.visit(sub.interfaceId, sub.key.toInt(), sub.openType?.id ?: -1)
+			sub = open.next() as SubInterface?
+		}
+	}
+
+	override fun menuEntryCount(): Int {
+		return PluginRuntime.menuEntryCount()
+	}
+
+	override fun menuEntry(i: Int): MenuEntry? {
+		return PluginRuntime.menuEntry(i)
+	}
+
+	override fun removeMenuEntry(i: Int): Boolean {
+		return PluginRuntime.removeMenuEntry(i)
+	}
+
+	override fun promoteMenuEntry(i: Int): Boolean {
+		return PluginRuntime.promoteMenuEntry(i)
+	}
+
+	override fun renameMenuEntry(i: Int, option: String): Boolean {
+		return PluginRuntime.renameMenuEntry(i, option)
 	}
 }

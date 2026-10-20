@@ -25,8 +25,12 @@ class MenuTarget private constructor(@JvmField val kind: Int, @JvmField val name
 		@JvmField
 		val LOC: MenuTarget = MenuTarget(4, "loc")
 
+		/** An interface component, an inventory's item slot included. */
 		@JvmField
-		val ALL: Array<MenuTarget> = arrayOf(TILE, NPC, PLAYER, GROUND_ITEM, LOC)
+		val WIDGET: MenuTarget = MenuTarget(5, "widget")
+
+		@JvmField
+		val ALL: Array<MenuTarget> = arrayOf(TILE, NPC, PLAYER, GROUND_ITEM, LOC, WIDGET)
 
 		/** The target with [kind], or [TILE] for a kind that is not one. */
 		@JvmStatic

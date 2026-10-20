@@ -7,6 +7,7 @@ import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.config.rsinterface.Interface
 import com.jagex.game.runetek5.InterfaceManager
 import com.jagex.game.runetek5.client.menu.MiniMenu
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
 import kotlin.jvm.JvmStatic
@@ -23,6 +24,7 @@ object SubInterfaceOpener {
 		subInterface.interfaceId = interfaceId
 		subInterface.openType = openType
 		InterfaceManager.OPEN_INTERFACES.put(parentHash.toLong(), subInterface)
+		PluginRuntime.interfaceOpened(interfaceId, parentHash, openType) // Not part of the original client: the plugins' InterfaceOpened.
 		Interface.resetComponentSequences(interfaceId)
 		@Pc(38) val component: Component? = Interface.getComponent(parentHash)
 		if (component != null) {

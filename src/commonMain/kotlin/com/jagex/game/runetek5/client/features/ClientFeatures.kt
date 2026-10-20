@@ -672,7 +672,7 @@ object ClientFeatures {
 				continue
 			}
 			val entry: MiniMenuEntry = node
-			if ((entry.clickType == MiniMenuAction.IF_BUTTONX1 || entry.clickType == MiniMenuAction.IF_BUTTONX2) && entry.param1 ushr 16 == INVENTORY && entry.opBase != null && drop!!.equals((entry.opBase.javaReplaceAll("<[^>]*>", "")).javaTrim(), ignoreCase = true)) {
+			if ((entry.clickType == MiniMenuAction.IF_BUTTONX1 || entry.clickType == MiniMenuAction.IF_BUTTONX2) && entry.param1 ushr 16 == INVENTORY && entry.opBase != null && drop!!.equals((entry.opBase!!.javaReplaceAll("<[^>]*>", "")).javaTrim(), ignoreCase = true)) {
 				return entry
 			}
 			node = node.previous

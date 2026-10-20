@@ -108,4 +108,32 @@ interface ClientApi {
 
 	/** The tile's movement flags, bits of [CollisionFlags]; 0 for a tile outside the scene. */
 	fun collisionFlags(tileX: Int, tileY: Int, level: Int): Int
+
+	/** The component with [id] ([Widget.id]), or null when its interface is not loaded. */
+	fun widgetById(id: Int): Widget?
+
+	/** The root interface: 548 on the fixed game screen, 746 on the resizable one, -1 for none. */
+	fun topInterface(): Int
+
+	/** Calls [visitor] for every interface open inside a component. */
+	fun openInterfaces(visitor: InterfaceVisitor)
+
+	/**
+	 * How many entries the right-click menu being built has. The menu methods work inside a
+	 * [MenuBuilt][com.jagex.game.runetek5.plugin.api.events.MenuBuilt] listener only; elsewhere this is 0
+	 * and the others do nothing.
+	 */
+	fun menuEntryCount(): Int
+
+	/** The entry at [i], 0 being the top row and the left click's choice, or null. */
+	fun menuEntry(i: Int): MenuEntry?
+
+	/** Takes entry [i] out of the menu. False for Cancel, or outside MenuBuilt. */
+	fun removeMenuEntry(i: Int): Boolean
+
+	/** Makes entry [i] the top row, and so the left click's choice. False for Cancel, or outside MenuBuilt. */
+	fun promoteMenuEntry(i: Int): Boolean
+
+	/** Changes entry [i]'s [option][MenuEntry.option] text. False outside MenuBuilt. */
+	fun renameMenuEntry(i: Int, option: String): Boolean
 }

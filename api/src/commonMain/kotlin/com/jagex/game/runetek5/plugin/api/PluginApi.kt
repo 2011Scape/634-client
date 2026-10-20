@@ -13,7 +13,10 @@ package com.jagex.game.runetek5.plugin.api
  * - 2: actor state (animation, graphic, interaction, facing, overhead text, hit splats, icons),
  *   item, npc and location definitions, the locations and movement flags of a tile, and the
  *   events from [events.Events.NPC_SPAWNED] on.
+ * - 3: interface components in detail and on the screen, the open interfaces, menu entries on
+ *   components, the menu edited (removed, promoted, renamed) at [events.Events.MENU_BUILT], a
+ *   click consumed, and the events from [events.Events.INTERFACE_OPENED] on.
  */
 object PluginApi {
-	const val VERSION: Int = 2
+	const val VERSION: Int = 3
 }

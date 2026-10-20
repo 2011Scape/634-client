@@ -2,7 +2,8 @@
 
 How to add to the client without changing it: a plugin is a jar in a folder, written against a
 small, stable API, that reads the game, draws on it, adds menu entries and commands, and keeps its
-own settings. The experience drops (`XpDrops`) and the idle notifier (`IdleNotifier`) are two, built in, so the client's own code shows the
+own settings. The experience drops (`XpDrops`), the idle notifier (`IdleNotifier`) and the menu
+swapper (`MenuSwapper`) are three, built in, so the client's own code shows the
 way.
 
 ## Contents
@@ -23,16 +24,21 @@ the game for you.
 
 - Read: the players, npcs and items on the ground in the scene, and what each actor is doing (its
   animation, graphic, target, facing, hit splats, overhead text and icons); skills, player variables
-  (varps and varbits), inventories, interface components; the item, npc and location types from the
-  cache (names, options, sizes, values); the locations and the movement flags of any tile; where any
-  of it is on the screen.
+  (varps and varbits), inventories; the interfaces, component by component (type, place on the
+  screen, item, sprite, options, children) and which are open; the item, npc and location types
+  from the cache (names, options, sizes, values); the locations and the movement flags of any tile;
+  where any of it is on the screen.
 - Draw: on the game view every frame (under the interfaces), or over the whole frame.
-- Add: entries to the right-click menu of a tile, npc, player, ground item or location, with an action
-  of its own; console commands (`::name`); lines in the chat box and the developer console.
+- Add: entries to the right-click menu of a tile, npc, player, ground item, location or interface
+  component (an inventory slot included), with an action of its own; console commands (`::name`);
+  lines in the chat box and the developer console.
+- Edit: the right-click menu once it is built, before the left click is resolved: take an entry out,
+  rename it, or make it the left click; and drop a click before the client acts on it.
 - Hear: every client cycle and game tick, every stat update, variable change, chat line and inventory
   update, the menu being built and clicked, keys and mouse buttons, logins and logouts, the graphics
   mode changing; every npc, player and ground item appearing and leaving, every hit, animation,
-  change of target and line of overhead text, and every projectile and graphic.
+  change of target and line of overhead text, every projectile and graphic; interfaces opening and
+  closing, the root interface changing, and the menu each time it is built.
 - Keep: settings of its own, saved beside the plugins.
 
 It cannot send anything to the server, click or walk for you, or change the game's files. That is
@@ -213,7 +219,6 @@ than adding another one-off hook.
 Not built yet, in the order it is likely to come: a Plugins page in Graphics Options to turn plugins
 on and off and edit their settings; a plugin hub in the Void launcher (a signed list of plugins to
 install and update, verified by SHA-256); plugins in the browser client; dependencies between
-plugins and reloading one without a restart; the interfaces in detail (children, items, sprites,
-options) and their opening and closing; menu entries on interface components and the power to edit
-the menu, cancel a click or a key; sprites, icons and polygons in overlays; the camera and the
-minimap; sounds; and a way for work on another thread to come back to the game thread.
+plugins and reloading one without a restart; the power to take a key or a mouse click before the
+game sees it; sprites, item icons and polygons in overlays; the camera and the minimap; sounds; and
+a way for work on another thread to come back to the game thread.

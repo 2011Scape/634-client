@@ -2,7 +2,10 @@ package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.ChatLineWriter
 import com.jagex.game.runetek5.cache.node.ObjStack
+import com.jagex.game.runetek5.cache.node.Node
 import com.jagex.game.runetek5.cache.node.ObjStackEntry
+import com.jagex.game.runetek5.config.iftype.SubInterfaceType
+import com.jagex.game.runetek5.config.rsinterface.Component
 import com.jagex.game.runetek5.core.datastruct.key.DequeIterator
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.input.console.Console
@@ -16,6 +19,7 @@ import com.jagex.game.runetek5.plugin.api.Actor
 import com.jagex.game.runetek5.plugin.api.CommandHandler
 import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.MenuAction
+import com.jagex.game.runetek5.plugin.api.MenuEntry
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.plugin.api.Npc
 import com.jagex.game.runetek5.plugin.api.Overlay
@@ -32,8 +36,10 @@ import com.jagex.game.runetek5.plugin.api.events.GameStateChanged
 import com.jagex.game.runetek5.plugin.api.events.GameTick
 import com.jagex.game.runetek5.plugin.api.events.GroundItem
 import com.jagex.game.runetek5.plugin.api.events.HitsplatApplied
+import com.jagex.game.runetek5.plugin.api.events.InterfaceChanged
 import com.jagex.game.runetek5.plugin.api.events.ItemContainerChanged
 import com.jagex.game.runetek5.plugin.api.events.KeyPressed
+import com.jagex.game.runetek5.plugin.api.events.MenuBuilt
 import com.jagex.game.runetek5.plugin.api.events.MenuEntryAdded
 import com.jagex.game.runetek5.plugin.api.events.MenuOptionClicked
 import com.jagex.game.runetek5.plugin.api.events.MouseClicked
@@ -42,6 +48,7 @@ import com.jagex.game.runetek5.plugin.api.events.ProjectileSpawned
 import com.jagex.game.runetek5.plugin.api.events.SpotAnimSpawned
 import com.jagex.game.runetek5.plugin.api.events.StatChanged
 import com.jagex.game.runetek5.plugin.api.events.ToolkitChanged
+import com.jagex.game.runetek5.plugin.api.events.TopInterfaceChanged
 import com.jagex.game.runetek5.plugin.api.events.VarpChanged
 import com.jagex.game.runetek5.plugin.api.events.ViewportDraw
 import kotlin.jvm.JvmField
@@ -115,6 +122,11 @@ object PluginRuntime {
 
 	private val consoleCommandEvent: ConsoleCommand = ConsoleCommand()
 
+	private val menuBuiltEvent: MenuBuilt = MenuBuilt()
+
+	/** Whether a MenuBuilt listener is running: the only time the menu may be read and edited. */
+	private var menuEditing: Boolean = false
+
 	private var lastState: GameState = GameState.LOADING
 
 	private val overlays: Array<Overlay?> = arrayOfNulls<Overlay?>(MAX_OVERLAYS)
@@ -159,11 +171,15 @@ object PluginRuntime {
 
 	private var menuKind: Int = 0
 
-	private var menuSceneX: Int = 0
+	/** The low 16 bits of a plugin entry's param0: the tile's x, or a component's slot. */
+	private var menuParam0Low: Int = 0
 
-	private var menuSceneY: Int = 0
+	/** A plugin entry's param1: the tile's y, or a component's id. */
+	private var menuParam1: Int = 0
 
 	private var menuEntityUid: Long = 0L
+
+	private var menuItemId: Int = -1
 
 	init {
 		bus.onFailure = EventBusImpl.FailureHandler { owner, error -> fail(owner, error) }
@@ -745,14 +761,42 @@ object PluginRuntime {
 		}
 		menuBuilding = true
 		menuKind = target.kind
-		menuSceneX = sceneX
-		menuSceneY = sceneY
+		menuParam0Low = sceneX
+		menuParam1 = sceneY
 		menuEntityUid = entityUid
+		menuItemId = if (target === MenuTarget.GROUND_ITEM) id else -1
 		menuEntryAddedEvent.target = target
 		menuEntryAddedEvent.sceneX = sceneX
 		menuEntryAddedEvent.sceneY = sceneY
 		menuEntryAddedEvent.level = level
 		menuEntryAddedEvent.id = id
+		menuEntryAddedEvent.widgetId = 0
+		menuEntryAddedEvent.slot = -1
+		menuEntryAddedEvent.itemId = menuItemId
+		bus.post(Events.MENU_ENTRY_ADDED, menuEntryAddedEvent)
+		menuBuilding = false
+	}
+
+	/** The menu is being built for an interface [component]: the plugins may add entries. */
+	@JvmStatic
+	fun menuTargetWidget(component: Component?) {
+		if (!started || component == null || !bus.hasListeners(Events.MENU_ENTRY_ADDED)) {
+			return
+		}
+		menuBuilding = true
+		menuKind = MenuTarget.WIDGET.kind
+		menuParam0Low = component.slotId and 0xFFFF
+		menuParam1 = component.idHash
+		menuEntityUid = component.containerItemId.toLong()
+		menuItemId = component.containerItemId
+		menuEntryAddedEvent.target = MenuTarget.WIDGET
+		menuEntryAddedEvent.sceneX = 0
+		menuEntryAddedEvent.sceneY = 0
+		menuEntryAddedEvent.level = 0
+		menuEntryAddedEvent.id = 0
+		menuEntryAddedEvent.widgetId = component.idHash
+		menuEntryAddedEvent.slot = component.slotId
+		menuEntryAddedEvent.itemId = component.containerItemId
 		bus.post(Events.MENU_ENTRY_ADDED, menuEntryAddedEvent)
 		menuBuilding = false
 	}
@@ -765,7 +809,7 @@ object PluginRuntime {
 		if (menuActions[clickType - MiniMenuAction.PLUGIN_FIRST] == null) {
 			return
 		}
-		MiniMenu.addEntry(false, "", menuSceneY, true, menuParam0(menuSceneX, menuKind, clickType), -1, true, clickType, 0L, label, menuEntityUid, -1)
+		MiniMenu.addEntry(false, "", menuParam1, true, menuParam0(menuParam0Low, menuKind, clickType), menuItemId, true, clickType, 0L, label, menuEntityUid, -1)
 	}
 
 	/** A plugin entry's param0: the tile's x in the low 16 bits, the target's kind above it, and the click-type slot's generation above that. */
@@ -783,12 +827,18 @@ object PluginRuntime {
 		}
 		if (bus.hasListeners(Events.MENU_OPTION_CLICKED)) {
 			menuOptionClickedEvent.clickType = clickType
-			menuOptionClickedEvent.option = entry.op
-			menuOptionClickedEvent.target = entry.targetName
+			// opBase is the verb and op the coloured target, whatever their names say
+			menuOptionClickedEvent.option = entry.opBase
+			menuOptionClickedEvent.target = entry.op
 			menuOptionClickedEvent.param0 = entry.param0
 			menuOptionClickedEvent.param1 = entry.param1
 			menuOptionClickedEvent.entityUid = entry.entityUid
+			menuOptionClickedEvent.itemId = entry.itemId
+			menuOptionClickedEvent.consumed = false
 			bus.post(Events.MENU_OPTION_CLICKED, menuOptionClickedEvent)
+			if (menuOptionClickedEvent.consumed) {
+				return true
+			}
 		}
 		if (clickType < MiniMenuAction.PLUGIN_FIRST || clickType > MiniMenuAction.PLUGIN_LAST) {
 			return false
@@ -800,12 +850,112 @@ object PluginRuntime {
 			return true
 		}
 		val owner: PluginRegistration? = menuActionOwners[index]
+		val target: MenuTarget = MenuTarget.ofKind((entry.param0 ushr KIND_SHIFT) and KIND_MASK)
+		var low: Int = entry.param0 and 0xFFFF
+		if (target === MenuTarget.WIDGET && low == 0xFFFF) {
+			low = -1 // a component from the cache has no slot
+		}
 		try {
-			action.clicked(MenuTarget.ofKind((entry.param0 ushr KIND_SHIFT) and KIND_MASK), entry.param0 and 0xFFFF, entry.param1, entry.entityUid.toInt())
+			action.clicked(target, low, entry.param1, entry.entityUid.toInt())
 		} catch (error: Throwable) {
 			fail(owner, error)
 		}
 		return true
+	}
+
+	/** The menu for what is under the mouse is complete and nothing has been done with it: the plugins may edit it. */
+	@JvmStatic
+	fun menuBuilt() {
+		if (!started || !bus.hasListeners(Events.MENU_BUILT)) {
+			return
+		}
+		menuBuiltEvent.entryCount = MiniMenu.entryCount
+		menuEditing = true
+		bus.post(Events.MENU_BUILT, menuBuiltEvent)
+		menuEditing = false
+	}
+
+	/** The menu's entry [i] from the top (the last of the list draws first and takes the left click), while a MenuBuilt listener runs. */
+	private fun menuEntryAt(i: Int): MiniMenuEntry? {
+		if (!menuEditing || i < 0) {
+			return null
+		}
+		var left: Int = i
+		var node: Node? = MiniMenu.entryList.sentinel.previous
+		while (node != null && node !== MiniMenu.entryList.sentinel) {
+			if (node is MiniMenuEntry) {
+				if (left == 0) {
+					return node
+				}
+				left--
+			}
+			node = node.previous
+		}
+		return null
+	}
+
+	fun menuEntryCount(): Int {
+		return if (menuEditing) MiniMenu.entryCount else 0
+	}
+
+	fun menuEntry(i: Int): MenuEntry? {
+		return menuEntryAt(i)
+	}
+
+	fun removeMenuEntry(i: Int): Boolean {
+		val entry: MiniMenuEntry = menuEntryAt(i) ?: return false
+		if (entry.clickType == MiniMenuAction.CANCEL) {
+			return false
+		}
+		MiniMenu.removeEntry(entry)
+		return true
+	}
+
+	fun promoteMenuEntry(i: Int): Boolean {
+		val entry: MiniMenuEntry = menuEntryAt(i) ?: return false
+		if (entry.clickType == MiniMenuAction.CANCEL) {
+			return false
+		}
+		if (i == 0) {
+			return true
+		}
+		// out and in again: addEntry appends, and the last entry is the top row and the left click
+		MiniMenu.removeEntry(entry)
+		MiniMenu.addEntry(entry)
+		return true
+	}
+
+	fun renameMenuEntry(i: Int, option: String): Boolean {
+		val entry: MiniMenuEntry = menuEntryAt(i) ?: return false
+		entry.opBase = option
+		return true
+	}
+
+	/** An interface opened inside the component [parentHash]. */
+	@JvmStatic
+	fun interfaceOpened(interfaceId: Int, parentHash: Int, openType: SubInterfaceType?) {
+		if (!started || !bus.hasListeners(Events.INTERFACE_OPENED)) {
+			return
+		}
+		bus.post(Events.INTERFACE_OPENED, InterfaceChanged(interfaceId, parentHash, openType?.id ?: -1))
+	}
+
+	/** An interface is closing, its components still there. */
+	@JvmStatic
+	fun interfaceClosed(interfaceId: Int, parentHash: Int, openType: SubInterfaceType?) {
+		if (!started || !bus.hasListeners(Events.INTERFACE_CLOSED)) {
+			return
+		}
+		bus.post(Events.INTERFACE_CLOSED, InterfaceChanged(interfaceId, parentHash, openType?.id ?: -1))
+	}
+
+	/** The root interface is about to change from [previous] to [interfaceId]. */
+	@JvmStatic
+	fun topInterfaceChanged(previous: Int, interfaceId: Int) {
+		if (!started || previous == interfaceId || !bus.hasListeners(Events.TOP_INTERFACE_CHANGED)) {
+			return
+		}
+		bus.post(Events.TOP_INTERFACE_CHANGED, TopInterfaceChanged(previous, interfaceId))
 	}
 
 	/**

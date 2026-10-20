@@ -1,13 +1,44 @@
 package com.jagex.game.runetek5.client.menu
 
 import com.jagex.game.runetek5.cache.node.lru.CacheableNode
+import com.jagex.game.runetek5.plugin.api.MenuEntry
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 import kotlin.jvm.JvmField
 
 @OriginalClass("client!db")
-class MiniMenuEntry : CacheableNode {
+class MiniMenuEntry : CacheableNode, MenuEntry {
+
+	/* Not part of the original client: the plugin API's view of an entry (plugin.api.MenuEntry). */
+
+	override fun option(): String? {
+		return this.opBase
+	}
+
+	override fun target(): String? {
+		return this.op
+	}
+
+	override fun clickType(): Int {
+		return this.clickType
+	}
+
+	override fun param1(): Int {
+		return this.param1
+	}
+
+	override fun param0(): Int {
+		return this.param0
+	}
+
+	override fun itemId(): Int {
+		return this.itemId
+	}
+
+	override fun entityUid(): Long {
+		return this.entityUid
+	}
 
 	@OriginalMember(owner = "client!db", name = "y", descriptor = "Ljava/lang/String;")
 	@JvmField
@@ -47,7 +78,7 @@ class MiniMenuEntry : CacheableNode {
 
 	@OriginalMember(owner = "client!db", name = "w", descriptor = "Ljava/lang/String;")
 	@JvmField
-	val opBase: String?
+	var opBase: String? // Not part of the original client: a var, so that a plugin can rename an entry (PluginRuntime.renameMenuEntry)
 
 	@OriginalMember(owner = "client!db", name = "P", descriptor = "I")
 	@JvmField

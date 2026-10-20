@@ -2,6 +2,7 @@ package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.cache.node.ObjStack
 import com.jagex.game.runetek5.cache.node.ObjStackEntry
+import com.jagex.game.runetek5.client.menu.MiniMenu
 import com.jagex.game.runetek5.client.menu.MiniMenuEntry
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.plugin.api.Actor
@@ -18,6 +19,7 @@ import com.jagex.game.runetek5.plugin.api.events.OverheadTextChanged
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -65,6 +67,80 @@ class PluginRuntimeTest {
 		override fun hitsplatDamage(slot: Int): Int = 0
 
 		override fun hitsplatEndCycle(slot: Int): Int = 0
+	}
+
+	@Test
+	fun theMenuCanBeReadAndEditedWhileItIsBuilt() {
+		val plugin: PluginRegistration = registration("menu-edit")
+		val wasStarted: Boolean = PluginRuntime.started
+		PluginRuntime.started = true
+		val wasOpen: Boolean = MiniMenu.isOpen
+		MiniMenu.isOpen = false
+		val first: MiniMenuEntry = MiniMenuEntry("First", "", -1, MiniMenuAction.WALK, -1, 0L, 0, 0, false, false, 0L, true)
+		val second: MiniMenuEntry = MiniMenuEntry("Second", "", -1, MiniMenuAction.WALK, -1, 0L, 0, 0, false, false, 0L, true)
+		val third: MiniMenuEntry = MiniMenuEntry("Third", "", -1, MiniMenuAction.WALK, -1, 0L, 0, 0, false, false, 0L, true)
+		val seen: ArrayList<String?> = ArrayList()
+		var secondRemoved: Boolean = false
+		try {
+			assertEquals(0, PluginRuntime.menuEntryCount(), "nothing to read outside MenuBuilt")
+			assertFalse(PluginRuntime.removeMenuEntry(0))
+			MiniMenu.addEntry(first)
+			MiniMenu.addEntry(second)
+			MiniMenu.addEntry(third)
+			PluginRuntime.bus.subscribe(Events.MENU_BUILT, EventListener { event ->
+				assertEquals(event.entryCount, PluginRuntime.menuEntryCount())
+				seen.add(PluginRuntime.menuEntry(0)?.option())
+				assertTrue(PluginRuntime.promoteMenuEntry(2), "the bottom entry goes to the top")
+				seen.add(PluginRuntime.menuEntry(0)?.option())
+				assertTrue(PluginRuntime.renameMenuEntry(1, "Renamed"))
+				assertTrue(PluginRuntime.removeMenuEntry(2))
+				secondRemoved = true
+				seen.add(PluginRuntime.menuEntry(1)?.option())
+				assertNull(PluginRuntime.menuEntry(2))
+			}, plugin)
+			PluginRuntime.menuBuilt()
+			assertEquals(listOf<String?>("Third", "First", "Renamed"), seen)
+			assertEquals("Renamed", third.opBase)
+			assertTrue(first === MiniMenu.entryList.sentinel.previous, "the promoted entry is last in the list, which draws on top and takes the left click")
+			assertEquals(0, PluginRuntime.menuEntryCount(), "closed again after the listeners")
+		} finally {
+			PluginRuntime.started = wasStarted
+			PluginRuntime.release(plugin)
+			MiniMenu.removeEntry(first)
+			MiniMenu.removeEntry(third)
+			if (!secondRemoved) {
+				MiniMenu.removeEntry(second)
+			}
+			MiniMenu.isOpen = wasOpen
+		}
+	}
+
+	@Test
+	fun aConsumedClickStopsTheClientAndTheEventNamesTheVerb() {
+		val plugin: PluginRegistration = registration("consume")
+		val wasStarted: Boolean = PluginRuntime.started
+		PluginRuntime.started = true
+		var option: String? = null
+		var target: String? = null
+		try {
+			PluginRuntime.bus.subscribe(Events.MENU_OPTION_CLICKED, EventListener { event ->
+				option = event.option
+				target = event.target
+				if (event.clickType == MiniMenuAction.WALK) {
+					event.consume()
+				}
+			}, plugin)
+			val walk: MiniMenuEntry = MiniMenuEntry("Walk here", "<col=ffffff>Tile", -1, MiniMenuAction.WALK, -1, 0L, 3, 4, false, false, 0L, false)
+			assertTrue(PluginRuntime.menuClicked(walk, MiniMenuAction.WALK), "consumed: the client does nothing")
+			assertEquals("Walk here", option)
+			assertEquals("<col=ffffff>Tile", target)
+			val examine: MiniMenuEntry = MiniMenuEntry("Examine", "<col=ffff00>Man", -1, MiniMenuAction.OPNPC6, -1, 0L, 0, 0, false, false, 0L, false)
+			assertFalse(PluginRuntime.menuClicked(examine, MiniMenuAction.OPNPC6), "not consumed: the client goes on")
+			assertEquals("Examine", option)
+		} finally {
+			PluginRuntime.started = wasStarted
+			PluginRuntime.release(plugin)
+		}
 	}
 
 	@Test
