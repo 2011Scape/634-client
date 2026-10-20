@@ -118,6 +118,14 @@ object PluginManagerScreen {
 	private const val A_ITEM: Int = 14
 	private const val A_POPUP_CLOSE: Int = 15
 	private const val A_EDIT: Int = 16
+	private const val A_ROW_HOVER: Int = 17
+	private const val A_ROW_LEAVE: Int = 18
+
+	/** The tooltip: the stock pale box with black text, lines wrapped to this width. */
+	private const val TIP_FILL: Int = 0xffffa0
+	private const val TIP_LINE: Int = 0x000000
+	private const val TIP_WIDTH: Int = 300
+	private const val TIP_LINE_HEIGHT: Int = 13
 
 	/** The client's codes for Enter, Backspace and Escape (CanvasKeyRecorder.REMAPPED_KEYS). */
 	private const val KEY_ENTER: Int = 84
@@ -157,6 +165,12 @@ object PluginManagerScreen {
 	private var editOutline: Int = -1
 
 	private var editValue: Int = -1
+
+	/** The list rows' hit components, by registration index, for the tooltip and the smoke test. */
+	private val rowHits: HashMap<Int, Component> = HashMap()
+
+	/** The registration index whose tooltip is up, -1 for none. */
+	private var tipFor: Int = -1
 
 	/** Each number row's outline and value slots, by entry index, for [startEdit]. */
 	private val numberOutline: HashMap<Int, Int> = HashMap()
@@ -369,6 +383,7 @@ object PluginManagerScreen {
 		}
 		open = false
 		selected = null
+		tipFor = -1
 		forget()
 	}
 
@@ -378,12 +393,14 @@ object PluginManagerScreen {
 		numberOutline.clear()
 		numberValue.clear()
 		editing = null
+		rowHits.clear()
 	}
 
 	// --- the pages ---
 
 	private fun rebuild() {
 		closePopup()
+		hideTip()
 		val body: Component = Interface.getComponent(BODY) ?: return
 		forget()
 		val children: ArrayList<Component> = ArrayList()
@@ -421,6 +438,12 @@ object PluginManagerScreen {
 		val last: Int = minOf(PluginRuntime.count, first + ROWS_PER_PAGE)
 		for (i in first until last) {
 			val registration: PluginRegistration = PluginRuntime.registrations[i] ?: continue
+			// the row's hit, under everything else in it: hovering it shows the plugin's description
+			val hit: Component = ClientPage.text(BODY, children.size, 6, y - 4, WIDTH - 12, ROW_PITCH - 3, ClientPage.FONT_SMALL, "", ClientPage.TEXT, 0, 0, false)
+			hit.onMouseOver = arrayOf<Any?>(SENTINEL, A_ROW_HOVER, i)
+			hit.onMouseLeaveScript = arrayOf<Any?>(SENTINEL, A_ROW_LEAVE, i)
+			children.add(hit)
+			rowHits[i] = hit
 			children.add(ClientPage.text(BODY, children.size, x0, y, 190, 16, ClientPage.FONT_LABEL, registration.descriptor.name, ClientPage.TEXT, 0, 1, true))
 			val state: String = stateLine(registration)
 			val stateColour: Int = if (registration.state == PluginRegistration.FAILED) FAILED else DIM
@@ -689,10 +712,85 @@ object PluginManagerScreen {
 	@JvmStatic
 	fun keyPressed(): Boolean = editing != null && open
 
+	// --- the tooltip ---
+
+	/** The plugin's description in the stock pale box under its row (above it near the window's bottom). */
+	private fun showTip(index: Int) {
+		val hit: Component = rowHits[index] ?: return
+		val registration: PluginRegistration = PluginRuntime.registrations[index] ?: return
+		val rootComponent: Component = Interface.getComponent(ROOT) ?: return
+		val bodyComponent: Component = Interface.getComponent(BODY) ?: return
+		val popupComponent: Component = Interface.getComponent(POPUP) ?: return
+		hideTip()
+		var description: String = registration.descriptor.description.trim()
+		if (description.isEmpty()) {
+			description = "No description."
+		}
+		val lines: ArrayList<String> = wrap(description, TIP_WIDTH - 10)
+		var width: Int = 0
+		for (line in lines) {
+			width = maxOf(width, ClientPage.textWidth(ClientPage.FONT_SMALL, line))
+		}
+		width += 10
+		val height: Int = lines.size * TIP_LINE_HEIGHT + 6
+		val x: Int = rootComponent.x + bodyComponent.x - bodyComponent.scrollX + hit.x + 10
+		var y: Int = rootComponent.y + bodyComponent.y - bodyComponent.scrollY + hit.y + hit.height
+		if (y + height > rootComponent.y + rootComponent.height - 4) {
+			y = rootComponent.y + bodyComponent.y - bodyComponent.scrollY + hit.y - height
+		}
+		ClientPage.place(popupComponent, x, y, width, height)
+		popupComponent.hidden = false
+		InterfaceManager.relayoutAgainstParent(popupComponent)
+		val children: ArrayList<Component> = ArrayList()
+		children.add(ClientPage.rect(POPUP, children.size, 0, 0, width, height, TIP_FILL, true))
+		children.add(ClientPage.rect(POPUP, children.size, 0, 0, width, height, TIP_LINE, false))
+		for (i in 0 until lines.size) {
+			children.add(ClientPage.text(POPUP, children.size, 5, 3 + i * TIP_LINE_HEIGHT, width - 10, TIP_LINE_HEIGHT, ClientPage.FONT_SMALL, lines[i], TIP_LINE, 0, 1, false))
+		}
+		popupComponent.slotChildren = children.toTypedArray<Component?>()
+		Component.layoutChildren(false, popupComponent)
+		Component.redrawComponent(popupComponent)
+		tipFor = index
+	}
+
+	private fun hideTip() {
+		if (tipFor < 0) {
+			return
+		}
+		tipFor = -1
+		val popupComponent: Component = Interface.getComponent(POPUP) ?: return
+		popupComponent.slotChildren = null
+		popupComponent.hidden = true
+		Component.redrawComponent(popupComponent)
+	}
+
+	/** The text in lines no wider than [width] pixels in the small font, broken at spaces. */
+	private fun wrap(text: String, width: Int): ArrayList<String> {
+		val lines: ArrayList<String> = ArrayList()
+		var line: String = ""
+		for (word in text.split(' ')) {
+			if (word.isEmpty()) {
+				continue
+			}
+			val next: String = if (line.isEmpty()) word else line + " " + word
+			if (line.isNotEmpty() && ClientPage.textWidth(ClientPage.FONT_SMALL, next) > width) {
+				lines.add(line)
+				line = word
+			} else {
+				line = next
+			}
+		}
+		if (line.isNotEmpty()) {
+			lines.add(line)
+		}
+		return lines
+	}
+
 	// --- the choice list ---
 
 	private fun openPopup(choice: Choice) {
 		closePopup()
+		hideTip()
 		val registration: PluginRegistration = selected ?: return
 		val context: PluginContextImpl = registration.context ?: return
 		val options: Array<String> = choice.entry.options ?: return
@@ -746,7 +844,7 @@ object PluginManagerScreen {
 			return
 		}
 		val plugin: PluginRegistration? = selected
-		if (editing != null && action != A_EDIT && action != A_HOVER && action != A_LEAVE) {
+		if (editing != null && action != A_EDIT && action != A_HOVER && action != A_LEAVE && action != A_ROW_HOVER && action != A_ROW_LEAVE) {
 			closeEdit() // a click elsewhere on the page ends the typing
 		}
 		when (action) {
@@ -807,6 +905,8 @@ object PluginManagerScreen {
 				}
 			}
 			A_POPUP_CLOSE -> closePopup()
+			A_ROW_HOVER -> if (selected == null) showTip(index)
+			A_ROW_LEAVE -> if (tipFor == index) hideTip()
 		}
 	}
 
@@ -846,6 +946,23 @@ object PluginManagerScreen {
 		selected = registration
 		rebuild()
 		return true
+	}
+
+	/** Shows the tooltip of the row of plugin [id], as hovering it does; the tip's line count, or -1. */
+	@JvmStatic
+	fun hoverRow(id: String): Int {
+		for (i in 0 until PluginRuntime.count) {
+			val registration: PluginRegistration = PluginRuntime.registrations[i] ?: continue
+			if (registration.descriptor.id == id) {
+				showTip(i)
+				if (tipFor != i) {
+					return -1
+				}
+				val popupComponent: Component = Interface.getComponent(POPUP) ?: return -1
+				return (popupComponent.slotChildren?.size ?: 2) - 2
+			}
+		}
+		return -1
 	}
 
 	/** Types [text] into the selected plugin's number setting [key] and presses Enter, as a player does. */

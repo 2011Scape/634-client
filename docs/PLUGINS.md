@@ -79,7 +79,8 @@ A plugin's own settings are in `~/.634-client/plugin-config/<id>.properties`.
 The Settings tab (the spanner) has a third button beside Graphics Settings and Audio Settings:
 **Plugins**. It opens a window listing every plugin, built in and from the plugins folder, with
 its id, version, where it came from and its state, an **On**/**Off** switch, and **Settings** for a
-plugin that declared any. A built-in's switch is its own "enabled" setting (so `::xpdrops` and the
+plugin that declared any; hovering a row shows the plugin's description (`Plugin-Description`
+in a jar's manifest). A built-in's switch is its own "enabled" setting (so `::xpdrops` and the
 window agree); a jar's starts and stops the plugin, as `::plugin <id> on|off` does. A failed plugin
 shows why. The settings page shows each declared setting as an on/off switch, a number typed
 into a box (click it, type, Enter; Escape leaves it; a number outside the range is held to it), or

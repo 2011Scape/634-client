@@ -256,6 +256,8 @@ object SmokeTest {
 
 	private var pluginManagerFrame: Int = -1
 
+	private var pluginManagerTipLines: Int = -1
+
 	private const val MENU_WALK_FRAMES: Int = 400
 
 	private var menuWalkFrame: Int = -1
@@ -3057,13 +3059,18 @@ object SmokeTest {
 			if (!PluginManagerScreen.open) {
 				fail("the Plugins button did not open the plugin manager")
 			}
+			// the tooltip over a row, as hovering it shows it; in the frame the next step saves
+			pluginManagerTipLines = PluginManagerScreen.hoverRow("idle")
+			if (pluginManagerTipLines < 1) {
+				fail("no tooltip over the idle notifier's row")
+			}
 			pluginManagerFrame = gameFrames
 			pluginManagerStep = 2
 			return
 		}
 		if (pluginManagerStep == 2) {
-			saveFrame("build/smoke/plugins-list.png")
 			val rows: Int = PluginManagerScreen.rowsShown()
+			saveFrame("build/smoke/plugins-list.png")
 			if (rows < 5) {
 				fail("the plugin manager lists " + rows + " plugins, fewer than the built-ins")
 			}
@@ -3078,7 +3085,7 @@ object SmokeTest {
 			if (!PluginManagerScreen.clickSettings("idle")) {
 				fail("the idle notifier's Settings did not open its page")
 			}
-			println("SMOKE plugin manager: " + rows + " rows; experience drops switched off and on; the idle notifier's settings page open")
+			println("SMOKE plugin manager: " + rows + " rows; the idle notifier's tooltip of " + pluginManagerTipLines + " lines; experience drops switched off and on; the idle notifier's settings page open")
 			pluginManagerFrame = gameFrames
 			pluginManagerStep = 3
 			return
