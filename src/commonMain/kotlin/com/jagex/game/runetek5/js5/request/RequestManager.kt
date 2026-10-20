@@ -119,6 +119,22 @@ class RequestManager {
 		return true
 	}
 
+	/**
+	 * Not part of the original client: whether the master index lists [archive] at all. A server
+	 * whose cache lacks an archive (older OpenRS2 634 dumps have no archive 32) sends an all-zero
+	 * entry for it, or stops short of it, and a request for that archive's index never comes back.
+	 */
+	fun hasArchive(archive: Int): Boolean {
+		val buffer: Packet = this.masterIndexBuffer ?: return false
+		if (archive < 0 || archive >= this.remoteFileWorkers!!.size) {
+			return false
+		}
+		buffer.currentPosition = archive * 72 + 6
+		val tableCrc: Int = buffer.readInt()
+		val tableRevision: Int = buffer.readInt()
+		return tableCrc != 0 || tableRevision != 0
+	}
+
 	@OriginalMember(owner = "client!eb", name = "a", descriptor = "(BZILclient!nw;Lclient!nw;)Lclient!bja;")
 	private fun getRemoteFileWorker(@OriginalArg(2) archive: Int, @OriginalArg(3) fileSystem_Client: Decompressor?, @OriginalArg(4) fileSystem_Client2: Decompressor?): RemoteFileWorker? {
 		if (this.masterIndexBuffer == null) {
