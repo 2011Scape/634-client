@@ -47,6 +47,8 @@ import com.jagex.game.runetek5.client.login.LoginStep
 import com.jagex.game.runetek5.preference.GamePreferences
 import com.jagex.game.runetek5.client.ClientState
 import kotlin.jvm.JvmField
+import com.jagex.game.runetek5.plugin.PluginRegistration
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import kotlin.jvm.JvmStatic
 import lang.Class
 import lang.jClass
@@ -246,6 +248,13 @@ object SmokeTest {
 
 	/** client.test.menuCheck: run a finished scene menu and a component menu through the runtime, for the plugins that edit menus. */
 	private val MENU_CHECK: Boolean = "true" == lang.getProperty("client.test.menuCheck")
+
+	/** client.test.pluginManager: open the plugin manager's window, switch a built-in, open a settings page, step a number, close; frames in build/smoke/plugins-*.png. */
+	private val PLUGIN_MANAGER: Boolean = "true" == lang.getProperty("client.test.pluginManager")
+
+	private var pluginManagerStep: Int = 0
+
+	private var pluginManagerFrame: Int = -1
 
 	private const val MENU_WALK_FRAMES: Int = 400
 
@@ -790,6 +799,10 @@ object SmokeTest {
 			if (MENU_CHECK) {
 				menuCheck()
 			}
+		}
+		if (PLUGIN_MANAGER && pluginManagerStep < 3) {
+			pluginManagerCheck()
+			return
 		}
 		if (commandFrame >= 0) {
 			val slots: Array<PathingEntitySpotAnimation> = arrayOf(player.primarySpotAnimation, player.secondarySpotAnimation)
@@ -3009,6 +3022,72 @@ object SmokeTest {
 			}
 		}
 		return fallback
+	}
+
+	/**
+	 * The plugin manager's window, as its clicks take it: open, a frame of the list; a built-in switched off
+	 * and on again (its own flag follows), the idle notifier's settings page, a frame of it; its wait stepped
+	 * up once (its config follows), Back, close.
+	 */
+	private fun pluginManagerCheck() {
+		if (pluginManagerStep == 0) {
+			val why: String? = PluginManagerScreen.open()
+			if (why != null || !PluginManagerScreen.open) {
+				fail("the plugin manager did not open: " + why)
+			}
+			pluginManagerFrame = gameFrames
+			pluginManagerStep = 1
+			return
+		}
+		if (gameFrames - pluginManagerFrame < 30) {
+			return
+		}
+		if (pluginManagerStep == 1) {
+			saveFrame("build/smoke/plugins-list.png")
+			val rows: Int = PluginManagerScreen.rowsShown()
+			if (rows < 5) {
+				fail("the plugin manager lists " + rows + " plugins, fewer than the built-ins")
+			}
+			val before: Boolean = XpDrops.enabled
+			if (!PluginManagerScreen.clickToggle("xpdrops") || XpDrops.enabled == before) {
+				fail("the experience drops' switch in the plugin manager did not take: " + before + " still")
+			}
+			PluginManagerScreen.clickToggle("xpdrops")
+			if (XpDrops.enabled != before) {
+				fail("the experience drops' switch did not go back")
+			}
+			if (!PluginManagerScreen.clickSettings("idle")) {
+				fail("the idle notifier's Settings did not open its page")
+			}
+			println("SMOKE plugin manager: " + rows + " rows; experience drops switched off and on; the idle notifier's settings page open")
+			pluginManagerFrame = gameFrames
+			pluginManagerStep = 2
+			return
+		}
+		saveFrame("build/smoke/plugins-settings.png")
+		val idle: PluginRegistration? = PluginRuntime.find("idle")
+		if (idle == null || idle.context == null) {
+			fail("no running idle notifier")
+			return
+		}
+		val secondsBefore: Int = idle.context!!.config().getInt("seconds", 15)
+		if (!PluginManagerScreen.clickStep("seconds", true)) {
+			fail("the idle notifier's seconds did not step")
+		}
+		val secondsAfter: Int = idle.context!!.config().getInt("seconds", 15)
+		if (secondsAfter != secondsBefore + 1) {
+			fail("the idle notifier's seconds went from " + secondsBefore + " to " + secondsAfter)
+		}
+		PluginManagerScreen.clickStep("seconds", false)
+		if (!PluginManagerScreen.clickBack()) {
+			fail("Back did not leave the settings page")
+		}
+		PluginManagerScreen.close()
+		if (PluginManagerScreen.open) {
+			fail("the plugin manager did not close")
+		}
+		println("SMOKE plugin manager: seconds stepped " + secondsBefore + " to " + secondsAfter + " and back; Back; closed")
+		pluginManagerStep = 3
 	}
 
 	/** The verb of the menu's top row, which is the last entry of the list. */

@@ -11,6 +11,7 @@ import com.jagex.game.runetek5.client.menu.MiniMenu
 import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
+import com.jagex.game.runetek5.client.features.PluginManagerScreen
 import kotlin.jvm.JvmStatic
 
 object SubInterfaceCloser {
@@ -22,6 +23,7 @@ object SubInterfaceCloser {
 		@Pc(12) val pointer: Int = subInterface.key.toInt()
 		if (type == 742) {
 			HdOptionsScreen.reset() // Not part of the original client: the 634HD page lives in Graphics Options
+			PluginManagerScreen.reset() // Not part of the original client: so does the plugin manager's window
 		}
 		PluginRuntime.interfaceClosed(type, pointer, subInterface.openType) // Not part of the original client: the plugins' InterfaceClosed, while the interface is still open.
 		subInterface.unlink()
