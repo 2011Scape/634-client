@@ -21,4 +21,14 @@ interface Player : Actor {
 
 	/** The skull over the player's head, an index into the skull sprite group, or -1 for none. */
 	fun skullIcon(): Int
+
+	/**
+	 * Whether the player could be attacked here: the server offers "Attack" on players (a combat
+	 * area), the two combat levels are within the area's range when both are known, and the two are
+	 * not on the same team. Never true for the local player.
+	 */
+	fun isAttackable(): Boolean
+
+	/** The team the player's cape puts them on, 0 for none. */
+	fun teamId(): Int
 }

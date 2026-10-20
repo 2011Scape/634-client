@@ -545,4 +545,27 @@ object ClientApiImpl : ClientApi {
 			visitor.visit(member.displayName ?: member.username, member.worldId, member.rank.toInt())
 		}
 	}
+
+	override fun friendsChatName(): String? {
+		return FriendsChat.friendsChatName
+	}
+
+	override fun isFriend(name: String?): Boolean {
+		return FriendList.getFriendIndex(name) >= 0
+	}
+
+	override fun isInFriendsChat(name: String?): Boolean {
+		if (name == null) {
+			return false
+		}
+		val members: Array<FriendsChatPlayer?> = FriendsChat.clanChatUsers ?: return false
+		for (i in 0 until FriendsChat.clanChatUserCount) {
+			val member: FriendsChatPlayer = members[i] ?: continue
+			// the minimap matches a player's name against the member's username, which the server sends for that
+			if (name.equals(member.username, ignoreCase = true)) {
+				return true
+			}
+		}
+		return false
+	}
 }

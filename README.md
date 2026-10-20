@@ -91,6 +91,7 @@ are off unless the client is started with `--dev-commands`.
 | `--xp-drops` | A "+N Skill" drop rises and fades near the minimap when you gain experience. | `::xpdrops` |
 | `--idle-notifier` | A chat line and a red frame around the game view once you have been idle for 15 seconds. | `::idle`, `::idle <seconds>` |
 | `--inventory-value` | What your backpack is worth, with its three most valuable items, at the top of the game view. | `::invvalue` |
+| `--name-plates` | Other players' names over their heads: red when they can attack you, green for friends, blue for your friends chat with its name underneath. | `::nameplates` |
 | | Make an option the left click of its menu, wherever it appears (a menu entry swapper). | `::swap <option> [target]`, `::unswap <option>`, `::swaps` |
 | `--npc-labels` | NPC names, with their combat level, above their heads. | `::npclabels` |
 | `--ground-items` | The names (and counts) of the items on each tile, above it. | `::grounditems` |
