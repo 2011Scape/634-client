@@ -4,11 +4,11 @@ A plugin to copy: a line of text on the game view, a `::hello` command, a "Hello
 right-click menu, a "Value" entry on every item, a hotkey, a thread, and a counter in the plugin's
 settings. The client's guide to plugins is [docs/PLUGINS.md](../docs/PLUGINS.md).
 
-`src/main/kotlin/recipes` holds five more plugins, each a few dozen lines, that the build compiles
-but the jar does not load: a menu entry swapper, attack and idle timers, npc indicators, a ground
-item overlay with values, and item tags for the inventory and the bank. The guide's
-[cookbook](../docs/PLUGINS.md#cookbook) walks through them. To run one, name its class in
-`Plugin-Class` in `build.gradle.kts` instead of the example's.
+`src/main/kotlin/recipes` holds five more plugins, each a few dozen lines: a menu entry swapper,
+attack and idle timers, npc indicators, a ground item overlay with values, and item tags for the
+inventory and the bank. The guide's [cookbook](../docs/PLUGINS.md#cookbook) walks through them.
+`./gradlew recipeJars` (with the same `-PapiJar` as `jar`) builds one jar each in `build/libs/recipes`,
+ready for `~/.634-client/plugins`; the example's jar carries the example alone.
 
 ## Building
 

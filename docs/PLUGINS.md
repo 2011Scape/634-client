@@ -161,9 +161,10 @@ below its top.
 
 ## Cookbook
 
-Five plugins of the kind players ask for, each a few dozen lines on the public API, compiled with
-the template ([`plugin-template/src/main/kotlin/recipes`](../plugin-template/src/main/kotlin/recipes));
-to run one, name its class in the template's `Plugin-Class`. What each one leans on:
+Five plugins of the kind players ask for, each a few dozen lines on the public API, in the template
+([`plugin-template/src/main/kotlin/recipes`](../plugin-template/src/main/kotlin/recipes));
+`./gradlew -p plugin-template recipeJars` builds one jar each in `plugin-template/build/libs/recipes`,
+ready for the plugins folder. What each one leans on:
 
 | Plugin | Lines | The API it uses |
 |---|---|---|
