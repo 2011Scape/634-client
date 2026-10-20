@@ -44,6 +44,8 @@ import com.jagex.game.runetek5.preference.GamePreferences
 import com.jagex.game.runetek5.SceneDrawer
 import com.jagex.game.runetek5.vardomain.PlayerVarDomain
 import com.jagex.game.runetek5.client.ClientState
+import com.jagex.game.runetek5.client.menu.MiniMenu
+import com.jagex.game.runetek5.tools.LocalizedText
 import com.jagex.game.runetek5.cache.node.lru.LRUCache
 import com.jagex.game.runetek5.OrthoMode
 import kotlin.jvm.JvmField
@@ -80,6 +82,44 @@ class PlayerEntity : PathingEntity(), Player {
 
 	override fun skullIcon(): Int {
 		return this.skullId
+	}
+
+	override fun teamId(): Int {
+		return this.teamId
+	}
+
+	override fun isAttackable(): Boolean {
+		val me: PlayerEntity = PlayerUpdate.localPlayer ?: return false
+		if (this === me || !attackOffered()) {
+			return false
+		}
+		if (me.teamId != 0 && this.teamId != 0 && me.teamId == this.teamId) {
+			return false
+		}
+		// the level range as MiniMenu.playerHovered colours the menu: unknown on either side means no limit
+		if (me.cbLevelRelated == -1 || this.cbLevelRelated == -1) {
+			return true
+		}
+		val maxCombatLevel: Int = if (me.combatLevel > this.combatLevel) me.combatLevel else this.combatLevel
+		val minRelated: Int = if (me.cbLevelRelated >= this.cbLevelRelated) this.cbLevelRelated else me.cbLevelRelated
+		val maxDifference: Int = maxCombatLevel * 10 / 100 + minRelated + 5
+		var difference: Int = me.combatLevel - this.combatLevel
+		if (difference < 0) {
+			difference = -difference
+		}
+		return difference <= maxDifference
+	}
+
+	/** Whether the server has put "Attack" among the players' options, which it does in a combat area. */
+	private fun attackOffered(): Boolean {
+		val attack: String? = LocalizedText.aClass351_25.get(ClientState.language)
+		for (i in 0 until MiniMenu.PLAYER_OPTIONS.size) {
+			val option: String = MiniMenu.PLAYER_OPTIONS[i] ?: continue
+			if (option.equals(attack, ignoreCase = true)) {
+				return true
+			}
+		}
+		return false
 	}
 
 	@OriginalMember(owner = "client!ke", name = "td", descriptor = "I")

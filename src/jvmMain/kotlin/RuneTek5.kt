@@ -45,6 +45,7 @@ import java.util.regex.Pattern
  * --xp-drops                  "+N Skill" drops when experience goes up (::xpdrops toggles it)
  * --idle-notifier             a chat line and a red frame after 15 seconds idle (::idle toggles it, ::idle <seconds> sets the wait)
  * --inventory-value           what the backpack is worth, with its three most valuable items (::invvalue toggles it)
+ * --name-plates               other players' names over their heads, coloured by attackable, friend, friends chat (::nameplates toggles it)
  * --npc-labels                NPC names and combat levels above their heads (::npclabels toggles it)
  * --ground-items              the names of items on the ground above their tiles (::grounditems toggles it)
  * --msaa <n>                  OpenGL: draw the 3D view in its own framebuffer with n samples (0, 2, 4, 8)
@@ -117,6 +118,7 @@ object RuneTek5 {
                 "--xp-drops" -> System.setProperty("client.xpDrops", "true")
                 "--idle-notifier" -> System.setProperty("client.idleNotifier", "true")
                 "--inventory-value" -> System.setProperty("client.inventoryValue", "true")
+                "--name-plates" -> System.setProperty("client.namePlates", "true")
                 "--npc-labels" -> System.setProperty("client.npcLabels", "true")
                 "--ground-items" -> System.setProperty("client.groundItemLabels", "true")
                 "--msaa" -> System.setProperty("client.msaa", Integer.toString(Integer.parseInt(value(args, ++i, arg))))
@@ -324,6 +326,6 @@ object RuneTek5 {
                             [--login-modulus hex] [--js5-modulus hex] [--require-keys] [--server void|jagex] [--packets file]
                             [--world id] [--lang english|german]
                             [--debug] [--[no-]zoom] [--render-distance x] [--fps n] [--scale x] [--msaa n] [--smaa] [--render-scale x] [--no-a2c] [--toolkit hd|opengl|java] [--plugins dir] [--no-plugins] [--[no-]console] [--[no-]shift-drop] [--dev] [--dev-commands]
-                            [--tile-markers] [--xp-drops] [--idle-notifier] [--inventory-value] [--npc-labels] [--ground-items]""".trimIndent())
+                            [--tile-markers] [--xp-drops] [--idle-notifier] [--inventory-value] [--name-plates] [--npc-labels] [--ground-items]""".trimIndent())
     }
 }

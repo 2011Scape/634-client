@@ -3,7 +3,7 @@
 How to add to the client without changing it: a plugin is a jar in a folder, written against a
 small, stable API, that reads the game, draws on it, adds menu entries and commands, and keeps its
 own settings. The experience drops (`XpDrops`), the idle notifier (`IdleNotifier`), the menu
-swapper (`MenuSwapper`) and the inventory value (`InventoryValue`) are four, built in, so the client's own code shows the
+swapper (`MenuSwapper`), the inventory value (`InventoryValue`) and the name plates (`NamePlates`) are five, built in, so the client's own code shows the
 way.
 
 ## Contents
@@ -28,7 +28,8 @@ the game for you.
   (varps and varbits), inventories; the interfaces, component by component (type, place on the
   screen, item, sprite, options, children) and which are open; the item, npc and location types
   from the cache (names, options, sizes, values); the locations and the movement flags of any tile;
-  where any of it is on the screen.
+  whether a player is a friend, in your friends chat or could attack you here; where any of it is
+  on the screen.
 - Draw: on the game view every frame (under the interfaces), or over the whole frame: lines, boxes,
   circles, polygons, text in the client's three fonts, the cache's sprites and the icons of items,
   within a clip of its own choosing.

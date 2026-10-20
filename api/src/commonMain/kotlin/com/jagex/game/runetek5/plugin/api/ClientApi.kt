@@ -233,4 +233,13 @@ interface ClientApi {
 
 	/** Calls [visitor] for every member of the friends chat the player is in. */
 	fun clanMembers(visitor: NameVisitor)
+
+	/** The name of the friends chat the player is in, or null outside one. */
+	fun friendsChatName(): String?
+
+	/** Whether [name] (a [Player.name], compared ignoring case) is on the friends list. */
+	fun isFriend(name: String?): Boolean
+
+	/** Whether [name] (a [Player.name], compared ignoring case) is in the player's friends chat. */
+	fun isInFriendsChat(name: String?): Boolean
 }

@@ -23,8 +23,10 @@ package com.jagex.game.runetek5.plugin.api
  *   tile; the camera and the minimap; run energy, weight, world, region and membership; sound
  *   effects; the friends, ignore and friends chat lists; [ChatType]; and work scheduled onto the
  *   game thread from a tick or from another thread ([PluginContext.invokeLater]).
+ * - 5: [Player.isAttackable] and [Player.teamId]; [ClientApi.friendsChatName], [ClientApi.isFriend]
+ *   and [ClientApi.isInFriendsChat].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 4
+	const val VERSION: Int = 5
 }
