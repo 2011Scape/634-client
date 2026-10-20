@@ -3,6 +3,8 @@
 
 package com.jagex.game.runetek5.config.item
 
+import com.jagex.game.runetek5.plugin.api.ItemDefinition
+
 import com.jagex.game.runetek5.TextureCombineSource
 import com.jagex.game.runetek5.config.sequence.SeqType
 import com.jagex.game.runetek5.cache.node.IntNode
@@ -31,7 +33,63 @@ import kotlin.jvm.JvmField
 import withLock
 
 @OriginalClass("client!rq")
-class ItemType {
+class ItemType : ItemDefinition {
+
+	/* Not part of the original client: the plugin API's view of an item type (plugin.api.ItemDefinition). */
+
+	override fun id(): Int {
+		return this.id
+	}
+
+	override fun name(): String? {
+		return this.name
+	}
+
+	override fun isStackable(): Boolean {
+		return this.stackable == 1
+	}
+
+	override fun isNoted(): Boolean {
+		return this.certTemplateId != -1
+	}
+
+	override fun linkedId(): Int {
+		return this.certId
+	}
+
+	override fun value(): Int {
+		return this.value
+	}
+
+	override fun isMembers(): Boolean {
+		return this.membersOnly
+	}
+
+	override fun isEquipable(): Boolean {
+		return this.maleEquip1 != -1 || this.femaleEquip1 != -1
+	}
+
+	override fun inventoryAction(i: Int): String? {
+		val actions: Array<String?> = this.inventoryActions ?: return null
+		return if (i >= 0 && i < actions.size) actions[i] else null
+	}
+
+	override fun groundAction(i: Int): String? {
+		val actions: Array<String?> = this.groundActions ?: return null
+		return if (i >= 0 && i < actions.size) actions[i] else null
+	}
+
+	override fun teamId(): Int {
+		return this.teamId
+	}
+
+	override fun intParam(key: Int, default: Int): Int {
+		return this.getIntParam(default, key)
+	}
+
+	override fun stringParam(key: Int, default: String?): String? {
+		return this.getStringParam(default, key)
+	}
 
 	@OriginalMember(owner = "client!rq", name = "f", descriptor = "I")
 	private var modelId: Int = 0

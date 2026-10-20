@@ -4,6 +4,7 @@
 package com.jagex.game.runetek5.entity
 
 import com.jagex.game.runetek5.plugin.api.Actor
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.SceneDrawer
 import com.jagex.game.runetek5.graphics.hint.HintDetails
 import com.jagex.game.runetek5.config.sequence.MovingSequence
@@ -74,6 +75,55 @@ abstract class PathingEntity : AbstractInteractiveEntity, Actor {
 
 	override fun isDrawnThisFrame(): Boolean {
 		return SceneDrawer.timesSceneRendered == this.drawCycle
+	}
+
+	override fun animationId(): Int {
+		return this.currentSequence.sequenceId
+	}
+
+	override fun spotAnimationId(): Int {
+		return this.primarySpotAnimation.spotAnimationId
+	}
+
+	override fun interacting(): Actor? {
+		val target: Int = this.faceEntity
+		if (target == -1) {
+			return null
+		}
+		if (target < 32768) {
+			val node: NPCEntityNode? = NPCList.NPC_MAP.get(target.toLong()) as NPCEntityNode?
+			return node?.npc
+		}
+		val index: Int = target - 32768
+		return if (index < PlayerUpdate.players.size) PlayerUpdate.players[index] else null
+	}
+
+	override fun orientation(): Int {
+		return this.yaw.getRotation()
+	}
+
+	override fun isRunning(): Boolean {
+		return this.movementQueueSpeed[0].toInt() == MoveSpeed.RUNNING
+	}
+
+	override fun overheadText(): String? {
+		return this.hintDetails.text
+	}
+
+	override fun hitsplatSlots(): Int {
+		return PathingEntity.maximumHits
+	}
+
+	override fun hitsplatType(slot: Int): Int {
+		return if (slot >= 0 && slot < PathingEntity.maximumHits) this.activeHitsplatIds[slot] else -1
+	}
+
+	override fun hitsplatDamage(slot: Int): Int {
+		return if (slot >= 0 && slot < PathingEntity.maximumHits) this.hitsplatText[slot] else 0
+	}
+
+	override fun hitsplatEndCycle(slot: Int): Int {
+		return if (slot >= 0 && slot < PathingEntity.maximumHits) this.hitsplatCycles[slot] else 0
 	}
 
 	// Not part of the original client: where this entity stood at the previous and the current game
@@ -847,6 +897,7 @@ abstract class PathingEntity : AbstractInteractiveEntity, Actor {
 
 	@OriginalMember(owner = "client!kda", name = "a", descriptor = "(IIIIIIIB)V")
 	fun hit(@OriginalArg(0) hitAmount: Int, @OriginalArg(1) currentCycle: Int, @OriginalArg(2) hitsplatId: Int, @OriginalArg(3) soakAmount: Int, @OriginalArg(4) soakHitsplatId: Int, @OriginalArg(5) delay: Int, @OriginalArg(6) healthRatio: Int) {
+		PluginRuntime.hitsplatApplied(this, hitsplatId, hitAmount, soakHitsplatId, soakAmount, delay) // Not part of the original client: the plugins' HitsplatApplied.
 		@Pc(7) var clearCurrentHits: Boolean = true
 		@Pc(9) var allSlotsActive: Boolean = true
 		@Pc(15) var i: Int = 0

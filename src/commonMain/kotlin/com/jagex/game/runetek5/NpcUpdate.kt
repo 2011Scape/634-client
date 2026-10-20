@@ -1,4 +1,6 @@
 package com.jagex.game.runetek5
+
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.entity.NPCEntityNode
 import com.jagex.game.runetek5.client.menu.MiniMenu
 import com.jagex.game.runetek5.entity.NPCEntity
@@ -39,6 +41,7 @@ object NpcUpdate {
 				if (npcEntity.npcType!!.hasSounds()) {
 					AmbientSound.unlinkEntitySound(npcEntity)
 				}
+				PluginRuntime.npcDespawned(npcEntity) // Not part of the original client: the plugins' NpcDespawned, while the npc still has its type.
 				npcEntity.setNpcType(null)
 				npcEntityNode.unlink()
 				isUnlinked = true

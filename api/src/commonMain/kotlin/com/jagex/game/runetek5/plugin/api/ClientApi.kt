@@ -89,4 +89,23 @@ interface ClientApi {
 	 * is for that event's target, and clicking it runs the [MenuAction] [clickType] was registered for.
 	 */
 	fun addMenuEntry(label: String, clickType: Int)
+
+	/** The item type with [id], or null before the cache's types load. */
+	fun item(id: Int): ItemDefinition?
+
+	/** The npc type with [id], or null before the cache's types load. */
+	fun npcType(id: Int): NpcDefinition?
+
+	/** The location type with [id], or null before the cache's types load. */
+	fun locType(id: Int): LocDefinition?
+
+	/**
+	 * Calls [visitor] for every location on scene tile ([tileX], [tileY]) of floor [level]: its
+	 * walls, their decorations, the floor decoration and the objects standing on it. An object
+	 * larger than a tile is on every tile it covers. Nothing for a tile outside the scene.
+	 */
+	fun locsAt(tileX: Int, tileY: Int, level: Int, visitor: LocVisitor)
+
+	/** The tile's movement flags, bits of [CollisionFlags]; 0 for a tile outside the scene. */
+	fun collisionFlags(tileX: Int, tileY: Int, level: Int): Int
 }

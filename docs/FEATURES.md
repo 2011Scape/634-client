@@ -24,7 +24,7 @@ The plugin API ([PLUGINS.md](PLUGINS.md)) has the hooks below as events, and a f
 is a plugin the client compiles in (`BuiltinPlugins`): it draws through an overlay, hears of packets
 through `StatChanged` and the like, registers its console command, and resets on `GameStateChanged`,
 with no line of its own in the original code. The experience drops (`XpDrops`) are one; start a new
-feature that way, and add to the API (keeping `PluginApi.VERSION` when the change only adds) when it
+feature that way, and add to the API (raising `PluginApi.VERSION`) when it
 lacks something, rather than placing another one-off hook. The hooks below are still the way for
 what the API cannot say.
 

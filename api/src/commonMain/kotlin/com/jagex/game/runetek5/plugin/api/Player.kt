@@ -9,4 +9,13 @@ interface Player : Actor {
 	fun index(): Int
 
 	fun isLocalPlayer(): Boolean
+
+	/** The name as shown, with the title and the display name the player chose, or null when unknown. */
+	fun displayName(): String?
+
+	/** The prayer icon over the player's head, an index into the prayer icons sprite group, or -1 for none. */
+	fun prayerIcon(): Int
+
+	/** The skull over the player's head, an index into the skull sprite group, or -1 for none. */
+	fun skullIcon(): Int
 }

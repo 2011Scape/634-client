@@ -1,13 +1,20 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.cache.node.ObjStack
+import com.jagex.game.runetek5.cache.node.ObjStackEntry
 import com.jagex.game.runetek5.client.menu.MiniMenuEntry
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
+import com.jagex.game.runetek5.plugin.api.Actor
 import com.jagex.game.runetek5.plugin.api.CommandHandler
 import com.jagex.game.runetek5.plugin.api.MenuAction
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
 import com.jagex.game.runetek5.plugin.api.events.EventListener
+import com.jagex.game.runetek5.plugin.api.events.AnimationChanged
 import com.jagex.game.runetek5.plugin.api.events.Events
+import com.jagex.game.runetek5.plugin.api.events.GroundItem
+import com.jagex.game.runetek5.plugin.api.events.HitsplatApplied
+import com.jagex.game.runetek5.plugin.api.events.OverheadTextChanged
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -21,6 +28,125 @@ class PluginRuntimeTest {
 
 	private fun registration(id: String, builtIn: Boolean = false): PluginRegistration {
 		return PluginRegistration(PluginDescriptor(id, id, "1", 1, "", ""), null, builtIn, "test")
+	}
+
+	/** An actor that is nowhere and does nothing: the hooks only carry it. */
+	private class StillActor : Actor {
+		override fun x(): Int = 0
+
+		override fun z(): Int = 0
+
+		override fun level(): Int = 0
+
+		override fun sizeInTiles(): Int = 1
+
+		override fun overheadHeight(): Int = 0
+
+		override fun healthRatio(): Int = 0
+
+		override fun isDrawnThisFrame(): Boolean = false
+
+		override fun animationId(): Int = -1
+
+		override fun spotAnimationId(): Int = -1
+
+		override fun interacting(): Actor? = null
+
+		override fun orientation(): Int = 0
+
+		override fun isRunning(): Boolean = false
+
+		override fun overheadText(): String? = null
+
+		override fun hitsplatSlots(): Int = 0
+
+		override fun hitsplatType(slot: Int): Int = -1
+
+		override fun hitsplatDamage(slot: Int): Int = 0
+
+		override fun hitsplatEndCycle(slot: Int): Int = 0
+	}
+
+	@Test
+	fun theEventRegistryIsInOrder() {
+		assertEquals(Events.COUNT, Events.ALL.size)
+		for (i in 0 until Events.COUNT) {
+			assertEquals(i, Events.ALL[i].id, Events.ALL[i].name)
+		}
+	}
+
+	@Test
+	fun groundItemHooksPostOneEventPerItem() {
+		val plugin: PluginRegistration = registration("items")
+		val wasStarted: Boolean = PluginRuntime.started
+		PluginRuntime.started = true
+		val spawned: ArrayList<GroundItem> = ArrayList()
+		val despawned: ArrayList<GroundItem> = ArrayList()
+		try {
+			PluginRuntime.bus.subscribe(Events.ITEM_SPAWNED, EventListener { event -> spawned.add(event) }, plugin)
+			PluginRuntime.bus.subscribe(Events.ITEM_DESPAWNED, EventListener { event -> despawned.add(event) }, plugin)
+			PluginRuntime.groundItemSpawned(995, 100, 12, 34, 1)
+			assertEquals(1, spawned.size)
+			assertEquals(995, spawned[0].itemId)
+			assertEquals(100, spawned[0].amount)
+			assertEquals(12, spawned[0].sceneX)
+			assertEquals(34, spawned[0].sceneY)
+			assertEquals(1, spawned[0].level)
+			val pile: ObjStack = ObjStack()
+			pile.groundItems.addLast(ObjStackEntry(1, 1))
+			pile.groundItems.addLast(ObjStackEntry(2, 5))
+			PluginRuntime.groundPileDespawned(pile, 3, 4, 0)
+			assertEquals(2, despawned.size)
+			assertEquals(1, despawned[0].itemId)
+			assertEquals(5, despawned[1].amount)
+			assertEquals(3, despawned[1].sceneX)
+			PluginRuntime.started = false
+			PluginRuntime.groundItemSpawned(995, 1, 0, 0, 0)
+			assertEquals(1, spawned.size, "nothing before the plugins start")
+		} finally {
+			PluginRuntime.started = wasStarted
+			PluginRuntime.release(plugin)
+		}
+	}
+
+	@Test
+	fun actorHooksCarryTheActorAndSkipWhatIsNotThere() {
+		val plugin: PluginRegistration = registration("actors")
+		val wasStarted: Boolean = PluginRuntime.started
+		PluginRuntime.started = true
+		val actor: Actor = StillActor()
+		val hits: ArrayList<HitsplatApplied> = ArrayList()
+		val animations: ArrayList<AnimationChanged> = ArrayList()
+		val texts: ArrayList<OverheadTextChanged> = ArrayList()
+		val targets: ArrayList<Actor> = ArrayList()
+		try {
+			PluginRuntime.bus.subscribe(Events.HITSPLAT_APPLIED, EventListener { event -> hits.add(event) }, plugin)
+			PluginRuntime.bus.subscribe(Events.ANIMATION_CHANGED, EventListener { event -> animations.add(event) }, plugin)
+			PluginRuntime.bus.subscribe(Events.OVERHEAD_TEXT_CHANGED, EventListener { event -> texts.add(event) }, plugin)
+			PluginRuntime.bus.subscribe(Events.INTERACTING_CHANGED, EventListener { event -> targets.add(event) }, plugin)
+			PluginRuntime.hitsplatApplied(actor, 3, 12, -1, 0, 20)
+			assertEquals(1, hits.size)
+			assertTrue(hits[0].actor === actor)
+			assertEquals(12, hits[0].damage)
+			assertEquals(20, hits[0].delay)
+			PluginRuntime.animationChanged(actor, intArrayOf(422, 423, 424, 425))
+			PluginRuntime.animationChanged(actor, null)
+			PluginRuntime.animationChanged(null, intArrayOf(1))
+			assertEquals(2, animations.size)
+			assertEquals(422, animations[0].animationId, "the standing animation stands for the set")
+			assertEquals(-1, animations[1].animationId)
+			PluginRuntime.overheadTextChanged(actor, "Hello")
+			PluginRuntime.overheadTextChanged(actor, null)
+			assertEquals(1, texts.size)
+			assertEquals("Hello", texts[0].text)
+			PluginRuntime.interactingChanged(actor)
+			PluginRuntime.interactingChanged(null)
+			assertEquals(1, targets.size)
+			assertTrue(targets[0] === actor)
+		} finally {
+			PluginRuntime.started = wasStarted
+			PluginRuntime.release(plugin)
+		}
 	}
 
 	@Test
