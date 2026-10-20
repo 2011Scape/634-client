@@ -10,6 +10,8 @@ import com.jagex.game.runetek5.config.rsinterface.Component
 import com.jagex.game.runetek5.config.rsinterface.HookRequest
 import com.jagex.game.runetek5.config.rsinterface.Interface
 import com.jagex.game.runetek5.config.rsinterface.SubInterface
+import com.jagex.game.runetek5.graphics.Toolkit
+import com.jagex.game.runetek5.graphics.sprite.NativeSprite
 import com.jagex.game.runetek5.core.constants.MainLogicStep
 import com.jagex.game.runetek5.plugin.PluginContextImpl
 import com.jagex.game.runetek5.plugin.PluginRegistration
@@ -24,7 +26,10 @@ import kotlin.jvm.JvmStatic
  * Graphics Options window's shell (interface 742, opened by the client with its scripts suppressed,
  * its title set to "Plugins" and its close button hooked), listing every plugin with an on/off
  * switch and, for one that declared settings (plugin.api.SettingsSchema), a page of them. Opened
- * by the Plugins button in the Settings tab or `::pluginmanager`. Built from [ClientPage]'s pieces
+ * by the Plugins button in the Settings tab (interface 261, where [tick] keeps it beside Graphics
+ * and Audio Settings, those two moved to the three-button pitch of the rows below; its icon is a
+ * sprite of the client's own, put into the component sprite cache under an id no cache sprite has)
+ * or `::pluginmanager`. Built from [ClientPage]'s pieces
  * as flat children of the window's content layer (742:2); hooks carry [SENTINEL], which
  * CS2Interpreter.executeHookInternal routes to [hook]. The server knows nothing of the window: one
  * it opens in the same slot replaces it, and the game goes on.
@@ -49,6 +54,36 @@ object PluginManagerScreen {
 	private const val POPUP_ITEMS: Int = (742 shl 16) or 21
 
 	private const val POPUP_SCROLL: Int = (742 shl 16) or 22
+
+	/** The Settings tab and its two stock buttons with their icons. */
+	private const val TAB_ROOT: Int = 261 shl 16
+
+	private const val TAB_GRAPHICS: Int = (261 shl 16) or 16
+
+	private const val TAB_GRAPHICS_ICON: Int = (261 shl 16) or 17
+
+	private const val TAB_AUDIO: Int = (261 shl 16) or 18
+
+	private const val TAB_AUDIO_ICON: Int = (261 shl 16) or 19
+
+	/** The three-button pitch of the tab's other rows, and the row the buttons sit on. */
+	private const val TAB_X_GRAPHICS: Int = 19
+
+	private const val TAB_X_AUDIO: Int = 75
+
+	private const val TAB_X_PLUGINS: Int = 131
+
+	private const val TAB_Y: Int = 41
+
+	/** The stock button background, plain and lit. */
+	private const val TAB_BUTTON: Int = 761
+
+	private const val TAB_BUTTON_LIT: Int = 762
+
+	/** The icon's sprite id: none the cache has, so the component sprite cache is the only place it is found. */
+	private const val ICON_SPRITE: Int = 0x7FFF027B
+
+	private const val ICON_RESOURCE: String = "/plugins/icon.rgba"
 
 	/** The window's height while ours (the Custom page's), and its content layer's width. */
 	private const val HEIGHT: Int = 334
@@ -85,6 +120,8 @@ object PluginManagerScreen {
 	private const val A_SET_CHOICE: Int = 13
 	private const val A_ITEM: Int = 14
 	private const val A_POPUP_CLOSE: Int = 15
+	private const val A_TAB_HOVER: Int = 16
+	private const val A_TAB_LEAVE: Int = 17
 
 	/** Whether the window is open with our page in it. */
 	@JvmField
@@ -106,6 +143,134 @@ object PluginManagerScreen {
 	private val popup: ClientPage.Popup = ClientPage.Popup(ROOT, BODY, POPUP, POPUP_ITEMS, POPUP_SCROLL, SENTINEL, A_ITEM, A_POPUP_CLOSE)
 
 	private var popupFor: Choice? = null
+
+	/** The Plugins button's hit component in the Settings tab, and the slot of its background under 261:0. */
+	private var tabButton: Component? = null
+
+	private var tabBackground: Int = -1
+
+	private var icon: NativeSprite? = null
+
+	private var iconToolkit: Toolkit? = null
+
+	/** False once the icon resource was looked for and not found (the browser): the button says "Plugins" instead. */
+	private var iconAvailable: Boolean = true
+
+	// --- the Settings tab ---
+
+	/**
+	 * Each game tick while the Settings tab is loaded: the icon in the sprite cache (the caches are
+	 * emptied at logout and map builds), Graphics and Audio Settings at the three-button pitch, and the
+	 * Plugins button after them, appended again whenever the tab's own scripts have rebuilt its children.
+	 */
+	@JvmStatic
+	fun tick() {
+		val root: Component? = Interface.peekComponent(TAB_ROOT)
+		if (root == null) {
+			tabButton = null
+			return
+		}
+		ensureIcon()
+		var moved: Boolean = moveTo(TAB_GRAPHICS, TAB_X_GRAPHICS)
+		moved = moveTo(TAB_GRAPHICS_ICON, TAB_X_GRAPHICS) || moved
+		moved = moveTo(TAB_AUDIO, TAB_X_AUDIO) || moved
+		moved = moveTo(TAB_AUDIO_ICON, TAB_X_AUDIO + 4) || moved
+		val present: Component? = tabButton
+		val children: Array<Component?>? = root.slotChildren
+		if (present != null && children != null && present.slotId < children.size && children[present.slotId] === present) {
+			if (moved) {
+				Component.layoutChildren(false, root)
+				Component.redrawComponent(root)
+			}
+			return
+		}
+		val list: ArrayList<Component> = ArrayList()
+		if (children != null) {
+			for (c in children) {
+				if (c != null) {
+					list.add(c)
+				}
+			}
+		}
+		tabBackground = list.size
+		list.add(ClientPage.sprite(TAB_ROOT, list.size, TAB_X_PLUGINS, TAB_Y, 40, 40, TAB_BUTTON, false, false, false))
+		if (iconAvailable) {
+			list.add(ClientPage.sprite(TAB_ROOT, list.size, TAB_X_PLUGINS + 4, TAB_Y + 4, 32, 32, ICON_SPRITE, false, false, false))
+		}
+		val hit: Component = ClientPage.text(TAB_ROOT, list.size, TAB_X_PLUGINS, TAB_Y, 40, 40, ClientPage.FONT_SMALL, if (iconAvailable) "" else "Plugins", ClientPage.TEXT, 1, 1, true)
+		hit.hasScript = true
+		hit.addOptionName(0, "Plugins")
+		hit.opBase = ""
+		hit.params = arrayOf<Any?>(SENTINEL, A_OPEN, 0)
+		hit.onMouseOver = arrayOf<Any?>(SENTINEL, A_TAB_HOVER, 0)
+		hit.onMouseLeaveScript = arrayOf<Any?>(SENTINEL, A_TAB_LEAVE, 0)
+		list.add(hit)
+		root.slotChildren = list.toTypedArray<Component?>()
+		tabButton = hit
+		Component.layoutChildren(false, root)
+		Component.redrawComponent(root)
+	}
+
+	/** Puts the stock component at [x] in its parent; true when it was elsewhere. */
+	private fun moveTo(hash: Int, x: Int): Boolean {
+		val c: Component = Interface.peekComponent(hash) ?: return false
+		if (c.basePositionX == x && c.aspectXType.toInt() == 0) {
+			return false
+		}
+		c.basePositionX = x
+		c.aspectXType = 0
+		return true
+	}
+
+	/** The icon, made from the client's own resource for the active toolkit, in the component sprite cache under [ICON_SPRITE]. */
+	private fun ensureIcon() {
+		if (!iconAvailable) {
+			return
+		}
+		val toolkit: Toolkit = ClientState.activeToolkit ?: return
+		if (Component.NATIVE_SPRITE_CACHE.get(ICON_SPRITE.toLong()) != null) {
+			return
+		}
+		if (icon == null || iconToolkit !== toolkit) {
+			icon = loadIcon(toolkit)
+			iconToolkit = toolkit
+			if (icon == null) {
+				iconAvailable = false
+				tabButton = null // built again with the text instead
+				return
+			}
+		}
+		val sprite: NativeSprite = icon ?: return
+		Component.NATIVE_SPRITE_CACHE.put(sprite, ICON_SPRITE.toLong(), sprite.getWidth() * sprite.getHeight() * 4)
+	}
+
+	/** The resource is two big-endian ints, width and height, then width * height ARGB pixels. */
+	private fun loadIcon(toolkit: Toolkit): NativeSprite? {
+		val bytes: ByteArray = lang.readResource(ICON_RESOURCE) ?: return null
+		if (bytes.size < 8) {
+			return null
+		}
+		val width: Int = int(bytes, 0)
+		val height: Int = int(bytes, 4)
+		if (width <= 0 || height <= 0 || width > 64 || height > 64 || bytes.size < 8 + width * height * 4) {
+			return null
+		}
+		val pixels: IntArray = IntArray(width * height)
+		for (i in 0 until width * height) {
+			pixels[i] = int(bytes, 8 + i * 4)
+		}
+		return toolkit.createNativeSprite(pixels, width, width, height, false)
+	}
+
+	private fun int(bytes: ByteArray, at: Int): Int {
+		return ((bytes[at].toInt() and 0xFF) shl 24) or ((bytes[at + 1].toInt() and 0xFF) shl 16) or ((bytes[at + 2].toInt() and 0xFF) shl 8) or (bytes[at + 3].toInt() and 0xFF)
+	}
+
+	/** The Plugins button's hit component in the Settings tab, for the smoke test; null when the tab is not loaded. */
+	@JvmStatic
+	fun tabButton(): Component? {
+		return tabButton
+	}
 
 	// --- opening and closing ---
 
@@ -467,6 +632,10 @@ object PluginManagerScreen {
 			}
 			return
 		}
+		if (action == A_TAB_HOVER || action == A_TAB_LEAVE) {
+			ClientPage.setSprite(TAB_ROOT, tabBackground, if (action == A_TAB_HOVER) TAB_BUTTON_LIT else TAB_BUTTON)
+			return
+		}
 		if (!open) {
 			return
 		}
@@ -532,6 +701,8 @@ object PluginManagerScreen {
 				}
 			}
 			A_POPUP_CLOSE -> closePopup()
+			A_TAB_HOVER -> ClientPage.setSprite(TAB_ROOT, tabBackground, TAB_BUTTON_LIT)
+			A_TAB_LEAVE -> ClientPage.setSprite(TAB_ROOT, tabBackground, TAB_BUTTON)
 		}
 	}
 

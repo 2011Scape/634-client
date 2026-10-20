@@ -2,6 +2,7 @@ import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.config.rsinterface.MediaType
 import com.jagex.game.runetek5.AudioRenderer
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
+import com.jagex.game.runetek5.client.features.PluginManagerScreen
 import com.jagex.game.runetek5.core.constants.MainLogicStep
 import com.jagex.game.runetek5.network.packet.TcpPacket
 import com.jagex.game.runetek5.cache.node.lru.PulseEvent
@@ -497,6 +498,7 @@ object GameTick {
 												StaffTeleportCommand.executeTeleportCommand(PlayerUpdate.localPlayer!!.movementBaseY!![0] + MapRegion.sceneBaseY, targetLevel, PlayerUpdate.localPlayer!!.movementBaseX!![0] + MapRegion.sceneBaseX)
 											}
 											HdOptionsScreen.tick() // Not part of the original client: the 634HD page of Graphics Options, after the hook queues
+											PluginManagerScreen.tick() // Not part of the original client: the Plugins button in the Settings tab
 											PluginRuntime.gameTick() // Not part of the original client: the plugins' GameTick.
 											MiniMenuInputTick.processMenuInput()
 											for (shakeIndex in 0 until 5) {

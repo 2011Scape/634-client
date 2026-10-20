@@ -3031,9 +3031,17 @@ object SmokeTest {
 	 */
 	private fun pluginManagerCheck() {
 		if (pluginManagerStep == 0) {
-			val why: String? = PluginManagerScreen.open()
-			if (why != null || !PluginManagerScreen.open) {
-				fail("the plugin manager did not open: " + why)
+			// the Plugins button the client keeps in the Settings tab, clicked as a player clicks it
+			val button: Component? = PluginManagerScreen.tabButton()
+			val graphics: Component? = Interface.getComponent((261 shl 16) or 16)
+			if (button == null || graphics == null) {
+				fail("no Plugins button in the Settings tab")
+				return
+			}
+			println("SMOKE plugin manager: Plugins button at " + button.basePositionX + "," + button.basePositionY + " in the Settings tab, Graphics Settings moved to x " + graphics.basePositionX)
+			InterfaceOptionInteract.ifOptionInteract(button.slotId, "Plugins", 1, 261 shl 16)
+			if (!PluginManagerScreen.open) {
+				fail("the Plugins button did not open the plugin manager")
 			}
 			pluginManagerFrame = gameFrames
 			pluginManagerStep = 1
