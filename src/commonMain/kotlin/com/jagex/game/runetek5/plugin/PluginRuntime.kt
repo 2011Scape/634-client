@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.ChatLineWriter
+import com.jagex.game.runetek5.SceneDrawer
 import com.jagex.game.runetek5.cache.node.ObjStack
 import com.jagex.game.runetek5.cache.node.Node
 import com.jagex.game.runetek5.cache.node.ObjStackEntry
@@ -151,26 +152,22 @@ object PluginRuntime {
 	@JvmField
 	var minimapHeight: Int = 0
 
+	/** The frame (SceneDrawer.timesSceneRendered) the minimap was last drawn in. */
 	@JvmField
-	var minimapCycle: Int = -100
+	var minimapFrame: Int = -100
+
+	/** A plugin's piece of work: whose, what, and (for the scheduled ones) the game tick it is due. */
+	private class PluginTask(@JvmField val owner: PluginRegistration, @JvmField val task: Task, @JvmField val due: Int)
 
 	/** Work for the game thread from anywhere: taken under [taskLock], run at the next client cycle. */
 	private val taskLock: Any = Any()
 
-	private var pendingTasks: ArrayList<Task> = ArrayList()
+	private var pendingTasks: ArrayList<PluginTask> = ArrayList()
 
-	private var pendingOwners: ArrayList<PluginRegistration> = ArrayList()
-
-	private var runningTasks: ArrayList<Task> = ArrayList()
-
-	private var runningOwners: ArrayList<PluginRegistration> = ArrayList()
+	private var runningTasks: ArrayList<PluginTask> = ArrayList()
 
 	/** Work for a later game tick, game thread only. */
-	private val scheduledTasks: ArrayList<Task> = ArrayList()
-
-	private val scheduledOwners: ArrayList<PluginRegistration> = ArrayList()
-
-	private val scheduledDue: ArrayList<Int> = ArrayList()
+	private val scheduledTasks: ArrayList<PluginTask> = ArrayList()
 
 	private var gameTicks: Int = 0
 
@@ -400,24 +397,9 @@ object PluginRuntime {
 	private fun removeAll(registration: PluginRegistration) {
 		bus.removeOwner(registration)
 		withLock(taskLock) {
-			var i: Int = pendingOwners.size - 1
-			while (i >= 0) {
-				if (pendingOwners[i] === registration) {
-					pendingOwners.removeAt(i)
-					pendingTasks.removeAt(i)
-				}
-				i--
-			}
+			pendingTasks.removeAll { it.owner === registration }
 		}
-		var i: Int = scheduledOwners.size - 1
-		while (i >= 0) {
-			if (scheduledOwners[i] === registration) {
-				scheduledOwners.removeAt(i)
-				scheduledTasks.removeAt(i)
-				scheduledDue.removeAt(i)
-			}
-			i--
-		}
+		scheduledTasks.removeAll { it.owner === registration }
 		for (i in 0 until overlayCount) {
 			if (overlayOwners[i] === registration) {
 				overlays[i] = null
@@ -567,17 +549,15 @@ object PluginRuntime {
 
 	/** [task] for the game thread at the next client cycle; from any thread. */
 	fun invokeLater(owner: PluginRegistration, task: Task) {
+		val entry: PluginTask = PluginTask(owner, task, 0)
 		withLock(taskLock) {
-			pendingTasks.add(task)
-			pendingOwners.add(owner)
+			pendingTasks.add(entry)
 		}
 	}
 
 	/** [task] for the game thread [ticks] game ticks from now (0: the next). */
 	fun schedule(owner: PluginRegistration, ticks: Int, task: Task) {
-		scheduledTasks.add(task)
-		scheduledOwners.add(owner)
-		scheduledDue.add(gameTicks + (if (ticks < 0) 0 else ticks) + 1)
+		scheduledTasks.add(PluginTask(owner, task, gameTicks + (if (ticks < 0) 0 else ticks) + 1))
 	}
 
 	/** [task] on a thread of its own; what it throws disables [owner], on the game thread. */
@@ -602,43 +582,37 @@ object PluginRuntime {
 				return
 			}
 			// swap the lists, so that a task may queue another without holding the lock
-			val tasks: ArrayList<Task> = pendingTasks
-			val owners: ArrayList<PluginRegistration> = pendingOwners
+			val tasks: ArrayList<PluginTask> = pendingTasks
 			pendingTasks = runningTasks
-			pendingOwners = runningOwners
 			runningTasks = tasks
-			runningOwners = owners
 		}
 		for (i in 0 until runningTasks.size) {
-			val owner: PluginRegistration = runningOwners[i]
-			if (owner.context == null) {
+			val entry: PluginTask = runningTasks[i]
+			if (entry.owner.context == null) {
 				continue // stopped since
 			}
 			try {
-				runningTasks[i].run()
+				entry.task.run()
 			} catch (error: Throwable) {
-				fail(owner, error)
+				fail(entry.owner, error)
 			}
 		}
 		runningTasks.clear()
-		runningOwners.clear()
 	}
 
 	private fun runScheduledTasks() {
 		gameTicks++
 		var i: Int = 0
 		while (i < scheduledTasks.size) {
-			if (scheduledDue[i] > gameTicks) {
+			if (scheduledTasks[i].due > gameTicks) {
 				i++
 			} else {
-				val task: Task = scheduledTasks.removeAt(i)
-				val owner: PluginRegistration = scheduledOwners.removeAt(i)
-				scheduledDue.removeAt(i)
-				if (owner.context != null) {
+				val entry: PluginTask = scheduledTasks.removeAt(i)
+				if (entry.owner.context != null) {
 					try {
-						task.run()
+						entry.task.run()
 					} catch (error: Throwable) {
-						fail(owner, error)
+						fail(entry.owner, error)
 					}
 				}
 			}
@@ -803,10 +777,10 @@ object PluginRuntime {
 		return keyPressedEvent.consumed
 	}
 
-	/** A character for the interfaces (a held key repeats it); true when a plugin consumed it. */
+	/** A character for the interfaces (a held key repeats it); true when a plugin consumed it. Not while the developer console is open: what is typed there is the player's. */
 	@JvmStatic
 	fun keyTyped(record: KeyRecord): Boolean {
-		if (!started || !bus.hasListeners(Events.KEY_TYPED)) {
+		if (!started || Console.isOpen() || !bus.hasListeners(Events.KEY_TYPED)) {
 			return false
 		}
 		keyTypedEvent.keyCode = record.getKeyCode()
@@ -867,7 +841,7 @@ object PluginRuntime {
 		minimapY = y
 		minimapWidth = width
 		minimapHeight = height
-		minimapCycle = ClientState.clientCycle
+		minimapFrame = SceneDrawer.timesSceneRendered
 	}
 
 	/** An npc entered the scene, with its type set. */

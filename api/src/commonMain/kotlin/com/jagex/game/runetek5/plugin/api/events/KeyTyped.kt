@@ -4,7 +4,8 @@ import kotlin.jvm.JvmField
 
 /**
  * See [Events.KEY_TYPED]: a character for the interfaces and the chat, with the key's code and the
- * modifier flags; a held key repeats it. [consume] keeps it from them. One reused instance.
+ * modifier flags; a held key repeats it. [consume] keeps it from them. Not posted while the
+ * developer console is open: what is typed there is the player's. One reused instance.
  */
 class KeyTyped {
 	@JvmField

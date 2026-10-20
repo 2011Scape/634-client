@@ -35,12 +35,23 @@ object ToolkitGraphics : Graphics {
 
 	private var polygonScratch: IntArray = IntArray(64)
 
-	private val sprites: HashMap<Int, NativeSprite> = HashMap()
+	/** The most sprites kept for the plugins; beyond it the cache starts afresh (a plugin that walks the whole sprite archive gets no further). */
+	private const val MAX_SPRITES: Int = 128
+
+	private val spriteIds: IntArray = IntArray(MAX_SPRITES)
+
+	private val spriteRefs: Array<NativeSprite?> = arrayOfNulls<NativeSprite?>(MAX_SPRITES)
+
+	private var spriteCount: Int = 0
 
 	private var spriteToolkit: Toolkit? = null
 
 	/** The item icons asked for this cycle and not yet rendered, so that each is queued once: item id shifted left 32, or the quantity. */
-	private val pendingIcons: HashSet<Long> = HashSet()
+	private const val MAX_PENDING_ICONS: Int = 64
+
+	private val pendingIcons: LongArray = LongArray(MAX_PENDING_ICONS)
+
+	private var pendingIconCount: Int = 0
 
 	private const val ICON_SHADOW: Int = 0xFF000000.toInt()
 
@@ -153,20 +164,33 @@ object ToolkitGraphics : Graphics {
 		val toolkit: Toolkit = ClientState.activeToolkit ?: return null
 		if (toolkit !== spriteToolkit) {
 			// another toolkit's sprites are no good to this one
-			sprites.clear()
+			clearSprites()
 			spriteToolkit = toolkit
 		}
-		val cached: NativeSprite? = sprites[id]
-		if (cached != null) {
-			return cached
+		for (i in 0 until spriteCount) {
+			if (spriteIds[i] == id) {
+				return spriteRefs[i]
+			}
 		}
 		if (id < 0) {
 			return null
 		}
 		val type: SpriteType = SpriteDataProvider.listSingle(Resource.SPRITES, id, 0) ?: return null
 		val made: NativeSprite = toolkit.generateSprite(type, true) ?: return null
-		sprites[id] = made
+		if (spriteCount == MAX_SPRITES) {
+			clearSprites()
+		}
+		spriteIds[spriteCount] = id
+		spriteRefs[spriteCount] = made
+		spriteCount++
 		return made
+	}
+
+	private fun clearSprites() {
+		for (i in 0 until spriteCount) {
+			spriteRefs[i] = null
+		}
+		spriteCount = 0
 	}
 
 	override fun sprite(id: Int, x: Int, y: Int): Boolean {
@@ -200,7 +224,13 @@ object ToolkitGraphics : Graphics {
 		val icon: NativeSprite? = types.getCachedSprite(0, itemId, quantity, ICON_SHADOW, ObjNumMode.SHOWCOUNT_IFNOT1, toolkit, null)
 		if (icon == null) {
 			val key: Long = (itemId.toLong() shl 32) or (quantity.toLong() and 0xFFFFFFFFL)
-			if (pendingIcons.add(key)) {
+			for (i in 0 until pendingIconCount) {
+				if (pendingIcons[i] == key) {
+					return false // queued already this cycle
+				}
+			}
+			if (pendingIconCount < MAX_PENDING_ICONS) {
+				pendingIcons[pendingIconCount++] = key
 				// the same order of values as Component.queueItemSpriteIfMissing: the class's names are not its meanings
 				Component.ITEMS.addLast(JavaObjSprite(itemId, quantity, 0, ICON_SHADOW, ObjNumMode.SHOWCOUNT_IFNOT1, false))
 			}
@@ -218,12 +248,12 @@ object ToolkitGraphics : Graphics {
 
 	/** Each client cycle: the item batch has run, so a missing icon may be asked for again. */
 	fun cycle() {
-		pendingIcons.clear()
+		pendingIconCount = 0
 	}
 
 	/** The toolkit changed: its sprites go with it. */
 	fun toolkitChanged() {
-		sprites.clear()
+		clearSprites()
 		spriteToolkit = null
 	}
 }

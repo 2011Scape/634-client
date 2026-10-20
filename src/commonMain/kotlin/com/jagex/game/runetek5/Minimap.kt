@@ -479,11 +479,11 @@ object Minimap {
 			return
 		}
 		toolkit!!.KA(clipLeft, clipTop, clipLeft + component.width, component.height + clipTop)
-		PluginRuntime.minimapDrawn(clipLeft, clipTop, component.width, component.height) // Not part of the original client: the plugins' minimap projection.
 		if (ComponentMinimap.minimapState == 2 || ComponentMinimap.minimapState == 5 || Minimap.aClass46_22 == null) {
 			toolkit.A(-16777216, clippingMask, clipLeft, clipTop)
 			return
 		}
+		PluginRuntime.minimapDrawn(clipLeft, clipTop, component.width, component.height) // Not part of the original client: the plugins' minimap projection, only while a map is drawn.
 		@Pc(64) val cameraTargetAbsX: Int
 		@Pc(52) val cameraTargetAbsZ: Int
 		@Pc(61) val rotation: Int
@@ -759,27 +759,42 @@ object Minimap {
 		if (sprite == null) {
 			return
 		}
-		@Pc(17) val rotation: Int
-		if (Camera.cameraCalculationType == CameraMode.MODE_FOLLOWCOORD) {
-			rotation = Camera.camAngleY.toInt() and 0x3FFF
-		} else {
-			rotation = (Camera.camAngleY.toInt() + Minimap.minimapRotation) and 0x3FFF
-		}
-		@Pc(36) val maxRadius: Int = kotlin.math.max(component!!.width / 2, component.height / 2) + 10
-		@Pc(45) val distanceSquared: Int = offsetX * offsetX + offsetY * offsetY
-		if (maxRadius * maxRadius < distanceSquared) {
+		// Not part of the original client: the rotation, zoom and radius test shared with the plugin API (projectDot).
+		if (!projectDot(offsetX, offsetY, component!!.width, component.height, dotPoint)) {
 			return
 		}
-		@Pc(55) var sinAngle: Int = TextureCombineSource.SINE[rotation]
-		@Pc(59) var cosAngle: Int = TextureCombineSource.COSINE[rotation]
-		if (Camera.cameraCalculationType != CameraMode.MODE_FOLLOWCOORD) {
+		val rotatedX: Int = dotPoint[0]
+		val rotatedY: Int = dotPoint[1]
+		sprite.drawWithSurface(rotatedX + component.width / 2 + clipLeft - sprite.scaleWidth() / 2, clipTop - -(component.height / 2) + -rotatedY + -(sprite.scaleHeight() / 2), clippingMask, clipLeft, clipTop)
+	}
+	/** Not part of the original client: where drawMapDot puts a dot, for the plugin API too. */
+	private val dotPoint: IntArray = IntArray(2)
+
+	/**
+	 * Not part of the original client, the arithmetic of drawMapDot on its own: a dot [offsetX],
+	 * [offsetY] minimap pixels (a tile is 4) east and north of the centre lands at [out] relative to
+	 * the centre of a [width] by [height] minimap, x to the right and y up; false when it is beyond the
+	 * minimap's radius.
+	 */
+	@JvmStatic
+	fun projectDot(offsetX: Int, offsetY: Int, width: Int, height: Int, out: IntArray): Boolean {
+		val follow: Boolean = Camera.cameraCalculationType == CameraMode.MODE_FOLLOWCOORD
+		val rotation: Int = if (follow) Camera.camAngleY.toInt() and 0x3FFF else (Camera.camAngleY.toInt() + Minimap.minimapRotation) and 0x3FFF
+		val maxRadius: Int = kotlin.math.max(width / 2, height / 2) + 10
+		if (maxRadius * maxRadius < offsetX * offsetX + offsetY * offsetY) {
+			return false
+		}
+		var sinAngle: Int = TextureCombineSource.SINE[rotation]
+		var cosAngle: Int = TextureCombineSource.COSINE[rotation]
+		if (!follow) {
 			cosAngle = cosAngle * 256 / (Minimap.minimapZoom + 256)
 			sinAngle = sinAngle * 256 / (Minimap.minimapZoom + 256)
 		}
-		@Pc(88) val rotatedX: Int = (offsetX * cosAngle + offsetY * sinAngle) shr 14
-		@Pc(99) val rotatedY: Int = (offsetY * cosAngle - sinAngle * offsetX) shr 14
-		sprite.drawWithSurface(rotatedX + component.width / 2 + clipLeft - sprite.scaleWidth() / 2, clipTop - -(component.height / 2) + -rotatedY + -(sprite.scaleHeight() / 2), clippingMask, clipLeft, clipTop)
+		out[0] = (offsetX * cosAngle + offsetY * sinAngle) shr 14
+		out[1] = (offsetY * cosAngle - sinAngle * offsetX) shr 14
+		return true
 	}
+
 	@OriginalMember(owner = "client!dk", name = "a", descriptor = "(Lclient!oea;ILclient!aa;IILjava/lang/String;ILclient!da;ILclient!at;II)V")
 	@JvmStatic
 	fun drawMapElementText(@OriginalArg(0) fontMetrics: FontMetrics?, @OriginalArg(1) color: Int, @OriginalArg(2) clippingMask: ComponentSurface?, @OriginalArg(3) offsetZ: Int, @OriginalArg(4) clipLeft: Int, @OriginalArg(5) string: String?, @OriginalArg(6) clipTop: Int, @OriginalArg(7) font: AbstractFontRenderer?, @OriginalArg(8) iconHeight: Int, @OriginalArg(9) component: Component?, @OriginalArg(10) offsetX: Int) {

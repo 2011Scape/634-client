@@ -28,7 +28,7 @@ import com.jagex.game.runetek5.AbstractMouseManager
 import com.jagex.game.runetek5.FriendsChatPlayer
 import com.jagex.game.runetek5.InterfaceManager
 import com.jagex.game.runetek5.Minimap
-import com.jagex.game.runetek5.TextureCombineSource
+import com.jagex.game.runetek5.SceneDrawer
 import com.jagex.game.runetek5.camera.CameraMode
 import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecorder
@@ -251,31 +251,16 @@ object ClientApiImpl : ClientApi {
 		if (xs.size < 4 || ys.size < 4 || size < 1) {
 			return false
 		}
-		val x0: Int = tileX * 512
-		val y0: Int = tileY * 512
-		val x1: Int = (tileX + size) * 512
-		val y1: Int = (tileY + size) * 512
-		// south-west, north-west, north-east, south-east
-		if (!projectPoint(x0, y0, level, 0, corner)) {
-			return false
+		// south-west, north-west, north-east, south-east: each corner is one projection, with its camera set
+		for (i in 0 until 4) {
+			val east: Int = if (i >= 2) size else 0
+			val north: Int = if (i == 1 || i == 2) size else 0
+			if (!projectPoint((tileX + east) * 512, (tileY + north) * 512, level, 0, corner)) {
+				return false
+			}
+			xs[i] = corner[0]
+			ys[i] = corner[1]
 		}
-		xs[0] = corner[0]
-		ys[0] = corner[1]
-		if (!projectPoint(x0, y1, level, 0, corner)) {
-			return false
-		}
-		xs[1] = corner[0]
-		ys[1] = corner[1]
-		if (!projectPoint(x1, y1, level, 0, corner)) {
-			return false
-		}
-		xs[2] = corner[0]
-		ys[2] = corner[1]
-		if (!projectPoint(x1, y0, level, 0, corner)) {
-			return false
-		}
-		xs[3] = corner[0]
-		ys[3] = corner[1]
 		return true
 	}
 
@@ -454,7 +439,8 @@ object ClientApiImpl : ClientApi {
 	}
 
 	private fun minimapShown(): Boolean {
-		return ClientState.clientCycle - PluginRuntime.minimapCycle <= 3 && PluginRuntime.minimapWidth > 0
+		// the overlays draw in the scene pass, before this frame's interfaces: the previous frame's minimap is the one to go by
+		return SceneDrawer.timesSceneRendered - PluginRuntime.minimapFrame <= 2 && PluginRuntime.minimapWidth > 0
 	}
 
 	override fun minimapArea(out: IntArray): Boolean {
@@ -472,11 +458,10 @@ object ClientApiImpl : ClientApi {
 		if (!minimapShown() || out.size < 2) {
 			return false
 		}
-		// the same arithmetic as Minimap.drawMinimap and drawMapDot
-		val follow: Boolean = Camera.cameraCalculationType == CameraMode.MODE_FOLLOWCOORD
+		// the centre as Minimap.drawMinimap takes it, then the dot's place as drawMapDot computes it
 		val centreX: Int
 		val centreZ: Int
-		if (follow) {
+		if (Camera.cameraCalculationType == CameraMode.MODE_FOLLOWCOORD) {
 			centreX = Camera.cameraTargetAbsX
 			centreZ = Camera.cameraTargetAbsZ
 		} else {
@@ -484,25 +469,13 @@ object ClientApiImpl : ClientApi {
 			centreX = player.x
 			centreZ = player.z
 		}
-		val offsetX: Int = tileX * 4 + 2 - centreX / 128
-		val offsetY: Int = tileY * 4 + 2 - centreZ / 128
-		val rotation: Int = if (follow) Camera.camAngleY.toInt() and 0x3FFF else (Camera.camAngleY.toInt() + Minimap.minimapRotation) and 0x3FFF
-		var cos: Int = TextureCombineSource.COSINE[rotation]
-		var sin: Int = TextureCombineSource.SINE[rotation]
-		if (!follow) {
-			cos = cos * 256 / (Minimap.minimapZoom + 256)
-			sin = sin * 256 / (Minimap.minimapZoom + 256)
-		}
-		val rotatedX: Int = (offsetX * cos + offsetY * sin) shr 14
-		val rotatedY: Int = (offsetY * cos - sin * offsetX) shr 14
 		val width: Int = PluginRuntime.minimapWidth
 		val height: Int = PluginRuntime.minimapHeight
-		val radius: Int = (if (width > height) width else height) / 2 + 10
-		if (rotatedX * rotatedX + rotatedY * rotatedY > radius * radius) {
+		if (!Minimap.projectDot(tileX * 4 + 2 - centreX / 128, tileY * 4 + 2 - centreZ / 128, width, height, out)) {
 			return false
 		}
-		out[0] = rotatedX + width / 2 + PluginRuntime.minimapX
-		out[1] = PluginRuntime.minimapY + height / 2 - rotatedY
+		out[0] = out[0] + width / 2 + PluginRuntime.minimapX
+		out[1] = PluginRuntime.minimapY + height / 2 - out[1]
 		return true
 	}
 
@@ -515,6 +488,9 @@ object ClientApiImpl : ClientApi {
 	}
 
 	override fun worldId(): Int {
+		if (ClientState.mainLogicStep !== MainLogicStep.STEP_GAME_SCREEN) {
+			return -1 // the world is chosen on the login screen, long before the game
+		}
 		val request: WorldConnectionInfo = TcpPacket.CURRENT_REQUEST ?: return -1
 		return request.worldId
 	}
