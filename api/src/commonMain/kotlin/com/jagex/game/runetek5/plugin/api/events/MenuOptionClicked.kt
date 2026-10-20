@@ -6,7 +6,8 @@ import kotlin.jvm.JvmField
  * See [Events.MENU_OPTION_CLICKED]: the entry the player clicked, before the client acts on it.
  * [option] is the entry's verb ("Walk here", "Attack"...), [target] the coloured name of what it
  * acts on, [clickType] the client's action id, [itemId] the item it is about or -1. [consume] stops
- * the client from acting on it. One reused instance.
+ * the client from acting on it. A plugin that declares API 1 in its manifest gets the fields as API 1
+ * filled them: the coloured name as [option], a player's name or null as [target]. One reused instance.
  */
 class MenuOptionClicked {
 	@JvmField

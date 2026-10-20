@@ -254,6 +254,27 @@ object PluginRuntime {
 
 	private val resetGraphics: Runnable = Runnable { ToolkitGraphics.reset() }
 
+	/* The clicked entry's texts, for apiOneMenuClick. */
+	private var clickedOption: String? = null
+
+	private var clickedTarget: String? = null
+
+	private var clickedTargetName: String? = null
+
+	/**
+	 * API 1 handed MenuOptionClicked the coloured target as its option and the player's name (null for
+	 * anything else) as its target; a plugin that declares API 1 was written to that, and keeps it.
+	 */
+	private val apiOneMenuClick: EventBusImpl.ListenerHook = EventBusImpl.ListenerHook { owner ->
+		if (owner != null && owner.descriptor.apiVersion <= 1) {
+			menuOptionClickedEvent.option = clickedTarget
+			menuOptionClickedEvent.target = clickedTargetName
+		} else {
+			menuOptionClickedEvent.option = clickedOption
+			menuOptionClickedEvent.target = clickedTarget
+		}
+	}
+
 	init {
 		bus.onFailure = EventBusImpl.FailureHandler { owner, error -> fail(owner, error) }
 	}
@@ -1054,15 +1075,18 @@ object PluginRuntime {
 		}
 		if (bus.hasListeners(Events.MENU_OPTION_CLICKED)) {
 			menuOptionClickedEvent.clickType = clickType
-			// opBase is the verb and op the coloured target, whatever their names say
-			menuOptionClickedEvent.option = entry.opBase
-			menuOptionClickedEvent.target = entry.op
+			// opBase is the verb and op the coloured target, whatever their names say; apiOneMenuClick sets them per plugin
+			clickedOption = entry.opBase
+			clickedTarget = entry.op
+			clickedTargetName = entry.targetName
 			menuOptionClickedEvent.param0 = entry.param0
 			menuOptionClickedEvent.param1 = entry.param1
 			menuOptionClickedEvent.entityUid = entry.entityUid
 			menuOptionClickedEvent.itemId = entry.itemId
 			menuOptionClickedEvent.consumed = false
+			bus.beforeListener = apiOneMenuClick
 			bus.post(Events.MENU_OPTION_CLICKED, menuOptionClickedEvent)
+			bus.beforeListener = null
 			if (menuOptionClickedEvent.consumed) {
 				return true
 			}

@@ -23,6 +23,8 @@ import com.jagex.game.runetek5.graphics.model.Model
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.client.menu.MiniMenuEntry
 import com.jagex.game.runetek5.client.menu.MiniMenu
+import com.jagex.game.runetek5.client.menu.MiniMenuBuilder
+import com.jagex.game.runetek5.graphics.MiniMenuReset
 import com.jagex.game.runetek5.config.iftype.SubInterfaceType
 import com.jagex.game.runetek5.InterfaceManager
 import com.jagex.game.runetek5.config.rsinterface.ComponentType
@@ -58,6 +60,7 @@ import com.jagex.game.runetek5.Minimap
 import com.jagex.game.runetek5.scene.culling.Culling
 import com.jagex.game.runetek5.client.input.camera.Camera
 import MiniMenuActionExecutor
+import MiniMenuInputTick
 import ModalInterfaceClose
 import SubInterfaceOpener
 import ToolkitSwitch
@@ -240,6 +243,9 @@ object SmokeTest {
 	private var mediaBuilt: String = ""
 
 	private val MENU_WALK: Boolean = "false" != lang.getProperty("client.test.menuWalk")
+
+	/** client.test.menuCheck: run a finished scene menu and a component menu through the runtime, for the plugins that edit menus. */
+	private val MENU_CHECK: Boolean = "true" == lang.getProperty("client.test.menuCheck")
 
 	private const val MENU_WALK_FRAMES: Int = 400
 
@@ -780,6 +786,9 @@ object SmokeTest {
 				println("SMOKE sending ::" + COMMAND)
 				sendCommand(COMMAND)
 				commandFrame = gameFrames
+			}
+			if (MENU_CHECK) {
+				menuCheck()
 			}
 		}
 		if (commandFrame >= 0) {
@@ -2970,6 +2979,114 @@ object SmokeTest {
 		runMenuEntry(MiniMenuAction.WALK, tileX, tileY, MiniMenu.walkHereText)
 		println("SMOKE walking from the mini menu to scene tile " + tileX + "," + tileY)
 		menuWalkFrame = frames
+	}
+
+	/** The backpack's first slot with an item if its slots are laid out, else the first loaded component anywhere that shows an item. */
+	private fun componentWithItem(): Component? {
+		val interfaces: Array<Array<Component?>?> = Interface.interfaces ?: return null
+		var fallback: Component? = null
+		for (interfaceId in 0 until interfaces.size) {
+			val components: Array<Component?> = interfaces[interfaceId] ?: continue
+			for (i in 0 until components.size) {
+				val component: Component = components[i] ?: continue
+				val children: Array<Component?>? = component.slotChildren
+				if (children != null) {
+					for (j in 0 until children.size) {
+						val child: Component? = children[j]
+						if (child != null && child.containerItemId != -1) {
+							if (interfaceId == 149) {
+								return child
+							}
+							if (fallback == null) {
+								fallback = child
+							}
+						}
+					}
+				}
+				if (fallback == null && component.containerItemId != -1) {
+					fallback = component
+				}
+			}
+		}
+		return fallback
+	}
+
+	/** The verb of the menu's top row, which is the last entry of the list. */
+	private fun topEntryText(): String? {
+		val top: MiniMenuEntry? = MiniMenu.entryList.sentinel.previous as MiniMenuEntry?
+		return top?.opBase
+	}
+
+	private fun findEntry(verb: String): MiniMenuEntry? {
+		var entry: MiniMenuEntry? = MiniMenu.entryList.first() as MiniMenuEntry?
+		while (entry != null) {
+			if (verb == entry.opBase) {
+				return entry
+			}
+			entry = MiniMenu.entryList.next() as MiniMenuEntry?
+		}
+		return null
+	}
+
+	/**
+	 * Builds a banker's menu as the client would (Talk-to, Examine, Bank, Walk here, with Cancel) and
+	 * runs the menu tick on it, so that the plugins' MenuBuilt edits show in the top row; then builds the
+	 * menu of the backpack's first item as the client would, clicks the first plugin entry on it, and
+	 * builds it again, so that a plugin's entry on an item and its click can be checked without a mouse.
+	 */
+	private fun menuCheck() {
+		MiniMenuReset.resetEntries()
+		MiniMenu.addEntry(false, "<col=ffff00>Banker", 1, true, 1, -1, true, MiniMenuAction.OPNPC1, 0L, "Talk-to", 7L, -1)
+		MiniMenu.addEntry(false, "<col=ffff00>Banker", 1, true, 1, -1, true, MiniMenuAction.OPNPC6, 0L, "Examine", 7L, -1)
+		MiniMenu.addEntry(false, "<col=ffff00>Banker", 1, true, 1, -1, true, MiniMenuAction.OPNPC3, 0L, "Bank", 7L, -1)
+		MiniMenu.addEntry(false, "", 1, true, 1, -1, true, MiniMenuAction.WALK, 0L, "Walk here", 0L, -1)
+		val before: String? = topEntryText()
+		MiniMenuInputTick.processMenuInput()
+		println("SMOKE menu check: top entry \"" + before + "\" became \"" + topEntryText() + "\", " + MiniMenu.entryCount + " entries, Examine " + (if (findEntry("Examine") == null) "gone" else "kept"))
+		MiniMenuReset.resetEntries()
+		var slot: Component? = componentWithItem()
+		var borrowed: Boolean = false
+		var borrowedItem: Int = -1
+		if (slot == null) {
+			// nothing on screen shows an item yet: the root interface's first component is lent coins for the two hovers
+			val root: Array<Component?>? = Interface.peekComponents(ClientState.BASE_WINDOW_ID)
+			slot = if (root == null || root.isEmpty()) null else root[0]
+			if (slot == null) {
+				println("SMOKE menu check: no loaded component to hover; the component step is skipped")
+				return
+			}
+			borrowed = true
+			borrowedItem = slot.containerItemId
+			slot.containerItemId = 995
+		}
+		MiniMenuBuilder.interfaceComponentHovered(0, 0, slot)
+		var pluginEntry: MiniMenuEntry? = null
+		var entry: MiniMenuEntry? = MiniMenu.entryList.first() as MiniMenuEntry?
+		while (entry != null) {
+			if (entry.clickType >= MiniMenuAction.PLUGIN_FIRST && entry.clickType <= MiniMenuAction.PLUGIN_LAST && pluginEntry == null) {
+				pluginEntry = entry
+			}
+			entry = MiniMenu.entryList.next() as MiniMenuEntry?
+		}
+		val first: String? = pluginEntry?.opBase
+		if (pluginEntry != null) {
+			MiniMenuActionExecutor.processMenuClick(pluginEntry, 0, 0)
+		}
+		MiniMenuReset.resetEntries()
+		MiniMenuBuilder.interfaceComponentHovered(0, 0, slot)
+		var second: String? = null
+		entry = MiniMenu.entryList.first() as MiniMenuEntry?
+		while (entry != null) {
+			if (entry.clickType >= MiniMenuAction.PLUGIN_FIRST && entry.clickType <= MiniMenuAction.PLUGIN_LAST && second == null) {
+				second = entry.opBase
+			}
+			entry = MiniMenu.entryList.next() as MiniMenuEntry?
+		}
+		println("SMOKE menu check: item " + slot.containerItemId + " on component " + (slot.idHash shr 16) + ":" + (slot.idHash and 0xFFFF) + " got the plugin entry \"" + first + "\"; after its click, \"" + second + "\"")
+		if (borrowed) {
+			slot.containerItemId = borrowedItem
+		}
+		MiniMenuReset.resetEntries()
 	}
 
 	/**
