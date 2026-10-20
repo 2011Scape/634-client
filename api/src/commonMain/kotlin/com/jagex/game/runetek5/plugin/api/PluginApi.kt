@@ -15,7 +15,9 @@ package com.jagex.game.runetek5.plugin.api
  *   events from [events.Events.NPC_SPAWNED] on.
  * - 3: interface components in detail and on the screen, the open interfaces, menu entries on
  *   components, the menu edited (removed, promoted, renamed) at [events.Events.MENU_BUILT], a
- *   click consumed, and the events from [events.Events.INTERFACE_OPENED] on.
+ *   click consumed, and the events from [events.Events.INTERFACE_OPENED] on. MenuOptionClicked's option
+ *   is the verb and its target the coloured name, as documented; a plugin that declares API 1 still
+ *   gets what API 1 gave it (the name as the option, a player's name or null as the target).
  * - 4: sprites, item icons, circles, polygons, thick lines, clipping and fonts in [Graphics]; keys
  *   and clicks consumed, KeyTyped, KeyReleased and MouseWheel; the mouse, held keys and the hovered
  *   tile; the camera and the minimap; run energy, weight, world, region and membership; sound

@@ -206,7 +206,10 @@ To try it from the client repository: `./gradlew runClient -Pclient.plugins=$PWD
 native library path).
 
 Plugins are not loaded in the smoke test (`-Pclient.test=smoke`) unless `client.plugins` names a
-folder, so the test sees the same client every time.
+folder, so the test sees the same client every time. `-Pclient.test.menuCheck=true` adds a step for
+plugins that edit menus: it builds a banker's menu and runs the menu tick on it, then builds the
+menu of the backpack's first item, clicks the first plugin entry on it and builds it again, and
+prints what changed (`SMOKE menu check: ...`), with no mouse involved.
 
 ## Trouble
 

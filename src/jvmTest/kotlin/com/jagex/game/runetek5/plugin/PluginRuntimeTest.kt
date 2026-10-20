@@ -10,6 +10,7 @@ import com.jagex.game.runetek5.plugin.api.Actor
 import com.jagex.game.runetek5.plugin.api.CommandHandler
 import com.jagex.game.runetek5.plugin.api.MenuAction
 import com.jagex.game.runetek5.plugin.api.MenuTarget
+import com.jagex.game.runetek5.plugin.api.PluginApi
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
 import com.jagex.game.runetek5.plugin.api.Task
 import com.jagex.game.runetek5.plugin.api.events.EventListener
@@ -30,8 +31,8 @@ import kotlin.test.assertTrue
  */
 class PluginRuntimeTest {
 
-	private fun registration(id: String, builtIn: Boolean = false): PluginRegistration {
-		return PluginRegistration(PluginDescriptor(id, id, "1", 1, "", ""), null, builtIn, "test")
+	private fun registration(id: String, builtIn: Boolean = false, apiVersion: Int = PluginApi.VERSION): PluginRegistration {
+		return PluginRegistration(PluginDescriptor(id, id, "1", apiVersion, "", ""), null, builtIn, "test")
 	}
 
 	/** An actor that is nowhere and does nothing: the hooks only carry it. */
@@ -148,6 +149,26 @@ class PluginRuntimeTest {
 			MiniMenu.removeEntry(drop)
 			MiniMenu.removeEntry(use)
 			MiniMenu.isOpen = wasOpen
+		}
+	}
+
+	@Test
+	fun aPluginOfApiOneSeesTheClickAsApiOneGaveIt() {
+		val old: PluginRegistration = registration("old", apiVersion = 1)
+		val new: PluginRegistration = registration("new")
+		val wasStarted: Boolean = PluginRuntime.started
+		PluginRuntime.started = true
+		val seen: ArrayList<String?> = ArrayList()
+		try {
+			PluginRuntime.bus.subscribe(Events.MENU_OPTION_CLICKED, EventListener { event -> seen.add("old " + event.option + "|" + event.target) }, old)
+			PluginRuntime.bus.subscribe(Events.MENU_OPTION_CLICKED, EventListener { event -> seen.add("new " + event.option + "|" + event.target) }, new)
+			val attack: MiniMenuEntry = MiniMenuEntry("Attack", "<col=ffff00>Goblin", -1, MiniMenuAction.OPNPC2, -1, 3L, 0, 0, false, false, 0L, false)
+			assertFalse(PluginRuntime.menuClicked(attack, MiniMenuAction.OPNPC2))
+			assertEquals(listOf<String?>("old <col=ffff00>Goblin|null", "new Attack|<col=ffff00>Goblin"), seen, "each plugin sees its own API's fields")
+		} finally {
+			PluginRuntime.started = wasStarted
+			PluginRuntime.release(old)
+			PluginRuntime.release(new)
 		}
 	}
 

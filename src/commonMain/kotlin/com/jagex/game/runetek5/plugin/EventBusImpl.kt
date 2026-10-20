@@ -33,6 +33,14 @@ class EventBusImpl : EventBus {
 	@JvmField
 	var onFailure: FailureHandler? = null
 
+	/** Sees the plugin whose listener is about to run, when set: the runtime shapes an event to the API version the plugin declared. */
+	fun interface ListenerHook {
+		fun before(owner: PluginRegistration?)
+	}
+
+	@JvmField
+	var beforeListener: ListenerHook? = null
+
 	/** Runs after each listener of a post, when set: the runtime puts the drawing state back between draw listeners. */
 	@JvmField
 	var afterListener: Runnable? = null
@@ -134,6 +142,7 @@ class EventBusImpl : EventBus {
 			// them, and an unsubscribe after that writes its hole into the new ones
 			val listener: Any? = listeners[id][i]
 			if (listener != null) {
+				beforeListener?.before(owners[id][i])
 				try {
 					(listener as EventListener<E>).on(event)
 				} catch (error: Throwable) {
