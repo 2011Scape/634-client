@@ -2,6 +2,7 @@ package com.jagex.game.runetek5.plugin.api
 
 /** The bits of a tile's movement flags, [ClientApi.collisionFlags]. */
 object CollisionFlags {
+	/** A wall on that edge of the tile, which stops a walk across it. */
 	const val WALL_NORTH: Int = 0x2
 
 	const val WALL_EAST: Int = 0x8

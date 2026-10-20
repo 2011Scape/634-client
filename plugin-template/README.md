@@ -1,8 +1,14 @@
 # Example plugin for the 634 client
 
 A plugin to copy: a line of text on the game view, a `::hello` command, a "Hello" entry on every npc's
-right-click menu, and a counter in the plugin's settings. The client's guide to plugins is
-[docs/PLUGINS.md](../docs/PLUGINS.md).
+right-click menu, a "Value" entry on every item, a hotkey, a thread, and a counter in the plugin's
+settings. The client's guide to plugins is [docs/PLUGINS.md](../docs/PLUGINS.md).
+
+`src/main/kotlin/recipes` holds five more plugins, each a few dozen lines, that the build compiles
+but the jar does not load: a menu entry swapper, attack and idle timers, npc indicators, a ground
+item overlay with values, and item tags for the inventory and the bank. The guide's
+[cookbook](../docs/PLUGINS.md#cookbook) walks through them. To run one, name its class in
+`Plugin-Class` in `build.gradle.kts` instead of the example's.
 
 ## Building
 
@@ -37,7 +43,9 @@ Void server on this computer). `::plugins` in the game's console (the `` ` `` ke
 ## Making it yours
 
 - `build.gradle.kts`: the manifest attributes name the plugin (`Plugin-Id`: 2 to 32 of `a-z`, `0-9`
-  and `-`) and its class.
+  and `-`) and its class. `Plugin-Api-Version` is the `PluginApi.VERSION` the plugin was written
+  against: keep it at the lowest version that has everything the plugin uses, so that older clients
+  that have it still load the plugin, and never lower, or an older client loads it and it fails inside.
 - `src/main/kotlin`: the plugin. Java works too: the API is plain interfaces.
 - Keep the API and the Kotlin standard library `compileOnly`, and the Kotlin version at or below the
   client's: a jar that bundles either is refused.

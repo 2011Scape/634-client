@@ -10,6 +10,7 @@ class MouseWheel {
 	@JvmField
 	var consumed: Boolean = false
 
+	/** Keeps the turn from the game. */
 	fun consume() {
 		consumed = true
 	}

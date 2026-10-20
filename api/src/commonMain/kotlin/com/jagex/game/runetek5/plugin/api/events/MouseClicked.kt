@@ -16,6 +16,7 @@ class MouseClicked {
 	@JvmField
 	var consumed: Boolean = false
 
+	/** Keeps the click from the game. */
 	fun consume() {
 		consumed = true
 	}

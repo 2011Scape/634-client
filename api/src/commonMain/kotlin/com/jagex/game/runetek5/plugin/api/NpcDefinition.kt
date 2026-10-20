@@ -4,6 +4,7 @@ package com.jagex.game.runetek5.plugin.api
 interface NpcDefinition {
 	fun id(): Int
 
+	/** The name, "null" for an npc that has none. */
 	fun name(): String?
 
 	/** The right-click option [i] (0 to 4), or null for none. */

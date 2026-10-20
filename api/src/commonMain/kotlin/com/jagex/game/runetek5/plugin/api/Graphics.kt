@@ -8,10 +8,13 @@ import kotlin.jvm.JvmField
  * small font; `y` is the text's baseline.
  */
 interface Graphics {
+	/** A one pixel line between two screen points, blended by the colour's alpha. */
 	fun line(x1: Int, y1: Int, x2: Int, y2: Int, argb: Int)
 
+	/** A filled rectangle, blended by the colour's alpha. */
 	fun fillRect(x: Int, y: Int, width: Int, height: Int, argb: Int)
 
+	/** A one pixel outline just inside the rectangle. */
 	fun drawRect(x: Int, y: Int, width: Int, height: Int, argb: Int)
 
 	/** Text starting at [x]. */
@@ -23,6 +26,7 @@ interface Graphics {
 	/** Text ending at [x]. */
 	fun textRight(x: Int, y: Int, text: String, argb: Int, shadowArgb: Int)
 
+	/** How wide [text] draws in the current font, in pixels. */
 	fun textWidth(text: String): Int
 
 	/** Whether the font exists yet: false before the first toolkit has loaded its fonts. */
@@ -31,6 +35,7 @@ interface Graphics {
 	/** A line [width] pixels wide. */
 	fun thickLine(x1: Int, y1: Int, x2: Int, y2: Int, width: Int, argb: Int)
 
+	/** A filled circle about ([x], [y]), blended by the colour's alpha. */
 	fun fillCircle(x: Int, y: Int, radius: Int, argb: Int)
 
 	/** The outline through the first [count] points of [xs] and [ys], closed. */
@@ -42,6 +47,7 @@ interface Graphics {
 	/** Confines what is drawn next to the rectangle, until [unclip] or the end of the overlay. */
 	fun clip(x: Int, y: Int, width: Int, height: Int)
 
+	/** Back to drawing anywhere. */
 	fun unclip()
 
 	/** The font the text methods use from now on, a [Font]; back to [Font.SMALL] at the end of the overlay. */
@@ -56,6 +62,7 @@ interface Graphics {
 	/** The width of sprite [id], or 0 until it is loaded. */
 	fun spriteWidth(id: Int): Int
 
+	/** The height of sprite [id], or 0 until it is loaded. */
 	fun spriteHeight(id: Int): Int
 
 	/**

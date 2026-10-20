@@ -150,6 +150,7 @@ object Events {
 	@JvmField
 	val MOUSE_WHEEL: EventType<MouseWheel> = EventType(33, "MouseWheel")
 
+	/** How many event types there are; [ALL] holds them by id. */
 	const val COUNT: Int = 34
 
 	/** Every event type, at the index of its id. */

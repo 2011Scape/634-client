@@ -16,6 +16,7 @@ class KeyPressed {
 	@JvmField
 	var consumed: Boolean = false
 
+	/** Keeps the key from the server. */
 	fun consume() {
 		consumed = true
 	}

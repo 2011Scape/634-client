@@ -6,6 +6,7 @@ package com.jagex.game.runetek5.plugin.api
  * runs. Nothing here sends to the server or moves the player: a plugin reads and shows.
  */
 interface ClientApi {
+	/** Where the client is: loading, the login screen, the lobby or the game. */
 	fun gameState(): GameState
 
 	/** The client's cycle counter: 50 a second, from startup. */
@@ -14,21 +15,25 @@ interface ClientApi {
 	/** The server's tick counter, 1 every 600 ms while logged in. */
 	fun serverTick(): Int
 
+	/** The player, or null before login. */
 	fun localPlayer(): Player?
 
 	/** How many players the last update put in the scene; [player] takes 0 until this. */
 	fun playerCount(): Int
 
+	/** The [i]th player in the scene (0 until [playerCount]), or null. */
 	fun player(i: Int): Player?
 
 	/** How many npcs the last update put in the scene; [npc] takes 0 until this. */
 	fun npcCount(): Int
 
+	/** The [i]th npc in the scene (0 until [npcCount]), or null. */
 	fun npc(i: Int): Npc?
 
 	/** Calls [visitor] for every item on the ground in the scene, pile by pile, most valuable first. */
 	fun groundItems(visitor: GroundItemVisitor)
 
+	/** The experience in [skill] (a [Skill] constant). */
 	fun skillXp(skill: Int): Int
 
 	/** The current (boosted or drained) level. */
@@ -37,8 +42,10 @@ interface ClientApi {
 	/** The level the experience gives. */
 	fun skillBaseLevel(skill: Int): Int
 
+	/** The player variable [id], 0 when unknown. */
 	fun varp(id: Int): Int
 
+	/** The bit variable [id] (a part of a varp, as the cache defines it), 0 when unknown. */
 	fun varbit(id: Int): Int
 
 	/** The inventory with [id] (93 is the backpack), or null when the server has not sent it. */
@@ -47,15 +54,19 @@ interface ClientApi {
 	/** The component, or null when the interface is not loaded. */
 	fun widget(interfaceId: Int, componentId: Int): Widget?
 
+	/** The item's name; [item] has the rest of its type. */
 	fun itemName(id: Int): String?
 
+	/** The npc type's name; [npcType] has the rest. */
 	fun npcName(id: Int): String?
 
+	/** The location type's name; [locType] has the rest. */
 	fun locName(id: Int): String?
 
 	/** The world tile of the scene's south-west corner. */
 	fun sceneBaseX(): Int
 
+	/** The world tile of the scene's south-west corner, south to north. */
 	fun sceneBaseY(): Int
 
 	/** The scene's width and height in tiles. */
@@ -151,6 +162,7 @@ interface ClientApi {
 	/** Where the mouse is on the screen. */
 	fun mouseX(): Int
 
+	/** Where the mouse is on the screen, from the top. */
 	fun mouseY(): Int
 
 	/** Whether mouse button [button] (0 left, 1 middle, 2 right) is held down. */
@@ -162,6 +174,7 @@ interface ClientApi {
 	/** The scene tile under the mouse this cycle, or -1 when the mouse is not over the ground. */
 	fun hoveredTileX(): Int
 
+	/** See [hoveredTileX]. */
 	fun hoveredTileY(): Int
 
 	/** The camera's yaw as the game counts it, 16384 to a full turn. */
@@ -173,6 +186,7 @@ interface ClientApi {
 	/** The camera's position in scene units (512 to a tile). */
 	fun cameraX(): Int
 
+	/** The camera's position south to north, in scene units. */
 	fun cameraZ(): Int
 
 	/** The camera's height, in the scene's units; smaller is higher. */
@@ -196,6 +210,7 @@ interface ClientApi {
 	/** The 64 by 64 tile map region the player is in: its x shifted left 8, or its y; -1 when not logged in. */
 	fun regionId(): Int
 
+	/** Whether the account is a member. */
 	fun isMember(): Boolean
 
 	/** Plays sound effect [id] from the cache at [volume] 0 to 255, as the game's own effects play (and not at all when the player turned them off). */
@@ -204,6 +219,7 @@ interface ClientApi {
 	/** Calls [visitor] for every friend on the list. */
 	fun friends(visitor: NameVisitor)
 
+	/** Calls [visitor] for every name on the ignore list (world 0, rank -1). */
 	fun ignores(visitor: NameVisitor)
 
 	/** Calls [visitor] for every member of the friends chat the player is in. */
