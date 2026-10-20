@@ -77,6 +77,13 @@ interface ClientApi {
 	/** Where the point [heightOffset] above the ground under [actor] is in the game view; see [projectPoint]. */
 	fun projectActor(actor: Actor, heightOffset: Int, out: IntArray): Boolean
 
+	/**
+	 * The four corners of the [size] by [size] tiles whose south-west tile is ([tileX], [tileY]) in
+	 * the game view, for [Graphics.polygon] and [Graphics.fillPolygon]: the x values into [xs] and the
+	 * y values into [ys] (four ints each), south-west first and clockwise. False when any corner is off the screen.
+	 */
+	fun tilePolygon(tileX: Int, tileY: Int, level: Int, size: Int, xs: IntArray, ys: IntArray): Boolean
+
 	/** Writes a line to the chat box, as a game message. Dropped when not logged in. */
 	fun chatMessage(text: String)
 
@@ -140,4 +147,65 @@ interface ClientApi {
 
 	/** Changes entry [i]'s [option][MenuEntry.option] text. False outside MenuBuilt. */
 	fun renameMenuEntry(i: Int, option: String): Boolean
+
+	/** Where the mouse is on the screen. */
+	fun mouseX(): Int
+
+	fun mouseY(): Int
+
+	/** Whether mouse button [button] (0 left, 1 middle, 2 right) is held down. */
+	fun isMouseButtonDown(button: Int): Boolean
+
+	/** Whether the key with the client's [keyCode] ([events.KeyPressed.keyCode]) is held down. */
+	fun isKeyHeld(keyCode: Int): Boolean
+
+	/** The scene tile under the mouse this cycle, or -1 when the mouse is not over the ground. */
+	fun hoveredTileX(): Int
+
+	fun hoveredTileY(): Int
+
+	/** The camera's yaw as the game counts it, 16384 to a full turn. */
+	fun cameraYaw(): Int
+
+	/** The camera's pitch, 1024 (level) to 3072 (overhead). */
+	fun cameraPitch(): Int
+
+	/** The camera's position in scene units (512 to a tile). */
+	fun cameraX(): Int
+
+	fun cameraZ(): Int
+
+	/** The camera's height, in the scene's units; smaller is higher. */
+	fun cameraHeight(): Int
+
+	/** The minimap's place on the screen, x, y, width and height into [out] (four ints); false while no minimap is drawn. */
+	fun minimapArea(out: IntArray): Boolean
+
+	/** Where the middle of scene tile ([tileX], [tileY]) is on the minimap: the screen x and y into [out]; false when off the minimap or no minimap is drawn. */
+	fun projectMinimap(tileX: Int, tileY: Int, out: IntArray): Boolean
+
+	/** Run energy, 0 to 100. */
+	fun runEnergy(): Int
+
+	/** The weight carried, in kilograms. */
+	fun weight(): Int
+
+	/** The world the client is on, -1 before login. */
+	fun worldId(): Int
+
+	/** The 64 by 64 tile map region the player is in: its x shifted left 8, or its y; -1 when not logged in. */
+	fun regionId(): Int
+
+	fun isMember(): Boolean
+
+	/** Plays sound effect [id] from the cache at [volume] 0 to 255, as the game's own effects play (and not at all when the player turned them off). */
+	fun playSound(id: Int, volume: Int)
+
+	/** Calls [visitor] for every friend on the list. */
+	fun friends(visitor: NameVisitor)
+
+	fun ignores(visitor: NameVisitor)
+
+	/** Calls [visitor] for every member of the friends chat the player is in. */
+	fun clanMembers(visitor: NameVisitor)
 }

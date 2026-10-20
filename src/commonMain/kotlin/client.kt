@@ -794,14 +794,17 @@ class client : GameShell() {
 					} else {
 						Console.open()
 					}
-				} else if (client.maximumHeldKeys < 128) {
+				} else if (client.maximumHeldKeys < 128 && !PluginRuntime.keyTyped(keyLog)) { // Not part of the original client: the plugins' KeyTyped; a consumed character never reaches the interfaces.
 					client.KEY_RECORDS[client.maximumHeldKeys] = keyLog
 					client.maximumHeldKeys++
 				}
 			} else if (type == 0 && KeyRecorder.keyCachePointerPoss < 75) {
-				PluginRuntime.keyPressed(keyLog) // Not part of the original client: the plugins' KeyPressed.
-				KeyRecorder.KEYS_PRESSED[KeyRecorder.keyCachePointerPoss] = keyLog
-				KeyRecorder.keyCachePointerPoss++
+				if (!PluginRuntime.keyPressed(keyLog)) { // Not part of the original client: the plugins' KeyPressed; a consumed key never reaches the server.
+					KeyRecorder.KEYS_PRESSED[KeyRecorder.keyCachePointerPoss] = keyLog
+					KeyRecorder.keyCachePointerPoss++
+				}
+			} else if (type == KeyLogConstants.TYPE_RELEASED) {
+				PluginRuntime.keyReleased(keyLog) // Not part of the original client: the plugins' KeyReleased.
 			}
 			keyLog = KeyRecorder.keyRecorder!!.removeFirstRecorded()
 		}
@@ -816,15 +819,18 @@ class client : GameShell() {
 			if (clickType == -1) {
 				PingRequester.CURRENT_REQUEST.addLast(mouseEvent)
 			} else if (clickType == MouseLog.TYPE_SCROLL) {
-				client.mouseWheelDelta += mouseEvent.getMeta()
-				if (ClientFeatures.ZOOM) {
-					ClientFeatures.wheelDelta = mouseEvent.getMeta()
+				if (!PluginRuntime.mouseWheel(mouseEvent.getMeta())) { // Not part of the original client: the plugins' MouseWheel; a consumed turn never reaches the game.
+					client.mouseWheelDelta += mouseEvent.getMeta()
+					if (ClientFeatures.ZOOM) {
+						ClientFeatures.wheelDelta = mouseEvent.getMeta()
+					}
 				}
 			} else if (MouseLog.isMousePressType(clickType)) {
-				PluginRuntime.mouseClicked(mouseEvent, clickType) // Not part of the original client: the plugins' MouseClicked.
-				MouseManager.MOUSE_MOVEMENTS.addLast(mouseEvent)
-				if (MouseManager.MOUSE_MOVEMENTS.size() > 10) {
-					MouseManager.MOUSE_MOVEMENTS.removeFirst()
+				if (!PluginRuntime.mouseClicked(mouseEvent, clickType)) { // Not part of the original client: the plugins' MouseClicked; a consumed click never reaches the game.
+					MouseManager.MOUSE_MOVEMENTS.addLast(mouseEvent)
+					if (MouseManager.MOUSE_MOVEMENTS.size() > 10) {
+						MouseManager.MOUSE_MOVEMENTS.removeFirst()
+					}
 				}
 			}
 			mouseEvent = MouseRecord.mouseRecorder!!.nextSubmission()

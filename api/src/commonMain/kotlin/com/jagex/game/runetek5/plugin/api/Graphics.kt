@@ -27,6 +27,42 @@ interface Graphics {
 
 	/** Whether the font exists yet: false before the first toolkit has loaded its fonts. */
 	fun fontReady(): Boolean
+
+	/** A line [width] pixels wide. */
+	fun thickLine(x1: Int, y1: Int, x2: Int, y2: Int, width: Int, argb: Int)
+
+	fun fillCircle(x: Int, y: Int, radius: Int, argb: Int)
+
+	/** The outline through the first [count] points of [xs] and [ys], closed. */
+	fun polygon(xs: IntArray, ys: IntArray, count: Int, argb: Int)
+
+	/** The inside of the polygon through the first [count] points of [xs] and [ys], blended by the colour's alpha. */
+	fun fillPolygon(xs: IntArray, ys: IntArray, count: Int, argb: Int)
+
+	/** Confines what is drawn next to the rectangle, until [unclip] or the end of the overlay. */
+	fun clip(x: Int, y: Int, width: Int, height: Int)
+
+	fun unclip()
+
+	/** The font the text methods use from now on, a [Font]; back to [Font.SMALL] at the end of the overlay. */
+	fun font(font: Int)
+
+	/** Draws the cache's sprite [id] with its top-left corner at ([x], [y]). False, and nothing drawn, until the sprite is loaded. */
+	fun sprite(id: Int, x: Int, y: Int): Boolean
+
+	/** Draws sprite [id] stretched to [width] by [height]. */
+	fun spriteScaled(id: Int, x: Int, y: Int, width: Int, height: Int): Boolean
+
+	/** The width of sprite [id], or 0 until it is loaded. */
+	fun spriteWidth(id: Int): Int
+
+	fun spriteHeight(id: Int): Int
+
+	/**
+	 * Draws the 36 by 32 icon of [quantity] of item [itemId], as an inventory shows it, with its
+	 * top-left corner at ([x], [y]). False, and nothing drawn, for the frame or two the icon takes to render.
+	 */
+	fun itemIcon(itemId: Int, quantity: Int, x: Int, y: Int): Boolean
 }
 
 /** Where the game view is on the screen: its top-left corner and size, in screen pixels. */

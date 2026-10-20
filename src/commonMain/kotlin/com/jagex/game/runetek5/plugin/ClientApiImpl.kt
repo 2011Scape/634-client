@@ -24,11 +24,27 @@ import com.jagex.game.runetek5.plugin.api.Actor
 import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.GroundItemVisitor
+import com.jagex.game.runetek5.AbstractMouseManager
+import com.jagex.game.runetek5.FriendsChatPlayer
 import com.jagex.game.runetek5.InterfaceManager
+import com.jagex.game.runetek5.Minimap
+import com.jagex.game.runetek5.SceneDrawer
+import com.jagex.game.runetek5.camera.CameraMode
+import com.jagex.game.runetek5.client.input.camera.Camera
+import com.jagex.game.runetek5.client.input.keyboard.KeyRecorder
+import com.jagex.game.runetek5.client.input.mouse.MouseRecord
+import com.jagex.game.runetek5.client.login.LoginManager
+import com.jagex.game.runetek5.interaction.FriendList
+import com.jagex.game.runetek5.interaction.IgnoreList
+import com.jagex.game.runetek5.interaction.chat.friendschat.FriendsChat
+import com.jagex.game.runetek5.network.packet.TcpPacket
+import com.jagex.game.runetek5.WorldConnectionInfo
+import com.jagex.game.runetek5.sound.player.area.AreaSoundPlayer
 import com.jagex.game.runetek5.config.rsinterface.SubInterface
 import com.jagex.game.runetek5.plugin.api.InterfaceVisitor
 import com.jagex.game.runetek5.plugin.api.ItemContainer
 import com.jagex.game.runetek5.plugin.api.MenuEntry
+import com.jagex.game.runetek5.plugin.api.NameVisitor
 import com.jagex.game.runetek5.plugin.api.ItemDefinition
 import com.jagex.game.runetek5.plugin.api.LocDefinition
 import com.jagex.game.runetek5.plugin.api.LocKind
@@ -229,6 +245,25 @@ object ClientApiImpl : ClientApi {
 		return out[0] >= 0
 	}
 
+	private val corner: IntArray = IntArray(2)
+
+	override fun tilePolygon(tileX: Int, tileY: Int, level: Int, size: Int, xs: IntArray, ys: IntArray): Boolean {
+		if (xs.size < 4 || ys.size < 4 || size < 1) {
+			return false
+		}
+		// south-west, north-west, north-east, south-east: each corner is one projection, with its camera set
+		for (i in 0 until 4) {
+			val east: Int = if (i >= 2) size else 0
+			val north: Int = if (i == 1 || i == 2) size else 0
+			if (!projectPoint((tileX + east) * 512, (tileY + north) * 512, level, 0, corner)) {
+				return false
+			}
+			xs[i] = corner[0]
+			ys[i] = corner[1]
+		}
+		return true
+	}
+
 	override fun chatMessage(text: String) {
 		if (ClientState.mainLogicStep !== MainLogicStep.STEP_GAME_SCREEN) {
 			return
@@ -347,5 +382,155 @@ object ClientApiImpl : ClientApi {
 
 	override fun renameMenuEntry(i: Int, option: String): Boolean {
 		return PluginRuntime.renameMenuEntry(i, option)
+	}
+
+	override fun mouseX(): Int {
+		val mouse: AbstractMouseManager = MouseRecord.mouseRecorder ?: return -1
+		return mouse.getMouseX()
+	}
+
+	override fun mouseY(): Int {
+		val mouse: AbstractMouseManager = MouseRecord.mouseRecorder ?: return -1
+		return mouse.getMouseY()
+	}
+
+	override fun isMouseButtonDown(button: Int): Boolean {
+		val mouse: AbstractMouseManager = MouseRecord.mouseRecorder ?: return false
+		return when (button) {
+			0 -> mouse.isLeftButtonDown()
+			1 -> mouse.isMiddleButtonDown()
+			2 -> mouse.isRightButtonDown()
+			else -> false
+		}
+	}
+
+	override fun isKeyHeld(keyCode: Int): Boolean {
+		val keys: KeyRecorder = KeyRecorder.keyRecorder ?: return false
+		return keyCode >= 0 && keys.isPressed(keyCode)
+	}
+
+	override fun hoveredTileX(): Int {
+		return PluginRuntime.hoveredTileX
+	}
+
+	override fun hoveredTileY(): Int {
+		return PluginRuntime.hoveredTileY
+	}
+
+	override fun cameraYaw(): Int {
+		return Camera.camAngleY.toInt() and 0x3FFF
+	}
+
+	override fun cameraPitch(): Int {
+		return Camera.camAngleX.toInt()
+	}
+
+	override fun cameraX(): Int {
+		return Camera.cameraPositionAbsoluteX
+	}
+
+	override fun cameraZ(): Int {
+		// the client's "y" of the camera is the north-south axis
+		return Camera.cameraPositionAbsoluteY
+	}
+
+	override fun cameraHeight(): Int {
+		return Camera.cameraPositionAbsoluteZ
+	}
+
+	private fun minimapShown(): Boolean {
+		// the overlays draw in the scene pass, before this frame's interfaces: the previous frame's minimap is the one to go by
+		return SceneDrawer.timesSceneRendered - PluginRuntime.minimapFrame <= 2 && PluginRuntime.minimapWidth > 0
+	}
+
+	override fun minimapArea(out: IntArray): Boolean {
+		if (!minimapShown() || out.size < 4) {
+			return false
+		}
+		out[0] = PluginRuntime.minimapX
+		out[1] = PluginRuntime.minimapY
+		out[2] = PluginRuntime.minimapWidth
+		out[3] = PluginRuntime.minimapHeight
+		return true
+	}
+
+	override fun projectMinimap(tileX: Int, tileY: Int, out: IntArray): Boolean {
+		if (!minimapShown() || out.size < 2) {
+			return false
+		}
+		// the centre as Minimap.drawMinimap takes it, then the dot's place as drawMapDot computes it
+		val centreX: Int
+		val centreZ: Int
+		if (Camera.cameraCalculationType == CameraMode.MODE_FOLLOWCOORD) {
+			centreX = Camera.cameraTargetAbsX
+			centreZ = Camera.cameraTargetAbsZ
+		} else {
+			val player: PathingEntity = PlayerUpdate.localPlayer ?: return false
+			centreX = player.x
+			centreZ = player.z
+		}
+		val width: Int = PluginRuntime.minimapWidth
+		val height: Int = PluginRuntime.minimapHeight
+		if (!Minimap.projectDot(tileX * 4 + 2 - centreX / 128, tileY * 4 + 2 - centreZ / 128, width, height, out)) {
+			return false
+		}
+		out[0] = out[0] + width / 2 + PluginRuntime.minimapX
+		out[1] = PluginRuntime.minimapY + height / 2 - out[1]
+		return true
+	}
+
+	override fun runEnergy(): Int {
+		return ClientState.runEnergy
+	}
+
+	override fun weight(): Int {
+		return client.runWeight
+	}
+
+	override fun worldId(): Int {
+		if (ClientState.mainLogicStep !== MainLogicStep.STEP_GAME_SCREEN) {
+			return -1 // the world is chosen on the login screen, long before the game
+		}
+		val request: WorldConnectionInfo = TcpPacket.CURRENT_REQUEST ?: return -1
+		return request.worldId
+	}
+
+	override fun regionId(): Int {
+		val player: PathingEntity = PlayerUpdate.localPlayer ?: return -1
+		val absoluteX: Int = (player.x shr 9) + MapRegion.sceneBaseX
+		val absoluteY: Int = (player.z shr 9) + MapRegion.sceneBaseY
+		return ((absoluteX shr 6) shl 8) + (absoluteY shr 6)
+	}
+
+	override fun isMember(): Boolean {
+		return LoginManager.isMember
+	}
+
+	override fun playSound(id: Int, volume: Int) {
+		if (id < 0) {
+			return
+		}
+		val level: Int = if (volume < 0) 0 else if (volume > 255) 255 else volume
+		AreaSoundPlayer.playSoundSynth(level, id, 1, 0, 256)
+	}
+
+	override fun friends(visitor: NameVisitor) {
+		for (i in 0 until FriendList.FRIEND_COUNT) {
+			visitor.visit(FriendList.friendNames[i], FriendList.friendWorldIds[i], FriendList.friendRanks[i])
+		}
+	}
+
+	override fun ignores(visitor: NameVisitor) {
+		for (i in 0 until IgnoreList.ignoreCount) {
+			visitor.visit(IgnoreList.ignoreNames[i], 0, -1)
+		}
+	}
+
+	override fun clanMembers(visitor: NameVisitor) {
+		val members: Array<FriendsChatPlayer?> = FriendsChat.clanChatUsers ?: return
+		for (i in 0 until FriendsChat.clanChatUserCount) {
+			val member: FriendsChatPlayer = members[i] ?: continue
+			visitor.visit(member.displayName ?: member.username, member.worldId, member.rank.toInt())
+		}
 	}
 }

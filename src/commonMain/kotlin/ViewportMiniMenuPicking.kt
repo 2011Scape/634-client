@@ -132,6 +132,7 @@ object ViewportMiniMenuPicking {
 				val groundHitZ: Int = (nearPoint[2].toFloat() + rayDeltaZ.toFloat() * rayT).toInt()
 				tileX = (((PlayerUpdate.localPlayer!!.getSize() - 1) shl 8) + groundHitX) shr 9
 				tileY = (groundHitZ + ((PlayerUpdate.localPlayer!!.getSize() - 1) shl 8)) shr 9
+				PluginRuntime.hoveredTile(tileX, tileY) // Not part of the original client: the plugins' hovered tile.
 				@Pc(339) val level: Byte = PlayerUpdate.localPlayer!!.level
 				if (level < 3 && (SettingsBits.tileFunctionMasks!![1]!![groundHitX shr 9]!![groundHitZ shr 9].toInt() and 0x2) != 0) {
 					val bridgeLevel: Int = level + 1

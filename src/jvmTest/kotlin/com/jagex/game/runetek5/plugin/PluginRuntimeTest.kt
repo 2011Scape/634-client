@@ -2,6 +2,7 @@ package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.cache.node.ObjStack
 import com.jagex.game.runetek5.cache.node.ObjStackEntry
+import com.jagex.game.runetek5.client.input.keyboard.KeyRecord
 import com.jagex.game.runetek5.client.menu.MiniMenu
 import com.jagex.game.runetek5.client.menu.MiniMenuEntry
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
@@ -10,6 +11,7 @@ import com.jagex.game.runetek5.plugin.api.CommandHandler
 import com.jagex.game.runetek5.plugin.api.MenuAction
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
+import com.jagex.game.runetek5.plugin.api.Task
 import com.jagex.game.runetek5.plugin.api.events.EventListener
 import com.jagex.game.runetek5.plugin.api.events.AnimationChanged
 import com.jagex.game.runetek5.plugin.api.events.Events
@@ -171,6 +173,81 @@ class PluginRuntimeTest {
 			val examine: MiniMenuEntry = MiniMenuEntry("Examine", "<col=ffff00>Man", -1, MiniMenuAction.OPNPC6, -1, 0L, 0, 0, false, false, 0L, false)
 			assertFalse(PluginRuntime.menuClicked(examine, MiniMenuAction.OPNPC6), "not consumed: the client goes on")
 			assertEquals("Examine", option)
+		} finally {
+			PluginRuntime.started = wasStarted
+			PluginRuntime.release(plugin)
+		}
+	}
+
+	/** A key as the client records it. */
+	private class Key(private val code: Int, private val char: Char) : KeyRecord {
+		override fun getModifierFlags(): Int = 0
+
+		override fun getType(): Int = 0
+
+		override fun getKeyChar(): Char = char
+
+		override fun getTime(): Long = 0L
+
+		override fun getKeyCode(): Int = code
+	}
+
+	@Test
+	fun aConsumedKeyIsKeptFromTheGameAndOthersAreNot() {
+		val plugin: PluginRegistration = registration("hotkey")
+		val wasStarted: Boolean = PluginRuntime.started
+		PluginRuntime.started = true
+		try {
+			assertFalse(PluginRuntime.keyPressed(Key(10, 'a')), "nobody listens")
+			PluginRuntime.bus.subscribe(Events.KEY_PRESSED, EventListener { event ->
+				if (event.keyChar == '#') {
+					event.consume()
+				}
+			}, plugin)
+			PluginRuntime.bus.subscribe(Events.KEY_TYPED, EventListener { event ->
+				if (event.keyChar == '#') {
+					event.consume()
+				}
+			}, plugin)
+			assertTrue(PluginRuntime.keyPressed(Key(10, '#')))
+			assertFalse(PluginRuntime.keyPressed(Key(10, 'a')))
+			assertTrue(PluginRuntime.keyTyped(Key(10, '#')))
+			assertFalse(PluginRuntime.keyTyped(Key(10, 'a')))
+		} finally {
+			PluginRuntime.started = wasStarted
+			PluginRuntime.release(plugin)
+		}
+	}
+
+	@Test
+	fun tasksRunOnTheirCycleOrTickAndDieWithTheirPlugin() {
+		val plugin: PluginRegistration = registration("tasks")
+		val context: PluginContextImpl = PluginContextImpl(plugin)
+		plugin.context = context
+		val wasStarted: Boolean = PluginRuntime.started
+		PluginRuntime.started = true
+		val ran: ArrayList<String> = ArrayList()
+		try {
+			context.invokeLater(Task { ran.add("later") })
+			assertTrue(context.schedule(1, Task { ran.add("tick 1") }))
+			assertTrue(context.schedule(0, Task { ran.add("tick 0") }))
+			assertTrue(ran.isEmpty(), "nothing before the cycle")
+			PluginRuntime.clientTick()
+			assertEquals(listOf("later"), ran)
+			PluginRuntime.gameTick()
+			assertEquals(listOf("later", "tick 0"), ran)
+			PluginRuntime.gameTick()
+			assertEquals(listOf("later", "tick 0", "tick 1"), ran)
+			context.invokeLater(Task { ran.add("after the end") })
+			assertTrue(context.schedule(0, Task { ran.add("after the end") }))
+			PluginRuntime.release(plugin)
+			PluginRuntime.clientTick()
+			PluginRuntime.gameTick()
+			assertEquals(3, ran.size, "a stopped plugin's tasks are dropped")
+			context.invokeLater(Task { ran.add("closed") })
+			assertFalse(context.schedule(0, Task { ran.add("closed") }))
+			PluginRuntime.clientTick()
+			assertEquals(3, ran.size)
 		} finally {
 			PluginRuntime.started = wasStarted
 			PluginRuntime.release(plugin)

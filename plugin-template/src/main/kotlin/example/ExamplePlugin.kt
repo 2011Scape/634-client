@@ -11,7 +11,8 @@ import com.jagex.game.runetek5.plugin.api.events.Events
  * An example plugin: a line of text on the game view (with what the player is fighting), a `::hello`
  * command that writes to the chat, a "Hello" entry on the right-click menu of every npc, a line in
  * the chat for every hit on the player, a "Value" entry on every item in an interface, a log line for
- * every npc that appears and every interface that opens, and a count of how often it was started,
+ * every npc that appears and every interface that opens, an outline on the tile under the mouse, the `#`
+ * key taken as a hotkey, `::bg` for work on another thread, and a count of how often it was started,
  * kept in the plugin's settings.
  *
  * Every callback runs on the game thread. The event objects of the events that happen every frame
@@ -24,6 +25,8 @@ class ExamplePlugin : Plugin {
     private var starts: Int = 0
 
     private var lastHello: String = "nobody yet"
+    private val xs = IntArray(4)
+    private val ys = IntArray(4)
 
     override fun start(context: PluginContext) {
         this.context = context
@@ -39,6 +42,10 @@ class ExamplePlugin : Plugin {
         context.addOverlay { g, view ->
             if (g.fontReady()) {
                 g.text(view.x + 8, view.y + 20, "Example plugin: hello, ${client.localPlayer()?.name() ?: "stranger"} (last ::hello to $lastHello)", 0xFFFFFF00.toInt(), 0xFF000000.toInt())
+                if (client.hoveredTileX() >= 0 && client.tilePolygon(client.hoveredTileX(), client.hoveredTileY(), client.localPlayer()?.level() ?: 0, 1, xs, ys)) {
+                    g.fillPolygon(xs, ys, 4, 0x40FFFFFF)
+                    g.polygon(xs, ys, 4, 0xFFFFFFFF.toInt())
+                }
                 val target = client.localPlayer()?.interacting()
                 if (target != null) {
                     val name = if (target is Npc) "${target.name()} (level ${target.combatLevel()})" else "a player"
@@ -67,6 +74,20 @@ class ExamplePlugin : Plugin {
                 client.addMenuEntry("Hello", helloAction)
             } else if (event.target === MenuTarget.WIDGET && event.itemId >= 0 && valueAction >= 0) {
                 client.addMenuEntry("Value", valueAction)
+            }
+        }
+        context.events().subscribe(Events.KEY_TYPED) { event ->
+            // a hotkey: the character never reaches the chat box
+            if (event.keyChar == '#') {
+                event.consume()
+                client.chatMessage("Example plugin: # pressed, energy ${client.runEnergy()}%, world ${client.worldId()}, region ${client.regionId()}")
+            }
+        }
+        context.registerCommand("bg") { _, _ ->
+            // work off the game thread, and its result back on it
+            context.startThread("bg") {
+                Thread.sleep(500)
+                context.invokeLater { client.chatMessage("Example plugin: hello from a thread, half a second later") }
             }
         }
         context.events().subscribe(Events.INTERFACE_OPENED) { event ->

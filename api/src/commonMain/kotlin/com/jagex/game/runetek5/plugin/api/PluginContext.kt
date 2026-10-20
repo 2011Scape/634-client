@@ -36,4 +36,24 @@ interface PluginContext {
 
 	/** Writes [message] to the client's log (standard error), prefixed with the plugin id. */
 	fun log(message: String)
+
+	/**
+	 * Runs [task] on the game thread at the next client cycle. The one method a plugin may call from
+	 * another thread: the way work done elsewhere comes back to the game. Dropped if the plugin stops first.
+	 */
+	fun invokeLater(task: Task)
+
+	/**
+	 * Runs [task] on the game thread [ticks] game ticks (600 ms) from now, while logged in; 0 means
+	 * the next tick. False when the plugin has stopped.
+	 */
+	fun schedule(ticks: Int, task: Task): Boolean
+
+	/**
+	 * Runs [task] on a thread of its own, named after the plugin and [name], for work the game must
+	 * not wait for: a web request, a file. The task is off the game thread: it must not read the
+	 * client or draw, only compute and hand its result to [invokeLater]. One that throws disables the
+	 * plugin. Not available in the browser.
+	 */
+	fun startThread(name: String, task: Task)
 }

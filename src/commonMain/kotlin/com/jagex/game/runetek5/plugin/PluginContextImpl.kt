@@ -7,6 +7,7 @@ import com.jagex.game.runetek5.plugin.api.Overlay
 import com.jagex.game.runetek5.plugin.api.PluginConfig
 import com.jagex.game.runetek5.plugin.api.PluginContext
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
+import com.jagex.game.runetek5.plugin.api.Task
 import com.jagex.game.runetek5.plugin.api.events.EventBus
 import com.jagex.game.runetek5.plugin.api.events.EventListener
 import com.jagex.game.runetek5.plugin.api.events.EventType
@@ -81,5 +82,27 @@ class PluginContextImpl(private val registration: PluginRegistration) : PluginCo
 
 	override fun log(message: String) {
 		lang.printlnErr("[" + registration.descriptor.id + "] " + message)
+	}
+
+	override fun invokeLater(task: Task) {
+		if (closed) {
+			return
+		}
+		PluginRuntime.invokeLater(registration, task)
+	}
+
+	override fun schedule(ticks: Int, task: Task): Boolean {
+		if (closed) {
+			return false
+		}
+		PluginRuntime.schedule(registration, ticks, task)
+		return true
+	}
+
+	override fun startThread(name: String, task: Task) {
+		if (closed) {
+			return
+		}
+		PluginRuntime.startThread(registration, name, task)
 	}
 }
