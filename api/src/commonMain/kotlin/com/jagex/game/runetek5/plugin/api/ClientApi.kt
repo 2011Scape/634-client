@@ -12,7 +12,7 @@ interface ClientApi {
 	/** The client's cycle counter: 50 a second, from startup. */
 	fun clientCycle(): Int
 
-	/** The server's tick counter, 1 every 600 ms while logged in. */
+	/** How many client cycles (20 ms) have passed while logged in; a game tick of the server is 30 of them. */
 	fun serverTick(): Int
 
 	/** The player, or null before login. */

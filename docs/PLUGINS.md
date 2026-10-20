@@ -144,7 +144,7 @@ Start from [`plugin-template/`](../plugin-template): copy the folder, and change
 | `registerMenuAction(action)` | A click type to give `client().addMenuEntry(label, clickType)` from a `MenuEntryAdded` listener. The action gets the target kind, the scene tile (an npc's or player's south-west tile) and the id (npc index, player index, item id, location id). |
 | `log(message)` | Standard error, with the plugin id. |
 | `invokeLater(task)` | Runs the task on the game thread at the next client cycle; the one call allowed from another thread. |
-| `schedule(ticks, task)` | Runs the task on the game thread that many game ticks (600 ms) later. |
+| `schedule(ticks, task)` | Runs the task on the game thread that many game ticks (600 ms) later. `GameTick` itself is a client cycle of 20 ms while logged in, 30 to a tick of the server. |
 | `startThread(name, task)` | Runs the task on a thread of its own, for a web request or a file the game must not wait for; it reads nothing and hands its result to `invokeLater`. |
 
 `Graphics` (in overlays and the draw events) draws lines, rectangles, circles, polygons, text in
@@ -165,7 +165,7 @@ to run one, name its class in the template's `Plugin-Class`. What each one leans
 | Plugin | Lines | The API it uses |
 |---|---|---|
 | `LeftClickBank`, a menu entry swapper: "Bank" is the left click, "Examine" is gone | 34 | `MenuBuilt`, then `menuEntryCount`, `menuEntry(i).option()`, `promoteMenuEntry(i)`, `removeMenuEntry(i)`. Entry 0 is the top row and the left click; remove from the bottom up. |
-| `AttackTimer`, attack and idle timers under the player | 66 | `AnimationChanged` for the local player starts the cooldown; `GameTick` counts it and the idle ticks; `projectActor` places the bar; `playSound` and `chatMessage` warn. |
+| `AttackTimer`, attack and idle timers under the player | 69 | `AnimationChanged` for the local player starts the cooldown; `GameTick` counts it and the idle ticks; `projectActor` places the bar; `playSound` and `chatMessage` warn. |
 | `NpcIndicators`, tagged npcs outlined and named, red when they fight you | 47 | `npcCount`/`npc(i)`, `name()`, `interacting() === localPlayer()`, `tilePolygon` with `sizeInTiles()`, `fillPolygon`, `polygon`, `projectActor` with `overheadHeight()`. |
 | `GroundItemValues`, every pile's items with their worth, valuable drops in the chat | 51 | `groundItems { ... }` (piles come most valuable first), `item(id).value()`, `projectTile`, `textCentered`; `ItemSpawned` for the drops. |
 | `ItemTags`, a colour on an item from its right-click menu, drawn around it in the backpack and the bank | 59 | `MenuEntryAdded` for `MenuTarget.WIDGET` with `addMenuEntry`; a `MenuAction` whose id is the item; `widget(149, 0)` and `widget(762, 95)`, their `child(i)`, `itemId()`, `screenX()`, `drawRect`. |

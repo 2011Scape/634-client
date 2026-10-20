@@ -14,7 +14,6 @@ import com.jagex.game.runetek5.client.input.keyboard.KeyRecord
 import com.jagex.game.runetek5.client.input.mouse.MouseRecord
 import com.jagex.game.runetek5.client.menu.MiniMenu
 import com.jagex.game.runetek5.client.menu.MiniMenuEntry
-import com.jagex.game.runetek5.config.rsinterface.ComponentType
 import com.jagex.game.runetek5.core.constants.MainLogicStep
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.plugin.api.Actor
@@ -59,6 +58,7 @@ import com.jagex.game.runetek5.plugin.api.events.VarpChanged
 import com.jagex.game.runetek5.plugin.api.events.ViewportDraw
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
+import lang.Runnable
 import withLock
 
 /**
@@ -166,10 +166,12 @@ object PluginRuntime {
 
 	private var runningTasks: ArrayList<PluginTask> = ArrayList()
 
-	/** Work for a later game tick, game thread only. */
+	/** Work for a later game tick, game thread only; [gameCycles] counts the cycles logged in, 30 to a tick of the server. */
 	private val scheduledTasks: ArrayList<PluginTask> = ArrayList()
 
-	private var gameTicks: Int = 0
+	private const val CYCLES_PER_TICK: Int = 30
+
+	private var gameCycles: Int = 0
 
 	private val menuEntryAddedEvent: MenuEntryAdded = MenuEntryAdded()
 
@@ -249,6 +251,8 @@ object PluginRuntime {
 	private var menuEntityUid: Long = 0L
 
 	private var menuItemId: Int = -1
+
+	private val resetGraphics: Runnable = Runnable { ToolkitGraphics.reset() }
 
 	init {
 		bus.onFailure = EventBusImpl.FailureHandler { owner, error -> fail(owner, error) }
@@ -555,9 +559,9 @@ object PluginRuntime {
 		}
 	}
 
-	/** [task] for the game thread [ticks] game ticks from now (0: the next). */
+	/** [task] for the game thread [ticks] game ticks of 600 ms from now (0: the next cycle). */
 	fun schedule(owner: PluginRegistration, ticks: Int, task: Task) {
-		scheduledTasks.add(PluginTask(owner, task, gameTicks + (if (ticks < 0) 0 else ticks) + 1))
+		scheduledTasks.add(PluginTask(owner, task, gameCycles + (if (ticks < 0) 0 else ticks) * CYCLES_PER_TICK + 1))
 	}
 
 	/** [task] on a thread of its own; what it throws disables [owner], on the game thread. */
@@ -601,10 +605,10 @@ object PluginRuntime {
 	}
 
 	private fun runScheduledTasks() {
-		gameTicks++
+		gameCycles++
 		var i: Int = 0
 		while (i < scheduledTasks.size) {
-			if (scheduledTasks[i].due > gameTicks) {
+			if (scheduledTasks[i].due > gameCycles) {
 				i++
 			} else {
 				val entry: PluginTask = scheduledTasks.removeAt(i)
@@ -670,8 +674,9 @@ object PluginRuntime {
 		viewport.y = areaY
 		viewport.width = width
 		viewport.height = height
+		bus.afterListener = resetGraphics
 		bus.post(Events.VIEWPORT_DRAW, viewportDrawEvent)
-		ToolkitGraphics.reset()
+		bus.afterListener = null
 		if (overlayCount == 0) {
 			return
 		}
@@ -701,8 +706,9 @@ object PluginRuntime {
 		}
 		frameDrawEvent.width = width
 		frameDrawEvent.height = height
+		bus.afterListener = resetGraphics
 		bus.post(Events.FRAME_DRAW, frameDrawEvent)
-		ToolkitGraphics.reset()
+		bus.afterListener = null
 	}
 
 	@JvmStatic
@@ -1001,8 +1007,8 @@ object PluginRuntime {
 		if (!started || component == null || !bus.hasListeners(Events.MENU_ENTRY_ADDED)) {
 			return
 		}
-		if (component.containerItemId == -1 && component.type === ComponentType.CONTAINER && !hasOption(component)) {
-			return // a plain layer under the mouse, one of several nested ones: no entries of the client's, none of the plugins' either
+		if (component.containerItemId == -1 && !hasOption(component)) {
+			return // a layer, a label or a picture under the mouse: no entries of the client's, none of the plugins' either
 		}
 		menuBuilding = true
 		menuKind = MenuTarget.WIDGET.kind

@@ -24,7 +24,7 @@ import kotlin.jvm.JvmStatic
  * both are kept in the plugin's settings.
  *
  * A built-in plugin (BuiltinPlugins, docs/PLUGINS.md) on API 2: it reads the local player's
- * animation, target and position each game tick, which API 1 could not say.
+ * animation, target and position each client cycle (GameTick, 20 ms), which API 1 could not say.
  */
 object IdleNotifier : Plugin {
 
@@ -39,6 +39,9 @@ object IdleNotifier : Plugin {
 
 	/** How many client cycles the frame shows (50 a second). */
 	private const val FLASH_CYCLES: Int = 100
+
+	/** A client cycle, and so a GameTick, is 20 ms. */
+	private const val CYCLE_MILLIS: Int = 20
 
 	private const val FRAME_COLOUR: Int = 0xFFE03030.toInt()
 
@@ -106,6 +109,7 @@ object IdleNotifier : Plugin {
 
 	private fun command(args: Array<String>) {
 		val context: PluginContext = this.context ?: return
+		notified = false // whatever was said before, the next idle spell is announced
 		if (args.isEmpty()) {
 			enabled = !enabled
 			context.config().setBoolean("enabled", enabled)
@@ -126,7 +130,7 @@ object IdleNotifier : Plugin {
 		context.client().consolePrint("Idle notifier on: " + waitSeconds + " seconds.")
 	}
 
-	/** Each game tick: idle is still, out of animation and without a target. */
+	/** Each client cycle: idle is still, out of animation and without a target. */
 	@JvmStatic
 	fun tick() {
 		val client: ClientApi = context?.client() ?: return
@@ -143,7 +147,7 @@ object IdleNotifier : Plugin {
 			return
 		}
 		idleTicks++
-		if (notified || idleTicks * 600 < waitSeconds * 1000) {
+		if (notified || idleTicks * CYCLE_MILLIS < waitSeconds * 1000) {
 			return
 		}
 		notified = true

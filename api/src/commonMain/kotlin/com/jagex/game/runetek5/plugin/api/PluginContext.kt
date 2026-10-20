@@ -44,8 +44,8 @@ interface PluginContext {
 	fun invokeLater(task: Task)
 
 	/**
-	 * Runs [task] on the game thread [ticks] game ticks (600 ms) from now, while logged in; 0 means
-	 * the next tick. False when the plugin has stopped.
+	 * Runs [task] on the game thread [ticks] game ticks (600 ms, 30 client cycles) from now, while
+	 * logged in; 0 means the next cycle. False when the plugin has stopped.
 	 */
 	fun schedule(ticks: Int, task: Task): Boolean
 

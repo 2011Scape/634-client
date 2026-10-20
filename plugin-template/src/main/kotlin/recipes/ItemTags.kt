@@ -22,7 +22,9 @@ class ItemTags : Plugin {
         val client = context.client()
         for (entry in context.config().get("tags", "").split(';')) {
             val parts = entry.split('=')
-            if (parts.size == 2) colours[parts[0].toInt()] = parts[1].toInt()
+            val id = parts.getOrNull(0)?.toIntOrNull() ?: continue
+            val colour = parts.getOrNull(1)?.toIntOrNull() ?: continue
+            colours[id] = colour
         }
         fun save() {
             context.config().set("tags", colours.entries.joinToString(";") { it.key.toString() + "=" + it.value })
