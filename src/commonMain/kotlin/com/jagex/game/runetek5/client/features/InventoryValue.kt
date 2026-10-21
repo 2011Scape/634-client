@@ -48,6 +48,10 @@ object InventoryValue : Plugin {
 	@JvmField
 	var enabled: Boolean = false
 
+	/** Where the panel ended on the game view last frame (view-relative), 0 when it was not drawn: other panels go under it. */
+	@JvmField
+	var panelBottom: Int = 0
+
 	/** The frame's three most valuable slots, by value, most first. */
 	private val topIds: IntArray = IntArray(SHOWN)
 
@@ -110,6 +114,7 @@ object InventoryValue : Plugin {
 	}
 
 	private fun draw(g: Graphics, view: Viewport) {
+		panelBottom = 0
 		val client: ClientApi = context?.client() ?: return
 		if (!enabled || !g.fontReady() || client.gameState() !== GameState.LOGGED_IN) {
 			return
@@ -148,6 +153,7 @@ object InventoryValue : Plugin {
 		val x: Int = view.x + 8
 		val top: Int = view.y + 34
 		g.fillRect(x - 4, top, 220, 6 + 34 * (shown + 1), PANEL)
+		panelBottom = top + 6 + 34 * (shown + 1) - view.y
 		g.font(Font.BOLD)
 		// the first baseline sits one line height below the panel's top
 		var y: Int = top + g.fontHeight()

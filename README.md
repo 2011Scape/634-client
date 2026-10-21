@@ -41,7 +41,7 @@ It connects to [2011Scape](https://2011.rs) (`play.2011.rs`). For your own serve
 - **Any Void server**: choose the host, port and keys from the launcher.
 - **OpenGL on Linux, Windows and macOS**, through [LWJGL](https://www.lwjgl.org).
 - **Smooth and sharp**: up to 144 fps, a window scaled to your screen, and MSAA or SMAA.
-- **Extras**: ground items, a loot tracker, object markers, ground tiles, experience drops, name plates, an idle notifier, Discord presence,
+- **Extras**: ground items, a loot tracker, object markers, an XP tracker, ground tiles, experience drops, name plates, an idle notifier, Discord presence,
   shift-drop, a longer render distance and a wider zoom.
 - **Developer tools**: ids on right-click menus, coordinates on screen, a better console.
 - **Plugins**: jars in `~/.634-client/plugins` that read the game, draw on it and add menu entries
@@ -86,6 +86,7 @@ are off unless the client is started with `--dev-commands`.
 | | Ground tiles: hold Shift and right-click a tile for *Mark tile*; a marked tile can be labelled and coloured, is kept between sessions, and is drawn on the minimap if you like. Import and Export share them in RuneLite's ground marker format through the clipboard. | `::groundtiles`, `::groundtiles export`, `::groundtiles import`, `::groundtiles clear` |
 | | Ground items, as RuneLite's: every item on the ground with its quantity and Grand Exchange and High Alchemy value, coloured by value tier and by your highlight and hide lists (hold Alt to edit them with a click), with despawn timers, lootbeams, menu colours and drop notifications, each a setting in the plugin manager. | `::grounditems` |
 | | Loot tracker, as RuneLite's: the loot of every kill, pickpocket and chest with its Grand Exchange and High Alchemy value, by source or kill by kill, remembered between sessions, in a window of its own. | `::loot` |
+| | XP tracker, as RuneLite's: experience gained and per hour, actions and time to level for every skill you train, in a window of its own and as boxes on the game view; pauses, resets and the tracking kept between sessions. | `::xp` |
 | | Object markers, as RuneLite's: hold Shift and right-click an object to mark it; marked objects are drawn as a hull, an outline, a click box or their tiles, each marker in colours and styles of its own, kept between sessions in RuneLite's format. | `::objectmarkers` |
 | | NPC indicators, as RuneLite's: hold Shift and right-click an npc to tag it (or every npc of its name); tagged npcs are outlined, named over their heads and on the minimap, and their respawn is timed. | `::tag <name>`, `::untag <name>` |
 | | A "+N Skill" drop rises and fades near the minimap when you gain experience (on until turned off). | `::xpdrops` |

@@ -226,6 +226,13 @@ object SmokeTest {
 
 	private var lootFrame: Int = -1
 
+	/** client.test.xpTracker: experience fed through the stat hook, a canvas box for it, and the XP tracker's window. */
+	private val XP_TRACKER: Boolean = "true" == lang.getProperty("client.test.xpTracker")
+
+	private var xpTrackerStep: Int = 0
+
+	private var xpTrackerFrame: Int = -1
+
 	/** client.test.objectMarkers: an object beside the player marked in all four styles. */
 	private val OBJECT_MARKERS: Boolean = "true" == lang.getProperty("client.test.objectMarkers")
 
@@ -973,6 +980,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 512
+		}
+		if (XP_TRACKER && (checksDone and 1024) == 0) {
+			if (!xpTrackerDone()) {
+				return
+			}
+			checksDone = checksDone or 1024
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -2858,6 +2871,59 @@ object SmokeTest {
 			firstImage += "; tile " + x + "," + y + " marked, drawn and unmarked: " + image
 			markerStep = 2
 		}
+		return true
+	}
+
+	/**
+	 * The XP Tracker: once it has taken the login's experience, two Attack gains go through the client's
+	 * stat hook (PluginRuntime.statChanged, as the server's stat packet does), Attack goes on the canvas,
+	 * a frame of the box (-xpcanvas); then the window opens on its box, a frame of it (-xptracker), and
+	 * it closes, Attack off the canvas and reset.
+	 */
+	private fun xpTrackerDone(): Boolean {
+		val attack: Int = 0
+		if (xpTrackerStep == 0) {
+			val state: XpTrackerState = XpTracker.states[attack] ?: return false // the tracker waits out the login's update
+			val xp: Int = state.currentXp().toInt()
+			XpTracker.enabled = true
+			PluginRuntime.statChanged(attack, xp, xp + 40, 1)
+			PluginRuntime.statChanged(attack, xp + 40, xp + 80, 1)
+			if (XpTracker.states[attack]?.totalXpGained() != 80 || !XpTracker.order.contains(attack)) {
+				fail("the XP tracker counted " + XpTracker.states[attack]?.totalXpGained() + " Attack experience of 80")
+				return true
+			}
+			if (!XpTracker.canvas.contains(attack)) {
+				XpTracker.toggleCanvas(attack)
+			}
+			xpTrackerFrame = frames
+			xpTrackerStep = 1
+			return false
+		}
+		if (frames - xpTrackerFrame < MARKER_FRAMES) {
+			return false
+		}
+		if (xpTrackerStep == 1) {
+			checkImage("-xpcanvas", SHOT.replace(".png", "-xpcanvas.png"))
+			if (XpTrackerOverlay.drawnLastFrame != 1) {
+				fail("the XP tracker drew " + XpTrackerOverlay.drawnLastFrame + " canvas boxes, not 1")
+			}
+			val why: String? = XpTrackerScreen.open()
+			if (why != null) {
+				fail("the XP tracker's window did not open: " + why)
+				return true
+			}
+			xpTrackerFrame = frames
+			xpTrackerStep = 2
+			return false
+		}
+		checkImage("-xptracker", SHOT.replace(".png", "-xptracker.png"))
+		if (XpTrackerScreen.boxesShown != 1) {
+			fail("the XP tracker's window shows " + XpTrackerScreen.boxesShown + " skill boxes, not 1")
+		}
+		XpTrackerScreen.close()
+		XpTracker.toggleCanvas(attack)
+		XpTracker.resetSkill(attack)
+		firstImage += "; XP tracker: 80 Attack experience counted, its canvas box and its window drawn"
 		return true
 	}
 

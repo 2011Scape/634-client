@@ -155,26 +155,49 @@ object GroundItemRules {
 		return number + suffixes[power]
 	}
 
+	/**
+	 * A quantity as the game writes it short, RuneLite's QuantityFormatter.quantityToRSDecimalStack: up to
+	 * four digits in full; else in thousands, millions or billions with one decimal (three from a million
+	 * when [precise]), trailing zeros dropped (`12.3K`, `1.234M`).
+	 */
+	@JvmStatic
+	fun quantityToRSDecimalStack(quantity: Int, precise: Boolean): String {
+		val text: String = quantity.toString()
+		if (text.length <= 4) {
+			return text
+		}
+		val power: Int = text.trimStart('-').length - 1
+		val suffixes: Array<String> = arrayOf("", "K", "M", "B")
+		var scale: Long = 1L
+		for (i in 0 until power / 3) {
+			scale *= 1000L
+		}
+		return formatDecimal(kotlin.math.abs(quantity.toLong()), scale, if (precise && power >= 6) 3 else 1).let { if (quantity < 0) "-$it" else it } + suffixes[power / 3]
+	}
+
 	/** [value] / [scale] with up to three decimals, trailing zeros dropped, grouped with commas as NumberFormat would. */
-	private fun formatDecimal(value: Long, scale: Long): String {
+	private fun formatDecimal(value: Long, scale: Long): String = formatDecimal(value, scale, 3)
+
+	/** [value] / [scale] with up to [decimals] decimals (half-even, as DecimalFormat rounds), trailing zeros dropped, grouped with commas. */
+	private fun formatDecimal(value: Long, scale: Long, decimals: Int): String {
 		val whole: Long = value / scale
-		// three decimals, rounded half-even as NumberFormat rounds
 		val remainder: Long = value % scale
-		var thousandths: Long = 0L
+		var unit: Long = 1L
+		for (i in 0 until decimals) {
+			unit *= 10L
+		}
+		var fraction: Long = 0L
 		var wholePart: Long = whole
 		if (scale > 1L) {
-			val exact: Double = remainder.toDouble() * 1000.0 / scale.toDouble()
-			thousandths = kotlin.math.round(exact).toLong()
-			if (thousandths >= 1000L) {
-				thousandths -= 1000L
+			fraction = kotlin.math.round(remainder.toDouble() * unit / scale.toDouble()).toLong()
+			if (fraction >= unit) {
+				fraction -= unit
 				wholePart++
 			}
 		}
 		var out: String = withCommas(wholePart)
-		if (thousandths > 0L) {
-			var decimals: String = thousandths.toString().padStart(3, '0')
-			decimals = decimals.trimEnd('0')
-			out += ".$decimals"
+		if (fraction > 0L) {
+			out += "." + fraction.toString().padStart(decimals, '0').trimEnd('0')
 		}
 		return out
 	}
