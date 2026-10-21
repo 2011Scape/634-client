@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.ChatLineWriter
+import com.jagex.game.runetek5.LocType
 import com.jagex.game.runetek5.MapRegion
 import com.jagex.game.runetek5.NPCList
 import com.jagex.game.runetek5.OverlayManager
@@ -425,6 +426,37 @@ object ClientApiImpl : ClientApi {
 
 	override fun isInInstance(): Boolean {
 		return MapRegion.constructed
+	}
+
+	override fun resolveLoc(baseId: Int): Int {
+		if (baseId < 0 || TypeLists.LOC == null) {
+			return -1
+		}
+		val type: LocType = TypeLists.LOC!!.list(baseId) ?: return -1
+		if (type.alternativeIds == null) {
+			return baseId
+		}
+		return type.getMultiLoc(PlayerVarDomain.playerVarProvider)?.id ?: -1
+	}
+
+	override fun locHull(tileX: Int, tileY: Int, level: Int, baseId: Int, xs: IntArray, ys: IntArray): Int {
+		val entity = LocGeometry.find(tileX, tileY, level, baseId) ?: return 0
+		val mask: LocGeometry.Mask = LocGeometry.mask(entity) ?: return 0
+		return LocGeometry.hull(mask, xs, ys)
+	}
+
+	override fun locClickbox(tileX: Int, tileY: Int, level: Int, baseId: Int, xs: IntArray, ys: IntArray): Int {
+		val entity = LocGeometry.find(tileX, tileY, level, baseId) ?: return 0
+		return LocGeometry.clickbox(entity, xs, ys)
+	}
+
+	override fun locOutline(tileX: Int, tileY: Int, level: Int, baseId: Int, width: Int, feather: Int, argb: Int): Boolean {
+		val toolkit = ClientState.activeToolkit ?: return false
+		val entity = LocGeometry.find(tileX, tileY, level, baseId) ?: return false
+		val mask: LocGeometry.Mask = LocGeometry.mask(entity) ?: return false
+		// the picking's space is the game view's, as projectPoint's: to the frame by the view's corner
+		LocGeometry.drawOutline(toolkit, mask, width.coerceIn(1, 16), feather.coerceIn(0, 4), argb, PluginRuntime.viewX(), PluginRuntime.viewY())
+		return true
 	}
 
 	override fun deprioritizeMenuEntry(i: Int): Boolean {

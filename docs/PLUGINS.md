@@ -5,8 +5,8 @@ small, stable API, that reads the game, draws on it, adds menu entries and comma
 own settings. The experience drops (`XpDrops`), the idle notifier (`IdleNotifier`), the menu
 swapper (`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name plates (`NamePlates`),
 the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Discord presence
-(`DiscordPresence`), the ground items (`GroundItems`) and the loot tracker (`LootTracker`) are ten,
-built in, so the client's own code shows the way.
+(`DiscordPresence`), the ground items (`GroundItems`), the loot tracker (`LootTracker`) and the
+object markers (`ObjectIndicators`) are eleven, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -35,7 +35,9 @@ the game for you.
   whether a player is a friend, in your friends chat or could attack you here; where any of it is
   on the screen; what an item fetches on the Grand Exchange (the guide prices the game's website
   publishes, fetched in the background) and from High Level Alchemy, and whether it can be traded;
-  whether an item on the ground is another player's drop made public, and how high its pile lies.
+  whether an item on the ground is another player's drop made public, and how high its pile lies;
+  the shape of a location on the screen (its hull, its click box, its outline drawn) and what a
+  location that changes with the player's variables is now.
 - Draw: on the game view every frame (under the interfaces), or over the whole frame: lines, boxes,
   circles, polygons, text in the client's three fonts, the cache's sprites and the icons of items,
   within a clip of its own choosing.
@@ -100,10 +102,10 @@ stack trace is in the client's log (the launcher keeps it in `~/.void/logs`).
 
 ## The built-in plugins
 
-Ten plugins come with the client, on the same API as the ones from the plugins folder, each with
+Eleven plugins come with the client, on the same API as the ones from the plugins folder, each with
 its switch in the Plugins window: experience drops (`::xpdrops`), the idle notifier (`::idle`), the
 menu entry swapper (`::menuswapper`), the inventory value (`::invvalue`), name plates (`::nameplates`), the
-ground tiles, the npc indicators, the Discord presence (`::discord`), the ground items (`::grounditems`) and the loot tracker (`::loot`).
+ground tiles, the npc indicators, the Discord presence (`::discord`), the ground items (`::grounditems`), the loot tracker (`::loot`) and the object markers (`::objectmarkers`).
 
 **Ground Tiles** marks tiles on the ground the way RuneLite's Ground Markers do. Hold Shift and
 right-click a tile for **Mark tile**; a marked tile's Shift menu has **Unmark tile**, **Label tile**
@@ -199,6 +201,19 @@ show it, remembering the loot between sessions (per account, RuneLite's saved fo
 chat line for each npc or player kill ("You've killed a Goblin for 1.2K loot.") and the value of a
 Barrows chest. Not here from RuneLite: its loot sync with RuneLite's website, and the sources 634 or
 the server does not have (raids, Wintertodt and the rest of the later game).
+
+**Object Markers** is RuneLite's Object Markers. Hold Shift and right-click an object for **Mark
+object**; a marked object's menu has **Unmark object** and three submenus: **Mark border color** and
+**Mark fill color** (the colours already in use and RuneLite's five, or **Pick color** for the colour
+picker; the fill also has **Reset**) and **Mark style** (**Hull**, **Outline**, **Clickbox**, **Tile**,
+and **Reset** back to the settings). Settings: which styles a marker without its own uses, the marker
+colour, a fill colour for new markers, the border width and the outline's feather. The markers are kept
+by map region in RuneLite's JSON, so RuneLite's markers paste into the settings file
+(`plugin-config/objectindicators.properties`, `region_<id>=[...]`). An object that changes with your
+progress (a tree, a door, a farming patch) is drawn only while it is the one you marked, by name. Not
+quite RuneLite: 634's click box for an object is the game's own picking area (rounded), not RuneLite's
+box; and the hull and outline are worked out from the game's own picking of the model, sampled a few
+pixels apart on a large object.
 
 ## Writing a plugin
 

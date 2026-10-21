@@ -326,4 +326,29 @@ interface ClientApi {
 	 * [MenuAction] as an entry of the main menu would. Since API 9.
 	 */
 	fun addSubmenuEntry(submenu: Int, label: String, clickType: Int)
+
+	/**
+	 * What location [baseId] is now: a location that changes with the player's variables (a door
+	 * that is open, a tree that is a stump, a farming patch) is another location type at times; this
+	 * is that type's id, or [baseId] itself when it does not change, -1 for none. [MenuEntryAdded]
+	 * names a location by this id, [locsAt] by its base one. Since API 10.
+	 */
+	fun resolveLoc(baseId: Int): Int
+
+	/**
+	 * The convex hull of location [baseId] (its base or its current id) on scene tile ([tileX],
+	 * [tileY]) as drawn this frame, view-relative like [projectPoint], into [xs] and [ys]; the point
+	 * count (up to their size), 0 when it is not on the screen. Since API 10.
+	 */
+	fun locHull(tileX: Int, tileY: Int, level: Int, baseId: Int, xs: IntArray, ys: IntArray): Int
+
+	/** The game's own click box for the location, as [locHull] gives a hull: the area a click on it lands in. Since API 10. */
+	fun locClickbox(tileX: Int, tileY: Int, level: Int, baseId: Int, xs: IntArray, ys: IntArray): Int
+
+	/**
+	 * Draws the location's outline, the line around its model's shape on the screen [width] pixels
+	 * wide in [argb], its outer [feather] pixels fading (RuneLite's model outline); only inside an
+	 * overlay's or a frame listener's draw. False when it is not on the screen. Since API 10.
+	 */
+	fun locOutline(tileX: Int, tileY: Int, level: Int, baseId: Int, width: Int, feather: Int, argb: Int): Boolean
 }
