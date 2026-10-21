@@ -55,8 +55,11 @@ object DiscordGameEvents {
 	@JvmField
 	val TRAINING: Array<DiscordGameEvent> = Array(Skill.COUNT) { skill -> training(skill) }
 
+	/** Every place, by category: one function each, since a single initialiser would pass the JVM's 8000-byte JIT limit (checkClasses). */
 	@JvmField
-	val AREAS: Array<DiscordGameEvent> = arrayOf(
+	val AREAS: Array<DiscordGameEvent> = bosses() + cities() + dungeons() + minigames() + regions()
+
+	private fun bosses(): Array<DiscordGameEvent> = arrayOf(
 		area("Chaos Elemental", DiscordAreaType.BOSSES, 12861),
 		area("Commander Zilyana", DiscordAreaType.BOSSES, 11602),
 		area("Corporeal Beast", DiscordAreaType.BOSSES, 11842, 11844),
@@ -69,6 +72,9 @@ object DiscordGameEvents {
 		area("Kree'arra", DiscordAreaType.BOSSES, 11346),
 		area("Nex", DiscordAreaType.BOSSES, 11601),
 		area("Tormented Demons", DiscordAreaType.BOSSES, 10831),
+	)
+
+	private fun cities(): Array<DiscordGameEvent> = arrayOf(
 		area("Al Kharid", DiscordAreaType.CITIES, 13105, 13106),
 		area("Ardougne", DiscordAreaType.CITIES, 9779, 9780, 10035, 10036, 10291, 10292, 10547, 10548),
 		area("Bandit Camp", DiscordAreaType.CITIES, 12590),
@@ -124,6 +130,9 @@ object DiscordGameEvents {
 		area("Witchaven", DiscordAreaType.CITIES, 10803),
 		area("Yanille", DiscordAreaType.CITIES, 10032, 10288),
 		area("Zanaris", DiscordAreaType.CITIES, 9285, 9540, 9541, 9797),
+	)
+
+	private fun dungeons(): Array<DiscordGameEvent> = arrayOf(
 		area("Abandoned Mine", DiscordAreaType.DUNGEONS, 10821, 10822, 10823, 11077, 11078, 11079, 13618, 13718),
 		area("Ah Za Rhoon", DiscordAreaType.DUNGEONS, 11666),
 		area("Ancient Cavern", DiscordAreaType.DUNGEONS, 6483, 6995),
@@ -208,6 +217,9 @@ object DiscordGameEvents {
 		area("Witchhaven Shrine Dungeon", DiscordAreaType.DUNGEONS, 10903),
 		area("Wizards' Tower Basement", DiscordAreaType.DUNGEONS, 12437),
 		area("Yanille Agility Dungeon", DiscordAreaType.DUNGEONS, 10388),
+	)
+
+	private fun minigames(): Array<DiscordGameEvent> = arrayOf(
 		area("Ardougne Rat Pits", DiscordAreaType.MINIGAMES, 10646),
 		area("Barbarian Assault", DiscordAreaType.MINIGAMES, 7508, 7509, 10322),
 		area("Barrows", DiscordAreaType.MINIGAMES, 14131, 14231),
@@ -232,6 +244,9 @@ object DiscordGameEvents {
 		area("Tzhaar Fight Caves", DiscordAreaType.MINIGAMES, 9551),
 		area("Tzhaar Fight Pits", DiscordAreaType.MINIGAMES, 9552),
 		area("Varrock Rat Pits", DiscordAreaType.MINIGAMES, 11599),
+	)
+
+	private fun regions(): Array<DiscordGameEvent> = arrayOf(
 		area("Abyssal Area", DiscordAreaType.REGIONS, 12108),
 		area("Agility Pyramid", DiscordAreaType.REGIONS, 12105, 13356),
 		area("Air Altar", DiscordAreaType.REGIONS, 11339),
