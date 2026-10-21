@@ -225,6 +225,9 @@ object Console {
 	@OriginalMember(owner = "client!km", name = "b", descriptor = "(Ljava/lang/String;I)V")
 	@JvmStatic
 	fun printToConsole(@OriginalArg(0) string: String?) {
+		if (com.jagex.game.runetek5.client.features.SmokeTest.ENABLED) {
+			println("CONSOLE " + string) // Not part of the original client: the smoke test reads the console in its log
+		}
 		if (Console.displayedOutput == null) {
 			Console.initialize()
 		}
