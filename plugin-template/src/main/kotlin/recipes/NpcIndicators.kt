@@ -31,12 +31,12 @@ class NpcIndicators : Plugin {
         fun untag(name: String) { names.removeAll { it.equals(name, ignoreCase = true) }; save() }
         context.registerCommand("tag") { _, args -> if (args.isNotEmpty()) tag(args.joinToString(" ")) }
         context.registerCommand("untag") { _, args -> untag(args.joinToString(" ")) }
-        // the right-click menu: Tag on an npc not yet tagged, Untag on one that is; the id is the npc's index
-        val tagAction = context.registerMenuAction { _, _, _, index -> client.npc(index)?.name()?.let { tag(it) } }
-        val untagAction = context.registerMenuAction { _, _, _, index -> client.npc(index)?.name()?.let { untag(it) } }
+        // the right-click menu: Tag on an npc not yet tagged, Untag on one that is; the id is Npc.index, so npcByIndex, not npc(i)
+        val tagAction = context.registerMenuAction { _, _, _, index -> client.npcByIndex(index)?.name()?.let { tag(it) } }
+        val untagAction = context.registerMenuAction { _, _, _, index -> client.npcByIndex(index)?.name()?.let { untag(it) } }
         context.events().subscribe(Events.MENU_ENTRY_ADDED) { event ->
             if (event.target === MenuTarget.NPC) {
-                val name = client.npc(event.id)?.name()
+                val name = client.npcByIndex(event.id)?.name()
                 if (name != null) client.addMenuEntry(if (tagged(name)) "Untag" else "Tag", if (tagged(name)) untagAction else tagAction)
             }
         }
