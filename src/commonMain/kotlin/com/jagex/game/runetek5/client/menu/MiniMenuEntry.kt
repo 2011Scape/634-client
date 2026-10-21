@@ -70,7 +70,7 @@ class MiniMenuEntry : CacheableNode, MenuEntry {
 
 	@OriginalMember(owner = "client!db", name = "F", descriptor = "Ljava/lang/String;")
 	@JvmField
-	val op: String?
+	var op: String? // Not part of the original client: a var, so that a plugin can recolour an entry's target (PluginRuntime.retargetMenuEntry)
 
 	@OriginalMember(owner = "client!db", name = "R", descriptor = "Z")
 	@JvmField

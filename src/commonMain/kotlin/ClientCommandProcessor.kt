@@ -1,12 +1,9 @@
 import com.jagex.game.runetek5.plugin.PluginRuntime
-import com.jagex.game.runetek5.client.features.GroundItemLabels
 import com.jagex.game.runetek5.client.features.HdSettings
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
 import com.jagex.game.runetek5.client.features.PluginManagerScreen
 import com.jagex.game.runetek5.client.features.HdFallback
 import com.jagex.game.runetek5.graphics.ToolkitType
-import com.jagex.game.runetek5.client.features.NpcLabels
-import com.jagex.game.runetek5.client.features.TileMarkers
 import com.jagex.game.runetek5.network.packet.TcpPacket
 import com.jagex.game.runetek5.client.window.WindowModeType
 import com.jagex.game.runetek5.core.constants.MainLogicStep
@@ -119,24 +116,6 @@ object ClientCommandProcessor {
 			@Pc(0) val antialiasing: String? = ClientFeatures.antialiasingCommand(string, ClientState.activeToolkit)
 			if (antialiasing != null) {
 				Console.printToConsole(antialiasing)
-				return
-			}
-			// Not part of the original client: turns the ground item labels on and off (GroundItemLabels).
-			if (string!!.equals("grounditems", ignoreCase = true)) {
-				GroundItemLabels.enabled = !GroundItemLabels.enabled
-				Console.printToConsole(if (GroundItemLabels.enabled) "Ground item labels enabled." else "Ground item labels disabled.")
-				return
-			}
-			// Not part of the original client: turns the npc labels on and off (NpcLabels).
-			if (string.equals("npclabels", ignoreCase = true)) {
-				NpcLabels.enabled = !NpcLabels.enabled
-				Console.printToConsole(if (NpcLabels.enabled) "Npc labels enabled." else "Npc labels disabled.")
-				return
-			}
-			// Not part of the original client: turns the tile markers on and off (TileMarkers).
-			if (string.equals("tilemarkers", ignoreCase = true)) {
-				TileMarkers.enabled = !TileMarkers.enabled
-				Console.printToConsole(if (TileMarkers.enabled) "Tile markers enabled." else "Tile markers disabled.")
 				return
 			}
 			if (string.equals("shiftdrop", ignoreCase = true)) {

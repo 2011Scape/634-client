@@ -29,7 +29,7 @@ import kotlin.jvm.JvmStatic
 object NamePlates : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("nameplates", "Name plates", "1", PluginApi.VERSION, "Other players' names over their heads: red when attackable, green for friends, blue for your friends chat (::nameplates turns it on and off).", "634-client")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("nameplates", "Name plates", "1", PluginApi.VERSION, "Other players' names over their heads: red when attackable, green for friends, blue for your friends chat (::nameplates turns it on and off).", "Pixel")
 
 	const val ATTACKABLE: Int = 0xFFFF3030.toInt()
 

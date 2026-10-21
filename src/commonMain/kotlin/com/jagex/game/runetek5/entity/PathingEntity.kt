@@ -73,6 +73,68 @@ abstract class PathingEntity : AbstractInteractiveEntity, Actor {
 		return this.healthRatio
 	}
 
+	override fun tileX(): Int {
+		return (this.x - (this.getSize() - 1) * 256) shr 9
+	}
+
+	override fun tileY(): Int {
+		return (this.z - (this.getSize() - 1) * 256) shr 9
+	}
+
+	override fun serverTileX(): Int {
+		return this.movementBaseX[0]
+	}
+
+	override fun serverTileY(): Int {
+		return this.movementBaseY[0]
+	}
+
+	override fun isDying(): Boolean {
+		return this.healthRatio == 0 && this.healthBarEndCycle > ClientState.clientCycle
+	}
+
+	/** Not part of the original client: the body model's bounds as it was last drawn, for plugin.api.ClientApi.actorHull; [hullCycle] says which frame. */
+	@JvmField
+	var hullCycle: Int = -1
+
+	@JvmField
+	var hullMinX: Int = 0
+
+	@JvmField
+	var hullMaxX: Int = 0
+
+	@JvmField
+	var hullMinY: Int = 0
+
+	@JvmField
+	var hullMaxY: Int = 0
+
+	@JvmField
+	var hullMinZ: Int = 0
+
+	@JvmField
+	var hullMaxZ: Int = 0
+
+	/** The yaw the model was rotated by and the y it was placed at, as the render's matrix had them. */
+	@JvmField
+	var hullYaw: Int = 0
+
+	@JvmField
+	var hullY: Int = 0
+
+	/** Not part of the original client: keeps the drawn body model's bounds (see [hullCycle]). */
+	fun recordHull(model: Model, yaw: Int, y: Int) {
+		hullMinX = model.V()
+		hullMaxX = model.RA()
+		hullMinY = model.fa()
+		hullMaxY = model.EA()
+		hullMinZ = model.HA()
+		hullMaxZ = model.G()
+		hullYaw = yaw
+		hullY = y
+		hullCycle = SceneDrawer.timesSceneRendered
+	}
+
 	override fun isDrawnThisFrame(): Boolean {
 		return SceneDrawer.timesSceneRendered == this.drawCycle
 	}

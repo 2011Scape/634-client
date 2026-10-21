@@ -58,6 +58,16 @@ class PluginRuntimeTest {
 
 		override fun interacting(): Actor? = null
 
+		override fun tileX(): Int = 0
+
+		override fun tileY(): Int = 0
+
+		override fun serverTileX(): Int = 0
+
+		override fun serverTileY(): Int = 0
+
+		override fun isDying(): Boolean = false
+
 		override fun orientation(): Int = 0
 
 		override fun isRunning(): Boolean = false

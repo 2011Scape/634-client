@@ -20,8 +20,8 @@ import kotlin.jvm.JvmStatic
 /**
  * Not part of the original client: when a skill's experience goes up, a "+N Skill" drop rises
  * near the top of the game view, left of the minimap, and fades. The first update of each skill after login only
- * records its experience, so logging in shows no drops. On with `client.xpDrops=true`, the console
- * command `xpdrops` or the plugin manager, kept in the plugin's settings.
+ * records its experience, so logging in shows no drops. On unless turned off with the console
+ * command `xpdrops` or in the plugin manager, kept in the plugin's settings.
  *
  * A built-in plugin (BuiltinPlugins, docs/PLUGINS.md): it hears of each stat update, the logout
  * and the frame through the plugin API, as a plugin from a jar would, and shows what the API is for.
@@ -29,7 +29,7 @@ import kotlin.jvm.JvmStatic
 object XpDrops : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("xpdrops", "Experience drops", "1", PluginApi.VERSION, "A \"+N Skill\" drop near the minimap when experience goes up (::xpdrops turns it on and off).", "634-client")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("xpdrops", "Experience drops", "1", PluginApi.VERSION, "A \"+N Skill\" drop near the minimap when experience goes up (::xpdrops turns it on and off).", "Pixel")
 
 	@JvmField
 	var enabled: Boolean = false
@@ -98,9 +98,8 @@ object XpDrops : Plugin {
 
 	override fun start(context: PluginContext) {
 		this.context = context
-		val default: Boolean = lang.getBoolean("client.xpDrops")
-		enabled = context.config().getBoolean("enabled", default)
-		context.settings().toggle("enabled", "Experience drops", default)
+		enabled = context.config().getBoolean("enabled", true)
+		context.settings().toggle("enabled", "Experience drops", true)
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
 		context.events().subscribe(Events.STAT_CHANGED, statListener)
 		context.events().subscribe(Events.GAME_STATE_CHANGED, stateListener)

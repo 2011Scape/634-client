@@ -42,11 +42,20 @@ class PluginSchemaImpl : SettingsSchema {
 		}
 	}
 
+	override fun text(key: String, label: String, default: String, maxLength: Int) {
+		if (!has(key)) {
+			entries.add(Entry(TEXT, key, label, default, 0, 0, if (maxLength < 1) 1 else maxLength, 1, null))
+		}
+	}
+
 	companion object {
 		const val TOGGLE: Int = 0
 
 		const val NUMBER: Int = 1
 
 		const val CHOICE: Int = 2
+
+		/** A line of text; [Entry.max] is its longest. */
+		const val TEXT: Int = 3
 	}
 }

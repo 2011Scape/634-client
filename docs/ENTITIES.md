@@ -96,11 +96,14 @@ The server sends `NPC_UPDATE`. The decoder calls `NpcUpdate.decodeNpcUpdate`, wh
    - the gfx step (spot animation, mask `0x20`);
    - the chat step (forced chat, `0x1000`).
 
-## Example: npc labels
+## Example: npc indicators
 
-`client/features/NpcLabels` reads the npc list the way the overhead text does
-(`OverlayManager.drawEntities`): it walks `NPCList.NPC_UPDATE_INDICES` (this cycle's npcs), looks
-each up in `NPCList.NPC_MAP`, takes `NPCEntity.npcType` (through `getMultiNpc` when the type has
-`alternativeIds`, for npcs that transform with a varp or varbit), skips npcs not drawn this frame or
-not on the player's level, and projects the point at the npc's overhead height (`getY()`) with
-`OverlayManager.projectEntityToScreen`. The label is the type's `name` and `combatLevel`.
+The plugin API's npc reads (`ClientApiImpl.npc`, `npcCount`, `projectActor`) walk the npc list the
+way the overhead text does (`OverlayManager.drawEntities`): `NPCList.NPC_UPDATE_INDICES` (this
+cycle's npcs), each looked up in `NPCList.NPC_MAP`, its `NPCEntity.npcType` (through `getMultiNpc`
+when the type has `alternativeIds`, for npcs that transform with a varp or varbit), skipped when not
+drawn this frame, and projected at the npc's overhead height (`getY()`) with
+`OverlayManager.projectEntityToScreen`. The built-in npc indicators plugin
+(`client/features/NpcIndicators`) labels and outlines npcs on that API; its hull is the body model's
+bounding box, which `NPCEntity.render` records (`PathingEntity.recordHull`) and
+`ClientApi.actorHull` projects corner by corner (`OverlayManager.projectWorldPoint`).

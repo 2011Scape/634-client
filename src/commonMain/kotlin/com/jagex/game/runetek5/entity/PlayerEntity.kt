@@ -615,6 +615,7 @@ class PlayerEntity : PathingEntity(), Player {
 		}
 		matrix.rotate(rotation)
 		matrix.translate(super.x, super.y - super.groundContouredOffsetY - 5, super.z)
+		super.models[0]?.let { recordHull(it, rotation, super.y - super.groundContouredOffsetY - 5) } // Not part of the original client: for plugins (PathingEntity.recordHull)
 		if (pickableEntity == null) {
 			pickableEntity = PickableEntity.obtain(super.models.size, true)
 		}

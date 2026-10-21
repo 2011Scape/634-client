@@ -1,7 +1,11 @@
 # Building a feature
 
-How to add something new to the client, from the features built so far: tile markers (`client/features/TileMarkers`), experience drops (`XpDrops`), npc labels
-(`NpcLabels`) and ground item labels (`GroundItemLabels`). Each is one class plus a few one-line hooks, behind a switch that is off by default.
+How to add something new to the client. The features built so far (experience drops, ground tiles,
+name plates, the idle notifier, the inventory value, the menu swapper) are all built-in plugins now
+(`BuiltinPlugins`, [PLUGINS.md](PLUGINS.md)): one class each on the plugin API, with no hooks in the
+original code, a page in the plugin manager, and the same code a third party could ship. First ask
+whether the plugin API has what the feature needs; what follows is for the case it does not, and
+for the runtime's own hooks, each one line commented "Not part of the original client".
 
 ## The rules a feature follows
 
@@ -32,12 +36,12 @@ what the API cannot say.
 
 | You want to | Hook | Example |
 |---|---|---|
-| Draw on the game view, after the scene | a call in `ClientState.drawGameArea`, after `OverlayManager.drawEntities`, given the view's `areaX`, `areaY`, `width`, `height` | `TileMarkers.draw`, `NpcLabels.draw`, `XpDrops.draw` |
-| Add a mini-menu entry | `MiniMenu.addEntry(...)` where the menu is built (`ViewportMiniMenuPicking` for tiles and entities), with a click type of your own in `MiniMenuAction` (from 1000 up it sorts below the original entries) | `MiniMenuAction.TILE_MARKER` |
-| Act on a menu click | a branch for your click type in `MiniMenuActionExecutor.processMenuClick`, before the original branches; `param0`/`param1` are what you passed to `addEntry` | `TileMarkers.toggle` |
-| React to a server packet | a call in the packet's branch of `PacketDecoder.decode`, after its fields are read and before they are stored | `XpDrops.statUpdated` in `UPDATE_STAT` |
-| Clear state at logout | a call in `ClientLogout.logout` | `XpDrops.reset` |
-| Add a console command | a branch in `ClientCommandProcessor`, beside `tilemarkers` and `xpdrops` | `npclabels` |
+| Draw on the game view, after the scene | a call in `ClientState.drawGameArea`, after `OverlayManager.drawEntities`, given the view's `areaX`, `areaY`, `width`, `height` | `PluginRuntime.drawViewport` (the plugins' overlays) |
+| Add a mini-menu entry | `MiniMenu.addEntry(...)` where the menu is built (`ViewportMiniMenuPicking` for tiles and entities), with a click type of your own in `MiniMenuAction` (from 1000 up it sorts below the original entries) | `MiniMenuAction.PLUGIN_FIRST` (the plugins' entries) |
+| Act on a menu click | a branch for your click type in `MiniMenuActionExecutor.processMenuClick`, before the original branches; `param0`/`param1` are what you passed to `addEntry` | `PluginRuntime.menuClicked` |
+| React to a server packet | a call in the packet's branch of `PacketDecoder.decode`, after its fields are read and before they are stored | `PluginRuntime.statChanged` in `UPDATE_STAT` |
+| Clear state at logout | a call in `ClientLogout.logout` | `PluginRuntime.stop` |
+| Add a console command | a branch in `ClientCommandProcessor`, before `PluginRuntime.consoleCommand` | `pluginmanager` |
 
 The root package (`client`, `PacketDecoder`, `ClientCommandProcessor`, the executor and the
 picking) can call a packaged feature class, and in Kotlin a packaged class can import a
@@ -111,6 +115,6 @@ the desktop, `./gradlew runClient -Pclient.test=smoke -Pclient.test.bench=300`.
 ## Where to read next
 
 The area guides say where each part of the client lives and how it fits the main loop, and each
-ends with the feature that used it: [RENDERING.md](RENDERING.md) (tile markers),
-[NETWORK.md](NETWORK.md) (experience drops), [ENTITIES.md](ENTITIES.md) (npc labels),
-[CONFIG.md](CONFIG.md) (ground item labels), and [CS2.md](CS2.md), [CACHE.md](CACHE.md), [CLIENT.md](CLIENT.md).
+ends with the feature that used it: [RENDERING.md](RENDERING.md) (ground tiles),
+[NETWORK.md](NETWORK.md) (experience drops), [ENTITIES.md](ENTITIES.md) (npc indicators),
+[CONFIG.md](CONFIG.md) (ground item values), and [CS2.md](CS2.md), [CACHE.md](CACHE.md), [CLIENT.md](CLIENT.md).

@@ -23,6 +23,7 @@ import com.jagex.game.runetek5.graphics.font.AbstractFontRenderer
 import com.jagex.game.runetek5.graphics.font.FontManager
 import com.jagex.game.runetek5.graphics.font.FontMetrics
 import com.jagex.game.runetek5.graphics.gl.HitsplatSlotXOffsets
+import com.jagex.game.runetek5.graphics.Toolkit
 import com.jagex.game.runetek5.graphics.hint.HintArrow
 import com.jagex.game.runetek5.graphics.sprite.NativeSprite
 import com.jagex.game.runetek5.graphics.sprite.SpriteType
@@ -876,6 +877,30 @@ object OverlayManager {
 	@JvmStatic
 	fun projectToScreen(@OriginalArg(0) halfWidth: Int, @OriginalArg(1) heightOffset: Int, @OriginalArg(4) halfHeight: Int, @OriginalArg(5) level: Int, @OriginalArg(6) z: Int, @OriginalArg(8) x: Int) {
 		OverlayManager.projectToScreenWithOffset(level, heightOffset, halfHeight, x, 0, z, halfWidth)
+	}
+
+	/**
+	 * Not part of the original client: projects a scene point at any height ([y] as the models have
+	 * it, up being negative) into [projectedScreenPosition], view-relative; false when it is off the
+	 * screen. The camera is set the way [projectToScreenWithOffset] sets it.
+	 */
+	@JvmStatic
+	fun projectWorldPoint(x: Int, y: Int, z: Int): Boolean {
+		val toolkit: Toolkit = ClientState.activeToolkit ?: return false
+		if (OrthoMode.orthoEnabled) {
+			OrthoMode.applyOrthoViewport(true)
+		} else {
+			toolkit.setCamera(ClientState.aClass30_3)
+		}
+		if (OrthoMode.orthographicProjection) {
+			toolkit.HA(x, y, z, HintArrow.scaledOrthoZoom, OverlayManager.projectedScreenPosition)
+		} else {
+			toolkit.da(x, y, z, OverlayManager.projectedScreenPosition)
+		}
+		if (OrthoMode.orthoEnabled) {
+			OrthoMode.restoreOrthoCamera()
+		}
+		return OverlayManager.projectedScreenPosition[0] >= 0
 	}
 
 	@OriginalMember(owner = "client!lp", name = "a", descriptor = "(IIIIIIIBII)V")

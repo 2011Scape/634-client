@@ -47,7 +47,7 @@ actual fun readImage(file: File): BufferedImage? {
  * browser has (0, 1, 2), stopping a series at the first one missing.
  */
 suspend fun preloadSmokeReferences(dir: String) {
-	val suffixes: Array<String> = arrayOf("", "-grounditems", "-npclabels", "-tilemarker", "-xpdrop")
+	val suffixes: Array<String> = arrayOf("", "-tilemarker", "-xpdrop")
 	for (toolkit in 0..2) {
 		for (suffix in suffixes) {
 			var n: Int = 1

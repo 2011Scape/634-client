@@ -108,12 +108,6 @@ object MiniMenuAction {
 	const val OP_MAPELEMENT2: Int = 1012
 
 	/**
-	 * Not part of the original client: marks or unmarks a tile (TileMarkers). An id the original
-	 * menu never uses, from 1000 up so that it sorts below the walk entry.
-	 */
-	const val TILE_MARKER: Int = 1013
-
-	/**
 	 * Not part of the original client: the click types the plugins' menu actions get
 	 * (PluginRuntime.registerMenuAction), one each, from 1100 up so that they sort below the
 	 * original entries and under 2000, the "below" flag.

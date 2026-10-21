@@ -3,6 +3,8 @@ package com.jagex.game.runetek5.plugin
 import com.jagex.game.runetek5.plugin.api.PluginApi
 import com.jagex.game.runetek5.plugin.loader.PluginClassLoader
 import com.jagex.game.runetek5.plugin.loader.PluginLoader
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.file.Files
@@ -10,6 +12,7 @@ import java.util.jar.Attributes
 import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
+import javax.imageio.ImageIO
 import javax.tools.JavaCompiler
 import javax.tools.ToolProvider
 import kotlin.test.Test
@@ -73,8 +76,8 @@ class PluginLoaderTest {
 		}
 	}
 
-	/** Compiles [sources] (class name to Java source) and jars them with [attributes], plus empty [extraEntries]. */
-	private fun jar(dir: File, name: String, attributes: Map<String, String>, sources: Map<String, String>, extraEntries: List<String> = listOf()): File {
+	/** Compiles [sources] (class name to Java source) and jars them with [attributes], plus empty [extraEntries] and the [resources] given as bytes. */
+	private fun jar(dir: File, name: String, attributes: Map<String, String>, sources: Map<String, String>, extraEntries: List<String> = listOf(), resources: Map<String, ByteArray> = mapOf()): File {
 		val sourceDir: File = File(dir, "src-" + name)
 		val classDir: File = File(dir, "classes-" + name)
 		sourceDir.mkdirs()
@@ -108,8 +111,26 @@ class PluginLoaderTest {
 				out.putNextEntry(JarEntry(entry))
 				out.closeEntry()
 			}
+			for ((entry, bytes) in resources) {
+				out.putNextEntry(JarEntry(entry))
+				out.write(bytes)
+				out.closeEntry()
+			}
 		}
 		return jarFile
+	}
+
+	/** A [width] by [height] PNG whose pixels are all [argb]. */
+	private fun png(width: Int, height: Int, argb: Int): ByteArray {
+		val image: BufferedImage = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+		for (y in 0 until height) {
+			for (x in 0 until width) {
+				image.setRGB(x, y, argb)
+			}
+		}
+		val out: ByteArrayOutputStream = ByteArrayOutputStream()
+		ImageIO.write(image, "png", out)
+		return out.toByteArray()
 	}
 
 	private val helloAttributes: Map<String, String> = mapOf(
@@ -234,6 +255,48 @@ class PluginLoaderTest {
 			val registration: PluginRegistration = PluginLoader.load(dir)[0]
 			assertEquals(PluginRegistration.FAILED, registration.state)
 			assertTrue(registration.error!!.contains("fixture.Nowhere"), registration.error)
+		}
+	}
+
+	@Test
+	fun aPluginIconIsReadFromTheJar() {
+		inTempDir { dir ->
+			jar(dir, "iconed", helloAttributes + ("Plugin-Icon" to "icons/hello.png"), mapOf("fixture.Hello" to helloSource), resources = mapOf("icons/hello.png" to png(2, 3, 0x80FF8040.toInt())))
+			val registration: PluginRegistration = PluginLoader.load(dir)[0]
+			assertNull(registration.error)
+			assertEquals(PluginRegistration.LOADED, registration.state)
+			val icon: PluginIcon = assertNotNull(registration.icon)
+			assertEquals(2, icon.width)
+			assertEquals(3, icon.height)
+			assertEquals(6, icon.pixels.size)
+			assertEquals(0x80FF8040.toInt(), icon.pixels[5])
+		}
+	}
+
+	@Test
+	fun aMissingOrBadIconDoesNotStopThePlugin() {
+		inTempDir { dir ->
+			jar(dir, "a-missing", helloAttributes + ("Plugin-Icon" to "nowhere.png"), mapOf("fixture.Hello" to helloSource))
+			jar(dir, "b-garbage", helloAttributes + ("Plugin-Id" to "garbage") + ("Plugin-Icon" to "icon.png"), mapOf("fixture.Hello" to helloSource), resources = mapOf("icon.png" to "not a png".toByteArray()))
+			jar(dir, "c-huge", helloAttributes + ("Plugin-Id" to "huge") + ("Plugin-Icon" to "icon.png"), mapOf("fixture.Hello" to helloSource), resources = mapOf("icon.png" to png(PluginIcon.MAX_SIZE + 1, 4, -1)))
+			val loaded: Array<PluginRegistration> = PluginLoader.load(dir)
+			assertEquals(3, loaded.size)
+			for (registration in loaded) {
+				assertNull(registration.error, registration.source)
+				assertEquals(PluginRegistration.LOADED, registration.state, registration.source)
+				assertNull(registration.icon, registration.source)
+			}
+		}
+	}
+
+	@Test
+	fun anIconPathThatLeavesTheJarIsRefused() {
+		inTempDir { dir ->
+			jar(dir, "escaping", helloAttributes + ("Plugin-Icon" to "../outside.png"), mapOf("fixture.Hello" to helloSource))
+			val registration: PluginRegistration = PluginLoader.load(dir)[0]
+			assertEquals(PluginRegistration.FAILED, registration.state)
+			assertTrue(registration.error!!.contains("Plugin-Icon"), registration.error)
+			assertEquals("hello", registration.descriptor.id, "the descriptor is kept for ::plugins")
 		}
 	}
 

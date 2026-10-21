@@ -1,10 +1,14 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.client.features.GroundTiles
 import com.jagex.game.runetek5.client.features.IdleNotifier
 import com.jagex.game.runetek5.client.features.InventoryValue
-import com.jagex.game.runetek5.client.features.MenuSwapper
+import com.jagex.game.runetek5.client.features.MenuEntrySwapper
 import com.jagex.game.runetek5.client.features.NamePlates
+import com.jagex.game.runetek5.client.features.NpcIndicators
 import com.jagex.game.runetek5.client.features.XpDrops
+import com.jagex.game.runetek5.plugin.api.Plugin
+import com.jagex.game.runetek5.plugin.api.PluginDescriptor
 import kotlin.jvm.JvmStatic
 
 /**
@@ -17,11 +21,20 @@ object BuiltinPlugins {
 	@JvmStatic
 	fun all(): Array<PluginRegistration> {
 		return arrayOf(
-			PluginRegistration(XpDrops.DESCRIPTOR, XpDrops, true, "built in"),
-			PluginRegistration(IdleNotifier.DESCRIPTOR, IdleNotifier, true, "built in"),
-			PluginRegistration(MenuSwapper.DESCRIPTOR, MenuSwapper, true, "built in"),
-			PluginRegistration(InventoryValue.DESCRIPTOR, InventoryValue, true, "built in"),
-			PluginRegistration(NamePlates.DESCRIPTOR, NamePlates, true, "built in"),
+			builtIn(XpDrops.DESCRIPTOR, XpDrops),
+			builtIn(IdleNotifier.DESCRIPTOR, IdleNotifier),
+			builtIn(MenuEntrySwapper.DESCRIPTOR, MenuEntrySwapper),
+			builtIn(InventoryValue.DESCRIPTOR, InventoryValue),
+			builtIn(NamePlates.DESCRIPTOR, NamePlates),
+			builtIn(GroundTiles.DESCRIPTOR, GroundTiles),
+			builtIn(NpcIndicators.DESCRIPTOR, NpcIndicators),
 		)
+	}
+
+	/** The registration of a built-in, with its icon from the client's own resources (`/plugins/<id>.png`) when there is one. */
+	private fun builtIn(descriptor: PluginDescriptor, plugin: Plugin): PluginRegistration {
+		val registration: PluginRegistration = PluginRegistration(descriptor, plugin, true, "built in")
+		registration.icon = PluginIcon.decode(lang.readResource("/plugins/" + descriptor.id + ".png"))
+		return registration
 	}
 }

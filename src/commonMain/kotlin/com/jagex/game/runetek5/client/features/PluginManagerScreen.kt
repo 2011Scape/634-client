@@ -15,6 +15,7 @@ import com.jagex.game.runetek5.graphics.Toolkit
 import com.jagex.game.runetek5.graphics.sprite.NativeSprite
 import com.jagex.game.runetek5.core.constants.MainLogicStep
 import com.jagex.game.runetek5.plugin.PluginContextImpl
+import com.jagex.game.runetek5.plugin.PluginIcon
 import com.jagex.game.runetek5.plugin.PluginRegistration
 import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.plugin.PluginSchemaImpl
@@ -84,6 +85,14 @@ object PluginManagerScreen {
 
 	private const val ICON_RESOURCE: String = "/plugins/icon.rgba"
 
+	/** The list rows' icons' sprite ids: this plus the registration's index, after [ICON_SPRITE]. */
+	private const val ROW_ICON_SPRITE: Int = ICON_SPRITE + 1
+
+	/** The rows' icon slot, which every row keeps so that the names line up, and the gap after it. */
+	private const val ICON_SLOT: Int = PluginIcon.SIZE
+
+	private const val ICON_GAP: Int = 8
+
 	/** The window's height while ours (the Custom page's), and its content layer's width. */
 	private const val HEIGHT: Int = 334
 
@@ -96,10 +105,6 @@ object PluginManagerScreen {
 	private const val SETTING_PITCH: Int = 24
 
 	private const val DIM: Int = 0x9f9684
-
-	private const val ON: Int = ClientPage.TEXT_TOP
-
-	private const val OFF: Int = 0xc06040
 
 	private const val FAILED: Int = 0xe05050
 
@@ -120,6 +125,16 @@ object PluginManagerScreen {
 	private const val A_EDIT: Int = 16
 	private const val A_ROW_HOVER: Int = 17
 	private const val A_ROW_LEAVE: Int = 18
+	private const val A_WHEEL: Int = 19
+
+	/** The content layer's visible height (the window's less its title bar), and the scrollbar's place in it. */
+	private const val BODY_HEIGHT: Int = HEIGHT - 29
+
+	private const val SCROLLBAR_X: Int = WIDTH - 10
+
+	private const val SCROLLBAR_WIDTH: Int = 6
+
+	private const val THUMB_MIN: Int = 12
 
 	/** The tooltip: the stock pale box with black text, lines wrapped to this width. */
 	private const val TIP_FILL: Int = 0xffffa0
@@ -133,6 +148,8 @@ object PluginManagerScreen {
 	private const val KEY_ESCAPE: Int = 13
 
 	private const val NUMBER_BOX_WIDTH: Int = 70
+
+	private const val TEXT_BOX_WIDTH: Int = 240
 
 	private const val MAX_DIGITS: Int = 9
 
@@ -180,12 +197,26 @@ object PluginManagerScreen {
 	/** The Plugins button's hit component in the Settings tab. */
 	private var tabButton: Component? = null
 
+	/** The settings page's content height, its scrollbar's track and thumb slots (-1 without one), and the plugin the page was last built for. */
+	private var settingsContent: Int = 0
+
+	private var scrollTrack: Int = -1
+
+	private var scrollThumb: Int = -1
+
+	private var scrolledFor: PluginRegistration? = null
+
 	private var icon: NativeSprite? = null
 
 	private var iconToolkit: Toolkit? = null
 
 	/** False once the icon resource was looked for and not found (the browser): the button says "Plugins" instead. */
 	private var iconAvailable: Boolean = true
+
+	/** The list rows' icons as sprites, by registration index, and the toolkit they were made for. */
+	private val rowIcons: HashMap<Int, NativeSprite> = HashMap()
+
+	private var rowIconToolkit: Toolkit? = null
 
 	// --- the Settings tab ---
 
@@ -196,6 +227,9 @@ object PluginManagerScreen {
 	 */
 	@JvmStatic
 	fun tick() {
+		if (open) {
+			ensureRowIcons()
+		}
 		val root: Component? = Interface.peekComponent(TAB_ROOT)
 		if (root == null) {
 			tabButton = null
@@ -288,6 +322,35 @@ object PluginManagerScreen {
 			pixels[i] = int(bytes, 8 + i * 4)
 		}
 		return toolkit.createNativeSprite(pixels, width, width, height, false)
+	}
+
+	/**
+	 * Each plugin's icon in the component sprite cache under [ROW_ICON_SPRITE] plus its index, made
+	 * for the active toolkit (again after a toolkit change) and put back whenever the cache was emptied.
+	 */
+	private fun ensureRowIcons() {
+		val toolkit: Toolkit = ClientState.activeToolkit ?: return
+		if (rowIconToolkit !== toolkit) {
+			rowIcons.clear()
+			rowIconToolkit = toolkit
+		}
+		for (i in 0 until PluginRuntime.count) {
+			ensureRowIcon(toolkit, i)
+		}
+	}
+
+	private fun ensureRowIcon(toolkit: Toolkit, i: Int) {
+		val icon: PluginIcon = PluginRuntime.registrations[i]?.icon ?: return
+		val id: Long = (ROW_ICON_SPRITE + i).toLong()
+		if (Component.NATIVE_SPRITE_CACHE.get(id) != null) {
+			return
+		}
+		var sprite: NativeSprite? = rowIcons[i]
+		if (sprite == null) {
+			sprite = toolkit.createNativeSprite(icon.pixels, icon.width, icon.width, icon.height, false) ?: return
+			rowIcons[i] = sprite
+		}
+		Component.NATIVE_SPRITE_CACHE.put(sprite, id, icon.width * icon.height * 4)
 	}
 
 	private fun int(bytes: ByteArray, at: Int): Int {
@@ -394,6 +457,9 @@ object PluginManagerScreen {
 		numberValue.clear()
 		editing = null
 		rowHits.clear()
+		scrollTrack = -1
+		scrollThumb = -1
+		settingsContent = 0
 	}
 
 	// --- the pages ---
@@ -403,16 +469,61 @@ object PluginManagerScreen {
 		hideTip()
 		val body: Component = Interface.getComponent(BODY) ?: return
 		forget()
+		ensureRowIcons()
 		val children: ArrayList<Component> = ArrayList()
 		val plugin: PluginRegistration? = selected
+		if (plugin !== scrolledFor) {
+			body.scrollY = 0 // another page: from its top
+			scrolledFor = plugin
+		}
 		if (plugin == null) {
 			listPage(children)
 		} else {
 			settingsPage(children, plugin)
 		}
 		body.slotChildren = children.toTypedArray<Component?>()
+		// a settings page taller than the layer scrolls: the layer draws and clips its children by scrollY, and the wheel comes to it as a hook
+		val scrolls: Boolean = plugin != null && settingsContent > BODY_HEIGHT
+		body.scrollHeight = if (scrolls) settingsContent else 0
+		body.hasScript = scrolls
+		body.onMouseMove = if (scrolls) arrayOf<Any?>(SENTINEL, A_WHEEL, 0) else null
+		if (!scrolls) {
+			body.scrollY = 0
+		}
 		Component.layoutChildren(false, body)
+		scrollTo(body.scrollY)
+	}
+
+	/** Scrolls the settings page to [y], held to its range, and puts the scrollbar where it now shows. */
+	private fun scrollTo(y: Int) {
+		val body: Component = Interface.getComponent(BODY) ?: return
+		val most: Int = maxOf(0, body.scrollHeight - BODY_HEIGHT)
+		body.scrollY = y.coerceIn(0, most)
+		if (scrollTrack >= 0 && scrollThumb >= 0 && most > 0) {
+			val thumbHeight: Int = maxOf(THUMB_MIN, BODY_HEIGHT * BODY_HEIGHT / body.scrollHeight)
+			val thumbY: Int = body.scrollY + (BODY_HEIGHT - thumbHeight) * body.scrollY / most
+			ClientPage.childOf(BODY, scrollTrack)?.basePositionY = body.scrollY
+			ClientPage.childOf(BODY, scrollThumb)?.let {
+				it.basePositionY = thumbY
+				it.baseHeight = thumbHeight
+			}
+			Component.layoutChildren(false, body)
+		}
 		Component.redrawComponent(body)
+	}
+
+	/** The smoke test's wheel: [notches] turns down (up when negative). */
+	@JvmStatic
+	fun scrollBy(notches: Int) {
+		val body: Component = Interface.getComponent(BODY) ?: return
+		scrollTo(body.scrollY + notches * SETTING_PITCH)
+	}
+
+	/** The smoke test's read: the scroll position, the content height (0 when the page does not scroll) and the visible height. */
+	@JvmStatic
+	fun scrollPosition(): IntArray {
+		val body: Component = Interface.getComponent(BODY) ?: return intArrayOf(0, 0, BODY_HEIGHT)
+		return intArrayOf(body.scrollY, body.scrollHeight, BODY_HEIGHT)
 	}
 
 	private fun button(children: ArrayList<Component>, label: String, selected: Boolean, action: Int, index: Int, x: Int, y: Int, width: Int) {
@@ -424,15 +535,17 @@ object PluginManagerScreen {
 		return if (n == 0) 1 else (n + ROWS_PER_PAGE - 1) / ROWS_PER_PAGE
 	}
 
-	/** Every plugin, [ROWS_PER_PAGE] a page: name, what it is and its state, a Settings button for one with settings, and On or Off. */
+	/**
+	 * Every plugin, [ROWS_PER_PAGE] a page: its icon, name, version, author and where it came from (or
+	 * why it failed), a Settings button for one with settings, and its tickbox.
+	 */
 	private fun listPage(children: ArrayList<Component>) {
 		val pages: Int = pageCount()
 		if (page >= pages) {
 			page = pages - 1
 		}
-		val onWidth: Int = maxOf(ClientPage.textWidth(ClientPage.FONT_BUTTON, "On"), ClientPage.textWidth(ClientPage.FONT_BUTTON, "Off")) + 30
 		val settingsWidth: Int = ClientPage.textWidth(ClientPage.FONT_BUTTON, "Settings") + 30
-		val x0: Int = 12
+		val x0: Int = 12 + ICON_SLOT + ICON_GAP
 		var y: Int = 10
 		val first: Int = page * ROWS_PER_PAGE
 		val last: Int = minOf(PluginRuntime.count, first + ROWS_PER_PAGE)
@@ -445,17 +558,20 @@ object PluginManagerScreen {
 			hit.onMouseLeaveScript = arrayOf<Any?>(SENTINEL, A_ROW_LEAVE, i)
 			children.add(hit)
 			rowHits[i] = hit
+			if (registration.icon != null) {
+				children.add(ClientPage.sprite(BODY, children.size, 12, y - 1, ICON_SLOT, ICON_SLOT, ROW_ICON_SPRITE + i, false, false, false))
+			}
 			children.add(ClientPage.text(BODY, children.size, x0, y, 190, 16, ClientPage.FONT_LABEL, registration.descriptor.name, ClientPage.TEXT, 0, 1, true))
-			val state: String = stateLine(registration)
-			val stateColour: Int = if (registration.state == PluginRegistration.FAILED) FAILED else DIM
-			children.add(ClientPage.text(BODY, children.size, x0, y + 13, WIDTH - 24, 12, ClientPage.FONT_SMALL, state, stateColour, 0, 1, false))
-			var bx: Int = WIDTH - 12 - onWidth
+			val detail: String = detailLine(registration, true)
+			val detailColour: Int = if (registration.state == PluginRegistration.FAILED) FAILED else DIM
+			children.add(ClientPage.text(BODY, children.size, x0, y + 13, WIDTH - 12 - x0, 12, ClientPage.FONT_SMALL, detail, detailColour, 0, 1, false))
+			var bx: Int = WIDTH - 12 - ClientPage.TICK_SIZE
 			val on: Boolean = isOn(registration)
 			if (switchable(registration)) {
-				button(children, if (on) "On" else "Off", on, A_TOGGLE, i, bx, y - 2, onWidth)
+				ClientPage.tickbox(BODY, children, on, SENTINEL, A_TOGGLE, i, bx, y + 4, if (on) "Turn off" else "Turn on")
 			}
 			if (hasSettings(registration)) {
-				bx -= settingsWidth + 6
+				bx -= settingsWidth + 10
 				button(children, "Settings", false, A_SETTINGS, i, bx, y - 2, settingsWidth)
 			}
 			if (i < last - 1) {
@@ -476,15 +592,26 @@ object PluginManagerScreen {
 		}
 	}
 
-	/** "built in · on", "jar name · 1.2 · off", "failed: why". */
-	private fun stateLine(registration: PluginRegistration): String {
+	/**
+	 * "Version 1.2 · by Someone · built in" ("· always on" after it for a built-in without a switch,
+	 * since no button says so), without the source when [withSource] is false, or "failed: why".
+	 */
+	private fun detailLine(registration: PluginRegistration, withSource: Boolean): String {
 		val d = registration.descriptor
 		if (registration.state == PluginRegistration.FAILED) {
 			return "failed: " + (registration.error ?: "?")
 		}
-		val where: String = if (registration.builtIn) "built in" else registration.source
-		val state: String = if (registration.builtIn) (if (switchable(registration)) (if (isOn(registration)) "on" else "off") else "always on") else registration.stateName()
-		return d.id + " " + d.version + " · " + where + " · " + state
+		val line: StringBuilder = StringBuilder("Version ").append(d.version)
+		if (d.author.isNotEmpty()) {
+			line.append(" · by ").append(d.author)
+		}
+		if (withSource) {
+			line.append(" · ").append(if (registration.builtIn) "built in" else registration.source)
+		}
+		if (registration.builtIn && !switchable(registration)) {
+			line.append(" · always on")
+		}
+		return line.toString()
 	}
 
 	/** A built-in is switched by its "enabled" setting; a jar by starting and stopping it. */
@@ -542,15 +669,15 @@ object PluginManagerScreen {
 	private fun settingsPage(children: ArrayList<Component>, registration: PluginRegistration) {
 		val context: PluginContextImpl? = registration.context
 		children.add(ClientPage.text(BODY, children.size, 0, 2, WIDTH, 18, ClientPage.FONT_TITLE, registration.descriptor.name, ClientPage.TEXT, 1, 1, true))
+		children.add(ClientPage.text(BODY, children.size, 0, 20, WIDTH, 12, ClientPage.FONT_SMALL, detailLine(registration, false), DIM, 1, 1, false))
 		val backWidth: Int = ClientPage.textWidth(ClientPage.FONT_BUTTON, "Back") + 30
-		button(children, "Back", false, A_BACK, 0, (WIDTH - backWidth) / 2, HEIGHT - 29 - 30, backWidth)
 		if (context == null) {
-			children.add(ClientPage.text(BODY, children.size, 0, 40, WIDTH, 16, ClientPage.FONT_LABEL, "Turn the plugin on to change its settings.", DIM, 1, 1, false))
+			children.add(ClientPage.text(BODY, children.size, 0, 48, WIDTH, 16, ClientPage.FONT_LABEL, "Turn the plugin on to change its settings.", DIM, 1, 1, false))
+			button(children, "Back", false, A_BACK, 0, (WIDTH - backWidth) / 2, HEIGHT - 29 - 30, backWidth)
 			return
 		}
 		val config: PluginConfig = context.config()
 		val entries: ArrayList<PluginSchemaImpl.Entry> = context.schema.entries
-		val onWidth: Int = maxOf(ClientPage.textWidth(ClientPage.FONT_BUTTON, "On"), ClientPage.textWidth(ClientPage.FONT_BUTTON, "Off")) + 30
 		var boxWidth: Int = 0
 		for (entry in entries) {
 			val options: Array<String>? = entry.options
@@ -561,7 +688,7 @@ object PluginManagerScreen {
 			}
 		}
 		boxWidth += 21
-		var y: Int = 30
+		var y: Int = 40
 		for (i in 0 until entries.size) {
 			val entry: PluginSchemaImpl.Entry = entries[i]
 			if (entry.key == "enabled" && entry.kind == PluginSchemaImpl.TOGGLE) {
@@ -572,7 +699,7 @@ object PluginManagerScreen {
 			when (entry.kind) {
 				PluginSchemaImpl.TOGGLE -> {
 					val on: Boolean = config.getBoolean(entry.key, entry.defaultInt == 1)
-					button(children, if (on) "On" else "Off", on, A_SET_TOGGLE, i, right - onWidth, y - 2, onWidth)
+					ClientPage.tickbox(BODY, children, on, SENTINEL, A_SET_TOGGLE, i, right - ClientPage.TICK_SIZE, y, if (on) "Turn off" else "Turn on")
 				}
 				PluginSchemaImpl.NUMBER -> {
 					// a box to type into: click, digits, Enter; the range beside it
@@ -590,6 +717,21 @@ object PluginManagerScreen {
 					text.params = arrayOf<Any?>(SENTINEL, A_EDIT, i)
 					children.add(text)
 				}
+				PluginSchemaImpl.TEXT -> {
+					// a wider box for a line of text, typed the same way
+					val value: String = config.get(entry.key, entry.defaultText)
+					val bx: Int = right - TEXT_BOX_WIDTH
+					children.add(ClientPage.rect(BODY, children.size, bx, y - 1, TEXT_BOX_WIDTH, ClientPage.ITEM_HEIGHT + 4, ClientPage.BOX_FILL, true))
+					numberOutline[i] = children.size
+					children.add(ClientPage.rect(BODY, children.size, bx, y - 1, TEXT_BOX_WIDTH, ClientPage.ITEM_HEIGHT + 4, ClientPage.BOX_LINE, false))
+					numberValue[i] = children.size
+					val text: Component = ClientPage.text(BODY, children.size, bx + 4, y - 1, TEXT_BOX_WIDTH - 8, ClientPage.ITEM_HEIGHT + 4, ClientPage.FONT_LABEL, fitText(value, TEXT_BOX_WIDTH - 8), ClientPage.TEXT, 0, 1, false)
+					text.hasScript = true
+					text.addOptionName(0, "Edit")
+					text.opBase = ""
+					text.params = arrayOf<Any?>(SENTINEL, A_EDIT, i)
+					children.add(text)
+				}
 				PluginSchemaImpl.CHOICE -> {
 					val value: String = config.get(entry.key, entry.defaultText)
 					val slots: IntArray = IntArray(3)
@@ -599,8 +741,18 @@ object PluginManagerScreen {
 			}
 			y += SETTING_PITCH
 		}
-		if (y == 30) {
+		if (y == 40) {
 			children.add(ClientPage.text(BODY, children.size, 0, 40, WIDTH, 16, ClientPage.FONT_LABEL, "This plugin has no settings beyond its switch.", DIM, 1, 1, false))
+		}
+		// Back after the last row, at the window's bottom when the rows leave room; a taller page scrolls, with a bar at its right edge
+		val backY: Int = maxOf(HEIGHT - 29 - 30, y + 8)
+		button(children, "Back", false, A_BACK, 0, (WIDTH - backWidth) / 2, backY, backWidth)
+		settingsContent = backY + 30 // the button's 26 and a little under it: a page with room does not scroll
+		if (settingsContent > BODY_HEIGHT) {
+			scrollTrack = children.size
+			children.add(ClientPage.rect(BODY, children.size, SCROLLBAR_X, 0, SCROLLBAR_WIDTH, BODY_HEIGHT, ClientPage.BOX_FILL, true))
+			scrollThumb = children.size
+			children.add(ClientPage.rect(BODY, children.size, SCROLLBAR_X, 0, SCROLLBAR_WIDTH, THUMB_MIN, ClientPage.TEXT_TOP, true))
 		}
 	}
 
@@ -616,9 +768,23 @@ object PluginManagerScreen {
 		PluginRuntime.settingChanged(registration, entry.key)
 	}
 
-	// --- typing a number ---
+	// --- typing a number or a line of text ---
 
-	/** The number row [index] takes the keyboard: its box lights and shows the value with a cursor. */
+	/** The text, or as much of its end as fits in [width] pixels of the label font. */
+	private fun fitText(text: String, width: Int): String {
+		var shown: String = text
+		while (shown.isNotEmpty() && ClientPage.textWidth(ClientPage.FONT_LABEL, shown) > width) {
+			shown = shown.substring(1)
+		}
+		return shown
+	}
+
+	/** The value a box shows when it is not being typed into: the number, or the text. */
+	private fun settingText(config: PluginConfig, entry: PluginSchemaImpl.Entry): String {
+		return if (entry.kind == PluginSchemaImpl.TEXT) config.get(entry.key, entry.defaultText) else config.getInt(entry.key, entry.defaultInt).toString()
+	}
+
+	/** The number or text row [index] takes the keyboard: its box lights and shows the value with a cursor. */
 	private fun startEdit(index: Int) {
 		val registration: PluginRegistration = selected ?: return
 		val context: PluginContextImpl = registration.context ?: return
@@ -628,7 +794,7 @@ object PluginManagerScreen {
 		closeEdit()
 		closePopup()
 		editing = entry
-		editText = context.config().getInt(entry.key, entry.defaultInt).toString()
+		editText = settingText(context.config(), entry)
 		editOutline = outline
 		editValue = value
 		ClientPage.setColour(BODY, outline, ClientPage.BOX_LINE_OPEN)
@@ -637,7 +803,8 @@ object PluginManagerScreen {
 
 	private fun showEdit() {
 		val c: Component = ClientPage.childOf(BODY, editValue) ?: return
-		c.text = editText + "|"
+		val entry: PluginSchemaImpl.Entry? = editing
+		c.text = if (entry != null && entry.kind == PluginSchemaImpl.TEXT) fitText(editText + "|", TEXT_BOX_WIDTH - 8) else editText + "|"
 		Component.redrawComponent(c)
 	}
 
@@ -652,14 +819,24 @@ object PluginManagerScreen {
 		val registration: PluginRegistration = selected ?: return
 		val context: PluginContextImpl = registration.context ?: return
 		val c: Component = ClientPage.childOf(BODY, editValue) ?: return
-		c.text = context.config().getInt(entry.key, entry.defaultInt).toString()
+		val text: String = settingText(context.config(), entry)
+		c.text = if (entry.kind == PluginSchemaImpl.TEXT) fitText(text, TEXT_BOX_WIDTH - 8) else text
 		Component.redrawComponent(c)
 	}
 
-	/** Enter: the typed number, held to the entry's range, saved; nothing typed leaves the value alone. */
+	/** Enter: the typed number, held to the entry's range, or the typed text, saved; a number box with nothing typed keeps its value. */
 	private fun commitEdit() {
 		val entry: PluginSchemaImpl.Entry = editing ?: return
 		val registration: PluginRegistration? = selected
+		if (entry.kind == PluginSchemaImpl.TEXT) {
+			val text: String = editText.trim()
+			closeEdit()
+			if (registration != null) {
+				writeSetting(registration, entry, text, 0, false)
+				rebuild()
+			}
+			return
+		}
 		val typed: Int? = editText.toIntOrNull()
 		closeEdit()
 		if (typed == null || registration == null) {
@@ -677,9 +854,10 @@ object PluginManagerScreen {
 	}
 
 	/**
-	 * A typed key while a number box has the keyboard (from the client's key loop, before the
-	 * interfaces and the plugins see it): digits and a leading minus go into the box, Backspace takes
-	 * one off, Enter keeps the number, Escape drops it. True when the key was ours.
+	 * A typed key while a number or text box has the keyboard (from the client's key loop, before
+	 * the interfaces and the plugins see it): digits and a leading minus go into a number box, any
+	 * printable character into a text box up to its length, Backspace takes one off, Enter keeps
+	 * what was typed, Escape drops it. True when the key was ours.
 	 */
 	@JvmStatic
 	fun keyTyped(record: KeyRecord): Boolean {
@@ -699,6 +877,11 @@ object PluginManagerScreen {
 				editText = editText.substring(0, editText.length - 1)
 				showEdit()
 			}
+		} else if (entry.kind == PluginSchemaImpl.TEXT) {
+			if (ch >= ' ' && ch < '\u007f' && editText.length < entry.max) {
+				editText += ch
+				showEdit()
+			}
 		} else if (ch in '0'..'9' && editText.length < MAX_DIGITS) {
 			editText += ch
 			showEdit()
@@ -709,7 +892,7 @@ object PluginManagerScreen {
 		return true
 	}
 
-	/** While a number box has the keyboard, no key press reaches the server or the interfaces. */
+	/** While a number or text box has the keyboard, no key press reaches the server or the interfaces. */
 	@JvmStatic
 	fun keyPressed(): Boolean = editing != null && open
 
@@ -845,7 +1028,7 @@ object PluginManagerScreen {
 			return
 		}
 		val plugin: PluginRegistration? = selected
-		if (editing != null && action != A_EDIT && action != A_HOVER && action != A_LEAVE && action != A_ROW_HOVER && action != A_ROW_LEAVE) {
+		if (editing != null && action != A_EDIT && action != A_HOVER && action != A_LEAVE && action != A_ROW_HOVER && action != A_ROW_LEAVE && action != A_WHEEL) {
 			closeEdit() // a click elsewhere on the page ends the typing
 		}
 		when (action) {
@@ -872,6 +1055,10 @@ object PluginManagerScreen {
 			A_NEXT -> {
 				page++
 				rebuild()
+			}
+			A_WHEEL -> if (plugin != null) {
+				val body: Component = Interface.getComponent(BODY) ?: return
+				scrollTo(body.scrollY + hook.mouseY * SETTING_PITCH) // the wheel's turns, positive downwards
 			}
 			A_HOVER -> if (index < buttons.size) ClientPage.paint(buttons[index], true)
 			A_LEAVE -> if (index < buttons.size) ClientPage.paint(buttons[index], false)
@@ -979,7 +1166,7 @@ object PluginManagerScreen {
 		val context: PluginContextImpl = registration.context ?: return false
 		val entries: ArrayList<PluginSchemaImpl.Entry> = context.schema.entries
 		for (i in 0 until entries.size) {
-			if (entries[i].key == key && entries[i].kind == PluginSchemaImpl.NUMBER) {
+			if (entries[i].key == key && (entries[i].kind == PluginSchemaImpl.NUMBER || entries[i].kind == PluginSchemaImpl.TEXT)) {
 				startEdit(i)
 				if (editing == null) {
 					return false

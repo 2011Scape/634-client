@@ -27,8 +27,11 @@ package com.jagex.game.runetek5.plugin.api
  *   and [ClientApi.isInFriendsChat].
  * - 6: [PluginContext.settings], the [SettingsSchema] a plugin declares for the plugin manager, and
  *   [events.Events.SETTING_CHANGED].
+ * - 7: [SettingsSchema.text]; [Actor.tileX], [Actor.tileY], [Actor.serverTileX], [Actor.serverTileY]
+ *   and [Actor.isDying]; [ClientApi.actorHull], [ClientApi.projectActorMinimap] and
+ *   [ClientApi.retargetMenuEntry].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 6
+	const val VERSION: Int = 7
 }

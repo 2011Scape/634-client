@@ -3,7 +3,7 @@
 How to add to the client without changing it: a plugin is a jar in a folder, written against a
 small, stable API, that reads the game, draws on it, adds menu entries and commands, and keeps its
 own settings. The experience drops (`XpDrops`), the idle notifier (`IdleNotifier`), the menu
-swapper (`MenuSwapper`), the inventory value (`InventoryValue`) and the name plates (`NamePlates`) are five, built in, so the client's own code shows the
+swapper (`MenuEntrySwapper`), the inventory value (`InventoryValue`) and the name plates (`NamePlates`) are five, built in, so the client's own code shows the
 way.
 
 ## Contents
@@ -11,8 +11,9 @@ way.
 - [What a plugin can do](#what-a-plugin-can-do)
 - [Installing plugins](#installing-plugins)
 - [Managing plugins in the game](#managing-plugins-in-the-game)
+- [The built-in plugins](#the-built-in-plugins)
 - [Writing a plugin](#writing-a-plugin)
-- [Cookbook: five plugins in a few dozen lines](#cookbook)
+- [Cookbook: three plugins in a few dozen lines](#cookbook)
 - [The API](#the-api)
 - [Building](#building)
 - [Trouble](#trouble)
@@ -68,7 +69,7 @@ In the game, the developer console (the `` ` `` key) has:
 
 | Command | What it does |
 |---|---|
-| `::plugins` | Lists every plugin: id, name, version, whether it is on, off or failed (and why), and its jar. |
+| `::plugins` | Lists every plugin: id, name, version, author, whether it is on, off or failed (and why), and its jar. |
 | `::plugin <id> off` | Turns a plugin off, now and on later starts (kept in `~/.634-client/plugins.properties`). A plugin that is off runs nothing: its class is not even initialised until it is turned on. |
 | `::plugin <id> on` | Turns it on again, or tries again one that failed. |
 
@@ -78,17 +79,62 @@ A plugin's own settings are in `~/.634-client/plugin-config/<id>.properties`.
 
 The Settings tab (the spanner) has a third button beside Graphics Settings and Audio Settings:
 **Plugins**. It opens a window listing every plugin, built in and from the plugins folder, with
-its id, version, where it came from and its state, an **On**/**Off** switch, and **Settings** for a
-plugin that declared any; hovering a row shows the plugin's description (`Plugin-Description`
-in a jar's manifest). A built-in's switch is its own "enabled" setting (so `::xpdrops` and the
+its icon (`Plugin-Icon`), name, version, author and where it came from, a tickbox that turns it on and off,
+and **Settings** for a plugin that declared any; hovering a row shows the plugin's description
+(`Plugin-Description` in a jar's manifest). A built-in's switch is its own "enabled" setting (so `::xpdrops` and the
 window agree); a jar's starts and stops the plugin, as `::plugin <id> on|off` does. A failed plugin
-shows why. The settings page shows each declared setting as an on/off switch, a number typed
+shows why. The settings page shows each declared setting as a tickbox, a number typed
 into a box (click it, type, Enter; Escape leaves it; a number outside the range is held to it), or
 a choice from a list; every change is saved at once and the plugin hears of it (`SettingChanged`). `::pluginmanager` opens and closes the window from the console.
 
 A plugin that throws is turned off on the spot, with a line in the console and the chat box
 ("Plugin X was disabled: ..."), and the game goes on. `::plugin <id> on` tries it again; the
 stack trace is in the client's log (the launcher keeps it in `~/.void/logs`).
+
+## The built-in plugins
+
+Seven plugins come with the client, on the same API as the ones from the plugins folder, each with
+its switch in the Plugins window: experience drops (`::xpdrops`), the idle notifier (`::idle`), the
+menu entry swapper (`::menuswapper`), the inventory value (`::invvalue`), name plates (`::nameplates`), the
+ground tiles and the npc indicators.
+
+**Ground Tiles** marks tiles on the ground the way RuneLite's Ground Markers do. Hold Shift and
+right-click a tile for **Mark tile**; a marked tile's Shift menu has **Unmark tile**, **Label tile**
+(type the label, Enter keeps it, Escape leaves it as it was) and **Colour tile** (gives it the
+colour chosen in the settings, when it has another). Settings: the tile colour, the fill opacity
+(0 to 255), the border width, whether the tiles are drawn on the minimap, and whether the Shift
+menu also has **Export ground tiles**, **Import ground tiles** and **Clear ground tiles**, which
+`::groundtiles export|import|clear` do as well: Export puts the tiles of the map regions around you
+on the clipboard as RuneLite's JSON (`[{"regionId":12850,"regionX":20,"regionY":37,"z":0,"color":"#FFFFFF00","label":"Home"}]`),
+Import reads such a string from the clipboard (a RuneLite export imports as it is), and Clear
+forgets the tiles around you. The tiles are kept in the plugin's settings file, one line a map
+region in the same JSON. `::groundtiles` alone turns the plugin on and off.
+
+**Menu Entry Swapper** chooses the left click and the Shift-click of a thing, after RuneLite's
+Menu Entry Swapper. Hold Shift and right-click an npc, an object, a ground item or an item for
+**Swap left click: <option>** and **Swap shift click: <option>** over each of its options (and
+**Walk here** for the first three), and **Reset left click** / **Reset shift click** once one is
+chosen; a chat line says what was set. A chosen click is kept in the settings by the thing (an npc
+by its type, so it holds for every banker; an item in the backpack by the item, in another component
+by the component and the item). Switches: whether the left or the Shift-click is customisable at
+all, for npcs, objects and ground items; **Shift-click Walk here** for each of those kinds; and
+**Remove dead npc menus**. Not here from RuneLite: its submenus (the swaps are entries of the Shift
+menu) and its preset swaps, since every click is configurable here. A settings page taller than the
+window scrolls with the mouse wheel.
+
+**NPC Indicators** highlights npcs the way RuneLite's NPC Indicators do. Hold Shift and
+right-click an npc for **Tag** (this one npc, until it goes) or **Tag-All** (every npc of that
+name, kept in the settings); **Untag** and **Untag-All** undo them, and `::tag <name>` and
+`::untag <name>` edit the list from the console. Settings: the highlight style (hull, tile, true
+tile, south-west tile, south-west true tile, any of them together), the highlight colour, the fill
+opacity and the border width; **NPCs to highlight**, the list itself, names separated by commas with
+`*` as a wildcard (`TzHaar*`, `*impling`); names above the npcs and on the minimap; the menu
+highlight (the npc's name, its level or both in the highlight colour in the right-click menu); ignore
+dead npcs (no highlight once the health bar is empty) and a colour for a dead npc's menu entries;
+and the respawn timer, which remembers where a tagged npc stood and how long it took to come back:
+the first death counts up on its tile (dimmed) while the respawn is learnt, every death after it
+counts down. Not here from RuneLite: the model outline (the hull is
+its bounding box), per-npc colours and styles, and ignoring pets.
 
 ## Writing a plugin
 
@@ -118,7 +164,9 @@ Start from [`plugin-template/`](../plugin-template): copy the folder, and change
    | `Plugin-Name` | The name the player sees. |
    | `Plugin-Version` | The plugin's version, any text. |
    | `Plugin-Api-Version` | The `PluginApi.VERSION` it was written against (1 if missing). The client refuses a plugin that needs a newer API than it has. |
-   | `Plugin-Author`, `Plugin-Description` | For `::plugins`. |
+   | `Plugin-Author` | Who wrote it: shown in the Plugins window and by `::plugins`. |
+   | `Plugin-Description` | What it does: the Plugins window shows it when a row is hovered. |
+   | `Plugin-Icon` | The name of a PNG entry in the jar (`icon.png`, `images/icon.png`): the plugin's icon in the Plugins window, shown at 25x25 (any size up to 64x64 is scaled). A missing or unreadable one is noted on stderr and the plugin loads without it. |
 
    One plugin a jar, and the jar is all of it: one that carries the client's classes (`com/jagex/...`)
    or the Kotlin standard library (`kotlin/...`) is refused, since the client has them, and so is one
@@ -160,7 +208,7 @@ Start from [`plugin-template/`](../plugin-template): copy the folder, and change
 | `invokeLater(task)` | Runs the task on the game thread at the next client cycle; the one call allowed from another thread. |
 | `schedule(ticks, task)` | Runs the task on the game thread that many game ticks (600 ms) later. `GameTick` itself is a client cycle of 20 ms while logged in, 30 to a tick of the server. |
 | `startThread(name, task)` | Runs the task on a thread of its own, for a web request or a file the game must not wait for; it reads nothing and hands its result to `invokeLater`. |
-| `settings()` | `SettingsSchema`: `toggle(key, label, default)`, `number(key, label, default, min, max, step)`, `choice(key, label, default, options)`, declared in `start`. The plugin manager shows them, writes the value into `config()` under the key and saves; the plugin reads it back on `SettingChanged`. |
+| `settings()` | `SettingsSchema`: `toggle(key, label, default)`, `number(key, label, default, min, max, step)`, `choice(key, label, default, options)`, `text(key, label, default, maxLength)`, declared in `start`. The plugin manager shows them, writes the value into `config()` under the key and saves; the plugin reads it back on `SettingChanged`. |
 
 `Graphics` (in overlays and the draw events) draws lines, rectangles, circles, polygons, text in
 the client's three fonts (`font(Font.BOLD)`), the cache's sprites (`sprite(id, x, y)`) and the
@@ -176,16 +224,14 @@ below its top.
 
 ## Cookbook
 
-Five plugins of the kind players ask for, each a few dozen lines on the public API, in the template
+Three plugins of the kind players ask for, each a few dozen lines on the public API, in the template
 ([`plugin-template/src/main/kotlin/recipes`](../plugin-template/src/main/kotlin/recipes));
 `./gradlew -p plugin-template recipeJars` builds one jar each in `plugin-template/build/libs/recipes`,
 ready for the plugins folder. What each one leans on:
 
 | Plugin | Lines | The API it uses |
 |---|---|---|
-| `LeftClickBank`, a menu entry swapper: "Bank" is the left click, "Examine" is gone | 34 | `MenuBuilt`, then `menuEntryCount`, `menuEntry(i).option()`, `promoteMenuEntry(i)`, `removeMenuEntry(i)`. Entry 0 is the top row and the left click; remove from the bottom up. |
 | `AttackTimer`, attack and idle timers under the player, timed by the equipped weapon | 96 | `itemContainer(94)` slot 3 is the weapon and `item(id).intParam(14, 4)` its speed in ticks, read again on `ItemContainerChanged`; `AnimationChanged` for the local player starts the cooldown, unless `HitsplatApplied` on the player in the same cycle while `interacting()` is null marks it as the block animation; `GameTick` counts it and the idle ticks; `projectActor` places the bar; `playSound` and `chatMessage` warn. |
-| `NpcIndicators`, npcs tagged from their right-click menu outlined and named, red when they fight you | 66 | `MENU_ENTRY_ADDED` for `MenuTarget.NPC` + `addMenuEntry`, `npcCount`/`npc(i)`, `name()`, `interacting() === localPlayer()`, `tilePolygon` with `sizeInTiles()`, `fillPolygon`, `polygon`, `projectActor` with `overheadHeight()`. |
 | `GroundItemValues`, every pile's items with their worth, valuable drops in the chat | 51 | `groundItems { ... }` (piles come most valuable first), `item(id).value()`, `projectTile`, `textCentered`; `ItemSpawned` for the drops. |
 | `ItemTags`, a colour on an item from its right-click menu, drawn around it in the backpack and the bank | 59 | `MenuEntryAdded` for `MenuTarget.WIDGET` with `addMenuEntry`; a `MenuAction` whose id is the item; `widget(149, 0)` and `widget(762, 95)`, their `child(i)`, `itemId()`, `screenX()`, `drawRect`. |
 

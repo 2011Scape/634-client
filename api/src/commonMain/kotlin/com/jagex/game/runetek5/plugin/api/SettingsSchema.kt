@@ -15,4 +15,7 @@ interface SettingsSchema {
 
 	/** One of [options], shown as [label]; [PluginConfig.get] reads the chosen option's text. */
 	fun choice(key: String, label: String, default: String, options: Array<String>)
+
+	/** A line of text of up to [maxLength] characters the player types into a box; [PluginConfig.get] reads it. Since API 7. */
+	fun text(key: String, label: String, default: String, maxLength: Int)
 }

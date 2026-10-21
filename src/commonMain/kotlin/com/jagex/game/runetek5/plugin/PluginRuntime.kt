@@ -91,7 +91,7 @@ object PluginRuntime {
 	 * that the name is taken: the client's own commands run first whatever a plugin registered
 	 * (ClientCommandProcessor), so a name missing here is never reached rather than taken over.
 	 */
-	private val RESERVED_COMMANDS: Array<String> = arrayOf("plugins", "plugin", "commands", "help", "cls", "displayfps", "renderer", "heap", "tk0", "tk1", "tk2", "tk3", "tk5", "tk6", "grounditems", "npclabels", "xpdrops", "tilemarkers", "shiftdrop", "msaa", "smaa", "renderscale", "hd", "hdsettings", "pluginmanager", "printfps", "occlude", "fpson", "fpsoff", "fps", "systemmem", "rebuild", "zoom", "errortest", "nativememerror", "heapdump", "setoutput", "closeoutput", "runscript")
+	private val RESERVED_COMMANDS: Array<String> = arrayOf("plugins", "plugin", "commands", "help", "cls", "displayfps", "renderer", "heap", "tk0", "tk1", "tk2", "tk3", "tk5", "tk6", "xpdrops", "shiftdrop", "msaa", "smaa", "renderscale", "hd", "hdsettings", "pluginmanager", "printfps", "occlude", "fpson", "fpsoff", "fps", "systemmem", "rebuild", "zoom", "errortest", "nativememerror", "heapdump", "setoutput", "closeoutput", "runscript")
 
 	@JvmField
 	val bus: EventBusImpl = EventBusImpl()
@@ -1214,6 +1214,8 @@ object PluginRuntime {
 			menuEntries[j] = menuEntries[j - 1]
 		}
 		menuEntries[0] = entry
+		// and the left click whatever the client's own Shift rules would pick (MiniMenuInputTick)
+		promotedDefault = entry
 		menuEdited = true
 		return true
 	}
@@ -1221,6 +1223,28 @@ object PluginRuntime {
 	fun renameMenuEntry(i: Int, option: String): Boolean {
 		val entry: MiniMenuEntry = menuEntryAt(i) ?: return false
 		entry.opBase = option
+		return true
+	}
+
+	/**
+	 * Gives entry [i] another target text. MiniMenu groups entries by that text (ColoredMiniMenuEntry,
+	 * looked up by it again to remove one), so the entry comes out of its group first and goes back
+	 * in under the new text, with the entries above it taken out and put back after it, since the
+	 * last entry added is the top row.
+	 */
+	fun retargetMenuEntry(i: Int, target: String): Boolean {
+		val entry: MiniMenuEntry = menuEntryAt(i) ?: return false
+		if (entry.op == target) {
+			return true
+		}
+		for (j in 0..i) {
+			MiniMenu.removeEntry(menuEntries[j])
+		}
+		entry.op = target
+		for (j in i downTo 0) {
+			MiniMenu.addEntry(menuEntries[j])
+		}
+		menuEdited = true
 		return true
 	}
 
@@ -1308,6 +1332,9 @@ object PluginRuntime {
 			val registration: PluginRegistration = registrations[i]!!
 			val line: StringBuilder = StringBuilder("  ")
 			line.append(registration.descriptor.id).append(": ").append(registration.descriptor.name).append(' ').append(registration.descriptor.version)
+			if (registration.descriptor.author.isNotEmpty()) {
+				line.append(" by ").append(registration.descriptor.author)
+			}
 			line.append(" [").append(registration.stateName())
 			if (registration.error != null) {
 				line.append(": ").append(registration.error)

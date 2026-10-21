@@ -8,10 +8,7 @@ import com.jagex.game.runetek5.SceneVisibleTiles
 import memoryReport
 import com.jagex.game.runetek5.LocType
 import turnElapsedMs
-import com.jagex.game.runetek5.ObjStackEntity
 import com.jagex.game.runetek5.MapRegion
-import com.jagex.game.runetek5.cache.node.ObjStackEntry
-import com.jagex.game.runetek5.cache.node.ObjStack
 import com.jagex.game.runetek5.statics.StatBaseLevels
 import com.jagex.game.runetek5.config.rsinterface.MediaType
 import com.jagex.game.runetek5.entity.NPCEntityNode
@@ -183,38 +180,23 @@ object SmokeTest {
 
 	private var overlaysAtStart: Int = 0
 
-	private val GROUND_ITEMS: Boolean = "false" != lang.getProperty("client.test.groundItems")
+	private val XP_DROPS: Boolean = "false" != lang.getProperty("client.test.xpDrops")
 
-	private const val COINS: Int = 995
-
-	private const val BRONZE_AXE: Int = 1351
-
-	private var groundStep: Int = 0
-
-	private var groundFrame: Int = -1
-
-	private var groundWasEnabled: Boolean = false
-
-	private var groundX: Int = -1
-
-	private var groundY: Int = -1
-
-	private val NPC_LABELS: Boolean = "false" != lang.getProperty("client.test.npcLabels")
+	/** client.test.respawn=false skips the npc indicators' respawn timer check. */
+	private val RESPAWN: Boolean = "false" != lang.getProperty("client.test.respawn")
 
 	/** The Tutorial Island guide, who stands beside the test account. */
 	private const val GUIDE_NPC: Int = 945
 
-	private const val NPC_LABEL_WAIT: Int = 200
+	private const val RESPAWN_FRAMES: Int = 10
 
-	private var npcLabelStep: Int = 0
+	private var respawnStep: Int = 0
 
-	private var npcLabelFrame: Int = -1
+	private var respawnFrame: Int = -1
 
-	private var npcLabelsWereEnabled: Boolean = false
+	private var respawnGuide: NPCEntity? = null
 
-	private var npcLabelStart: Int = -1
-
-	private val XP_DROPS: Boolean = "false" != lang.getProperty("client.test.xpDrops")
+	private var respawnTimerWasOn: Boolean = false
 
 	private const val XP_WAIT: Int = 300
 
@@ -237,6 +219,8 @@ object SmokeTest {
 	private var markerFrame: Int = -1
 
 	private var markersWereEnabled: Boolean = false
+
+	private var markersBefore: Int = 0
 
 	private val MEDIA: Boolean = "false" != lang.getProperty("client.test.media")
 
@@ -815,7 +799,7 @@ object SmokeTest {
 				npcMenuCheck()
 			}
 		}
-		if (PLUGIN_MANAGER && pluginManagerStep < 4) {
+		if (PLUGIN_MANAGER && pluginManagerStep < 5) {
 			pluginManagerCheck()
 			return
 		}
@@ -934,17 +918,11 @@ object SmokeTest {
 			}
 			checksDone = checksDone or 32
 		}
-		if (NPC_LABELS && (checksDone and 64) == 0) {
-			if (!npcLabelsDone()) {
+		if (RESPAWN && (checksDone and 64) == 0) {
+			if (!respawnDone()) {
 				return
 			}
 			checksDone = checksDone or 64
-		}
-		if (GROUND_ITEMS && (checksDone and 128) == 0) {
-			if (!groundItemsDone(player)) {
-				return
-			}
-			checksDone = checksDone or 128
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -2663,131 +2641,53 @@ object SmokeTest {
 	}
 
 	/**
-	 * Steps through the ground item label check: turns the labels on and puts a pile of 1000 coins
-	 * and a bronze axe on the tile east of the player the way the server's ground item packet does
-	 * (ObjStack.addGroundItem, then ObjStackEntity.refreshObjStack), client side only. It requires a
-	 * label whose bottom line is "Coins (1000)" (the pile lists its most valuable item first) inside
-	 * the frame, checks that frame against its own reference, and takes the pile away the way the
-	 * server's removal does. True once it is done.
+	 * Steps through the npc indicators' respawn timer check without a kill: tags the guide, posts
+	 * his despawn to the plugins as a death does (PluginRuntime.npcDespawned), requires a timer on
+	 * his tile in a later frame, posts his spawn again and requires the respawn time learnt. The
+	 * guide is never removed from the scene. True once it is done.
 	 */
-	private fun groundItemsDone(player: PlayerEntity): Boolean {
-		if (groundStep == 3) {
-			return true
-		}
-		val level: Int = player.level.toInt()
-		if (groundStep == 0) {
-			groundWasEnabled = GroundItemLabels.enabled
-			GroundItemLabels.enabled = true
-			groundX = player.movementBaseX[0] + 1
-			groundY = player.movementBaseY[0]
-			ObjStack.addGroundItem(ObjStackEntry(COINS, 1000), level, MapRegion.sceneBaseY + groundY, MapRegion.sceneBaseX + groundX)
-			ObjStack.addGroundItem(ObjStackEntry(BRONZE_AXE, 1), level, MapRegion.sceneBaseY + groundY, MapRegion.sceneBaseX + groundX)
-			ObjStackEntity.refreshObjStack(groundY, groundX, level)
-			groundFrame = frames
-			groundStep = 1
-			return false
-		}
-		var label: Int = -1
-		for (i in 0 until GroundItemLabels.drawnLastFrame) {
-			if ("Coins (1000)" == GroundItemLabels.lastTexts[i]) {
-				label = i
-			}
-		}
-		if (groundStep == 1) {
-			if (label == -1) {
-				if (frames - groundFrame >= 200) {
-					fail("no frame labelled the pile on scene tile " + groundX + "," + groundY + " \"Coins (1000)\" (" + GroundItemLabels.drawnLastFrame + " piles labelled" + (if (GroundItemLabels.drawnLastFrame > 0) ", the first \"" + GroundItemLabels.lastTexts[0] + "\"" else "") + ")")
+	private fun respawnDone(): Boolean {
+		if (respawnStep == 0) {
+			var guide: NPCEntity? = null
+			for (i in 0 until NPCList.npcCount) {
+				val npc: NPCEntity? = NPCList.NPC_ARRAY[i]?.npc
+				if (npc != null && npc.npcType?.id == GUIDE_NPC) {
+					guide = npc
 				}
-				return false
 			}
-			// the screen shows a frame a little after it is drawn: let the label be on it before the shot
-			groundFrame = frames
-			groundStep = 2
-			return false
-		}
-		if (frames - groundFrame < 10) {
-			return false
-		}
-		if (label == -1) {
-			groundStep = 1
-			return false
-		}
-		val size: IntArray = IntArray(2)
-		ClientState.activeToolkit!!.accumulateViewportDimensions(size)
-		val x: Int = GroundItemLabels.lastX[label]
-		val y: Int = GroundItemLabels.lastY[label]
-		if (x < 0 || y < 0 || x >= size[0] || y >= size[1]) {
-			fail("the pile's label is at " + x + "," + y + ", outside the " + size[0] + "x" + size[1] + " frame")
-		}
-		val image: String? = checkImage("-grounditems", SHOT.replace(".png", "-grounditems.png"))
-		val pile: ObjStack? = ObjStack.GROUND_ITEMS.get(((MapRegion.sceneBaseY + groundY shl 14) or (level shl 28) or (MapRegion.sceneBaseX + groundX)).toLong()) as ObjStack?
-		if (pile != null) {
-			pile.unlink()
-		}
-		ObjStackEntity.refreshObjStack(groundY, groundX, level)
-		GroundItemLabels.enabled = groundWasEnabled
-		firstImage += "; ground items labelled \"Coins (1000)\" at " + x + "," + y + ": " + image
-		groundStep = 3
-		return true
-	}
-
-	/**
-	 * Steps through the npc label check: turns the labels on and requires, within NPC_LABEL_WAIT
-	 * frames, a label for the Tutorial Island guide at a point inside the frame. The frame with the
-	 * labels is saved for a look but never compared: the guide walks. True once it is done.
-	 */
-	private fun npcLabelsDone(): Boolean {
-		if (npcLabelStep == 3) {
-			return true
-		}
-		if (npcLabelStep == 0) {
-			npcLabelStart = frames
-			npcLabelsWereEnabled = NpcLabels.enabled
-			NpcLabels.enabled = true
-			npcLabelFrame = frames
-			npcLabelStep = 1
-			return false
-		}
-		var guide: Int = -1
-		for (i in 0 until NpcLabels.drawnLastFrame) {
-			if (NpcLabels.lastTypes[i] == GUIDE_NPC) {
-				guide = i
+			if (guide == null) {
+				fail("no guide (npc " + GUIDE_NPC + ") in the scene for the respawn check")
+				return true
 			}
-		}
-		if (npcLabelStep == 1) {
-			if (guide == -1) {
-				if (frames - npcLabelFrame >= NPC_LABEL_WAIT) {
-					fail("no frame labelled the guide (npc " + GUIDE_NPC + "); the last frame labelled " + NpcLabels.drawnLastFrame + " npcs")
-				}
-				return false
+			respawnGuide = guide
+			respawnTimerWasOn = NpcIndicators.showRespawnTimer
+			NpcIndicators.enabled = true
+			NpcIndicators.showRespawnTimer = true
+			NpcIndicators.tag(guide.playerIndex)
+			PluginRuntime.npcDespawned(guide)
+			if (NpcIndicators.pendingRespawns() != 1) {
+				fail("the guide's despawn left " + NpcIndicators.pendingRespawns() + " dead npcs remembered, not 1")
 			}
-			// the screen shows a frame a little after it is drawn: let the labels be on it before the shot
-			npcLabelFrame = frames
-			npcLabelStep = 2
+			respawnFrame = frames
+			respawnStep = 1
 			return false
 		}
-		if (frames - npcLabelFrame < 10) {
+		if (frames - respawnFrame < RESPAWN_FRAMES) {
 			return false
 		}
-		if (guide == -1) {
-			// the guide walked out of view while the screen caught up: wait for him again
-			if (frames - npcLabelStart >= NPC_LABEL_WAIT * 3) {
-				fail("the guide's label kept going away")
-			}
-			npcLabelStep = 1
-			return false
+		val guide: NPCEntity = respawnGuide ?: return true
+		if (NpcIndicators.respawnsDrawnLastFrame != 1) {
+			fail("no respawn timer drawn on the guide's tile (" + NpcIndicators.respawnsDrawnLastFrame + " drawn in the last frame)")
 		}
-		val x: Int = NpcLabels.lastX[guide]
-		val y: Int = NpcLabels.lastY[guide]
-		val size: IntArray = IntArray(2)
-		ClientState.activeToolkit!!.accumulateViewportDimensions(size)
-		if (x < 0 || y < 0 || x >= size[0] || y >= size[1]) {
-			fail("the guide's label is at " + x + "," + y + ", outside the " + size[0] + "x" + size[1] + " frame")
+		checkImage("-respawn", SHOT.replace(".png", "-respawn.png"))
+		PluginRuntime.npcSpawned(guide)
+		if (NpcIndicators.learnedRespawns() != 1 || NpcIndicators.pendingRespawns() != 0) {
+			fail("the guide's return did not teach a respawn time (" + NpcIndicators.learnedRespawns() + " learnt, " + NpcIndicators.pendingRespawns() + " still dead)")
 		}
-		checkImage("-npclabels", SHOT.replace(".png", "-npclabels.png"))
-		NpcLabels.enabled = npcLabelsWereEnabled
-		firstImage += "; " + NpcLabels.drawnLastFrame + " npc labels, the guide's \"" + NpcLabels.label(TypeLists.NPC!!.list(GUIDE_NPC)) + "\" at " + x + "," + y
-		npcLabelStep = 3
+		NpcIndicators.untag(guide.playerIndex)
+		NpcIndicators.showRespawnTimer = respawnTimerWasOn
+		firstImage += "; the guide's respawn timer drawn and its time learnt"
+		respawnStep = 2
 		return true
 	}
 
@@ -2869,20 +2769,21 @@ object SmokeTest {
 	}
 
 	/**
-	 * Steps through the tile marker check: turns the markers on, marks the tile east of the player
-	 * through its mini menu entry, and after MARKER_FRAMES frames requires one marker that the last
-	 * frame drew, with the marker's yellow on the frame at the middle of each of its edges. Then it unmarks the tile the same
-	 * way, requires no markers, and puts the switch back. True once it is done.
+	 * Steps through the ground tiles check: turns the plugin on, marks the tile east of the player
+	 * (as its Mark tile entry does), and after MARKER_FRAMES frames requires one tile that the last
+	 * frame drew, with the tile's yellow on the frame at the middle of each of its edges. Then it
+	 * unmarks the tile, requires it gone, and puts the switch back. True once it is done.
 	 */
 	private fun markersDone(player: PlayerEntity): Boolean {
 		val x: Int = player.movementBaseX[0] + 1
 		val y: Int = player.movementBaseY[0]
 		if (markerStep == 0) {
-			markersWereEnabled = TileMarkers.enabled
-			TileMarkers.enabled = true
-			runMenuEntry(MiniMenuAction.TILE_MARKER, x, y, "Mark tile")
-			if (TileMarkers.markerCount() != 1 || !TileMarkers.isMarked(x, y)) {
-				fail("the Mark tile entry did not mark scene tile " + x + "," + y + " (" + TileMarkers.markerCount() + " markers)")
+			markersWereEnabled = GroundTiles.enabled
+			GroundTiles.enabled = true
+			markersBefore = GroundTiles.markers.size
+			GroundTiles.mark(x, y)
+			if (GroundTiles.markers.size != markersBefore + 1 || !GroundTiles.isMarked(x, y)) {
+				fail("marking scene tile " + x + "," + y + " through the ground tiles plugin left " + GroundTiles.markers.size + " tiles (" + markersBefore + " before)")
 			}
 			markerFrame = frames
 			markerStep = 1
@@ -2892,18 +2793,18 @@ object SmokeTest {
 			return false
 		}
 		if (markerStep == 1) {
-			if (TileMarkers.drawnLastFrame != 1) {
-				fail("the marked tile " + x + "," + y + " was not drawn (" + TileMarkers.drawnLastFrame + " markers drawn in the last frame)")
+			if (GroundTiles.drawnLastFrame != 1) {
+				fail("the marked tile " + x + "," + y + " was not drawn (" + GroundTiles.drawnLastFrame + " tiles drawn in the last frame)")
 			}
 			// saved for a look; the check is the outline's own pixels, not the whole frame, which the
 			// walking guide changes from run to run
 			checkImage("-tilemarker", SHOT.replace(".png", "-tilemarker.png"))
 			val image: String = markerPixels()
-			runMenuEntry(MiniMenuAction.TILE_MARKER, x, y, "Unmark tile")
-			if (TileMarkers.markerCount() != 0) {
-				fail("the Unmark tile entry left " + TileMarkers.markerCount() + " markers")
+			GroundTiles.unmark(x, y)
+			if (GroundTiles.markers.size != markersBefore) {
+				fail("unmarking the tile left " + GroundTiles.markers.size + " tiles (" + markersBefore + " before)")
 			}
-			TileMarkers.enabled = markersWereEnabled
+			GroundTiles.enabled = markersWereEnabled
 			firstImage += "; tile " + x + "," + y + " marked, drawn and unmarked: " + image
 			markerStep = 2
 		}
@@ -2921,8 +2822,8 @@ object SmokeTest {
 		var found: Int = 0
 		for (edge in 0 until 4) {
 			val next: Int = (edge + 1) % 4
-			val midX: Int = (TileMarkers.lastCorners[edge * 2] + TileMarkers.lastCorners[next * 2]) / 2
-			val midY: Int = (TileMarkers.lastCorners[edge * 2 + 1] + TileMarkers.lastCorners[next * 2 + 1]) / 2
+			val midX: Int = (GroundTiles.lastCorners[edge * 2] + GroundTiles.lastCorners[next * 2]) / 2
+			val midY: Int = (GroundTiles.lastCorners[edge * 2 + 1] + GroundTiles.lastCorners[next * 2 + 1]) / 2
 			var yellow: Boolean = false
 			var dy: Int = -3
 			while (dy <= 3 && !yellow) {
@@ -3058,6 +2959,10 @@ object SmokeTest {
 		if (gameFrames - pluginManagerFrame < 30) {
 			return
 		}
+		if (pluginManagerStep == 4) {
+			pluginManagerScrolledCheck()
+			return
+		}
 		if (pluginManagerStep == 1) {
 			saveFrame("build/smoke/plugins-tab.png")
 			// the Plugins button the client keeps in the Settings tab, clicked as a player clicks it
@@ -3134,12 +3039,50 @@ object SmokeTest {
 		if (!PluginManagerScreen.clickBack()) {
 			fail("Back did not leave the settings page")
 		}
+		// the npc indicators' text setting: a comma-separated list typed into the box reaches the plugin's list
+		val namesBefore: String = NpcIndicators.namesCsv()
+		if (!PluginManagerScreen.clickSettings("npcindicators")) {
+			fail("the npc indicators have no Settings button")
+		}
+		if (!PluginManagerScreen.typeNumber("names", "Pig, Cow*")) {
+			fail("no names box on the npc indicators' settings page")
+		}
+		if (NpcIndicators.names != listOf("Pig", "Cow*") || !NpcIndicators.matches("Cow calf") || !NpcIndicators.matches("pig") || NpcIndicators.matches("Goblin")) {
+			fail("typing \"Pig, Cow*\" into the names box left the list " + NpcIndicators.names)
+		}
+		PluginManagerScreen.typeNumber("names", namesBefore)
+		// the npc indicators' page is taller than the window: it scrolls to its end and back
+		val scroll: IntArray = PluginManagerScreen.scrollPosition()
+		if (scroll[1] <= scroll[2]) {
+			fail("the npc indicators' settings page does not scroll (content " + scroll[1] + ", visible " + scroll[2] + ")")
+		}
+		PluginManagerScreen.scrollBy(100)
+		val down: IntArray = PluginManagerScreen.scrollPosition()
+		if (down[0] != down[1] - down[2]) {
+			fail("the wheel did not scroll the settings page to its end (at " + down[0] + " of " + (down[1] - down[2]) + ")")
+		}
+		println("SMOKE plugin manager: seconds typed " + secondsBefore + " to " + secondsAfter + ", 99999 held to 600, back to " + secondsBefore + "; names typed \"Pig, Cow*\" and back; the npc indicators' page, " + down[1] + " tall, scrolled to its end")
+		// the screen shows a frame a little after it is drawn: the shot of the scrolled page waits for the next step
+		pluginManagerFrame = gameFrames
+		pluginManagerStep = 4
+	}
+
+	/** The scrolled page's shot, then back to its top, Back, and the window closed. */
+	private fun pluginManagerScrolledCheck() {
+		checkImage("-settings-scrolled", SHOT.replace(".png", "-settings-scrolled.png"))
+		PluginManagerScreen.scrollBy(-100)
+		if (PluginManagerScreen.scrollPosition()[0] != 0) {
+			fail("the wheel did not scroll the settings page back to its top")
+		}
+		if (!PluginManagerScreen.clickBack()) {
+			fail("Back did not leave the npc indicators' settings page")
+		}
 		PluginManagerScreen.close()
 		if (PluginManagerScreen.open) {
 			fail("the plugin manager did not close")
 		}
-		println("SMOKE plugin manager: seconds typed " + secondsBefore + " to " + secondsAfter + ", 99999 held to 600, back to " + secondsBefore + "; Back; closed")
-		pluginManagerStep = 4
+		println("SMOKE plugin manager: the scrolled page shot; back to its top; Back; closed")
+		pluginManagerStep = 5
 	}
 
 	/** The verb of the menu's top row, which is the last entry of the list. */

@@ -41,13 +41,9 @@ import java.util.regex.Pattern
  * --console, --no-console     command history, word editing and autocomplete in the console (default on)
  * --shift-drop, --no-shift-drop  Shift with a left click drops an inventory item (default on; ::shiftdrop
  *                             toggles it)
- * --tile-markers              mark tiles from the right-click menu ("Mark tile"; ::tilemarkers toggles it)
- * --xp-drops                  "+N Skill" drops when experience goes up (::xpdrops toggles it)
  * --idle-notifier             a chat line and a red frame after 15 seconds idle (::idle toggles it, ::idle <seconds> sets the wait)
  * --inventory-value           what the backpack is worth, with its three most valuable items (::invvalue toggles it)
  * --name-plates               other players' names over their heads, coloured by attackable, friend, friends chat (::nameplates toggles it)
- * --npc-labels                NPC names and combat levels above their heads (::npclabels toggles it)
- * --ground-items              the names of items on the ground above their tiles (::grounditems toggles it)
  * --msaa <n>                  OpenGL: draw the 3D view in its own framebuffer with n samples (0, 2, 4, 8)
  * --smaa                      OpenGL: smooth the 3D view's edges with SMAA 1x as well
  * --render-scale <x>          OpenGL: draw the 3D view x times larger and shrink it (1.0, 1.5, 2.0)
@@ -114,13 +110,9 @@ object RuneTek5 {
                 "--dev-commands" -> System.setProperty("client.devCommands", "true")
                 "--shift-drop" -> System.setProperty("client.shiftDrop", "true")
                 "--no-shift-drop" -> System.setProperty("client.shiftDrop", "false")
-                "--tile-markers" -> System.setProperty("client.tileMarkers", "true")
-                "--xp-drops" -> System.setProperty("client.xpDrops", "true")
                 "--idle-notifier" -> System.setProperty("client.idleNotifier", "true")
                 "--inventory-value" -> System.setProperty("client.inventoryValue", "true")
                 "--name-plates" -> System.setProperty("client.namePlates", "true")
-                "--npc-labels" -> System.setProperty("client.npcLabels", "true")
-                "--ground-items" -> System.setProperty("client.groundItemLabels", "true")
                 "--msaa" -> System.setProperty("client.msaa", Integer.toString(Integer.parseInt(value(args, ++i, arg))))
                 "--smaa" -> System.setProperty("client.smaa", "true")
                 "--render-scale" -> System.setProperty("client.renderScale", java.lang.Double.toString(java.lang.Double.parseDouble(value(args, ++i, arg))))
@@ -326,6 +318,6 @@ object RuneTek5 {
                             [--login-modulus hex] [--js5-modulus hex] [--require-keys] [--server void|jagex] [--packets file]
                             [--world id] [--lang english|german]
                             [--debug] [--[no-]zoom] [--render-distance x] [--fps n] [--scale x] [--msaa n] [--smaa] [--render-scale x] [--no-a2c] [--toolkit hd|opengl|java] [--plugins dir] [--no-plugins] [--[no-]console] [--[no-]shift-drop] [--dev] [--dev-commands]
-                            [--tile-markers] [--xp-drops] [--idle-notifier] [--inventory-value] [--name-plates] [--npc-labels] [--ground-items]""".trimIndent())
+                            [--idle-notifier] [--inventory-value] [--name-plates]""".trimIndent())
     }
 }

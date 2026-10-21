@@ -116,14 +116,16 @@ If showing the frame fails, or the SSE toolkit throws while drawing, the client 
    and software, switched in the graphics options. The three share
    little code, and each has broken alone before.
 
-## Example: tile markers
+## Example: ground tiles
 
-`client/features/TileMarkers` draws on top of the scene the way the overlays do: after
-`OverlayManager.drawEntities` in `ClientState.drawGameArea`, it projects each corner of a tile with
-`OverlayManager.projectToScreenWithOffset` (world units, 512 per tile, the tile's height from
-`Scene`), adds the viewport's offset, and draws the outline with `Toolkit.line`, which every toolkit
-implements. The menu entry that marks a tile is added beside Walk here in `ViewportMiniMenuPicking`
-and handled in `MiniMenuActionExecutor`, with its own click type (`MiniMenuAction.TILE_MARKER`).
+`client/features/GroundTiles` (a built-in plugin) draws on top of the scene the way the overlays do,
+through the plugin API: `PluginRuntime.drawViewport` runs the plugins' overlays after
+`OverlayManager.drawEntities` in `ClientState.drawGameArea`. `ClientApi.tilePolygon` projects each
+corner of a tile with `OverlayManager.projectToScreenWithOffset` (world units, 512 per tile, the
+tile's height from `Scene`), and the plugin fills it with `Graphics.fillPolygon`
+(`WorldMapPolygonFill`, alpha blended) and outlines it with `Graphics.thickLine`, which every
+toolkit implements through `Toolkit`. Its menu entries come through `MenuEntryAdded` and
+`ClientApi.addMenuEntry`, with no hook of its own in the menu code.
 
 ## 634HD (toolkit 6)
 
