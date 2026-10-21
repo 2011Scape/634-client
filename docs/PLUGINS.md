@@ -5,8 +5,8 @@ small, stable API, that reads the game, draws on it, adds menu entries and comma
 own settings. The experience drops (`XpDrops`), the idle notifier (`IdleNotifier`), the menu
 swapper (`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name plates (`NamePlates`),
 the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Discord presence
-(`DiscordPresence`) and the ground items (`GroundItems`) are nine, built in, so the client's own code
-shows the way.
+(`DiscordPresence`), the ground items (`GroundItems`) and the loot tracker (`LootTracker`) are ten,
+built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -100,10 +100,10 @@ stack trace is in the client's log (the launcher keeps it in `~/.void/logs`).
 
 ## The built-in plugins
 
-Nine plugins come with the client, on the same API as the ones from the plugins folder, each with
+Ten plugins come with the client, on the same API as the ones from the plugins folder, each with
 its switch in the Plugins window: experience drops (`::xpdrops`), the idle notifier (`::idle`), the
 menu entry swapper (`::menuswapper`), the inventory value (`::invvalue`), name plates (`::nameplates`), the
-ground tiles, the npc indicators, the Discord presence (`::discord`) and the ground items (`::grounditems`).
+ground tiles, the npc indicators, the Discord presence (`::discord`), the ground items (`::grounditems`) and the loot tracker (`::loot`).
 
 **Ground Tiles** marks tiles on the ground the way RuneLite's Ground Markers do. Hold Shift and
 right-click a tile for **Mark tile**; a marked tile's Shift menu has **Unmark tile**, **Label tile**
@@ -183,6 +183,22 @@ Modern), and a notification when a highlighted or valuable drop appears. Not qui
 not say when an item will despawn, so the timers count as RuneLite did before the game told it (two
 minutes for loot, three for a drop, ten on a table, thirty in an instance); and a lootbeam is drawn
 over the scene rather than added to it as a model.
+
+**Loot Tracker** is RuneLite's Loot Tracker. It keeps the loot of every kill (an npc's items that
+appear on its tiles as it dies, by RuneLite's rules; another player's when you kill one), of
+pickpocketing, the crystal chest, the thieving chests, the Barrows chest, implings caught barehanded
+and their jars, caskets, birds' nests, and clue scrolls should the server give them; for these the loot
+is what your backpack gained, and what fell on your tile when it was full. `::loot`, or **Open** on its
+row of the plugin manager, opens its window: the view (grouped by source or kill by kill), whether
+ignored items show, and collapse or expand everything; the total count and value with **Reset all**;
+and a box a source, newest first, with its level or kill count, its value and its items. A box's title
+has **Collapse**, **Hide loot** (ignore the source), **Reset** and **View details**, and an item has
+**Toggle item** (ignore it); hovering one shows its average or its prices on the line under the totals.
+Settings: ignored items and sources, the price type (Grand Exchange or High Alchemy) and whether to
+show it, remembering the loot between sessions (per account, RuneLite's saved format, kept a year), a
+chat line for each npc or player kill ("You've killed a Goblin for 1.2K loot.") and the value of a
+Barrows chest. Not here from RuneLite: its loot sync with RuneLite's website, and the sources 634 or
+the server does not have (raids, Wintertodt and the rest of the later game).
 
 ## Writing a plugin
 

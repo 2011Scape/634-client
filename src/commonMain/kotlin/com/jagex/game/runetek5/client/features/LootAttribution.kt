@@ -76,9 +76,35 @@ class LootAttribution(private val listener: Listener) {
 		if (item.ownership == GroundItem.OWNERSHIP_OTHER) {
 			return // someone else's drop made public a minute after it fell: never a kill's loot now
 		}
-		val stack: Stack = Stack(item.itemId, item.amount, client.sceneBaseX() + item.sceneX, client.sceneBaseY() + item.sceneY, item.level)
-		spawns.add(Spawn(stack, client.clientCycle(), false))
+		val worldX: Int = client.sceneBaseX() + item.sceneX
+		val worldY: Int = client.sceneBaseY() + item.sceneY
+		var amount: Int = item.amount
+		val now: Int = client.clientCycle()
+		// a drop the server merged into a pile of the same item comes as the old amount gone and the new one back: only the difference is new
+		if (removedCycle == now && removedItem == item.itemId && removedTile == tileKey(worldX, worldY, item.level)) {
+			amount -= removedAmount
+			removedCycle = -1
+		}
+		if (amount > 0) {
+			spawns.add(Spawn(Stack(item.itemId, amount, worldX, worldY, item.level), now, false))
+		}
 	}
+
+	/** An item left the ground: remembered for this cycle, in case the same item comes back at once with more (a merged drop). */
+	fun itemDespawned(client: ClientApi, item: GroundItem) {
+		removedCycle = client.clientCycle()
+		removedItem = item.itemId
+		removedAmount = item.amount
+		removedTile = tileKey(client.sceneBaseX() + item.sceneX, client.sceneBaseY() + item.sceneY, item.level)
+	}
+
+	private var removedCycle: Int = -1
+
+	private var removedItem: Int = -1
+
+	private var removedAmount: Int = 0
+
+	private var removedTile: Long = -1L
 
 	/** Each client cycle: the kills whose window has closed are handed on, and what is too old is forgotten. */
 	fun cycle(now: Int) {

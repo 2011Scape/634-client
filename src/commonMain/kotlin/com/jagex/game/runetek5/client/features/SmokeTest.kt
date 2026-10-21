@@ -217,6 +217,13 @@ object SmokeTest {
 
 	private val MARKERS: Boolean = "false" != lang.getProperty("client.test.markers")
 
+	/** client.test.lootTracker: a made-up kill of the guide, its loot in the Loot Tracker, and the loot window. */
+	private val LOOT_TRACKER: Boolean = "true" == lang.getProperty("client.test.lootTracker")
+
+	private var lootStep: Int = 0
+
+	private var lootFrame: Int = -1
+
 	/** client.test.groundItems: Ground Items' labels, lootbeam and hotkey boxes on items made up beside the player. */
 	private val GROUND_ITEMS: Boolean = "true" == lang.getProperty("client.test.groundItems")
 
@@ -943,6 +950,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 128
+		}
+		if (LOOT_TRACKER && (checksDone and 256) == 0) {
+			if (!lootTrackerDone()) {
+				return
+			}
+			checksDone = checksDone or 256
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -2828,6 +2841,75 @@ object SmokeTest {
 			firstImage += "; tile " + x + "," + y + " marked, drawn and unmarked: " + image
 			markerStep = 2
 		}
+		return true
+	}
+
+	/**
+	 * The Loot Tracker on a kill that never happened: the guide's health bar is emptied and it leaves
+	 * the scene, and bones and coins appear on its tile in the same cycle, as the server drops loot.
+	 * The kill is the Loot Tracker's, under the guide's name; the loot window opens on it (grouped), a
+	 * frame of it, then kill by kill, and it closes. Frame in build/smoke as -loottracker.
+	 */
+	private fun lootTrackerDone(): Boolean {
+		if (lootStep == 0) {
+			var guide: NPCEntity? = null
+			for (i in 0 until NPCList.npcCount) {
+				val npc: NPCEntity? = NPCList.NPC_ARRAY[i]?.npc
+				if (npc != null && npc.npcType?.id == GUIDE_NPC) {
+					guide = npc
+				}
+			}
+			if (guide == null) {
+				fail("no guide (npc " + GUIDE_NPC + ") in the scene for the loot check")
+				return true
+			}
+			ItemPrices.setForTest(mapOf(526 to 150))
+			LootTracker.enabled = true
+			guide.healthRatio = 0
+			guide.healthBarEndCycle = ClientState.clientCycle + 100
+			val x: Int = guide.tileX()
+			val y: Int = guide.tileY()
+			val level: Int = guide.level.toInt()
+			PluginRuntime.npcDespawned(guide)
+			PluginRuntime.groundItemSpawned(526, 1, x, y, level)
+			PluginRuntime.groundItemSpawned(995, 25, x, y, level)
+			PluginRuntime.npcSpawned(guide)
+			guide.healthBarEndCycle = -1000
+			lootFrame = frames
+			lootStep = 1
+			return false
+		}
+		if (frames - lootFrame < MARKER_FRAMES) {
+			return false
+		}
+		if (lootStep == 1) {
+			val record: LootTrackerData.Record? = LootTracker.sessionRecords.lastOrNull()
+			if (record == null || record.items.size != 2) {
+				fail("the guide's made-up kill left no loot record with its two items (" + LootTracker.sessionRecords.size + " records)")
+				return true
+			}
+			val why: String? = LootTrackerScreen.open()
+			if (why != null) {
+				fail("the loot window did not open: " + why)
+				return true
+			}
+			firstImage += "; loot tracker: " + record.title + " " + record.subTitle + " with " + record.items.size + " items"
+			lootFrame = frames
+			lootStep = 2
+			return false
+		}
+		checkImage("-loottracker", SHOT.replace(".png", "-loottracker.png"))
+		if (LootTrackerScreen.boxesShown < 1) {
+			fail("the loot window shows " + LootTrackerScreen.boxesShown + " boxes")
+		}
+		LootTrackerScreen.changeGrouping(false)
+		val single: Int = LootTrackerScreen.boxesShown
+		LootTrackerScreen.changeGrouping(true)
+		LootTrackerScreen.close()
+		if (LootTrackerScreen.open) {
+			fail("the loot window did not close")
+		}
+		firstImage += ", window drawn with " + LootTrackerScreen.boxesShown + " box, " + single + " kill by kill"
 		return true
 	}
 

@@ -79,6 +79,7 @@ import com.jagex.game.runetek5.client.event.keyboard.FriendOrSelfCheck
 import com.jagex.game.runetek5.client.event.mouse.DelayedIfTextUpdate
 import com.jagex.game.runetek5.client.features.ClientFeatures
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
+import com.jagex.game.runetek5.client.features.LootTrackerScreen
 import com.jagex.game.runetek5.client.features.PluginManagerScreen
 import com.jagex.game.runetek5.client.web.ClientURLTools
 import com.jagex.game.runetek5.rendering.MessageBox
@@ -5549,6 +5550,11 @@ object CS2Interpreter {
 		if (scriptId == PluginManagerScreen.SENTINEL) {
 			// Not part of the original client: a hook of the plugin manager's window, handled in Kotlin.
 			PluginManagerScreen.hook(hook)
+			return
+		}
+		if (scriptId == LootTrackerScreen.SENTINEL) {
+			// Not part of the original client: a hook of the loot tracker's window, handled in Kotlin.
+			LootTrackerScreen.hook(hook)
 			return
 		}
 		@Pc(12) var clientScript: ClientScript? = ClientScript.getClientScript(scriptId)
