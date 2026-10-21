@@ -115,6 +115,7 @@ are off unless the client is started with `--dev-commands`.
 | `--dev` | `--debug` with the wider zoom and the better console. |
 | `--dev-commands` | Allow the console commands that read or write local files. |
 | `--plugins <dir>` | Load the plugin jars in `dir` instead of `~/.634-client/plugins` ([docs/PLUGINS.md](docs/PLUGINS.md)). `--no-plugins` loads none. |
+| `--prices <url\|none>` | Where the Grand Exchange guide prices for plugins come from (the game website's `/items/prices.json` by default), or `none` for no prices. They are fetched in the background every hour and kept in `~/.634-client/prices.json`. |
 
 ## Platforms
 

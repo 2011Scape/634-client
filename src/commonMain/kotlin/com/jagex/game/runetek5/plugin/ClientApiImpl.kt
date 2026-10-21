@@ -72,6 +72,11 @@ import com.jagex.game.runetek5.config.rsinterface.itemcontainer.ItemContainer as
  */
 object ClientApiImpl : ClientApi {
 
+	private const val COINS: Int = 995
+
+	/** RuneLite's Constants.HIGH_ALCHEMY_MULTIPLIER: High Level Alchemy gives this much of an item's value. */
+	private const val HIGH_ALCHEMY_MULTIPLIER: Float = 0.6f
+
 	/** What titles the window (GameShell) and a desktop notification. */
 	private const val CLIENT_TITLE: String = "Void"
 
@@ -370,6 +375,68 @@ object ClientApiImpl : ClientApi {
 			return null
 		}
 		return TypeLists.LOC!!.list(id)
+	}
+
+	/** The item a price is looked up by: a noted item's unnoted one. -1 for none. */
+	private fun pricedId(id: Int): Int {
+		val type: ItemDefinition = item(id) ?: return -1
+		return if (type.isNoted() && type.linkedId() >= 0) type.linkedId() else id
+	}
+
+	override fun itemPrice(id: Int): Int {
+		if (id == COINS) {
+			return 1
+		}
+		val priced: Int = pricedId(id)
+		return if (priced < 0) -1 else ItemPrices.price(priced)
+	}
+
+	override fun itemHaPrice(id: Int): Int {
+		if (id == COINS) {
+			return 1
+		}
+		val priced: Int = pricedId(id)
+		val type: ItemDefinition = (if (priced < 0) null else item(priced)) ?: return 0
+		return (type.value() * HIGH_ALCHEMY_MULTIPLIER).toInt()
+	}
+
+	override fun groundItemHeight(sceneX: Int, sceneY: Int, level: Int): Int {
+		val tiles = Scene.aClass100ArrayArrayArray3 ?: return 0
+		if (level < 0 || level >= tiles.size) {
+			return 0
+		}
+		val column = tiles[level] ?: return 0
+		if (sceneX < 0 || sceneX >= column.size) {
+			return 0
+		}
+		val row = column[sceneX] ?: return 0
+		if (sceneY < 0 || sceneY >= row.size) {
+			return 0
+		}
+		val tile: Tile = row[sceneY] ?: return 0
+		if (tile.groundItem == null) {
+			return 0
+		}
+		val support: InteractiveEntityContainer = tile.interactives ?: return 0
+		val loc = support.interactiveObject ?: return 0
+		// the pile is drawn on top of a location that holds items (ObjStackEntity.render): the model's top, y up negative
+		return if (loc.supportsItems) -loc.getModelMinY() else 0
+	}
+
+	override fun isInInstance(): Boolean {
+		return MapRegion.constructed
+	}
+
+	override fun deprioritizeMenuEntry(i: Int): Boolean {
+		return PluginRuntime.deprioritizeMenuEntry(i)
+	}
+
+	override fun addSubmenu(label: String): Int {
+		return PluginRuntime.addSubmenu(label)
+	}
+
+	override fun addSubmenuEntry(submenu: Int, label: String, clickType: Int) {
+		PluginRuntime.addSubmenuEntry(submenu, label, clickType)
 	}
 
 	override fun locsAt(tileX: Int, tileY: Int, level: Int, visitor: LocVisitor) {

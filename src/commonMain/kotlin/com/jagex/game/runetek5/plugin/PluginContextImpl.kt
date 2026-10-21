@@ -1,6 +1,8 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.client.features.PluginManagerScreen
 import com.jagex.game.runetek5.plugin.api.ClientApi
+import com.jagex.game.runetek5.plugin.api.ColourCallback
 import com.jagex.game.runetek5.plugin.api.CommandHandler
 import com.jagex.game.runetek5.plugin.api.MenuAction
 import com.jagex.game.runetek5.plugin.api.Overlay
@@ -113,5 +115,22 @@ class PluginContextImpl(private val registration: PluginRegistration) : PluginCo
 			return
 		}
 		PluginRuntime.startThread(registration, name, task)
+	}
+
+	@Suppress("TooGenericExceptionCaught") // a plugin that throws is disabled and the game goes on
+	override fun pickColour(initial: Int, alpha: Boolean, callback: ColourCallback): Boolean {
+		if (closed) {
+			return false
+		}
+		val why: String? = PluginManagerScreen.pickColour(initial, alpha) { argb ->
+			if (!closed) {
+				try {
+					callback.picked(argb)
+				} catch (error: Throwable) {
+					PluginRuntime.fail(registration, error)
+				}
+			}
+		}
+		return why == null
 	}
 }

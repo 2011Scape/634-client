@@ -802,7 +802,7 @@ class client : GameShell() {
 					client.maximumHeldKeys++
 				}
 			} else if (type == 0 && KeyRecorder.keyCachePointerPoss < 75) {
-				if (!PluginManagerScreen.keyPressed() && !PluginRuntime.keyPressed(keyLog)) { // Not part of the original client: the plugin manager's number box, then the plugins' KeyPressed; a consumed key never reaches the server.
+				if (!PluginManagerScreen.keyPressed(keyLog) && !PluginRuntime.keyPressed(keyLog)) { // Not part of the original client: the plugin manager's number box, then the plugins' KeyPressed; a consumed key never reaches the server.
 					KeyRecorder.KEYS_PRESSED[KeyRecorder.keyCachePointerPoss] = keyLog
 					KeyRecorder.keyCachePointerPoss++
 				}

@@ -16,6 +16,7 @@ object StaticRegionInit {
 	@JvmStatic
 	fun initializeRegion() {
 		MapRegion.areaMode = AreaMode.STATIC_AREA
+		MapRegion.constructed = false // Not part of the original client: the plugins' isInInstance
 		@Pc(11) val mapSize: Int = BufferedConnectionContext.receivedBuffer!!.readUByteSubtract()
 		@Pc(15) val baseY: Int = BufferedConnectionContext.receivedBuffer!!.readUShortAddLittle()
 		@Pc(19) val baseX: Int = BufferedConnectionContext.receivedBuffer!!.readUShortLittle()

@@ -12,6 +12,8 @@ import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.input.console.Console
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecord
 import com.jagex.game.runetek5.client.input.mouse.MouseRecord
+import com.jagex.game.runetek5.Cursor
+import com.jagex.game.runetek5.client.menu.ColoredMiniMenuEntry
 import com.jagex.game.runetek5.client.menu.MiniMenu
 import com.jagex.game.runetek5.client.menu.MiniMenuEntry
 import com.jagex.game.runetek5.core.constants.MainLogicStep
@@ -237,6 +239,20 @@ object PluginRuntime {
 	private const val KIND_SHIFT: Int = 16
 
 	private const val KIND_MASK: Int = 7
+
+	/** The game's "below" flag on a click type (MiniMenuActionExecutor takes it off). */
+	private const val DEPRIORITIZED: Int = 2000
+
+	private const val MAX_SUBMENUS: Int = 32
+
+	private const val MAX_SUBMENU_ENTRIES: Int = 40
+
+	/** The plugins' submenus in the menu being built, by index, and the entries that open them. */
+	private val submenus: Array<ColoredMiniMenuEntry?> = arrayOfNulls<ColoredMiniMenuEntry?>(MAX_SUBMENUS)
+
+	private val submenuParents: Array<MiniMenuEntry?> = arrayOfNulls<MiniMenuEntry?>(MAX_SUBMENUS)
+
+	private var submenuCount: Int = 0
 
 	/** The menu entry target being built, while a MenuEntryAdded listener runs. */
 	private var menuBuilding: Boolean = false
@@ -670,6 +686,7 @@ object PluginRuntime {
 		hoveredTileX = -1
 		hoveredTileY = -1
 		ToolkitGraphics.cycle()
+		ItemPrices.poll()
 		runPendingTasks()
 		clientTickEvent.cycle = ClientState.clientCycle
 		bus.post(Events.CLIENT_TICK, clientTickEvent)
@@ -908,13 +925,21 @@ object PluginRuntime {
 		bus.post(Events.PLAYER_DESPAWNED, player)
 	}
 
-	/** An item was put on the ground at scene tile ([sceneX], [sceneY]). */
+	/** An item was put on the ground at scene tile ([sceneX], [sceneY]); [ownership] is a GroundItem.OWNERSHIP_ value. */
 	@JvmStatic
-	fun groundItemSpawned(itemId: Int, amount: Int, sceneX: Int, sceneY: Int, level: Int) {
+	fun groundItemSpawned(itemId: Int, amount: Int, sceneX: Int, sceneY: Int, level: Int, ownership: Int) {
 		if (!started || !bus.hasListeners(Events.ITEM_SPAWNED)) {
 			return
 		}
-		bus.post(Events.ITEM_SPAWNED, GroundItem(itemId, amount, sceneX, sceneY, level))
+		val item: GroundItem = GroundItem(itemId, amount, sceneX, sceneY, level)
+		item.ownership = ownership
+		bus.post(Events.ITEM_SPAWNED, item)
+	}
+
+	/** An item was put on the ground by the server with nothing said of whose it is. */
+	@JvmStatic
+	fun groundItemSpawned(itemId: Int, amount: Int, sceneX: Int, sceneY: Int, level: Int) {
+		groundItemSpawned(itemId, amount, sceneX, sceneY, level, GroundItem.OWNERSHIP_NONE)
 	}
 
 	/** An item is about to leave the ground at scene tile ([sceneX], [sceneY]). */
@@ -1246,6 +1271,93 @@ object PluginRuntime {
 		}
 		menuEdited = true
 		return true
+	}
+
+	/**
+	 * Sinks entry [i] below every entry that is not sunk: its click type gets the game's 2000 (the flag
+	 * MiniMenuActionExecutor takes off again, as for Attack on a weaker player) and it moves to the
+	 * bottom of the list, which draws last and is never the left click while another entry is above it.
+	 */
+	fun deprioritizeMenuEntry(i: Int): Boolean {
+		val entry: MiniMenuEntry = menuEntryAt(i) ?: return false
+		if (entry.clickType == MiniMenuAction.CANCEL) {
+			return false
+		}
+		if (entry.clickType < DEPRIORITIZED) {
+			entry.clickType += DEPRIORITIZED
+		}
+		// out of its group and in again (addEntry appends), then to the head of the list: the bottom row
+		MiniMenu.removeEntry(entry)
+		MiniMenu.addEntry(entry)
+		entry.unlink()
+		MiniMenu.entryList.addFirst(entry)
+		for (j in i until menuEntryTotal - 1) {
+			menuEntries[j] = menuEntries[j + 1]
+		}
+		menuEntries[menuEntryTotal - 1] = entry
+		if (promotedDefault === entry) {
+			promotedDefault = null
+		}
+		menuEdited = true
+		return true
+	}
+
+	/** Adds a plugin's entry that opens submenu [submenus] index when hovered; the submenu's index, or -1 when no menu is being built. */
+	fun addSubmenu(label: String): Int {
+		if (!menuBuilding || MiniMenu.isOpen || submenuCount >= MAX_SUBMENUS) {
+			return -1
+		}
+		val index: Int = submenuCount++
+		val submenu: ColoredMiniMenuEntry = ColoredMiniMenuEntry(label)
+		submenus[index] = submenu
+		val before: Int = MiniMenu.entryCount
+		MiniMenu.addEntry(false, "", menuParam1, true, (menuParam0Low and 0xFFFF) or ((menuKind and KIND_MASK) shl KIND_SHIFT), menuItemId, true, MiniMenuAction.PLUGIN_SUBMENU, 0L, label, index.toLong(), -1)
+		if (MiniMenu.entryCount == before) {
+			submenus[index] = null
+			submenuCount--
+			return -1
+		}
+		submenuParents[index] = MiniMenu.entryList.last() as MiniMenuEntry?
+		return index
+	}
+
+	/** Adds a plugin's entry to submenu [submenu], after the ones already in it. */
+	fun addSubmenuEntry(submenu: Int, label: String, clickType: Int) {
+		if (!menuBuilding || submenu < 0 || submenu >= submenuCount || clickType < MiniMenuAction.PLUGIN_FIRST || clickType > MiniMenuAction.PLUGIN_LAST) {
+			return
+		}
+		val parent: ColoredMiniMenuEntry = submenus[submenu] ?: return
+		if (menuActions[clickType - MiniMenuAction.PLUGIN_FIRST] == null || parent.queueSize >= MAX_SUBMENU_ENTRIES) {
+			return
+		}
+		val child: MiniMenuEntry = MiniMenuEntry(label, "", Cursor.interfaceCursorId, clickType, menuItemId, menuEntityUid, menuParam0(menuParam0Low, menuKind, clickType), menuParam1, true, false, 0L, true)
+		// appended: the menu's own ordering (ColoredMiniMenuEntry.addEntry) puts each new plugin entry first
+		parent.nodeQueue.insert(child)
+		parent.queueSize++
+	}
+
+	/** The submenu a hovered plugin entry opens, or null when [entry] is not one of those. */
+	@JvmStatic
+	fun submenuOf(entry: MiniMenuEntry?): ColoredMiniMenuEntry? {
+		if (entry == null || entry.clickType != MiniMenuAction.PLUGIN_SUBMENU) {
+			return null
+		}
+		val index: Int = entry.entityUid.toInt()
+		if (index < 0 || index >= submenuCount || submenuParents[index] !== entry) {
+			return null
+		}
+		val submenu: ColoredMiniMenuEntry = submenus[index] ?: return null
+		return if (submenu.queueSize > 0) submenu else null
+	}
+
+	/** The menu is being built again (MiniMenu.reset): the submenus of the last one are gone. */
+	@JvmStatic
+	fun menuReset() {
+		for (i in 0 until submenuCount) {
+			submenus[i] = null
+			submenuParents[i] = null
+		}
+		submenuCount = 0
 	}
 
 	/** An interface opened inside the component [parentHash]. */

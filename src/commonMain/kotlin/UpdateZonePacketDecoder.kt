@@ -17,6 +17,7 @@ import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.cache.node.ObjStack
 import com.jagex.game.runetek5.plugin.PluginRuntime
+import com.jagex.game.runetek5.plugin.api.events.GroundItem
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
 import com.jagex.game.runetek5.config.TypeLists
 import com.jagex.game.runetek5.rendering.Renderers
@@ -306,7 +307,7 @@ object UpdateZonePacketDecoder {
 					@Pc(1381) val withinScene: Boolean = sceneX >= 0 && sceneY >= 0 && MapRegion.sceneSizeX > sceneX && MapRegion.sceneSizeY > sceneY
 					if (withinScene || MapRegion.allowsOutOfBounds(MapRegion.areaMode)) {
 						ObjStack.addGroundItem(ObjStackEntry(itemId, itemCount), UpdateZonePacketDecoder.updateZonePlane, absoluteY, absoluteX)
-						PluginRuntime.groundItemSpawned(itemId, itemCount, sceneX, sceneY, UpdateZonePacketDecoder.updateZonePlane) // Not part of the original client: the plugins' ItemSpawned.
+						PluginRuntime.groundItemSpawned(itemId, itemCount, sceneX, sceneY, UpdateZonePacketDecoder.updateZonePlane, GroundItem.OWNERSHIP_OTHER) // Not part of the original client: the plugins' ItemSpawned, another player's item made public.
 						if (withinScene) {
 							ObjStackEntity.refreshObjStack(sceneY, sceneX, UpdateZonePacketDecoder.updateZonePlane)
 						}

@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.plugin.api.PluginConfig
+import kotlin.jvm.JvmStatic
 
 /**
  * Not part of the original client: a plugin's settings, name=value lines in
@@ -56,6 +57,15 @@ class PluginConfigImpl(private val id: String) : PluginConfig {
 		values[key] = value
 	}
 
+	override fun getColour(key: String, default: Int): Int {
+		val value: String = values[key] ?: return default
+		return parseColour(value) ?: default
+	}
+
+	override fun setColour(key: String, argb: Int) {
+		values[key] = formatColour(argb)
+	}
+
 	override fun setInt(key: String, value: Int) {
 		values[key] = value.toString()
 	}
@@ -82,6 +92,39 @@ class PluginConfigImpl(private val id: String) : PluginConfig {
 	}
 
 	companion object {
+		private const val HEX: String = "0123456789ABCDEF"
+
+		/** `#AARRGGBB`, or `#RRGGBB` (opaque), the `#` optional, as an ARGB int; null when it is neither. */
+		@JvmStatic
+		fun parseColour(text: String): Int? {
+			var hex: String = text.trim()
+			if (hex.startsWith("#")) {
+				hex = hex.substring(1)
+			}
+			if (hex.length != 6 && hex.length != 8) {
+				return null
+			}
+			var value: Long = 0L
+			for (c in hex) {
+				val digit: Int = HEX.indexOf(c.uppercaseChar())
+				if (digit < 0) {
+					return null
+				}
+				value = (value shl 4) or digit.toLong()
+			}
+			return if (hex.length == 6) (value or 0xFF000000L).toInt() else value.toInt()
+		}
+
+		/** [argb] as `#AARRGGBB`, upper case. */
+		@JvmStatic
+		fun formatColour(argb: Int): String {
+			val out: StringBuilder = StringBuilder("#")
+			for (shift in 28 downTo 0 step 4) {
+				out.append(HEX[(argb ushr shift) and 0xF])
+			}
+			return out.toString()
+		}
+
 		/** Where the first `=` that is not escaped is in [line], or -1. */
 		private fun separator(line: String): Int {
 			var i: Int = 0

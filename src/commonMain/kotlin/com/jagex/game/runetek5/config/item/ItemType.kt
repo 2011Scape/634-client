@@ -57,6 +57,13 @@ class ItemType : ItemDefinition {
 		return this.certId
 	}
 
+	override fun isTradeable(): Boolean {
+		if (this.certTemplateId != -1 && this.certId >= 0 && this.typeList != null) {
+			return this.typeList!!.list(this.certId).stockmarket
+		}
+		return this.stockmarket
+	}
+
 	override fun value(): Int {
 		return this.value
 	}

@@ -31,8 +31,12 @@ package com.jagex.game.runetek5.plugin.api
  *   and [Actor.isDying]; [ClientApi.actorHull], [ClientApi.projectActorMinimap] and
  *   [ClientApi.retargetMenuEntry].
  * - 8: [ClientApi.isFocused], [ClientApi.notify] (a notification on the desktop) and [ClientApi.requestFocus] (the window to the front).
+ * - 9: [ClientApi.itemPrice] (Grand Exchange guide prices) and [ClientApi.itemHaPrice]; [ItemDefinition.isTradeable];
+ *   [events.GroundItem.ownership], [ClientApi.groundItemHeight] and [ClientApi.isInInstance]; [ClientApi.deprioritizeMenuEntry]; submenus
+ *   ([ClientApi.addSubmenu], [ClientApi.addSubmenuEntry]); [SettingsSchema.colour], [SettingsSchema.keybind],
+ *   [PluginConfig.getColour], [PluginConfig.setColour] and [KeyCode.name]; [PluginContext.pickColour].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 8
+	const val VERSION: Int = 9
 }

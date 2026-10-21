@@ -21,6 +21,12 @@ interface PluginConfig {
 
 	fun setBoolean(key: String, value: Boolean)
 
+	/** The setting [key] as an ARGB colour (written `#AARRGGBB` or `#RRGGBB`, the latter opaque), or [default] when it is not there or not a colour. Since API 9. */
+	fun getColour(key: String, default: Int): Int
+
+	/** Sets [key] to the ARGB colour [argb], written `#AARRGGBB`. Since API 9. */
+	fun setColour(key: String, argb: Int)
+
 	/** Forgets [key]; [save] writes that too. */
 	fun remove(key: String)
 

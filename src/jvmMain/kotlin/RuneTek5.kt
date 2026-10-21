@@ -114,6 +114,7 @@ object RuneTek5 {
                 "--toolkit" -> System.setProperty("client.toolkit", value(args, ++i, arg))
                 "--plugins" -> System.setProperty("client.plugins", path(value(args, ++i, arg)).toString())
                 "--no-plugins" -> System.setProperty("client.plugins", "none")
+                "--prices" -> System.setProperty("client.prices", value(args, ++i, arg))
                 "--hd" -> {
                     // 634HD feature switches: --hd tonemap=aces,shadows=2048 (HdSettings)
                     for (pair in value(args, ++i, arg).split(',')) {
@@ -311,6 +312,6 @@ object RuneTek5 {
             usage: RuneTek5 [--address host] [--port port] [--keys game.properties]
                             [--login-modulus hex] [--js5-modulus hex] [--require-keys] [--server void|jagex] [--packets file]
                             [--world id] [--lang english|german]
-                            [--debug] [--[no-]zoom] [--render-distance x] [--fps n] [--scale x] [--msaa n] [--smaa] [--render-scale x] [--no-a2c] [--toolkit hd|opengl|java] [--plugins dir] [--no-plugins] [--[no-]console] [--[no-]shift-drop] [--dev] [--dev-commands]""".trimIndent())
+                            [--debug] [--[no-]zoom] [--render-distance x] [--fps n] [--scale x] [--msaa n] [--smaa] [--render-scale x] [--no-a2c] [--toolkit hd|opengl|java] [--plugins dir] [--no-plugins] [--prices url|none] [--[no-]console] [--[no-]shift-drop] [--dev] [--dev-commands]""".trimIndent())
     }
 }

@@ -7,6 +7,7 @@ import com.jagex.game.runetek5.DraggedComponentLayer
 import com.jagex.game.runetek5.core.datastruct.key.DequeIterator
 import com.jagex.game.runetek5.cache.node.QueueIterator
 import com.jagex.game.runetek5.client.menu.ColoredMiniMenuEntry
+import com.jagex.game.runetek5.client.menu.MiniMenuSubmenus
 import com.jagex.game.runetek5.client.input.mouse.MouseRecord
 import com.jagex.game.runetek5.graphics.gl.GlxMatrixScratch
 import org.openrs2.deob.annotation.OriginalMember
@@ -154,6 +155,12 @@ object MiniMenuInputTick {
 							if (entryPosition == hoveredRow) {
 								if (miniMenuEntry.queueSize > 1) {
 									MiniMenu.openSubmenu(miniMenuEntry, mouseY, hoveredRowY)
+								} else {
+									// Not part of the original client: a plugin's entry with a submenu of its own
+									val pluginSubmenu: ColoredMiniMenuEntry? = PluginRuntime.submenuOf(miniMenuEntry.nodeQueue.sentinel.secondaryNext as MiniMenuEntry?)
+									if (pluginSubmenu != null) {
+										MiniMenu.openSubmenu(pluginSubmenu, mouseY, hoveredRowY)
+									}
 								}
 								break
 							}
@@ -161,6 +168,9 @@ object MiniMenuInputTick {
 							miniMenuEntry = queueIterator.next() as ColoredMiniMenuEntry?
 						}
 					}
+				} else {
+					// Not part of the original client: the plain menu has no submenus of its own; a plugin's entry with one opens it when hovered
+					MiniMenuSubmenus.hoverPlain(mouseY)
 				}
 			}
 		}

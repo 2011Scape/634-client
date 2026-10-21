@@ -59,4 +59,12 @@ interface PluginContext {
 	 * plugin. Not available in the browser.
 	 */
 	fun startThread(name: String, task: Task)
+
+	/**
+	 * Opens the client's colour picker on [initial] (ARGB): the player picks a colour, and how
+	 * see-through it is when [alpha], and [callback] gets it on the game thread; nothing when the
+	 * player cancels. The picker is a window in the game, like the plugin manager. False when it
+	 * cannot open now (not in the game, another window open). Since API 9.
+	 */
+	fun pickColour(initial: Int, alpha: Boolean, callback: ColourCallback): Boolean
 }

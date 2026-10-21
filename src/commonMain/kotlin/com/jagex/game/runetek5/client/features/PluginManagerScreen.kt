@@ -19,7 +19,9 @@ import com.jagex.game.runetek5.plugin.PluginIcon
 import com.jagex.game.runetek5.plugin.PluginRegistration
 import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.plugin.PluginSchemaImpl
+import com.jagex.game.runetek5.plugin.PluginConfigImpl
 import com.jagex.game.runetek5.plugin.api.PluginConfig
+import com.jagex.game.runetek5.plugin.api.KeyCode
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
@@ -126,6 +128,38 @@ object PluginManagerScreen {
 	private const val A_ROW_HOVER: Int = 17
 	private const val A_ROW_LEAVE: Int = 18
 	private const val A_WHEEL: Int = 19
+	private const val A_COLOUR: Int = 20
+	private const val A_KEYBIND: Int = 21
+	private const val A_PICK_CELL: Int = 22
+	private const val A_PICK_OK: Int = 23
+	private const val A_PICK_CANCEL: Int = 24
+	private const val A_PICK_HEX: Int = 25
+	private const val A_PICK_ALPHA: Int = 26
+	private const val A_PICK_RECENT: Int = 27
+
+	/** A colour setting's swatch, and the picker's cells. */
+	private const val SWATCH_WIDTH: Int = 40
+
+	private const val KEY_BOX_WIDTH: Int = 110
+
+	private const val CELL_WIDTH: Int = 18
+
+	private const val CELL_HEIGHT: Int = 14
+
+	private const val HUES: Int = 24
+
+	/** The palette's rows: four of full saturation getting brighter, four of full brightness getting paler, one of greys. */
+	private const val PALETTE_ROWS: Int = 9
+
+	private const val MAX_RECENT: Int = HUES
+
+	private const val CHECK_LIGHT: Int = 0xc8c8c8
+
+	private const val CHECK_DARK: Int = 0x7a7a7a
+
+	private const val ALPHA_MASK: Int = -0x1000000
+
+	private const val RGB_MASK: Int = 0xFFFFFF
 
 	/** The content layer's visible height (the window's less its title bar), and the scrollbar's place in it. */
 	private const val BODY_HEIGHT: Int = HEIGHT - 29
@@ -156,6 +190,34 @@ object PluginManagerScreen {
 	/** Whether the window is open with our page in it. */
 	@JvmField
 	var open: Boolean = false
+
+	/** A colour being picked: what it started as, whether its alpha is the player's, what it is now, and what gets it. */
+	private class Pick(@JvmField val alpha: Boolean, @JvmField var argb: Int, @JvmField val done: (Int) -> Unit, @JvmField val openedForIt: Boolean)
+
+	private var picking: Pick? = null
+
+	/** The picker's box being typed into: 0 none, 1 the hex, 2 the alpha; its text so far; the slots of the two boxes' outlines and values. */
+	private var pickEdit: Int = 0
+
+	private var pickText: String = ""
+
+	private var pickHexOutline: Int = -1
+
+	private var pickHexValue: Int = -1
+
+	private var pickAlphaOutline: Int = -1
+
+	private var pickAlphaValue: Int = -1
+
+	/** The colours picked lately, newest first, offered on the picker's last row. */
+	private val recentColours: ArrayList<Int> = ArrayList()
+
+	/** A keybind setting waiting for its key, and the slots of its box. */
+	private var capturing: PluginSchemaImpl.Entry? = null
+
+	private val keyOutline: HashMap<Int, Int> = HashMap()
+
+	private val keyValue: HashMap<Int, Int> = HashMap()
 
 	/** The plugin whose settings page is shown, or null for the list. */
 	private var selected: PluginRegistration? = null
@@ -428,6 +490,7 @@ object PluginManagerScreen {
 		if (!open) {
 			return
 		}
+		picking = null // a colour being picked when the window closes is left as it was
 		closePopup()
 		val parent: Int = modalSlot()
 		val sub: SubInterface? = InterfaceManager.OPEN_INTERFACES.get(parent.toLong()) as SubInterface?
@@ -446,6 +509,7 @@ object PluginManagerScreen {
 		}
 		open = false
 		selected = null
+		picking = null
 		tipFor = -1
 		forget()
 	}
@@ -456,6 +520,10 @@ object PluginManagerScreen {
 		numberOutline.clear()
 		numberValue.clear()
 		editing = null
+		capturing = null
+		keyOutline.clear()
+		keyValue.clear()
+		pickEdit = 0
 		rowHits.clear()
 		scrollTrack = -1
 		scrollThumb = -1
@@ -476,14 +544,17 @@ object PluginManagerScreen {
 			body.scrollY = 0 // another page: from its top
 			scrolledFor = plugin
 		}
-		if (plugin == null) {
+		val pick: Pick? = picking
+		if (pick != null) {
+			pickerPage(children, pick)
+		} else if (plugin == null) {
 			listPage(children)
 		} else {
 			settingsPage(children, plugin)
 		}
 		body.slotChildren = children.toTypedArray<Component?>()
 		// a settings page taller than the layer scrolls: the layer draws and clips its children by scrollY, and the wheel comes to it as a hook
-		val scrolls: Boolean = plugin != null && settingsContent > BODY_HEIGHT
+		val scrolls: Boolean = plugin != null && pick == null && settingsContent > BODY_HEIGHT
 		body.scrollHeight = if (scrolls) settingsContent else 0
 		body.hasScript = scrolls
 		body.onMouseMove = if (scrolls) arrayOf<Any?>(SENTINEL, A_WHEEL, 0) else null
@@ -732,6 +803,34 @@ object PluginManagerScreen {
 					text.params = arrayOf<Any?>(SENTINEL, A_EDIT, i)
 					children.add(text)
 				}
+				PluginSchemaImpl.COLOUR -> {
+					// a swatch to click for the picker, its hex beside it
+					val argb: Int = config.getColour(entry.key, entry.defaultInt)
+					val bx: Int = right - SWATCH_WIDTH
+					children.add(ClientPage.text(BODY, children.size, 12, y + 1, bx - 20, 16, ClientPage.FONT_SMALL, hexOf(argb, entry.max == 1), DIM, 2, 1, false))
+					swatch(children, bx, y - 1, SWATCH_WIDTH, ClientPage.ITEM_HEIGHT + 4, argb)
+					val hit: Component = ClientPage.text(BODY, children.size, bx, y - 1, SWATCH_WIDTH, ClientPage.ITEM_HEIGHT + 4, ClientPage.FONT_SMALL, "", ClientPage.TEXT, 1, 1, false)
+					hit.hasScript = true
+					hit.addOptionName(0, "Pick")
+					hit.opBase = entry.label
+					hit.params = arrayOf<Any?>(SENTINEL, A_COLOUR, i)
+					children.add(hit)
+				}
+				PluginSchemaImpl.KEYBIND -> {
+					// a box showing the key: click, then press the key
+					val code: Int = config.getInt(entry.key, entry.defaultInt)
+					val bx: Int = right - KEY_BOX_WIDTH
+					children.add(ClientPage.rect(BODY, children.size, bx, y - 1, KEY_BOX_WIDTH, ClientPage.ITEM_HEIGHT + 4, ClientPage.BOX_FILL, true))
+					keyOutline[i] = children.size
+					children.add(ClientPage.rect(BODY, children.size, bx, y - 1, KEY_BOX_WIDTH, ClientPage.ITEM_HEIGHT + 4, ClientPage.BOX_LINE, false))
+					keyValue[i] = children.size
+					val text: Component = ClientPage.text(BODY, children.size, bx, y - 1, KEY_BOX_WIDTH, ClientPage.ITEM_HEIGHT + 4, ClientPage.FONT_LABEL, KeyCode.name(code), ClientPage.TEXT, 1, 1, false)
+					text.hasScript = true
+					text.addOptionName(0, "Set")
+					text.opBase = ""
+					text.params = arrayOf<Any?>(SENTINEL, A_KEYBIND, i)
+					children.add(text)
+				}
 				PluginSchemaImpl.CHOICE -> {
 					val value: String = config.get(entry.key, entry.defaultText)
 					val slots: IntArray = IntArray(3)
@@ -761,11 +860,278 @@ object PluginManagerScreen {
 		val config: PluginConfig = context.config()
 		when (entry.kind) {
 			PluginSchemaImpl.TOGGLE -> config.setBoolean(entry.key, toggle)
-			PluginSchemaImpl.NUMBER -> config.setInt(entry.key, number)
+			PluginSchemaImpl.NUMBER, PluginSchemaImpl.KEYBIND -> config.setInt(entry.key, number)
+			PluginSchemaImpl.COLOUR -> config.setColour(entry.key, number)
 			else -> config.set(entry.key, text ?: entry.defaultText)
 		}
 		config.save()
 		PluginRuntime.settingChanged(registration, entry.key)
+	}
+
+	// --- colours ---
+
+	/** `#RRGGBB`, or `#AARRGGBB` when the alpha is the player's. */
+	private fun hexOf(argb: Int, alpha: Boolean): String {
+		val full: String = PluginConfigImpl.formatColour(argb)
+		return if (alpha) full else "#" + full.substring(3)
+	}
+
+	/** A swatch of [argb]: a checkerboard under the colour, so that how see-through it is shows, and an outline. */
+	private fun swatch(children: ArrayList<Component>, x: Int, y: Int, width: Int, height: Int, argb: Int) {
+		val halfW: Int = width / 2
+		val halfH: Int = height / 2
+		children.add(ClientPage.rect(BODY, children.size, x, y, width, height, CHECK_LIGHT, true))
+		children.add(ClientPage.rect(BODY, children.size, x, y, halfW, halfH, CHECK_DARK, true))
+		children.add(ClientPage.rect(BODY, children.size, x + halfW, y + halfH, width - halfW, height - halfH, CHECK_DARK, true))
+		val colour: Component = ClientPage.rect(BODY, children.size, x, y, width, height, argb and RGB_MASK, true)
+		colour.transparency = 255 - (argb ushr 24)
+		children.add(colour)
+		children.add(ClientPage.rect(BODY, children.size, x, y, width, height, ClientPage.BOX_LINE, false))
+	}
+
+	/** The palette's cell [index], row by row: a hue across, and down it full colours getting brighter, then paler, then greys. */
+	@JvmStatic
+	fun paletteColour(index: Int): Int {
+		val row: Int = index / HUES
+		val column: Int = index % HUES
+		if (row >= PALETTE_ROWS - 1) {
+			val grey: Int = column * 255 / (HUES - 1)
+			return ALPHA_MASK or (grey shl 16) or (grey shl 8) or grey
+		}
+		val hue: Float = column * 360f / HUES
+		val saturation: Float = if (row < 4) 1f else 1f - (row - 3) * 0.2f
+		val value: Float = if (row < 4) (row + 1) * 0.25f else 1f
+		return hsv(hue, saturation, value)
+	}
+
+	private fun hsv(hue: Float, saturation: Float, value: Float): Int {
+		val c: Float = value * saturation
+		val h: Float = hue / 60f
+		val x: Float = c * (1f - kotlin.math.abs(h % 2f - 1f))
+		val m: Float = value - c
+		var r: Float = 0f
+		var g: Float = 0f
+		var b: Float = 0f
+		when (h.toInt()) {
+			0 -> { r = c; g = x }
+			1 -> { r = x; g = c }
+			2 -> { g = c; b = x }
+			3 -> { g = x; b = c }
+			4 -> { r = x; b = c }
+			else -> { r = c; b = x }
+		}
+		val ri: Int = ((r + m) * 255f + 0.5f).toInt().coerceIn(0, 255)
+		val gi: Int = ((g + m) * 255f + 0.5f).toInt().coerceIn(0, 255)
+		val bi: Int = ((b + m) * 255f + 0.5f).toInt().coerceIn(0, 255)
+		return ALPHA_MASK or (ri shl 16) or (gi shl 8) or bi
+	}
+
+	/**
+	 * A plugin's colour picker (PluginContext.pickColour): opens the window on the picker, or puts the
+	 * picker in it when it is already open; [done] gets the colour on OK. Null when it opened, else why not.
+	 */
+	@JvmStatic
+	fun pickColour(initial: Int, alpha: Boolean, done: (Int) -> Unit): String? {
+		var openedForIt: Boolean = false
+		if (!open) {
+			val why: String? = open()
+			if (why != null) {
+				return why
+			}
+			openedForIt = true
+		}
+		startPick(initial, alpha, openedForIt, done)
+		return null
+	}
+
+	private fun startPick(initial: Int, alpha: Boolean, openedForIt: Boolean, done: (Int) -> Unit) {
+		closeEdit()
+		closePopup()
+		picking = Pick(alpha, if (alpha) initial else initial or ALPHA_MASK, done, openedForIt)
+		rebuild()
+	}
+
+	/** OK hands the colour on and remembers it; either way the page under the picker comes back, or the window closes when it was opened for the picker. */
+	private fun finishPick(ok: Boolean) {
+		val pick: Pick = picking ?: return
+		picking = null
+		if (ok) {
+			recentColours.remove(pick.argb)
+			recentColours.add(0, pick.argb)
+			while (recentColours.size > MAX_RECENT) {
+				recentColours.removeAt(recentColours.size - 1)
+			}
+			pick.done(pick.argb) // before the page comes back, so that it shows the new colour
+		}
+		if (pick.openedForIt) {
+			close()
+		} else if (open) {
+			rebuild()
+		}
+	}
+
+	/**
+	 * The picker: the palette, the colours picked lately, a large swatch of the colour with its hex
+	 * (typed: click the box) and, when the alpha is the player's, how opaque it is from 0 to 255 (typed too), OK and Cancel.
+	 */
+	private fun pickerPage(children: ArrayList<Component>, pick: Pick) {
+		children.add(ClientPage.text(BODY, children.size, 0, 2, WIDTH, 18, ClientPage.FONT_TITLE, "Choose a colour", ClientPage.TEXT, 1, 1, true))
+		val x0: Int = (WIDTH - HUES * CELL_WIDTH) / 2
+		var y: Int = 26
+		for (i in 0 until HUES * PALETTE_ROWS) {
+			val cx: Int = x0 + (i % HUES) * CELL_WIDTH
+			val cy: Int = y + (i / HUES) * CELL_HEIGHT
+			cell(children, cx, cy, paletteColour(i), A_PICK_CELL, i)
+		}
+		y += PALETTE_ROWS * CELL_HEIGHT + 8
+		children.add(ClientPage.text(BODY, children.size, x0, y, 60, CELL_HEIGHT, ClientPage.FONT_SMALL, "Recent", DIM, 0, 1, false))
+		for (i in 0 until minOf(recentColours.size, HUES - 4)) {
+			cell(children, x0 + (i + 4) * CELL_WIDTH, y, recentColours[i], A_PICK_RECENT, i)
+		}
+		y += CELL_HEIGHT + 12
+		swatch(children, x0, y, 60, 30, pick.argb)
+		var bx: Int = x0 + 76
+		children.add(ClientPage.text(BODY, children.size, bx, y + 7, 30, 16, ClientPage.FONT_LABEL, "Hex", ClientPage.TEXT, 0, 1, true))
+		bx += 34
+		val hex: String = if (pickEdit == 1) pickText + "|" else hexOf(pick.argb, pick.alpha)
+		val boxes: IntArray = IntArray(2)
+		editBox(children, bx, y + 6, 100, hex, A_PICK_HEX, boxes)
+		pickHexOutline = boxes[0]
+		pickHexValue = boxes[1]
+		pickAlphaOutline = -1
+		pickAlphaValue = -1
+		if (pick.alpha) {
+			bx += 120
+			children.add(ClientPage.text(BODY, children.size, bx, y + 7, 60, 16, ClientPage.FONT_LABEL, "Opacity", ClientPage.TEXT, 0, 1, true))
+			bx += 60
+			val alphaText: String = if (pickEdit == 2) pickText + "|" else (pick.argb ushr 24).toString()
+			editBox(children, bx, y + 6, NUMBER_BOX_WIDTH, alphaText, A_PICK_ALPHA, boxes)
+			pickAlphaOutline = boxes[0]
+			pickAlphaValue = boxes[1]
+			children.add(ClientPage.text(BODY, children.size, bx + NUMBER_BOX_WIDTH + 8, y + 7, 60, 16, ClientPage.FONT_SMALL, "0 to 255", DIM, 0, 1, false))
+		}
+		if (pickEdit == 1 && pickHexOutline >= 0) {
+			children[pickHexOutline].color = ClientPage.BOX_LINE_OPEN
+		} else if (pickEdit == 2 && pickAlphaOutline >= 0) {
+			children[pickAlphaOutline].color = ClientPage.BOX_LINE_OPEN
+		}
+		val by: Int = HEIGHT - 29 - 30
+		val okWidth: Int = ClientPage.textWidth(ClientPage.FONT_BUTTON, "Cancel") + 30
+		button(children, "OK", false, A_PICK_OK, 0, WIDTH / 2 - okWidth - 6, by, okWidth)
+		button(children, "Cancel", false, A_PICK_CANCEL, 0, WIDTH / 2 + 6, by, okWidth)
+	}
+
+	/** A palette or recent cell: the colour, an outline, and the click. */
+	private fun cell(children: ArrayList<Component>, x: Int, y: Int, argb: Int, action: Int, index: Int) {
+		children.add(ClientPage.rect(BODY, children.size, x, y, CELL_WIDTH, CELL_HEIGHT, argb and RGB_MASK, true))
+		children.add(ClientPage.rect(BODY, children.size, x, y, CELL_WIDTH, CELL_HEIGHT, ClientPage.BOX_FILL, false))
+		val hit: Component = ClientPage.text(BODY, children.size, x, y, CELL_WIDTH, CELL_HEIGHT, ClientPage.FONT_SMALL, "", ClientPage.TEXT, 1, 1, false)
+		hit.hasScript = true
+		hit.addOptionName(0, "Pick")
+		hit.opBase = hexOf(argb, false)
+		hit.params = arrayOf<Any?>(SENTINEL, action, index)
+		children.add(hit)
+	}
+
+	/** A box to type into, its click [action]; the slots of its outline and its value text in [slots]. */
+	private fun editBox(children: ArrayList<Component>, x: Int, y: Int, width: Int, value: String, action: Int, slots: IntArray) {
+		children.add(ClientPage.rect(BODY, children.size, x, y, width, ClientPage.ITEM_HEIGHT + 4, ClientPage.BOX_FILL, true))
+		slots[0] = children.size
+		children.add(ClientPage.rect(BODY, children.size, x, y, width, ClientPage.ITEM_HEIGHT + 4, ClientPage.BOX_LINE, false))
+		slots[1] = children.size
+		val text: Component = ClientPage.text(BODY, children.size, x, y, width, ClientPage.ITEM_HEIGHT + 4, ClientPage.FONT_LABEL, value, ClientPage.TEXT, 1, 1, false)
+		text.hasScript = true
+		text.addOptionName(0, "Edit")
+		text.opBase = ""
+		text.params = arrayOf<Any?>(SENTINEL, action, 0)
+		children.add(text)
+	}
+
+	private fun startPickEdit(which: Int) {
+		val pick: Pick = picking ?: return
+		if (pickEdit == which) {
+			endPickEdit(false)
+			return
+		}
+		pickEdit = which
+		pickText = if (which == 1) hexOf(pick.argb, pick.alpha) else (pick.argb ushr 24).toString()
+		rebuild()
+	}
+
+	/** Ends the typing: with [keep], what was typed becomes the colour (a hex that is no colour, or a number out of range, is dropped). */
+	private fun endPickEdit(keep: Boolean) {
+		val which: Int = pickEdit
+		pickEdit = 0
+		val pick: Pick? = picking
+		if (keep && pick != null) {
+			if (which == 1) {
+				val parsed: Int? = PluginConfigImpl.parseColour(pickText)
+				if (parsed != null) {
+					val sixDigits: Boolean = pickText.trim().removePrefix("#").length == 6
+					pick.argb = if (!pick.alpha) parsed or ALPHA_MASK else if (sixDigits) (pick.argb and ALPHA_MASK) or (parsed and RGB_MASK) else parsed
+				}
+			} else if (which == 2) {
+				val alpha: Int? = pickText.toIntOrNull()
+				if (alpha != null) {
+					pick.argb = (alpha.coerceIn(0, 255) shl 24) or (pick.argb and RGB_MASK)
+				}
+			}
+		}
+		if (open) {
+			rebuild()
+		}
+	}
+
+	private fun pickKeyTyped(record: KeyRecord) {
+		val code: Int = record.getKeyCode()
+		val ch: Char = record.getKeyChar()
+		if (code == KEY_ENTER) {
+			endPickEdit(true)
+			return
+		}
+		if (code == KEY_ESCAPE) {
+			endPickEdit(false)
+			return
+		}
+		if (code == KEY_BACKSPACE) {
+			if (pickText.isNotEmpty()) {
+				pickText = pickText.substring(0, pickText.length - 1)
+			}
+		} else if (pickEdit == 1 && pickText.length < 9 && (ch.isDigit() || ch.uppercaseChar() in 'A'..'F' || (ch == '#' && pickText.isEmpty()))) {
+			pickText += ch
+		} else if (pickEdit == 2 && pickText.length < 3 && ch.isDigit()) {
+			pickText += ch
+		} else {
+			return
+		}
+		val slot: Int = if (pickEdit == 1) pickHexValue else pickAlphaValue
+		val c: Component = ClientPage.childOf(BODY, slot) ?: return
+		c.text = pickText + "|"
+		Component.redrawComponent(c)
+	}
+
+	/** The colour the picker shows now, for the smoke test; null when it is not open. */
+	@JvmStatic
+	fun pickedColour(): Int? {
+		return picking?.argb
+	}
+
+	/** The smoke test's clicks on the picker: a palette cell, then OK. */
+	@JvmStatic
+	fun clickPaletteCell(index: Int): Boolean {
+		val pick: Pick = picking ?: return false
+		pick.argb = (pick.argb and ALPHA_MASK) or (paletteColour(index) and RGB_MASK)
+		rebuild()
+		return true
+	}
+
+	@JvmStatic
+	fun clickPickOk(): Boolean {
+		if (picking == null) {
+			return false
+		}
+		finishPick(true)
+		return true
 	}
 
 	// --- typing a number or a line of text ---
@@ -861,6 +1227,13 @@ object PluginManagerScreen {
 	 */
 	@JvmStatic
 	fun keyTyped(record: KeyRecord): Boolean {
+		if (open && capturing != null) {
+			return true // the key itself comes as a press (keyPressed)
+		}
+		if (open && pickEdit != 0) {
+			pickKeyTyped(record)
+			return true
+		}
 		val entry: PluginSchemaImpl.Entry = editing ?: return false
 		if (!open) {
 			editing = null
@@ -892,9 +1265,29 @@ object PluginManagerScreen {
 		return true
 	}
 
-	/** While a number or text box has the keyboard, no key press reaches the server or the interfaces. */
+	/**
+	 * A key press (from the client's key loop, before the server and the plugins hear of it): a keybind
+	 * box waiting for its key takes it (Escape leaves the setting, Backspace clears it). While any box
+	 * has the keyboard, no key press reaches the server or the interfaces. True when the key was ours.
+	 */
 	@JvmStatic
-	fun keyPressed(): Boolean = editing != null && open
+	fun keyPressed(record: KeyRecord): Boolean {
+		if (!open) {
+			return false
+		}
+		val entry: PluginSchemaImpl.Entry? = capturing
+		if (entry != null) {
+			val code: Int = record.getKeyCode()
+			capturing = null
+			val registration: PluginRegistration? = selected
+			if (registration != null && code != KEY_ESCAPE) {
+				writeSetting(registration, entry, null, if (code == KEY_BACKSPACE) 0 else code, false)
+			}
+			rebuild()
+			return true
+		}
+		return editing != null || pickEdit != 0
+	}
 
 	// --- the tooltip ---
 
@@ -1031,6 +1424,13 @@ object PluginManagerScreen {
 		if (editing != null && action != A_EDIT && action != A_HOVER && action != A_LEAVE && action != A_ROW_HOVER && action != A_ROW_LEAVE && action != A_WHEEL) {
 			closeEdit() // a click elsewhere on the page ends the typing
 		}
+		if (pickEdit != 0 && action != A_PICK_HEX && action != A_PICK_ALPHA && action != A_HOVER && action != A_LEAVE) {
+			endPickEdit(false)
+		}
+		if (capturing != null && action != A_HOVER && action != A_LEAVE && action != A_ROW_HOVER && action != A_ROW_LEAVE && action != A_WHEEL) {
+			capturing = null // a click elsewhere leaves the key as it was
+			rebuild()
+		}
 		when (action) {
 			A_CLOSE -> close()
 			A_TOGGLE -> if (index < PluginRuntime.count) {
@@ -1093,6 +1493,35 @@ object PluginManagerScreen {
 				}
 			}
 			A_POPUP_CLOSE -> closePopup()
+			A_COLOUR -> if (plugin != null) {
+				val entry: PluginSchemaImpl.Entry = entryAt(plugin, index) ?: return
+				val context: PluginContextImpl = plugin.context ?: return
+				startPick(context.config().getColour(entry.key, entry.defaultInt), entry.max == 1, false) { argb -> writeSetting(plugin, entry, null, argb, false) }
+			}
+			A_KEYBIND -> if (plugin != null) {
+				val entry: PluginSchemaImpl.Entry = entryAt(plugin, index) ?: return
+				capturing = entry
+				ClientPage.setColour(BODY, keyOutline[index] ?: -1, ClientPage.BOX_LINE_OPEN)
+				val c: Component? = ClientPage.childOf(BODY, keyValue[index] ?: -1)
+				if (c != null) {
+					c.text = "Press a key"
+					Component.redrawComponent(c)
+				}
+			}
+			A_PICK_CELL -> picking?.let {
+				it.argb = (it.argb and ALPHA_MASK) or (paletteColour(index) and RGB_MASK)
+				rebuild()
+			}
+			A_PICK_RECENT -> picking?.let {
+				if (index < recentColours.size) {
+					it.argb = if (it.alpha) recentColours[index] else recentColours[index] or ALPHA_MASK
+					rebuild()
+				}
+			}
+			A_PICK_HEX -> startPickEdit(1)
+			A_PICK_ALPHA -> startPickEdit(2)
+			A_PICK_OK -> finishPick(true)
+			A_PICK_CANCEL -> finishPick(false)
 			A_ROW_HOVER -> if (selected == null) showTip(index)
 			A_ROW_LEAVE -> if (tipFor == index) hideTip()
 		}
