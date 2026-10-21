@@ -688,6 +688,7 @@ object MiniMenu {
 		MiniMenu.coloredEntryCount = 0
 		MiniMenu.entryCount = 0
 		MiniMenu.entryList.clear()
+		PluginRuntime.menuReset() // Not part of the original client: the plugins' submenus go with the entries
 		MiniMenu.coloredEntryMap.clear()
 		MiniMenu.sortedColoredEntries.clear()
 		MiniMenu.isOpen = false
@@ -864,6 +865,7 @@ object MiniMenu {
 				entryIndex++
 				miniMenuEntryInner2 = MiniMenu.entryList.next() as MiniMenuEntry?
 			}
+			MiniMenuSubmenus.drawSimple(toolkit, mouseX, mouseY) // Not part of the original client: a plugin's submenu
 		}
 		InterfaceRectangles.markRectanglesForFlip(MiniMenu.menuOpenWidth, MiniMenu.menuOpenY + offsetY, MiniMenu.menuOpenX + offsetX, InterfaceComponentRenderer.menuHeight)
 	}
@@ -1154,6 +1156,7 @@ object MiniMenu {
 				MiniMenu.drawMenuEntry(menuY, MiniMenu.menuHoverTextColour or 0xFF000000.toInt(), entryY, toolkit, miniMenuEntryInner, menuWidth, mouseY, MiniMenu.menuTextColour or 0xFF000000.toInt(), menuHeight, menuX, mouseX)
 				miniMenuEntryInner = MiniMenu.entryList.next() as MiniMenuEntry?
 			}
+			MiniMenuSubmenus.drawStyled(toolkit, mouseX, mouseY) // Not part of the original client: a plugin's submenu
 		}
 		InterfaceRectangles.markRectanglesForFlip(MiniMenu.menuOpenWidth, MiniMenu.menuOpenY + offsetY, offsetX + menuOpenX, InterfaceComponentRenderer.menuHeight)
 	}

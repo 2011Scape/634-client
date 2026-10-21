@@ -46,6 +46,7 @@ import com.jagex.game.runetek5.client.ClientState
 import kotlin.jvm.JvmField
 import com.jagex.game.runetek5.client.input.mouse.MouseManager
 import com.jagex.game.runetek5.client.input.mouse.MouseRecord
+import com.jagex.game.runetek5.plugin.PluginConfigImpl
 import com.jagex.game.runetek5.plugin.PluginRegistration
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.entity.NPCEntity
@@ -802,7 +803,7 @@ object SmokeTest {
 				npcMenuCheck()
 			}
 		}
-		if (PLUGIN_MANAGER && pluginManagerStep < 5) {
+		if (PLUGIN_MANAGER && pluginManagerStep < 7) {
 			pluginManagerCheck()
 			return
 		}
@@ -2966,6 +2967,10 @@ object SmokeTest {
 			pluginManagerScrolledCheck()
 			return
 		}
+		if (pluginManagerStep >= 5) {
+			pluginManagerPickerCheck()
+			return
+		}
 		if (pluginManagerStep == 1) {
 			saveFrame("build/smoke/plugins-tab.png")
 			// the Plugins button the client keeps in the Settings tab, clicked as a player clicks it
@@ -3086,6 +3091,45 @@ object SmokeTest {
 		}
 		println("SMOKE plugin manager: the scrolled page shot; back to its top; Back; closed")
 		pluginManagerStep = 5
+	}
+
+	/** The colour a plugin's picker handed back, -1 before OK. */
+	private var pickedColour: Int = -1
+
+	/**
+	 * The colour picker a plugin opens (PluginContext.pickColour): the window opens on it, a palette
+	 * cell is picked, a frame of the page; OK hands the colour back, keeping the alpha it started with,
+	 * and closes the window it opened.
+	 */
+	private fun pluginManagerPickerCheck() {
+		val cell: Int = 2 * 24 + 8 // a full green, third row
+		if (pluginManagerStep == 5) {
+			val why: String? = PluginManagerScreen.pickColour(0x80FF0000.toInt(), true) { argb -> pickedColour = argb }
+			if (why != null || !PluginManagerScreen.open) {
+				fail("the colour picker did not open: " + why)
+				pluginManagerStep = 7
+				return
+			}
+			PluginManagerScreen.clickPaletteCell(cell)
+			pluginManagerFrame = gameFrames
+			pluginManagerStep = 6
+			return
+		}
+		saveFrame("build/smoke/plugins-picker.png")
+		val expected: Int = (0x80 shl 24) or (PluginManagerScreen.paletteColour(cell) and 0xFFFFFF)
+		val shown: Int? = PluginManagerScreen.pickedColour()
+		if (shown != expected) {
+			fail("the picker shows " + shown + " after the cell, not " + expected)
+		}
+		PluginManagerScreen.clickPickOk()
+		if (pickedColour != expected) {
+			fail("OK handed back " + PluginConfigImpl.formatColour(pickedColour) + ", not " + PluginConfigImpl.formatColour(expected))
+		}
+		if (PluginManagerScreen.open) {
+			fail("the window the picker opened did not close on OK")
+		}
+		println("SMOKE plugin manager: the colour picker opened, cell " + cell + " picked, OK gave " + PluginConfigImpl.formatColour(pickedColour) + " and closed the window")
+		pluginManagerStep = 7
 	}
 
 	/** The verb of the menu's top row, which is the last entry of the list. */

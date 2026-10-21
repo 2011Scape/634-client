@@ -277,4 +277,53 @@ interface ClientApi {
 	 * own window where it allows a page to. True when there was a window to ask for. Since API 8.
 	 */
 	fun requestFocus(): Boolean
+
+	/**
+	 * The Grand Exchange guide price of item [id], in coins, for one of it; a noted item is priced as
+	 * the item it notes, coins are 1. The prices come from the game's website (`/items/prices.json`),
+	 * fetched in the background when the client starts and every hour after, and kept on disk between
+	 * runs; -1 while they have not arrived, for an item the exchange does not price, and in a client
+	 * started without them (`--prices none`). Since API 9.
+	 */
+	fun itemPrice(id: Int): Int
+
+	/**
+	 * What High Level Alchemy gives for one of item [id]: its value times 0.6, rounded down, as
+	 * RuneLite reckons it; a noted item is priced as the item it notes, coins are 1. 0 for an unknown item. Since API 9.
+	 */
+	fun itemHaPrice(id: Int): Int
+
+	/**
+	 * How far above the ground the pile on scene tile ([sceneX], [sceneY]) lies, in scene units
+	 * (positive up): the top of the table or counter it is on, 0 on the floor or when the tile has no pile. Since API 9.
+	 */
+	fun groundItemHeight(sceneX: Int, sceneY: Int, level: Int): Int
+
+	/**
+	 * Whether the player is in an instance: a copy of an area built for them (a boss room, a
+	 * minigame, Daemonheim), where items stay private and keep longer. Since API 9.
+	 */
+	fun isInInstance(): Boolean
+
+	/**
+	 * Sinks entry [i] of the menu being built (at [events.Events.MENU_BUILT]) below every entry that is
+	 * not sunk, as the game sinks Attack on a weaker player when the player chose so: it is never the
+	 * left click while another entry is there. True when there was such an entry. Since API 9.
+	 */
+	fun deprioritizeMenuEntry(i: Int): Boolean
+
+	/**
+	 * Adds an entry labelled [label] that opens a submenu when the mouse is on it, for the target the
+	 * menu is being built for (inside a [events.MenuEntryAdded] listener, as [addMenuEntry]); fill it with
+	 * [addSubmenuEntry]. Clicking the entry itself does nothing. The result names the submenu; -1 when
+	 * no menu is being built. Since API 9.
+	 */
+	fun addSubmenu(label: String): Int
+
+	/**
+	 * Adds an entry labelled [label] to [submenu] (from [addSubmenu]), shown top to bottom in the order
+	 * added; [clickType] is from [PluginContext.registerMenuAction], and the click reaches its
+	 * [MenuAction] as an entry of the main menu would. Since API 9.
+	 */
+	fun addSubmenuEntry(submenu: Int, label: String, clickType: Int)
 }

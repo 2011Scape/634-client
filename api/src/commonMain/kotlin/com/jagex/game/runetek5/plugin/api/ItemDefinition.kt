@@ -39,4 +39,7 @@ interface ItemDefinition {
 
 	/** The item's text parameter [key] from the cache, or [default] when it has none. */
 	fun stringParam(key: Int, default: String?): String?
+
+	/** Whether the item can be traded on the Grand Exchange (a noted item as the item it notes). Since API 9. */
+	fun isTradeable(): Boolean
 }

@@ -107,6 +107,9 @@ object MiniMenuAction {
 
 	const val OP_MAPELEMENT2: Int = 1012
 
+	/** Not part of the original client: a plugin's entry that opens a submenu (PluginRuntime.addSubmenu); clicking it does nothing. */
+	const val PLUGIN_SUBMENU: Int = 1013
+
 	/**
 	 * Not part of the original client: the click types the plugins' menu actions get
 	 * (PluginRuntime.registerMenuAction), one each, from 1100 up so that they sort below the

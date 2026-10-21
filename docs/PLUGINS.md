@@ -32,15 +32,18 @@ the game for you.
   screen, item, sprite, options, children) and which are open; the item, npc and location types
   from the cache (names, options, sizes, values); the locations and the movement flags of any tile;
   whether a player is a friend, in your friends chat or could attack you here; where any of it is
-  on the screen.
+  on the screen; what an item fetches on the Grand Exchange (the guide prices the game's website
+  publishes, fetched in the background) and from High Level Alchemy, and whether it can be traded;
+  whether an item on the ground is another player's drop made public, and how high its pile lies.
 - Draw: on the game view every frame (under the interfaces), or over the whole frame: lines, boxes,
   circles, polygons, text in the client's three fonts, the cache's sprites and the icons of items,
   within a clip of its own choosing.
 - Add: entries to the right-click menu of a tile, npc, player, ground item, location or interface
-  component (an inventory slot included), with an action of its own; console commands (`::name`);
-  lines in the chat box and the developer console.
+  component (an inventory slot included), with an action of its own, and entries that open a
+  submenu of its own beside the menu; console commands (`::name`); lines in the chat box and the
+  developer console.
 - Edit: the right-click menu once it is built, before the left click is resolved: take an entry out,
-  rename it, or make it the left click; and drop a click, a key or a turn of the wheel before the
+  rename it, make it the left click or sink it below the others; and drop a click, a key or a turn of the wheel before the
   game acts on it (a hotkey of the plugin's own).
 - Know: where the mouse is and what tile is under it, which keys and buttons are held, where the
   camera looks, where a tile falls on the minimap, the run energy, weight, world, region and
@@ -53,7 +56,9 @@ the game for you.
   change of target and line of overhead text, every projectile and graphic; interfaces opening and
   closing, the root interface changing, the menu each time it is built, keys typed and released, and
   the mouse wheel.
-- Keep: settings of its own, saved beside the plugins.
+- Keep: settings of its own, saved beside the plugins, which the plugin manager shows as switches,
+  numbers, choices, text, colours (with the client's colour picker, which a plugin can also open
+  itself) and keys.
 
 It cannot send anything to the server, click or walk for you, or change the game's files. That is
 the API's policy, not a sandbox: a plugin is code running in the client with everything the client

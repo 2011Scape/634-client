@@ -18,6 +18,7 @@ object ConstructedMapInit {
 		@Pc(24) val forcedPositionUpdate: Boolean = BufferedConnectionContext.receivedBuffer.readUByte() == 1
 		@Pc(30) val mapBaseX: Int = BufferedConnectionContext.receivedBuffer.readUShortAdd()
 		MapRegion.areaMode = BufferedConnectionContext.receivedBuffer.readUByteAdd()
+		MapRegion.constructed = true // Not part of the original client: the plugins' isInInstance
 		NPCList.resetNpcsOnAreaChange()
 		MapRegion.setMapSize(mapSizeType)
 		BufferedConnectionContext.receivedBuffer.enterBitMode()

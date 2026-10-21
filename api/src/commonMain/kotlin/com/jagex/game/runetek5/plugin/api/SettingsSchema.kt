@@ -18,4 +18,18 @@ interface SettingsSchema {
 
 	/** A line of text of up to [maxLength] characters the player types into a box; [PluginConfig.get] reads it. Since API 7. */
 	fun text(key: String, label: String, default: String, maxLength: Int)
+
+	/**
+	 * A colour, [default] as ARGB, shown as a swatch the player clicks for a colour picker, and its
+	 * hex; [alpha] lets the player choose how see-through it is too (else it is always opaque).
+	 * [PluginConfig.getColour] reads it. Since API 9.
+	 */
+	fun colour(key: String, label: String, default: Int, alpha: Boolean)
+
+	/**
+	 * A key, [default] one of the [KeyCode] codes (0 for none), shown by its name: the player clicks
+	 * the box and presses the key; Escape leaves it as it was, Backspace clears it.
+	 * [PluginConfig.getInt] reads the code. Since API 9.
+	 */
+	fun keybind(key: String, label: String, default: Int)
 }

@@ -1894,6 +1894,10 @@ class MapRegion @OriginalMember(owner = "client!vaa", name = "<init>", descripto
 		@JvmField
 		var areaMode: Int = 0
 
+		/** Not part of the original client: whether the area was built from copied map squares (ConstructedMapInit), for the plugins' ClientApi.isInInstance. */
+		@JvmField
+		var constructed: Boolean = false
+
 		@OriginalMember(owner = "client!cv", name = "q", descriptor = "[[B")
 		@JvmField
 		var npcSpawnBuffers: Array<ByteArray?>? = null

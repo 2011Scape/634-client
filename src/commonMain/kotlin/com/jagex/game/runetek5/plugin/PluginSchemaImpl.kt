@@ -48,7 +48,21 @@ class PluginSchemaImpl : SettingsSchema {
 		}
 	}
 
+	override fun colour(key: String, label: String, default: Int, alpha: Boolean) {
+		if (!has(key)) {
+			val opaque: Int = if (alpha) default else default or OPAQUE
+			entries.add(Entry(COLOUR, key, label, PluginConfigImpl.formatColour(opaque), opaque, 0, if (alpha) 1 else 0, 1, null))
+		}
+	}
+
+	override fun keybind(key: String, label: String, default: Int) {
+		if (!has(key)) {
+			entries.add(Entry(KEYBIND, key, label, default.toString(), default, 0, 0, 1, null))
+		}
+	}
+
 	companion object {
+		private const val OPAQUE: Int = -0x1000000
 		const val TOGGLE: Int = 0
 
 		const val NUMBER: Int = 1
@@ -57,5 +71,11 @@ class PluginSchemaImpl : SettingsSchema {
 
 		/** A line of text; [Entry.max] is its longest. */
 		const val TEXT: Int = 3
+
+		/** An ARGB colour, kept as `#AARRGGBB`; [Entry.defaultInt] is the default and [Entry.max] 1 when the alpha is the player's to choose. */
+		const val COLOUR: Int = 4
+
+		/** A key code (plugin.api.KeyCode); [Entry.defaultInt] is the default. */
+		const val KEYBIND: Int = 5
 	}
 }
