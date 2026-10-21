@@ -47,6 +47,18 @@ class IdleDetectorTest {
 	}
 
 	@Test
+	fun aServerResetOfTheAnimationIsItsEndNotAForgetting() {
+		val detector: IdleDetector = detector()
+		detector.movementIdle = false
+		detector.animationChanged(621) // the net cast
+		run(detector, 5, animationId = 621)
+		detector.animationChanged(-1) // the server stops fishing: the spot moved or the backpack is full
+		assertEquals(0, run(detector, delay - 1), "stopped, the delay not up")
+		assertEquals(IdleDetector.ANIMATION, still(detector), "the delay after the reset")
+		assertEquals(0, run(detector, delay * 2), "said once")
+	}
+
+	@Test
 	fun anUnknownAnimationNeverArmsAndResumingRestartsTheWait() {
 		val detector: IdleDetector = detector()
 		detector.movementIdle = false

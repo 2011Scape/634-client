@@ -371,6 +371,7 @@ object IdleNotifier : Plugin {
 	/** Says [message] every way the settings ask, unless the window is focused and that is to keep it quiet. */
 	private fun announce(client: ClientApi, message: String) {
 		if (onlyUnfocused && client.isFocused()) {
+			context?.log(message + " (not said: the window is focused; turn off \"Only when the window is unfocused\" to hear it anyway)")
 			return
 		}
 		notifications++
