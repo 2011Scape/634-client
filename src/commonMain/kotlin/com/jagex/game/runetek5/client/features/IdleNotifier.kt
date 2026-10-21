@@ -30,7 +30,7 @@ import kotlin.jvm.JvmStatic
 object IdleNotifier : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("idle", "Idle notifier", "1", PluginApi.VERSION, "A chat line and a red frame once you have been idle for a while (::idle turns it on and off, ::idle <seconds> sets the wait).", "634-client")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("idle", "Idle notifier", "1", PluginApi.VERSION, "A chat line and a red frame once you have been idle for a while (::idle turns it on and off, ::idle <seconds> sets the wait).", "Pixel")
 
 	private const val DEFAULT_SECONDS: Int = 15
 

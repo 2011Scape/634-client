@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.plugin.loader
 
 import com.jagex.game.runetek5.plugin.PluginFactory
+import com.jagex.game.runetek5.plugin.PluginIcon
 import com.jagex.game.runetek5.plugin.PluginRegistration
 import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.PluginApi
@@ -30,6 +31,9 @@ object PluginLoader {
 	 */
 	private val FORBIDDEN_PREFIXES: Array<String> = arrayOf("com/jagex/", "kotlin/", "org/lwjgl/", "jaggl/", "jaclib/", "jagdx/")
 
+	/** The most a `Plugin-Icon` entry may be: a 64x64 PNG is a few KB. */
+	private const val MAX_ICON_BYTES: Long = 65536
+
 	@JvmStatic
 	fun load(directory: File): Array<PluginRegistration> {
 		if (!directory.isDirectory) {
@@ -54,6 +58,7 @@ object PluginLoader {
 		var loader: PluginClassLoader? = null
 		try {
 			val manifest: PluginManifest
+			var icon: PluginIcon? = null
 			JarFile(file).use { jar ->
 				manifest = PluginManifest.read(jar.manifest?.mainAttributes)
 				val entries: Enumeration<JarEntry> = jar.entries()
@@ -65,6 +70,7 @@ object PluginLoader {
 						}
 					}
 				}
+				icon = readIcon(jar, file, manifest.iconEntry)
 			}
 			descriptor = manifest.descriptor
 			loader = PluginClassLoader(file, PluginLoader::class.java.classLoader)
@@ -72,6 +78,7 @@ object PluginLoader {
 			val registration: PluginRegistration = PluginRegistration(manifest.descriptor, null, false, file.name)
 			registration.factory = PluginFactory { create(constructor) }
 			registration.loader = loader
+			registration.icon = icon
 			return registration
 		} catch (error: PluginLoadException) {
 			return failed(file, error.descriptor ?: descriptor, loader, error.message ?: "cannot be loaded")
@@ -105,6 +112,31 @@ object PluginLoader {
 		} catch (error: InvocationTargetException) {
 			throw error.cause ?: error
 		}
+	}
+
+	/**
+	 * The icon the manifest's `Plugin-Icon` names, or null: a missing, oversized or undecodable one is
+	 * said on stderr and the plugin loads without an icon.
+	 */
+	private fun readIcon(jar: JarFile, file: File, entryName: String?): PluginIcon? {
+		if (entryName == null) {
+			return null
+		}
+		val entry: JarEntry? = jar.getJarEntry(entryName)
+		val why: String
+		if (entry == null) {
+			why = "there is no such entry in the jar"
+		} else if (entry.size > MAX_ICON_BYTES) {
+			why = "it is larger than " + MAX_ICON_BYTES + " bytes"
+		} else {
+			val icon: PluginIcon? = jar.getInputStream(entry).use { PluginIcon.decode(it.readBytes()) }
+			if (icon != null) {
+				return icon
+			}
+			why = "it is not a PNG of up to " + PluginIcon.MAX_SIZE + "x" + PluginIcon.MAX_SIZE
+		}
+		System.err.println("Plugins: " + file.name + ": " + PluginManifest.ICON + " " + entryName + " not used: " + why)
+		return null
 	}
 
 	/** A registration that says why [file] has no plugin, with its class loader closed. */

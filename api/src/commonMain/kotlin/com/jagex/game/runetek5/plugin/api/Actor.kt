@@ -59,4 +59,17 @@ interface Actor {
 
 	/** The client cycle the splat in [slot] shows until: it is on screen while [ClientApi.clientCycle] is below this. */
 	fun hitsplatEndCycle(slot: Int): Int
+
+	/** The scene tile of the actor's south-west corner where it is drawn ([x] and [z] are its centre). Since API 7. */
+	fun tileX(): Int
+
+	fun tileY(): Int
+
+	/** The scene tile of the actor's south-west corner where the server has it, which the drawn position walks towards. Since API 7. */
+	fun serverTileX(): Int
+
+	fun serverTileY(): Int
+
+	/** Whether its health bar shows empty: it is dying, and about to go. Since API 7. */
+	fun isDying(): Boolean
 }

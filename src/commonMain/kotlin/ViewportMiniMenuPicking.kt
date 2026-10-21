@@ -1,6 +1,5 @@
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.plugin.PluginRuntime
-import com.jagex.game.runetek5.client.features.TileMarkers
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.ByteArrayPool
 import com.jagex.game.runetek5.LocType
@@ -149,10 +148,6 @@ object ViewportMiniMenuPicking {
 				} else {
 					if (MiniMenu.showFaceHere) {
 						MiniMenu.addEntry(false, "", tileY, true, tileX, -1, true, MiniMenuAction.FACE_SQUARE, (tileY or (tileX shl 0)).toLong(), LocalizedText.aClass351_29.get(ClientState.language), 0L, -1)
-					}
-					// Not part of the original client: the tile marker entry, below Walk here (TileMarkers).
-					if (TileMarkers.enabled) {
-						MiniMenu.addEntry(false, "", tileY, true, tileX, -1, true, MiniMenuAction.TILE_MARKER, (tileY or (tileX shl 0)).toLong(), if (TileMarkers.isMarked(tileX, tileY)) "Unmark tile" else "Mark tile", 0L, -1)
 					}
 					// Not part of the original client: the plugins' entries for the tile (PluginRuntime).
 					PluginRuntime.menuTarget(MenuTarget.TILE, tileX, tileY, PlayerUpdate.localPlayer!!.level.toInt(), 0, 0L)

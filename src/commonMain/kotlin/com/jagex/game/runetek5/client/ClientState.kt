@@ -1,9 +1,6 @@
 package com.jagex.game.runetek5.client
 
 import com.jagex.game.runetek5.plugin.PluginRuntime
-import com.jagex.game.runetek5.client.features.GroundItemLabels
-import com.jagex.game.runetek5.client.features.NpcLabels
-import com.jagex.game.runetek5.client.features.TileMarkers
 import com.jagex.game.runetek5.ByteArrayPool
 import com.jagex.game.runetek5.Cursor
 import com.jagex.game.runetek5.EntitySceneBuilder
@@ -318,9 +315,6 @@ object ClientState {
 			if (ClientState.mainLogicStep == MainLogicStep.STEP_GAME_SCREEN) {
 				TileMessage.drawTileMessages(width, height, areaX, areaY)
 				OverlayManager.drawEntities(areaY, height, areaX, width)
-				TileMarkers.draw(areaX, areaY) // Not part of the original client: see TileMarkers.
-				NpcLabels.draw(areaX, areaY, width, height) // Not part of the original client: see NpcLabels.
-				GroundItemLabels.draw(areaX, areaY) // Not part of the original client: see GroundItemLabels.
 				PluginRuntime.drawViewport(areaX, areaY, width, height) // Not part of the original client: the plugins draw here (PluginRuntime); the experience drops among them.
 				HintArrow.drawHintArrows(areaX, areaY, width, height)
 				StaticMedia.drawClickCross(height, width, areaY, areaX)

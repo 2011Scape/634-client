@@ -41,7 +41,7 @@ It connects to [2011Scape](https://2011.rs) (`play.2011.rs`). For your own serve
 - **Any Void server**: choose the host, port and keys from the launcher.
 - **OpenGL on Linux, Windows and macOS**, through [LWJGL](https://www.lwjgl.org).
 - **Smooth and sharp**: up to 144 fps, a window scaled to your screen, and MSAA or SMAA.
-- **Extras**: tile markers, experience drops, NPC and ground item labels, shift-drop, a longer
+- **Extras**: ground tiles, experience drops, name plates, an idle notifier, shift-drop, a longer
   render distance and a wider zoom.
 - **Developer tools**: ids on right-click menus, coordinates on screen, a better console.
 - **Plugins**: jars in `~/.634-client/plugins` that read the game, draw on it and add menu entries
@@ -56,7 +56,7 @@ console, shift-drop and a scale that suits the screen. The other extras are off 
 on; most can also be toggled in game with the command shown.
 
 ```bash
-java -jar runetek5-634-<version>.jar --tile-markers --xp-drops --npc-labels
+java -jar runetek5-634-<version>.jar --idle-notifier --name-plates
 ```
 
 ### Connecting
@@ -87,15 +87,13 @@ are off unless the client is started with `--dev-commands`.
 
 | Option | What it does | In game |
 |---|---|---|
-| `--tile-markers` | Right-click a tile and choose *Mark tile* to outline it; markers stay until unmarked. | `::tilemarkers` |
-| `--xp-drops` | A "+N Skill" drop rises and fades near the minimap when you gain experience. | `::xpdrops` |
+| | Ground tiles: hold Shift and right-click a tile for *Mark tile*; a marked tile can be labelled and coloured, is kept between sessions, and is drawn on the minimap if you like. Import and Export share them in RuneLite's ground marker format through the clipboard. | `::groundtiles`, `::groundtiles export`, `::groundtiles import`, `::groundtiles clear` |
+| | A "+N Skill" drop rises and fades near the minimap when you gain experience (on until turned off). | `::xpdrops` |
 | `--idle-notifier` | A chat line and a red frame around the game view once you have been idle for 15 seconds. | `::idle`, `::idle <seconds>` |
 | `--inventory-value` | What your backpack is worth, with its three most valuable items, at the top of the game view. | `::invvalue` |
 | `--name-plates` | Other players' names over their heads: red when they can attack you, green for friends, blue for your friends chat with its name underneath. | `::nameplates` |
-| | Make an option the left click of its menu, wherever it appears (a menu entry swapper). | `::swap <option> [target]`, `::unswap <option>`, `::swaps` |
+| | Menu entry swapper: hold Shift and right-click an npc, object, ground item or item to choose its left click and its Shift-click. | `::menuswapper` |
 | | The plugin manager: every plugin with its switch and its settings, from the Plugins button in the Settings tab. | `::pluginmanager` |
-| `--npc-labels` | NPC names, with their combat level, above their heads. | `::npclabels` |
-| `--ground-items` | The names (and counts) of the items on each tile, above it. | `::grounditems` |
 | `--no-shift-drop` | Turn off dropping an item with Shift and a left click. | `::shiftdrop` |
 | `--no-zoom` | Keep the mouse wheel to the original zoom range. | |
 | `--render-distance <x>` | Draw the world x times further away. The default is 2; `1` is the original distance. | |

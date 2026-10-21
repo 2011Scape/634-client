@@ -35,6 +35,10 @@ class PluginRegistration(
 	@JvmField
 	var loader: Any? = null
 
+	/** The plugin's icon for the manager's list, or null for none. */
+	@JvmField
+	var icon: PluginIcon? = null
+
 	/** Whether the plugin exists or can be made: false for a jar the loader refused. */
 	fun loadable(): Boolean {
 		return plugin != null || factory != null

@@ -77,10 +77,12 @@ Procedural textures are `config/material/texture/TextureType`, a tree of `Textur
    and software, switched in the graphics options. Logging in loads items, NPCs, locations, animations
    and textures on all three toolkits.
 
-## Example: ground item labels
+## Example: ground item values
 
-`client/features/GroundItemLabels` reads the piles the server's ground item packets build
-(`ObjStack.GROUND_ITEMS`, keyed by `level << 28 | y << 14 | x` in absolute tiles, each pile's
-`groundItems` already ordered most valuable first by `ObjStack.addGroundItem`), and names each
-`ObjStackEntry` from its config type: `TypeLists.OBJ.list(entry.id).name`, with `entry.count`. It
-projects the middle of the tile with `OverlayManager.projectToScreenWithOffset`.
+The plugin API's ground item reads (`ClientApiImpl.groundItems`) walk the piles the server's ground
+item packets build (`ObjStack.GROUND_ITEMS`, keyed by `level << 28 | y << 14 | x` in absolute
+tiles, each pile's `groundItems` already ordered most valuable first by `ObjStack.addGroundItem`),
+and name each `ObjStackEntry` from its config type: `TypeLists.OBJ.list(entry.id).name`, with
+`entry.count`. The cookbook's ground item values plugin
+(`plugin-template/src/main/kotlin/recipes/GroundItemValues.kt`) labels each pile on that API, with
+`ClientApi.projectTile` for the middle of the tile.

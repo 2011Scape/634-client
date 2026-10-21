@@ -7,9 +7,10 @@ import java.util.jar.Attributes
 /**
  * Not part of the original client: what a plugin jar's manifest says about it (docs/PLUGINS.md).
  * `Plugin-Class` and `Plugin-Id` are needed; `Plugin-Name`, `Plugin-Version`, `Plugin-Api-Version`
- * (1 when missing), `Plugin-Author` and `Plugin-Description` are not.
+ * (1 when missing), `Plugin-Author`, `Plugin-Description` and `Plugin-Icon` (the name of a PNG entry
+ * in the jar, [iconEntry]) are not.
  */
-class PluginManifest(@JvmField val className: String, @JvmField val descriptor: PluginDescriptor) {
+class PluginManifest(@JvmField val className: String, @JvmField val descriptor: PluginDescriptor, @JvmField val iconEntry: String? = null) {
 
 	companion object {
 		const val CLASS: String = "Plugin-Class"
@@ -20,6 +21,7 @@ class PluginManifest(@JvmField val className: String, @JvmField val descriptor: 
 		const val AUTHOR: String = "Plugin-Author"
 		const val DESCRIPTION: String = "Plugin-Description"
 		const val DEPENDS: String = "Plugin-Depends"
+		const val ICON: String = "Plugin-Icon"
 
 		/** Reads the plugin's attributes, or throws [PluginLoadException] saying what is wrong with them. */
 		@JvmStatic
@@ -63,7 +65,19 @@ class PluginManifest(@JvmField val className: String, @JvmField val descriptor: 
 			if ("true".equals(attributes.getValue(Attributes.Name.MULTI_RELEASE)?.trim(), ignoreCase = true)) {
 				throw PluginLoadException("the jar is Multi-Release, which plugins may not be: build plain class files", descriptor)
 			}
-			return PluginManifest(className, descriptor)
+			return PluginManifest(className, descriptor, iconEntry(attributes, descriptor))
+		}
+
+		/** The icon entry's name, a plain path inside the jar; null when the manifest names none. */
+		private fun iconEntry(attributes: Attributes, descriptor: PluginDescriptor): String? {
+			val entry: String = attributes.getValue(ICON)?.trim() ?: return null
+			if (entry.isEmpty()) {
+				return null
+			}
+			if (entry.startsWith("/") || entry.startsWith("\\") || entry.split('/', '\\').contains("..")) {
+				throw PluginLoadException("the manifest's " + ICON + " \"" + entry + "\" is not a plain path inside the jar", descriptor)
+			}
+			return entry
 		}
 	}
 }

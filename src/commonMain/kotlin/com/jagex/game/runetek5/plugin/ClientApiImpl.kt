@@ -18,6 +18,7 @@ import com.jagex.game.runetek5.core.constants.MainLogicStep
 import com.jagex.game.runetek5.entity.NPCEntityNode
 import com.jagex.game.runetek5.entity.InteractiveEntityContainer
 import com.jagex.game.runetek5.entity.PathingEntity
+import com.jagex.game.runetek5.preference.GroundDecorOption
 import com.jagex.game.runetek5.entity.gameobject.GameObject
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
 import com.jagex.game.runetek5.plugin.api.Actor
@@ -246,6 +247,61 @@ object ClientApiImpl : ClientApi {
 		return projectPoint(tileX * 512 + 256, tileY * 512 + 256, level, heightOffset, out)
 	}
 
+	/** The eight corners of the drawn model's box, projected, before the hull is taken. */
+	private val cornerX: IntArray = IntArray(8)
+
+	private val cornerY: IntArray = IntArray(8)
+
+	private val cornerOrder: IntArray = IntArray(8)
+
+	override fun actorHull(actor: Actor, xs: IntArray, ys: IntArray): Int {
+		val entity: PathingEntity = actor as? PathingEntity ?: return 0
+		if (ClientState.activeToolkit == null || xs.size < 8 || ys.size < 8 || entity.hullCycle != SceneDrawer.timesSceneRendered) {
+			return 0
+		}
+		// the render's matrix: rotate by the yaw, then translate (JavaMatrix.rotate: x' = cos x + sin z, z' = cos z - sin x)
+		val cos: Float = GroundDecorOption.COSINE[entity.hullYaw and 0x3FFF]
+		val sin: Float = GroundDecorOption.SINE[entity.hullYaw and 0x3FFF]
+		for (corner in 0 until 8) {
+			val mx: Int = if (corner and 1 == 0) entity.hullMinX else entity.hullMaxX
+			val my: Int = if (corner and 2 == 0) entity.hullMinY else entity.hullMaxY
+			val mz: Int = if (corner and 4 == 0) entity.hullMinZ else entity.hullMaxZ
+			val x: Int = entity.x + (cos * mx + sin * mz).toInt()
+			val z: Int = entity.z + (cos * mz - sin * mx).toInt()
+			if (!OverlayManager.projectWorldPoint(x, entity.hullY + my, z)) {
+				return 0
+			}
+			cornerX[corner] = OverlayManager.projectedScreenPosition[0]
+			cornerY[corner] = OverlayManager.projectedScreenPosition[1]
+		}
+		return convexHull(cornerX, cornerY, 8, cornerOrder, xs, ys)
+	}
+
+	override fun projectActorMinimap(actor: Actor, out: IntArray): Boolean {
+		val entity: PathingEntity = actor as? PathingEntity ?: return false
+		if (!minimapShown() || out.size < 2) {
+			return false
+		}
+		val centreX: Int
+		val centreZ: Int
+		if (Camera.cameraCalculationType == CameraMode.MODE_FOLLOWCOORD) {
+			centreX = Camera.cameraTargetAbsX
+			centreZ = Camera.cameraTargetAbsZ
+		} else {
+			val player: PathingEntity = PlayerUpdate.localPlayer ?: return false
+			centreX = player.x
+			centreZ = player.z
+		}
+		val width: Int = PluginRuntime.minimapWidth
+		val height: Int = PluginRuntime.minimapHeight
+		if (!Minimap.projectDot(entity.x / 128 - centreX / 128, entity.z / 128 - centreZ / 128, width, height, out)) {
+			return false
+		}
+		out[0] = out[0] + width / 2 + PluginRuntime.minimapX
+		out[1] = PluginRuntime.minimapY + height / 2 - out[1]
+		return true
+	}
+
 	override fun projectActor(actor: Actor, heightOffset: Int, out: IntArray): Boolean {
 		val entity: PathingEntity = actor as? PathingEntity ?: return false
 		if (ClientState.activeToolkit == null || out.size < 2) {
@@ -394,6 +450,10 @@ object ClientApiImpl : ClientApi {
 
 	override fun renameMenuEntry(i: Int, option: String): Boolean {
 		return PluginRuntime.renameMenuEntry(i, option)
+	}
+
+	override fun retargetMenuEntry(i: Int, target: String): Boolean {
+		return PluginRuntime.retargetMenuEntry(i, target)
 	}
 
 	override fun mouseX(): Int {
@@ -567,5 +627,45 @@ object ClientApiImpl : ClientApi {
 			}
 		}
 		return false
+	}
+
+	/**
+	 * The convex hull of [count] points (Andrew's monotone chain), written anticlockwise into
+	 * [outX] and [outY]; [order] is scratch of the same length. Returns the hull's point count.
+	 */
+	@JvmStatic
+	fun convexHull(px: IntArray, py: IntArray, count: Int, order: IntArray, outX: IntArray, outY: IntArray): Int {
+		for (i in 0 until count) {
+			order[i] = i
+		}
+		// sorted by x then y: an insertion sort, the counts are tiny
+		for (i in 1 until count) {
+			val v: Int = order[i]
+			var j: Int = i - 1
+			while (j >= 0 && (px[order[j]] > px[v] || (px[order[j]] == px[v] && py[order[j]] > py[v]))) {
+				order[j + 1] = order[j]
+				j--
+			}
+			order[j + 1] = v
+		}
+		var n: Int = 0
+		for (pass in 0 until 2) {
+			val start: Int = n
+			for (k in 0 until count) {
+				val i: Int = order[if (pass == 0) k else count - 1 - k]
+				while (n >= start + 2 && cross(outX[n - 2], outY[n - 2], outX[n - 1], outY[n - 1], px[i], py[i]) <= 0L) {
+					n--
+				}
+				outX[n] = px[i]
+				outY[n] = py[i]
+				n++
+			}
+			n-- // the pass ends on the next pass's first point
+		}
+		return if (count == 1) 1 else n // one point: the two passes take each other's point back
+	}
+
+	private fun cross(ox: Int, oy: Int, ax: Int, ay: Int, bx: Int, by: Int): Long {
+		return (ax - ox).toLong() * (by - oy) - (ay - oy).toLong() * (bx - ox)
 	}
 }

@@ -52,20 +52,20 @@ tasks.jar {
             "Plugin-Api-Version" to "4",
             "Plugin-Author" to "you",
             "Plugin-Description" to "Says hello on the game view and in the chat.",
+            // a PNG in src/main/resources, shown at 25x25 in the Plugins window; drop the line for no icon
+            "Plugin-Icon" to "icon.png",
         )
     }
 }
 
 /*
  * The cookbook's plugins (src/main/kotlin/recipes, docs/PLUGINS.md in the client repository): one jar
- * each, holding only its own classes, in build/libs/recipes. `./gradlew recipeJars` builds them all;
- * `./gradlew recipeJarLeftClickBank` one. Copy a jar into ~/.634-client/plugins to run it.
+ * each, holding only its own classes and icon, in build/libs/recipes. `./gradlew recipeJars` builds them all;
+ * `./gradlew recipeJarAttackTimer` one. Copy a jar into ~/.634-client/plugins to run it.
  */
 val recipes: Map<String, List<String>> = mapOf(
     // class in recipes/ to plugin id, name and description
-    "LeftClickBank" to listOf("leftclickbank", "Left-click bank", "Bank is the left click on bankers, booths and chests; Examine is gone."),
     "AttackTimer" to listOf("attacktimer", "Attack timer", "A cooldown bar under you after each attack, and an idle warning (::attackspeed <ticks>)."),
-    "NpcIndicators" to listOf("npcindicators", "Npc indicators", "Outlines and names the npcs you tag: Tag on an npc's right-click menu, or ::tag <name>; Untag or ::untag <name> forgets it."),
     "GroundItemValues" to listOf("grounditemvalues", "Ground item values", "Every pile's items with their worth, and valuable drops in the chat."),
     "ItemTags" to listOf("itemtags", "Item tags", "Tag an item from its right-click menu; it is outlined in the backpack and the bank."),
 )
@@ -74,7 +74,8 @@ val recipeJarTasks: List<TaskProvider<Jar>> = recipes.map { (recipeClass, meta) 
         group = "build"
         description = "The cookbook's $recipeClass plugin as a jar of its own."
         from(sourceSets.main.get().output) {
-            include("recipes/$recipeClass.class", "recipes/$recipeClass$*.class")
+            // its classes and its icon (src/main/resources/recipes/<id>.png)
+            include("recipes/$recipeClass.class", "recipes/$recipeClass$*.class", "recipes/${meta[0]}.png")
         }
         archiveBaseName = meta[0]
         archiveVersion = version.toString()
@@ -86,8 +87,9 @@ val recipeJarTasks: List<TaskProvider<Jar>> = recipes.map { (recipeClass, meta) 
                 "Plugin-Name" to meta[1],
                 "Plugin-Version" to version.toString(),
                 "Plugin-Api-Version" to "4",
-                "Plugin-Author" to "634-client",
+                "Plugin-Author" to "Pixel",
                 "Plugin-Description" to meta[2],
+                "Plugin-Icon" to "recipes/${meta[0]}.png",
             )
         }
     }

@@ -97,6 +97,17 @@ interface ClientApi {
 	fun projectActor(actor: Actor, heightOffset: Int, out: IntArray): Boolean
 
 	/**
+	 * The outline of the actor's body on the screen this frame: the convex hull of its model's
+	 * bounding box, view-relative like [projectActor], written into [xs] and [ys] (8 or more long)
+	 * and its point count returned, going round the shape; 0 when the actor was not drawn this
+	 * frame or part of it is off the screen. Since API 7.
+	 */
+	fun actorHull(actor: Actor, xs: IntArray, ys: IntArray): Int
+
+	/** Where the actor is on the minimap, to the fraction of a tile, in screen coordinates; false when the minimap is not shown or it is off its edge. Since API 7. */
+	fun projectActorMinimap(actor: Actor, out: IntArray): Boolean
+
+	/**
 	 * The four corners of the [size] by [size] tiles whose south-west tile is ([tileX], [tileY]) in
 	 * the game view, for [Graphics.polygon] and [Graphics.fillPolygon]: the x values into [xs] and the
 	 * y values into [ys] (four ints each), south-west first and clockwise, relative to the game view like
@@ -167,6 +178,9 @@ interface ClientApi {
 
 	/** Changes entry [i]'s [option][MenuEntry.option] text. False outside MenuBuilt. */
 	fun renameMenuEntry(i: Int, option: String): Boolean
+
+	/** Gives entry [i] another target text (the coloured name after the verb, colour tags and all), while the menu is being built. Since API 7. */
+	fun retargetMenuEntry(i: Int, target: String): Boolean
 
 	/** Where the mouse is on the screen. */
 	fun mouseX(): Int

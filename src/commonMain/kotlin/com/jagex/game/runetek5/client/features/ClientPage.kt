@@ -43,6 +43,11 @@ object ClientPage {
 	const val ARROW: Int = 2554
 	const val ARROW_OPEN: Int = 2556
 	const val ROW_PITCH: Int = 20
+
+	/** A tickbox's square, and the mark inside it when it is on. */
+	const val TICK_SIZE: Int = 16
+
+	const val TICK_MARK: Int = 8
 	const val ITEM_HEIGHT: Int = 15
 
 	@JvmField
@@ -152,6 +157,28 @@ object ClientPage {
 		t.onMouseLeaveScript = arrayOf<Any?>(sentinel, leaveAction, hoverIndex)
 		children.add(t)
 		return Button(t, parentHash, slots, selected)
+	}
+
+	/**
+	 * A tickbox: the dropdown box's fill and outline, [TICK_SIZE] square, with a [TICK_MARK] square
+	 * of [TEXT_TOP] inside when [on]; a click runs [action] with [index] through [sentinel]. Returns
+	 * the hit component, whose option is [optionName].
+	 */
+	@JvmStatic
+	fun tickbox(parentHash: Int, children: ArrayList<Component>, on: Boolean, sentinel: Int, action: Int, index: Int, x: Int, y: Int, optionName: String): Component {
+		children.add(rect(parentHash, children.size, x, y, TICK_SIZE, TICK_SIZE, BOX_FILL, true))
+		children.add(rect(parentHash, children.size, x, y, TICK_SIZE, TICK_SIZE, BOX_LINE, false))
+		if (on) {
+			val inset: Int = (TICK_SIZE - TICK_MARK) / 2
+			children.add(rect(parentHash, children.size, x + inset, y + inset, TICK_MARK, TICK_MARK, TEXT_TOP, true))
+		}
+		val hit: Component = text(parentHash, children.size, x, y, TICK_SIZE, TICK_SIZE, FONT_SMALL, "", TEXT, 1, 1, false)
+		hit.hasScript = true
+		hit.addOptionName(0, optionName)
+		hit.opBase = ""
+		hit.params = arrayOf<Any?>(sentinel, action, index)
+		children.add(hit)
+		return hit
 	}
 
 	/** Sets a button's three sprites: hover, else selected, else normal (what script 3929 does). */

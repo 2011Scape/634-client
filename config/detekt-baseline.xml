@@ -294,7 +294,6 @@
     <ID>LoopWithTooManyJumpStatements:EntitySceneBuilder.kt$EntitySceneBuilder$while</ID>
     <ID>LoopWithTooManyJumpStatements:FontMetrics.kt$FontMetrics$for</ID>
     <ID>LoopWithTooManyJumpStatements:GlToolkit.kt$GlToolkit$while</ID>
-    <ID>LoopWithTooManyJumpStatements:GroundItemLabels.kt$GroundItemLabels$while</ID>
     <ID>LoopWithTooManyJumpStatements:HdContent.kt$HdContent$for</ID>
     <ID>LoopWithTooManyJumpStatements:HdFeatures.kt$HdFeatures$for</ID>
     <ID>LoopWithTooManyJumpStatements:HdLights.kt$HdLights$for</ID>
@@ -318,7 +317,6 @@
     <ID>LoopWithTooManyJumpStatements:MiniMenuInputTick.kt$MiniMenuInputTick$while</ID>
     <ID>LoopWithTooManyJumpStatements:MusicSampleCodebook.kt$MusicSampleCodebook$for</ID>
     <ID>LoopWithTooManyJumpStatements:NPCEntity.kt$NPCEntity$do</ID>
-    <ID>LoopWithTooManyJumpStatements:NpcLabels.kt$NpcLabels$while</ID>
     <ID>LoopWithTooManyJumpStatements:ObjTypeList.kt$ObjTypeList.Companion$while</ID>
     <ID>LoopWithTooManyJumpStatements:OpaqueSpriteSM.kt$OpaqueSpriteSM$for</ID>
     <ID>LoopWithTooManyJumpStatements:OverlayManager.kt$OverlayManager$while</ID>
@@ -334,7 +332,6 @@
     <ID>LoopWithTooManyJumpStatements:SmokeTest.kt$SmokeTest$while</ID>
     <ID>LoopWithTooManyJumpStatements:Terrain.kt$Terrain$while</ID>
     <ID>LoopWithTooManyJumpStatements:TextureOpHerringbone.kt$TextureOpHerringbone$while</ID>
-    <ID>LoopWithTooManyJumpStatements:TileMarkers.kt$TileMarkers$for</ID>
     <ID>LoopWithTooManyJumpStatements:TransparentSpriteSM.kt$TransparentSpriteSM$for</ID>
     <ID>LoopWithTooManyJumpStatements:Utils.kt$Utils$for</ID>
     <ID>LoopWithTooManyJumpStatements:Utils.kt$Utils$while</ID>
