@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.client.features.DiscordPresence
 import com.jagex.game.runetek5.client.features.GroundTiles
 import com.jagex.game.runetek5.client.features.IdleNotifier
 import com.jagex.game.runetek5.client.features.InventoryValue
@@ -28,6 +29,7 @@ object BuiltinPlugins {
 			builtIn(NamePlates.DESCRIPTOR, NamePlates),
 			builtIn(GroundTiles.DESCRIPTOR, GroundTiles),
 			builtIn(NpcIndicators.DESCRIPTOR, NpcIndicators),
+			builtIn(DiscordPresence.DESCRIPTOR, DiscordPresence),
 		)
 	}
 
