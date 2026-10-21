@@ -3,8 +3,9 @@
 How to add to the client without changing it: a plugin is a jar in a folder, written against a
 small, stable API, that reads the game, draws on it, adds menu entries and commands, and keeps its
 own settings. The experience drops (`XpDrops`), the idle notifier (`IdleNotifier`), the menu
-swapper (`MenuEntrySwapper`), the inventory value (`InventoryValue`) and the name plates (`NamePlates`) are five, built in, so the client's own code shows the
-way.
+swapper (`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name plates (`NamePlates`),
+the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`) and the Discord presence
+(`DiscordPresence`) are eight, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -93,10 +94,10 @@ stack trace is in the client's log (the launcher keeps it in `~/.void/logs`).
 
 ## The built-in plugins
 
-Seven plugins come with the client, on the same API as the ones from the plugins folder, each with
+Eight plugins come with the client, on the same API as the ones from the plugins folder, each with
 its switch in the Plugins window: experience drops (`::xpdrops`), the idle notifier (`::idle`), the
 menu entry swapper (`::menuswapper`), the inventory value (`::invvalue`), name plates (`::nameplates`), the
-ground tiles and the npc indicators.
+ground tiles, the npc indicators and the Discord presence (`::discord`).
 
 **Ground Tiles** marks tiles on the ground the way RuneLite's Ground Markers do. Hold Shift and
 right-click a tile for **Mark tile**; a marked tile's Shift menu has **Unmark tile**, **Label tile**
@@ -135,6 +136,26 @@ and the respawn timer, which remembers where a tagged npc stood and how long it 
 the first death counts up on its tile (dimmed) while the respawn is learnt, every death after it
 counts down. Not here from RuneLite: the model outline (the hull is
 its bounding box), per-npc colours and styles, and ignoring pets.
+
+**Discord** shows what you are doing in the Discord user panel, the way RuneLite's Discord plugin
+does, under "Playing Void Client": the skill you are training ("Training: Fishing", with the
+skill's icon), where you are (the state line: a boss, a city, a dungeon, a minigame or another
+region, from the map region you stand in, under its 2011 name), "In Game" when the place is not
+one it knows, "In Menu" on the login screen and in the lobby, and the elapsed time. Settings: the
+elapsed time (since login, since the activity began, or hidden), the activity timeout (a skill
+leaves the status that many minutes after its last experience drop; 5 by default), whether to show
+a status on the main menu, and a switch for each kind of thing shown: skilling, bosses, cities,
+dungeons, minigames and regions. `::discord` turns it on and off; `::discord status` says how the
+connection is doing and what is shown. It talks to the Discord desktop app on this computer over
+Discord's local RPC socket, so Discord must be running here; it connects again by itself when
+Discord starts later, and shows nothing in the browser. Not here from RuneLite: its Discord party
+(RuneLite removed that too) and the PvP and Deadman world states (no such worlds in 634). The
+places are RuneLite's table kept to the regions of the 634 map, with the 2011 content it never
+had (Daemonheim, Soul Wars, Mobilising Armies, the Thieves' Guild, the Chaos Tunnels, the Living
+Rock Caverns, the Wilderness, Nex, Tormented Demons). The icons belong to the Discord application
+"Void Client"; the config key `applicationId` in `plugin-config/discord.properties` points the plugin at
+an application of your own, which needs the same art uploaded under the keys `default` and
+`icon_<skill>` (`icon_attack` to `icon_dungeoneering`, lower case).
 
 ## Writing a plugin
 
