@@ -65,7 +65,7 @@ val recipes: Map<String, List<String>> = mapOf(
     // class in recipes/ to plugin id, name and description
     "LeftClickBank" to listOf("leftclickbank", "Left-click bank", "Bank is the left click on bankers, booths and chests; Examine is gone."),
     "AttackTimer" to listOf("attacktimer", "Attack timer", "A cooldown bar under you after each attack, and an idle warning (::attackspeed <ticks>)."),
-    "NpcIndicators" to listOf("npcindicators", "Npc indicators", "Outlines and names the npcs you tag (::tag <name>, ::untag <name>)."),
+    "NpcIndicators" to listOf("npcindicators", "Npc indicators", "Outlines and names the npcs you tag: Tag on an npc's right-click menu, or ::tag <name>; Untag or ::untag <name> forgets it."),
     "GroundItemValues" to listOf("grounditemvalues", "Ground item values", "Every pile's items with their worth, and valuable drops in the chat."),
     "ItemTags" to listOf("itemtags", "Item tags", "Tag an item from its right-click menu; it is outlined in the backpack and the bank."),
 )
