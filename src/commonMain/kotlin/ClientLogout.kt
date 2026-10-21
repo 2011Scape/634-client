@@ -1,4 +1,5 @@
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
+import com.jagex.game.runetek5.client.features.LootTrackerScreen
 import com.jagex.game.runetek5.client.features.PluginManagerScreen
 import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.core.constants.MainLogicStep
@@ -39,6 +40,7 @@ object ClientLogout {
 		LoginManager.loginStep = LoginStep.IDLE
 		HdOptionsScreen.reset() // Not part of the original client: the 634HD page of Graphics Options
 		PluginManagerScreen.reset() // Not part of the original client: the plugin manager's window
+		LootTrackerScreen.reset() // Not part of the original client: the loot tracker's window
 		TypeLists.resetAllCaches()
 		Scene.destroy()
 		for (@Pc(24) i in 0 until 4) {

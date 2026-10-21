@@ -136,6 +136,21 @@ object PluginManagerScreen {
 	private const val A_PICK_HEX: Int = 25
 	private const val A_PICK_ALPHA: Int = 26
 	private const val A_PICK_RECENT: Int = 27
+	private const val A_OPEN_PANEL: Int = 28
+
+	/** Built-ins with a window of their own (the Loot Tracker's), by plugin id: what their row's Open button does; null, or why it did not open. */
+	private val panels: HashMap<String, () -> String?> = HashMap()
+
+	/** A built-in's window, opened from an Open button on its row. */
+	@JvmStatic
+	fun registerPanel(id: String, opener: () -> String?) {
+		panels[id] = opener
+	}
+
+	@JvmStatic
+	fun unregisterPanel(id: String) {
+		panels.remove(id)
+	}
 
 	/** A colour setting's swatch, and the picker's cells. */
 	private const val SWATCH_WIDTH: Int = 40
@@ -644,6 +659,11 @@ object PluginManagerScreen {
 			if (hasSettings(registration)) {
 				bx -= settingsWidth + 10
 				button(children, "Settings", false, A_SETTINGS, i, bx, y - 2, settingsWidth)
+			}
+			if (registration.context != null && panels.containsKey(registration.descriptor.id)) {
+				val openWidth: Int = ClientPage.textWidth(ClientPage.FONT_BUTTON, "Open") + 30
+				bx -= openWidth + 10
+				button(children, "Open", false, A_OPEN_PANEL, i, bx, y - 2, openWidth)
 			}
 			if (i < last - 1) {
 				children.add(ClientPage.rect(BODY, children.size, 6, y + ROW_PITCH - 3, WIDTH - 12, 1, ClientPage.BOX_LINE, true))
@@ -1493,6 +1513,16 @@ object PluginManagerScreen {
 				}
 			}
 			A_POPUP_CLOSE -> closePopup()
+			A_OPEN_PANEL -> if (index < PluginRuntime.count) {
+				val opener: (() -> String?)? = PluginRuntime.registrations[index]?.descriptor?.id?.let { panels[it] }
+				if (opener != null) {
+					close() // the two share the window's shell: one at a time
+					val why: String? = opener()
+					if (why != null) {
+						Console.printToConsole(why)
+					}
+				}
+			}
 			A_COLOUR -> if (plugin != null) {
 				val entry: PluginSchemaImpl.Entry = entryAt(plugin, index) ?: return
 				val context: PluginContextImpl = plugin.context ?: return

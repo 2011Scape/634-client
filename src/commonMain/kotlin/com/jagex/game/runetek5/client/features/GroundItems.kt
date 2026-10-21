@@ -588,6 +588,7 @@ object GroundItems : Plugin {
 
 	@JvmStatic
 	fun despawned(client: ClientApi, event: GroundItem) {
+		attribution.itemDespawned(client, event)
 		val worldX: Int = client.sceneBaseX() + event.sceneX
 		val worldY: Int = client.sceneBaseY() + event.sceneY
 		val k: Long = key(worldX, worldY, event.level, event.itemId)
