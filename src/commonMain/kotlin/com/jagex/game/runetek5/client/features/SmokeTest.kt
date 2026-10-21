@@ -50,6 +50,8 @@ import kotlin.jvm.JvmField
 import com.jagex.game.runetek5.client.input.mouse.MouseManager
 import com.jagex.game.runetek5.client.input.mouse.MouseRecord
 import com.jagex.game.runetek5.plugin.PluginRegistration
+import com.jagex.game.runetek5.plugin.api.MenuTarget
+import com.jagex.game.runetek5.entity.NPCEntity
 import com.jagex.game.runetek5.plugin.PluginRuntime
 import kotlin.jvm.JvmStatic
 import lang.Class
@@ -250,6 +252,11 @@ object SmokeTest {
 
 	/** client.test.menuCheck: run a finished scene menu and a component menu through the runtime, for the plugins that edit menus. */
 	private val MENU_CHECK: Boolean = "true" == lang.getProperty("client.test.menuCheck")
+
+	/** client.test.npcMenu=<verb>: the plugins' entries for the nearest npc are built as its right-click menu builds them; fail unless [verb] is among them. */
+	private val NPC_MENU: String = lang.getProperty("client.test.npcMenu", "")
+
+	private var npcMenuChecked: Boolean = false
 
 	/** client.test.pluginManager: open the plugin manager's window, switch a built-in, open a settings page, step a number, close; frames in build/smoke/plugins-*.png. */
 	private val PLUGIN_MANAGER: Boolean = "true" == lang.getProperty("client.test.pluginManager")
@@ -802,6 +809,10 @@ object SmokeTest {
 			}
 			if (MENU_CHECK) {
 				menuCheck()
+			}
+			if (NPC_MENU.length > 0 && !npcMenuChecked) {
+				npcMenuChecked = true
+				npcMenuCheck()
 			}
 		}
 		if (PLUGIN_MANAGER && pluginManagerStep < 4) {
@@ -3132,6 +3143,34 @@ object SmokeTest {
 	}
 
 	/** The verb of the menu's top row, which is the last entry of the list. */
+	/** The plugins' entries for the first npc in the scene, as MiniMenuBuilder adds them after the npc's own. */
+	private fun npcMenuCheck() {
+		if (NPCList.NPC_UPDATE_INDEX == 0) {
+			fail("npc menu check: no npc in the scene")
+			return
+		}
+		val node: NPCEntityNode? = NPCList.NPC_MAP.get(NPCList.NPC_UPDATE_INDICES[0].toLong()) as NPCEntityNode?
+		val npc: NPCEntity? = node?.npc
+		if (npc == null) {
+			fail("npc menu check: the first npc has no entity")
+			return
+		}
+		MiniMenuReset.resetEntries()
+		PluginRuntime.menuTarget(MenuTarget.NPC, (npc.x - (npc.getSize() - 1) * 256) shr 9, (npc.z - (npc.getSize() - 1) * 256) shr 9, npc.level.toInt(), npc.playerIndex, npc.playerIndex.toLong())
+		val verbs: ArrayList<String> = ArrayList()
+		var entry: MiniMenuEntry? = MiniMenu.entryList.first() as MiniMenuEntry?
+		while (entry != null) {
+			verbs.add(entry.opBase ?: "")
+			entry = MiniMenu.entryList.next() as MiniMenuEntry?
+		}
+		val found: Boolean = findEntry(NPC_MENU) != null
+		MiniMenuReset.resetEntries()
+		println("SMOKE npc menu check: npc " + npc.npcType?.name + " index " + npc.playerIndex + ", plugin entries " + verbs + ", \"" + NPC_MENU + "\" " + (if (found) "present" else "MISSING"))
+		if (!found) {
+			fail("npc menu check: no \"" + NPC_MENU + "\" entry for " + npc.npcType?.name)
+		}
+	}
+
 	private fun topEntryText(): String? {
 		val top: MiniMenuEntry? = MiniMenu.entryList.sentinel.previous as MiniMenuEntry?
 		return top?.opBase
