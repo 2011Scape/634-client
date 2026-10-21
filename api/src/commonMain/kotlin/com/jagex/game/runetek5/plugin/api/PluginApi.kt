@@ -35,8 +35,10 @@ package com.jagex.game.runetek5.plugin.api
  *   [events.GroundItem.ownership], [ClientApi.groundItemHeight] and [ClientApi.isInInstance]; [ClientApi.deprioritizeMenuEntry]; submenus
  *   ([ClientApi.addSubmenu], [ClientApi.addSubmenuEntry]); [SettingsSchema.colour], [SettingsSchema.keybind],
  *   [PluginConfig.getColour], [PluginConfig.setColour] and [KeyCode.name]; [PluginContext.pickColour].
+ * - 10: a location's shape on the screen: [ClientApi.locHull], [ClientApi.locClickbox] and
+ *   [ClientApi.locOutline]; [ClientApi.resolveLoc] for a location that changes with the player's variables.
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 9
+	const val VERSION: Int = 10
 }

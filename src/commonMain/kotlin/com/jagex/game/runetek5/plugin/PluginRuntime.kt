@@ -135,6 +135,13 @@ object PluginRuntime {
 
 	private val mouseWheelEvent: MouseWheel = MouseWheel()
 
+	/** Where the game view was last drawn on the screen, for drawing in its space (ClientApi.locOutline). */
+	@JvmStatic
+	fun viewX(): Int = viewport.x
+
+	@JvmStatic
+	fun viewY(): Int = viewport.y
+
 	/** The scene tile under the mouse this cycle, -1 for none (ViewportMiniMenuPicking). */
 	@JvmField
 	var hoveredTileX: Int = -1

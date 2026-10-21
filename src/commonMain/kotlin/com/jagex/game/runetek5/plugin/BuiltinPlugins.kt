@@ -9,6 +9,7 @@ import com.jagex.game.runetek5.client.features.InventoryValue
 import com.jagex.game.runetek5.client.features.MenuEntrySwapper
 import com.jagex.game.runetek5.client.features.NamePlates
 import com.jagex.game.runetek5.client.features.NpcIndicators
+import com.jagex.game.runetek5.client.features.ObjectIndicators
 import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
@@ -34,6 +35,7 @@ object BuiltinPlugins {
 			builtIn(DiscordPresence.DESCRIPTOR, DiscordPresence),
 			builtIn(GroundItems.DESCRIPTOR, GroundItems),
 			builtIn(LootTracker.DESCRIPTOR, LootTracker),
+			builtIn(ObjectIndicators.DESCRIPTOR, ObjectIndicators),
 		)
 	}
 

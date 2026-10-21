@@ -47,6 +47,8 @@ import kotlin.jvm.JvmField
 import com.jagex.game.runetek5.client.input.mouse.MouseManager
 import com.jagex.game.runetek5.client.input.mouse.MouseRecord
 import com.jagex.game.runetek5.plugin.ItemPrices
+import com.jagex.game.runetek5.plugin.ClientApiImpl
+import com.jagex.game.runetek5.plugin.api.LocKind
 import com.jagex.game.runetek5.plugin.PluginConfigImpl
 import com.jagex.game.runetek5.plugin.PluginRegistration
 import com.jagex.game.runetek5.plugin.api.MenuTarget
@@ -223,6 +225,15 @@ object SmokeTest {
 	private var lootStep: Int = 0
 
 	private var lootFrame: Int = -1
+
+	/** client.test.objectMarkers: an object beside the player marked in all four styles. */
+	private val OBJECT_MARKERS: Boolean = "true" == lang.getProperty("client.test.objectMarkers")
+
+	private var objectStep: Int = 0
+
+	private var objectFrame: Int = -1
+
+	private var objectMarked: IntArray? = null
 
 	/** client.test.groundItems: Ground Items' labels, lootbeam and hotkey boxes on items made up beside the player. */
 	private val GROUND_ITEMS: Boolean = "true" == lang.getProperty("client.test.groundItems")
@@ -956,6 +967,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 256
+		}
+		if (OBJECT_MARKERS && (checksDone and 512) == 0) {
+			if (!objectMarkersDone(player)) {
+				return
+			}
+			checksDone = checksDone or 512
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -2841,6 +2858,74 @@ object SmokeTest {
 			firstImage += "; tile " + x + "," + y + " marked, drawn and unmarked: " + image
 			markerStep = 2
 		}
+		return true
+	}
+
+	/**
+	 * Object Markers on the first named location within six tiles of the player: marked as its Mark
+	 * object entry does, given all four styles, a frame of it (-objectmarkers), and unmarked. The hull's
+	 * box is printed beside the tile's projection, both view-relative, to show they share a space.
+	 */
+	private fun objectMarkersDone(player: PlayerEntity): Boolean {
+		val client = ClientApiImpl
+		if (objectStep == 0) {
+			val px: Int = player.movementBaseX[0]
+			val py: Int = player.movementBaseY[0]
+			val level: Int = player.level.toInt()
+			var chosen: IntArray? = null
+			var best: Int = Int.MAX_VALUE
+			val centre: IntArray = IntArray(2)
+			for (dx in -6..6) {
+				for (dy in -6..6) {
+					client.locsAt(px + dx, py + dy, level) { id, kind, _, _ ->
+						val name: String? = client.locType(client.resolveLoc(id))?.name()
+						val distance: Int = dx * dx + dy * dy + (if (kind == LocKind.INTERACTIVE) 0 else 100)
+						if (distance < best && name != null && name != "null" && name.isNotEmpty() && client.projectTile(px + dx, py + dy, level, 0, centre)) {
+							best = distance
+							chosen = intArrayOf(px + dx, py + dy, id)
+						}
+					}
+				}
+			}
+			val loc: IntArray = chosen ?: run {
+				fail("no named location within six tiles of the player for the object markers")
+				return true
+			}
+			ObjectIndicators.enabled = true
+			ObjectIndicators.toggleMark(loc[0], loc[1], loc[2])
+			val marked: ObjectIndicators.ObjectPoint? = ObjectIndicators.points.values.flatten().firstOrNull { it.id == loc[2] }
+			if (marked == null) {
+				fail("marking location " + loc[2] + " at " + loc[0] + "," + loc[1] + " left no marker")
+				return true
+			}
+			marked.hull = true
+			marked.outline = true
+			marked.clickbox = true
+			marked.tile = true
+			objectMarked = intArrayOf(marked.worldX() - MapRegion.sceneBaseX, marked.worldY() - MapRegion.sceneBaseY, loc[2])
+			objectFrame = frames
+			objectStep = 1
+			return false
+		}
+		if (frames - objectFrame < MARKER_FRAMES) {
+			return false
+		}
+		val loc: IntArray = objectMarked ?: return true
+		val level: Int = player.level.toInt()
+		checkImage("-objectmarkers", SHOT.replace(".png", "-objectmarkers.png"))
+		val xs: IntArray = IntArray(64)
+		val ys: IntArray = IntArray(64)
+		val hull: Int = client.locHull(loc[0], loc[1], level, loc[2], xs, ys)
+		val box: Int = client.locClickbox(loc[0], loc[1], level, loc[2], IntArray(64), IntArray(64))
+		val centre: IntArray = IntArray(2)
+		client.projectTile(loc[0], loc[1], level, 0, centre)
+		val name: String? = client.locType(client.resolveLoc(loc[2]))?.name()
+		println("SMOKE object markers: " + name + " (" + loc[2] + ") hull of " + hull + " points, x " + (xs.take(hull).minOrNull()) + ".." + (xs.take(hull).maxOrNull()) + ", y " + (ys.take(hull).minOrNull()) + ".." + (ys.take(hull).maxOrNull()) + "; its tile's middle at " + centre[0] + "," + centre[1] + "; click box of " + box + " points; " + ObjectIndicators.drawnLastFrame + " drawn")
+		if (hull < 3 || box < 3 || ObjectIndicators.drawnLastFrame != 1) {
+			fail("the marked " + name + " was not drawn whole: hull " + hull + ", click box " + box + ", " + ObjectIndicators.drawnLastFrame + " markers drawn")
+		}
+		ObjectIndicators.toggleMark(loc[0], loc[1], loc[2])
+		firstImage += "; object marker on " + name + ": hull, outline, click box and tile drawn, unmarked"
 		return true
 	}
 
