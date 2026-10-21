@@ -97,11 +97,18 @@ class IdleDetector {
 
 	private var lastSpec: Int = FULL_SPEC
 
-	/** The local player's animation was set to [id]. */
+	/**
+	 * The local player's animation was set to [id]. A skilling animation is watched from now; -1,
+	 * the server stopping the animation (as fishing stops when the spot moves or the backpack is
+	 * full), is the moment the watched one ended, so the idle is said a delay after it, as
+	 * RuneLite does; any other animation (an emote, a walk) is not one to watch, so nothing is said.
+	 */
 	fun animationChanged(id: Int) {
 		if (IdleAnimations.contains(id)) {
 			resetTimers(id, lastInteract != INTERACT_NONE)
 			lastAnimation = id
+			lastAnimating = now
+		} else if (id == -1) {
 			lastAnimating = now
 		} else {
 			lastAnimation = -1

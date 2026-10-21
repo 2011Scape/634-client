@@ -47,6 +47,18 @@ class IdleDetectorTest {
 	}
 
 	@Test
+	fun aServerResetOfTheAnimationIsItsEndNotAForgetting() {
+		val detector: IdleDetector = detector()
+		detector.movementIdle = false
+		detector.animationChanged(621) // the net cast
+		run(detector, 5, animationId = 621)
+		detector.animationChanged(-1) // the server stops fishing: the spot moved or the backpack is full
+		assertEquals(0, run(detector, delay - 1), "stopped, the delay not up")
+		assertEquals(IdleDetector.ANIMATION, still(detector), "the delay after the reset")
+		assertEquals(0, run(detector, delay * 2), "said once")
+	}
+
+	@Test
 	fun anUnknownAnimationNeverArmsAndResumingRestartsTheWait() {
 		val detector: IdleDetector = detector()
 		detector.movementIdle = false
@@ -251,6 +263,13 @@ class IdleDetectorTest {
 		assertTrue(IdleAnimations.contains(879), "a bronze hatchet")
 		assertTrue(IdleAnimations.contains(12189), "a dragon pickaxe")
 		assertTrue(IdleAnimations.contains(363), "mixing a potion")
+		assertTrue(IdleAnimations.contains(13128), "a primal hatchet, Daemonheim")
+		assertTrue(IdleAnimations.contains(12323), "the inferno adze on ivy")
+		assertTrue(IdleAnimations.contains(466), "the spinning wheel")
+		assertTrue(IdleAnimations.contains(1648), "the bone grinder")
+		assertTrue(IdleAnimations.contains(8500), "infusing pouches")
+		assertFalse(IdleAnimations.contains(7041), "a 2h chop is a fight")
+		assertFalse(IdleAnimations.contains(8199), "fish rain is a familiar's special")
 		assertFalse(IdleAnimations.contains(-1))
 		assertFalse(IdleAnimations.contains(2716), "resting")
 		assertFalse(IdleAnimations.contains(866))
