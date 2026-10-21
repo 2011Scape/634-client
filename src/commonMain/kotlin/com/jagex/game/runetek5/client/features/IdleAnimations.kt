@@ -17,8 +17,10 @@ object IdleAnimations {
 	val SKILLING: IntArray = intArrayOf(
 		// woodcutting: hatchet.anims.toml, bronze to dragon, the inferno adze, the sacred and volatile clay hatchets
 		879, 877, 875, 873, 871, 869, 867, 2846, 10251, 1905, 1907,
-		// woodcutting: ivy, bronze to dragon
-		12282, 2847, 880, 878, 876, 874, 872, 870,
+		// woodcutting: ivy, bronze to dragon, the inferno adze, the sacred and volatile clay hatchets
+		12282, 2847, 880, 878, 876, 874, 872, 870, 12323, 12324, 12325,
+		// woodcutting: the Daemonheim hatchets (novite to primal) and the Stealing Creation hatchets (class 1 to 5), the blessed hatchet
+		13118, 13119, 13120, 13121, 13122, 13123, 13124, 13125, 13126, 13127, 13128, 10603, 10604, 10605, 10606, 10607, 5383,
 		// mining: pickaxe.anims.toml, bronze to rune and dragon
 		625, 626, 627, 629, 628, 624, 12189,
 		// fishing: fishing.anims.toml: nets, the rod's cast and repeat, harpoons, the pot and cage, the karambwan vessel, barehand
@@ -29,26 +31,28 @@ object IdleAnimations {
 		733,
 		// fletching: fletching.anims.toml: the knife, stringing shortbows, longbows and crossbows
 		1248, 6678, 6679, 6680, 6681, 6682, 6683, 6684, 6685, 6686, 6687, 6688, 6689, 6671, 6672, 6673, 6674, 6675, 6676, 6677,
-		// crafting: crafting.anims.toml: gems, leather, glassblowing, weaving, molten glass
-		888, 889, 887, 886, 885, 2717, 1249, 884, 2270, 899,
+		// crafting: crafting.anims.toml: gems, leather, glassblowing, weaving, molten glass, the spinning wheel
+		888, 889, 887, 886, 885, 2717, 1249, 884, 2270, 899, 466,
 		// smithing: smithing.anims.toml: the anvil, the furnace
 		898,
 		// herblore: herblore.anims.toml: mixing, the pestle and mortar
 		363, 364, 5249,
 		// runecrafting: runecrafting.anims.toml
 		791,
-		// prayer: burying (human.anims.toml), the altar's offering and prayer, the ectofuntus
-		827, 3705, 645, 1651,
-		// magic: spellbook.anims.toml and magic.anims.toml: alchemy, superheat, enchanting, bones to bananas, orbs, lunar casts, plank make, string jewellery
-		713, 9633, 725, 719, 720, 721, 931, 722, 726, 4411, 6298, 4412,
+		// prayer: burying (human.anims.toml), the altar's offering and prayer, the ectofuntus and its bone grinder (wind, fill, empty)
+		827, 3705, 645, 1651, 1648, 1649, 1650,
+		// magic: spellbook.anims.toml and magic.anims.toml: alchemy, superheat, enchanting, bones to bananas, orbs, lunar casts (and the charged ones, bake pie and the like), plank make, string jewellery
+		713, 9633, 725, 719, 720, 721, 931, 722, 726, 4411, 4413, 6298, 4412,
 		// thieving: thieving.anims.toml and human.anims.toml: pickpocketing, a stall, a locked chest
 		881, 5074, 5075, 5078, 832, 537,
-		// hunter: hunter.anims.toml: traps, the butterfly net, the noose
-		5208, 5207, 6605, 5259,
+		// hunter: hunter.anims.toml: traps (laid, taken, the small and the net ones), the butterfly net, the noose
+		5208, 5207, 5212, 5215, 6605, 5259,
 		// farming: farming.anims.toml and human.anims.toml: raking, planting, watering, digging, picking, curing
 		2273, 2291, 2293, 830, 2280, 2288,
 		// construction: construction.anims.toml
 		3683, 3685,
+		// summoning: summoning.anims.toml: infusing pouches, renewing scrolls
+		8500, 8502,
 	)
 
 	/** [SKILLING] in order, for the binary search. */
