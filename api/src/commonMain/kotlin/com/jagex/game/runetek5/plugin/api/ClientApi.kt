@@ -256,4 +256,25 @@ interface ClientApi {
 
 	/** Whether [name] (a [Player.name], compared ignoring case) is in the player's friends chat. */
 	fun isInFriendsChat(name: String?): Boolean
+
+	/** Whether the game's window (the canvas, in a browser) has the keyboard focus, as the client reports it to the server. Since API 8. */
+	fun isFocused(): Boolean
+
+	/**
+	 * Shows [text] as a notification on the desktop, titled with the client's name: the desktop's own
+	 * notifications on Linux (notify-send), a balloon from the system tray elsewhere on the JVM, a
+	 * browser notification on the web (the first call asks the player's permission and shows nothing).
+	 * The window is not raised; see [requestFocus]. True when the platform took it; false when it
+	 * cannot (no notify-send and no system tray, a headless JVM, permission refused), so that a plugin
+	 * can fall back to the chat. Since API 8.
+	 */
+	fun notify(text: String): Boolean
+
+	/**
+	 * Asks the desktop to bring the game's window to the front and give it the keyboard focus, as a
+	 * notification the player should act on. The desktop may refuse and only mark the window as
+	 * wanting attention (a highlighted task bar entry), which is its choice; a browser focuses its
+	 * own window where it allows a page to. True when there was a window to ask for. Since API 8.
+	 */
+	fun requestFocus(): Boolean
 }

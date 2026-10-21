@@ -6,7 +6,8 @@ import kotlin.jvm.JvmStatic
 /**
  * Not part of the original client: where plugins and their files live, `<home>/.634-client`
  * (docs/PLUGINS.md). Nothing is read or written there under the smoke test (client.test) or without
- * a home folder; the tests point [homeOverride] at a folder of their own.
+ * a home folder; the tests point [homeOverride] at a folder of their own, and a smoke run that
+ * needs plugin settings names a home of its own with client.test.pluginHome.
  */
 object PluginPaths {
 
@@ -19,7 +20,8 @@ object PluginPaths {
 		var home: String? = homeOverride
 		if (home == null) {
 			if (lang.getProperty("client.test") != null) {
-				return null
+				home = lang.getProperty("client.test.pluginHome")
+				return if (home == null) null else io.File(home + "/.634-client")
 			}
 			home = lang.getProperty("user.home")
 			if (home == null) {

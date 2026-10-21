@@ -52,12 +52,8 @@ It connects to [2011Scape](https://2011.rs) (`play.2011.rs`). For your own serve
 ## Options
 
 By default the launcher turns on 144 fps, twice the render distance, the wider zoom, the better
-console, shift-drop and a scale that suits the screen. The other extras are off until you turn them
-on; most can also be toggled in game with the command shown.
-
-```bash
-java -jar runetek5-634-<version>.jar --idle-notifier --name-plates
-```
+console, shift-drop and a scale that suits the screen. The other extras are plugins, off until you turn them
+on in the plugin manager (the Plugins button in the Settings tab) or with the command shown.
 
 ### Connecting
 
@@ -89,9 +85,9 @@ are off unless the client is started with `--dev-commands`.
 |---|---|---|
 | | Ground tiles: hold Shift and right-click a tile for *Mark tile*; a marked tile can be labelled and coloured, is kept between sessions, and is drawn on the minimap if you like. Import and Export share them in RuneLite's ground marker format through the clipboard. | `::groundtiles`, `::groundtiles export`, `::groundtiles import`, `::groundtiles clear` |
 | | A "+N Skill" drop rises and fades near the minimap when you gain experience (on until turned off). | `::xpdrops` |
-| `--idle-notifier` | A chat line and a red frame around the game view once you have been idle for 15 seconds. | `::idle`, `::idle <seconds>` |
-| `--inventory-value` | What your backpack is worth, with its three most valuable items, at the top of the game view. | `::invvalue` |
-| `--name-plates` | Other players' names over their heads: red when they can attack you, green for friends, blue for your friends chat with its name underneath. | `::nameplates` |
+| | Idle notifier, as RuneLite's: says when you stop skilling, fighting or moving, when the mouse and keyboard have been untouched, and when life points, prayer or energy cross a threshold, in the chat, a red frame, a sound, a desktop notification or the window brought to the front (by default only while the window is unfocused); each is a setting in the plugin manager, where the plugin is turned on. | `::idle`, `::idle <seconds>` |
+| | Inventory value: what your backpack is worth, with its three most valuable items, at the top of the game view. | `::invvalue` |
+| | Name plates: other players' names over their heads: red when they can attack you, green for friends, blue for your friends chat with its name underneath. | `::nameplates` |
 | | Menu entry swapper: hold Shift and right-click an npc, object, ground item or item to choose its left click and its Shift-click. | `::menuswapper` |
 | | The plugin manager: every plugin with its switch and its settings, from the Plugins button in the Settings tab. | `::pluginmanager` |
 | `--no-shift-drop` | Turn off dropping an item with Shift and a left click. | `::shiftdrop` |
