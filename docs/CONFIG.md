@@ -83,6 +83,7 @@ The plugin API's ground item reads (`ClientApiImpl.groundItems`) walk the piles 
 item packets build (`ObjStack.GROUND_ITEMS`, keyed by `level << 28 | y << 14 | x` in absolute
 tiles, each pile's `groundItems` already ordered most valuable first by `ObjStack.addGroundItem`),
 and name each `ObjStackEntry` from its config type: `TypeLists.OBJ.list(entry.id).name`, with
-`entry.count`. The cookbook's ground item values plugin
-(`plugin-template/src/main/kotlin/recipes/GroundItemValues.kt`) labels each pile on that API, with
-`ClientApi.projectTile` for the middle of the tile.
+`entry.count`. The built-in Ground Items plugin
+(`src/commonMain/kotlin/com/jagex/game/runetek5/client/features/GroundItems.kt`) hears of each item
+through `ItemSpawned` and `ItemDespawned`, prices it with `ClientApi.itemPrice` and `itemHaPrice`, and
+labels it with `ClientApi.projectTile` for the middle of the tile.

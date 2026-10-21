@@ -46,6 +46,7 @@ import com.jagex.game.runetek5.client.ClientState
 import kotlin.jvm.JvmField
 import com.jagex.game.runetek5.client.input.mouse.MouseManager
 import com.jagex.game.runetek5.client.input.mouse.MouseRecord
+import com.jagex.game.runetek5.plugin.ItemPrices
 import com.jagex.game.runetek5.plugin.PluginConfigImpl
 import com.jagex.game.runetek5.plugin.PluginRegistration
 import com.jagex.game.runetek5.plugin.api.MenuTarget
@@ -215,6 +216,15 @@ object SmokeTest {
 	private var xpDrawnFrame: Int = -1
 
 	private val MARKERS: Boolean = "false" != lang.getProperty("client.test.markers")
+
+	/** client.test.groundItems: Ground Items' labels, lootbeam and hotkey boxes on items made up beside the player. */
+	private val GROUND_ITEMS: Boolean = "true" == lang.getProperty("client.test.groundItems")
+
+	private var groundItemsStep: Int = 0
+
+	private var groundItemsFrame: Int = -1
+
+	private var groundItemsSummary: String = ""
 
 	private const val MARKER_FRAMES: Int = 40
 
@@ -927,6 +937,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 64
+		}
+		if (GROUND_ITEMS && (checksDone and 128) == 0) {
+			if (!groundItemsDone(player)) {
+				return
+			}
+			checksDone = checksDone or 128
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -2812,6 +2828,67 @@ object SmokeTest {
 			firstImage += "; tile " + x + "," + y + " marked, drawn and unmarked: " + image
 			markerStep = 2
 		}
+		return true
+	}
+
+	/**
+	 * Ground Items on three items made up on the tile east of the player (the server sends nothing):
+	 * a stack of rune scimitars priced above the High tier, and coins and bones, both on the default
+	 * hidden list. One label and a lootbeam are drawn; with the hotkey held, the hidden two too, with
+	 * the boxes. Frames in build/smoke as -grounditems and -grounditems-hotkey.
+	 */
+	private fun groundItemsDone(player: PlayerEntity): Boolean {
+		val x: Int = player.movementBaseX[0] + 1
+		val y: Int = player.movementBaseY[0]
+		val level: Int = player.level.toInt()
+		if (groundItemsStep == 0) {
+			ItemPrices.setForTest(mapOf(1333 to 15_000, 526 to 100))
+			GroundItems.enabled = true
+			GroundItems.groundItemTimers = GroundItems.TIMER_PIE
+			PluginRuntime.groundItemSpawned(1333, 150, x, y, level)
+			PluginRuntime.groundItemSpawned(995, 50_000, x, y, level)
+			PluginRuntime.groundItemSpawned(526, 1, x, y, level)
+			val scimitars: GroundItems.Item? = GroundItems.itemAt(MapRegion.sceneBaseX + x, MapRegion.sceneBaseY + y, level, 1333)
+			if (scimitars == null) {
+				val registration: PluginRegistration? = PluginRuntime.find("grounditems")
+				fail("Ground Items did not take the made-up rune scimitars: " + GroundItems.items.size + " items, plugin state " + registration?.state + " " + registration?.error + ", context " + (registration?.context != null))
+				return true
+			}
+			scimitars.lootType = GroundItems.LOOT_DROPPED // a timer pie beside its label
+			groundItemsFrame = frames
+			groundItemsStep = 1
+			return false
+		}
+		if (frames - groundItemsFrame < MARKER_FRAMES) {
+			return false
+		}
+		if (groundItemsStep == 1) {
+			checkImage("-grounditems", SHOT.replace(".png", "-grounditems.png"))
+			if (GroundItemsOverlay.drawnLastFrame != 1) {
+				fail("Ground Items drew " + GroundItemsOverlay.drawnLastFrame + " labels, not 1 (the coins and the bones are on the default hidden list)")
+			}
+			if (GroundItemsOverlay.beamsLastFrame != 1) {
+				fail("Ground Items drew " + GroundItemsOverlay.beamsLastFrame + " lootbeams, not 1")
+			}
+			groundItemsSummary = "ground items: " + GroundItemsOverlay.drawnLastFrame + " labels (\"" + GroundItemsOverlay.lastLabel + "\" last), " + GroundItemsOverlay.beamsLastFrame + " lootbeam"
+			GroundItems.hotKeyPressed = true
+			groundItemsFrame = frames
+			groundItemsStep = 2
+			return false
+		}
+		checkImage("-grounditems-hotkey", SHOT.replace(".png", "-grounditems-hotkey.png"))
+		if (GroundItemsOverlay.drawnLastFrame != 3) {
+			fail("with the hotkey held Ground Items drew " + GroundItemsOverlay.drawnLastFrame + " labels, not 3")
+		}
+		GroundItems.hotKeyPressed = false
+		PluginRuntime.groundItemDespawned(1333, 150, x, y, level)
+		PluginRuntime.groundItemDespawned(995, 50_000, x, y, level)
+		PluginRuntime.groundItemDespawned(526, 1, x, y, level)
+		GroundItems.groundItemTimers = GroundItems.TIMER_OFF
+		if (GroundItems.items.isNotEmpty()) {
+			fail("Ground Items kept " + GroundItems.items.size + " items after they left")
+		}
+		firstImage += "; " + groundItemsSummary + "; 3 with the hotkey held"
 		return true
 	}
 
