@@ -198,7 +198,7 @@ Start from [`plugin-template/`](../plugin-template): copy the folder, and change
 
 | Through the context | |
 |---|---|
-| `client()` | `ClientApi`: the game's state, world-to-screen projection, chat and console output, `addMenuEntry`. |
+| `client()` | `ClientApi`: the game's state, world-to-screen projection, chat and console output, `addMenuEntry`; `isFocused()`, `notify(text)`, a notification on the desktop (notify-send on Linux, a balloon from the system tray elsewhere, a browser notification), and `requestFocus()`, the window to the front, since API 8. |
 | `events()` | `subscribe(Events.X, listener)` and `unsubscribe`. |
 | `config()` | `PluginConfig`: `get`/`set` (and `Int`/`Boolean`), `save()`. |
 | `addOverlay(overlay)` | Draws on the game view every frame, after the scene and the client's own overlays, before the interfaces. The minimap, the orbs and the chat box cover what is under them; the client's experience drops start 300 pixels left of the view's right edge for that reason. |

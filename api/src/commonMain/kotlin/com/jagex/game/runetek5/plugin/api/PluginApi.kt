@@ -30,8 +30,9 @@ package com.jagex.game.runetek5.plugin.api
  * - 7: [SettingsSchema.text]; [Actor.tileX], [Actor.tileY], [Actor.serverTileX], [Actor.serverTileY]
  *   and [Actor.isDying]; [ClientApi.actorHull], [ClientApi.projectActorMinimap] and
  *   [ClientApi.retargetMenuEntry].
+ * - 8: [ClientApi.isFocused], [ClientApi.notify] (a notification on the desktop) and [ClientApi.requestFocus] (the window to the front).
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 7
+	const val VERSION: Int = 8
 }

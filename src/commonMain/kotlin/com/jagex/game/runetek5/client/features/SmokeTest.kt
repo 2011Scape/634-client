@@ -84,6 +84,9 @@ import ToolkitSwitch
  *   client.test.detailTolerance (default 6); it catches lost textures and detail. Two runs of an
  *   unchanged client differ by about 7 and 3;
  *   then it prints "SMOKE PASS ..." and exits 0;
+ * - plugins read and write no settings under the test, unless client.test.pluginHome names a folder
+ *   whose `.634-client/plugin-config/<id>.properties` seed them (PluginPaths), as a run that
+ *   watches a plugin's own behaviour needs (the idle notifier's, with ::anim 879 as the command);
  * - with client.test.command (for example "gfx level_up", which needs an admin account), it sends
  *   that command once the first frame passes, waits for a gfx command's graphic to arrive (up to
  *   150 frames; the server answers on its next tick), then client.test.commandFrames more frames
@@ -3022,17 +3025,17 @@ object SmokeTest {
 			fail("no running idle notifier")
 			return
 		}
-		val secondsBefore: Int = idle.context!!.config().getInt("seconds", 15)
+		val secondsBefore: Int = idle.context!!.config().getInt("seconds", 5)
 		if (!PluginManagerScreen.typeNumber("seconds", "45")) {
 			fail("the idle notifier's seconds box took no typing")
 		}
-		val secondsAfter: Int = idle.context!!.config().getInt("seconds", 15)
+		val secondsAfter: Int = idle.context!!.config().getInt("seconds", 5)
 		if (secondsAfter != 45) {
 			fail("the idle notifier's seconds went from " + secondsBefore + " to " + secondsAfter + ", not 45")
 		}
 		// out of range is held to the range
 		PluginManagerScreen.typeNumber("seconds", "99999")
-		if (idle.context!!.config().getInt("seconds", 15) != 600) {
+		if (idle.context!!.config().getInt("seconds", 5) != 600) {
 			fail("the idle notifier's seconds were not held to 600")
 		}
 		PluginManagerScreen.typeNumber("seconds", secondsBefore.toString())

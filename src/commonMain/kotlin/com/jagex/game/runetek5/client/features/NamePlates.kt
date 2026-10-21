@@ -20,7 +20,7 @@ import kotlin.jvm.JvmStatic
 /**
  * Not part of the original client: every other player's name over their head, red when they can
  * attack you here, green for a friend, blue for a member of your friends chat (with the chat's name
- * as <Name> underneath), white otherwise. On only with `client.namePlates=true` or after
+ * as <Name> underneath), white otherwise. Off until turned on in the plugin manager or with
  * `::nameplates`, kept in the plugin's settings.
  *
  * A built-in plugin (BuiltinPlugins, docs/PLUGINS.md) on API 5: Player.isAttackable and the friends
@@ -81,9 +81,8 @@ object NamePlates : Plugin {
 
 	override fun start(context: PluginContext) {
 		this.context = context
-		val default: Boolean = lang.getBoolean("client.namePlates")
-		enabled = context.config().getBoolean("enabled", default)
-		context.settings().toggle("enabled", "Name plates", default)
+		enabled = context.config().getBoolean("enabled", false)
+		context.settings().toggle("enabled", "Name plates", false)
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
 		context.addOverlay(overlay)
 		context.registerCommand("nameplates", toggle)

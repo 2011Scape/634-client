@@ -10,6 +10,7 @@ import com.jagex.game.runetek5.cache.node.HashTableIterator
 import com.jagex.game.runetek5.cache.node.ObjStackEntry
 import com.jagex.game.runetek5.core.datastruct.key.DequeIterator
 import com.jagex.game.runetek5.client.ClientState
+import com.jagex.game.runetek5.client.GameShell
 import com.jagex.game.runetek5.client.input.console.Console
 import com.jagex.game.runetek5.config.TypeLists
 import com.jagex.game.runetek5.config.rsinterface.Component
@@ -70,6 +71,9 @@ import com.jagex.game.runetek5.config.rsinterface.itemcontainer.ItemContainer as
  * (docs/ENTITIES.md, CONFIG.md, CS2.md). Every answer is for the game thread.
  */
 object ClientApiImpl : ClientApi {
+
+	/** What titles the window (GameShell) and a desktop notification. */
+	private const val CLIENT_TITLE: String = "Void"
 
 	/** The broad state a main logic step is in. */
 	@JvmStatic
@@ -576,6 +580,18 @@ object ClientApiImpl : ClientApi {
 
 	override fun isMember(): Boolean {
 		return LoginManager.isMember
+	}
+
+	override fun isFocused(): Boolean {
+		return GameShell.appletHasFocus
+	}
+
+	override fun notify(text: String): Boolean {
+		return showDesktopNotification(CLIENT_TITLE, text)
+	}
+
+	override fun requestFocus(): Boolean {
+		return requestWindowFocus()
 	}
 
 	override fun playSound(id: Int, volume: Int) {

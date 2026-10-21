@@ -21,8 +21,8 @@ import kotlin.jvm.JvmStatic
 
 /**
  * Not part of the original client: what the backpack is worth, at the top left of the game view,
- * with the three most valuable items drawn as their inventory icons. On only with
- * `client.inventoryValue=true` or after `::invvalue`, kept in the plugin's settings.
+ * with the three most valuable items drawn as their inventory icons. Off until turned on in the
+ * plugin manager or with `::invvalue`, kept in the plugin's settings.
  *
  * A built-in plugin (BuiltinPlugins, docs/PLUGINS.md) on API 4: the item icons, the bold font and
  * its line height are what API 3 lacked; the values come from the item types (API 2).
@@ -80,9 +80,8 @@ object InventoryValue : Plugin {
 
 	override fun start(context: PluginContext) {
 		this.context = context
-		val default: Boolean = lang.getBoolean("client.inventoryValue")
-		enabled = context.config().getBoolean("enabled", default)
-		context.settings().toggle("enabled", "Inventory value", default)
+		enabled = context.config().getBoolean("enabled", false)
+		context.settings().toggle("enabled", "Inventory value", false)
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
 		context.addOverlay(overlay)
 		context.registerCommand("invvalue", toggle)
