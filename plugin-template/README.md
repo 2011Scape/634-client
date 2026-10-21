@@ -4,8 +4,8 @@ A plugin to copy: a line of text on the game view, a `::hello` command, a "Hello
 right-click menu, a "Value" entry on every item, a hotkey, a thread, and a counter in the plugin's
 settings. The client's guide to plugins is [docs/PLUGINS.md](../docs/PLUGINS.md).
 
-`src/main/kotlin/recipes` holds three more plugins, each a few dozen lines: attack and idle
-timers, a ground item overlay with values, and item tags for the inventory and the bank. The guide's [cookbook](../docs/PLUGINS.md#cookbook) walks through them.
+`src/main/kotlin/recipes` holds two more plugins, each a few dozen lines: attack and idle
+timers, and item tags for the inventory and the bank. The guide's [cookbook](../docs/PLUGINS.md#cookbook) walks through them.
 `./gradlew recipeJars` (with the same `-PapiJar` as `jar`) builds one jar each in `build/libs/recipes`,
 with its icon from `src/main/resources/recipes/<id>.png`, ready for `~/.634-client/plugins`; the
 example's jar carries the example alone.

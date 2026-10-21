@@ -4,8 +4,9 @@ How to add to the client without changing it: a plugin is a jar in a folder, wri
 small, stable API, that reads the game, draws on it, adds menu entries and commands, and keeps its
 own settings. The experience drops (`XpDrops`), the idle notifier (`IdleNotifier`), the menu
 swapper (`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name plates (`NamePlates`),
-the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`) and the Discord presence
-(`DiscordPresence`) are eight, built in, so the client's own code shows the way.
+the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Discord presence
+(`DiscordPresence`) and the ground items (`GroundItems`) are nine, built in, so the client's own code
+shows the way.
 
 ## Contents
 
@@ -14,7 +15,7 @@ the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`) and the D
 - [Managing plugins in the game](#managing-plugins-in-the-game)
 - [The built-in plugins](#the-built-in-plugins)
 - [Writing a plugin](#writing-a-plugin)
-- [Cookbook: three plugins in a few dozen lines](#cookbook)
+- [Cookbook: two plugins in a few dozen lines](#cookbook)
 - [The API](#the-api)
 - [Building](#building)
 - [Trouble](#trouble)
@@ -99,10 +100,10 @@ stack trace is in the client's log (the launcher keeps it in `~/.void/logs`).
 
 ## The built-in plugins
 
-Eight plugins come with the client, on the same API as the ones from the plugins folder, each with
+Nine plugins come with the client, on the same API as the ones from the plugins folder, each with
 its switch in the Plugins window: experience drops (`::xpdrops`), the idle notifier (`::idle`), the
 menu entry swapper (`::menuswapper`), the inventory value (`::invvalue`), name plates (`::nameplates`), the
-ground tiles, the npc indicators and the Discord presence (`::discord`).
+ground tiles, the npc indicators, the Discord presence (`::discord`) and the ground items (`::grounditems`).
 
 **Ground Tiles** marks tiles on the ground the way RuneLite's Ground Markers do. Hold Shift and
 right-click a tile for **Mark tile**; a marked tile's Shift menu has **Unmark tile**, **Label tile**
@@ -161,6 +162,27 @@ Rock Caverns, the Wilderness, Nex, Tormented Demons). The icons belong to the Di
 "Void Client"; the config key `applicationId` in `plugin-config/discord.properties` points the plugin at
 an application of your own, which needs the same art uploaded under the keys `default` and
 `icon_<skill>` (`icon_attack` to `icon_dungeoneering`, lower case).
+
+**Ground Items** is RuneLite's Ground Items, with every one of its settings. Each item on the ground
+shows its name, its quantity and its value over its tile: the Grand Exchange guide price (from the
+game's website, see `--prices`) and the High Level Alchemy value, either or both or neither. The label's
+colour comes from the value tier the stack is above (low 20,000, medium 100,000, high 1,000,000, insane
+10,000,000 by default, each with its own colour and price; a price of 0 turns the tier off), or from the
+lists you keep: **Highlighted items** and **Hidden items**, names separated by commas, with `>N` or `<N`
+for a quantity and `*` as a wildcard (`Coins>1000`, `Rune*`); an exact name beats a wildcard, and a
+highlight beats a hide. Hold the hotkey (Alt) to see hidden items too, with two boxes after each name:
+**−** hides it, **+** highlights it; clicking the name highlights it and right-clicking it hides it.
+Tapping the hotkey twice quickly hides every label until the next press. The right-click menu shows a
+highlighted item's colour on its name or option, a stack's quantity, can sink hidden items below the
+rest and merge identical entries ("x 3"). Hold Shift and right-click an item for **Color**, a submenu
+that gives the item a colour of its own (**Pick** opens the colour picker). Also: hide items under a
+value (untradeables spared), show highlighted items only, outline the tiles, outlined text, a despawn
+timer (a pie, seconds or ticks) for your own drops, your kills' loot and items you put on a table, an
+ownership filter (only your drops and loot), lootbeams over highlighted or valuable piles (Light or
+Modern), and a notification when a highlighted or valuable drop appears. Not quite RuneLite: 634 does
+not say when an item will despawn, so the timers count as RuneLite did before the game told it (two
+minutes for loot, three for a drop, ten on a table, thirty in an instance); and a lootbeam is drawn
+over the scene rather than added to it as a model.
 
 ## Writing a plugin
 
@@ -250,7 +272,7 @@ below its top.
 
 ## Cookbook
 
-Three plugins of the kind players ask for, each a few dozen lines on the public API, in the template
+Two plugins of the kind players ask for, each a few dozen lines on the public API, in the template
 ([`plugin-template/src/main/kotlin/recipes`](../plugin-template/src/main/kotlin/recipes));
 `./gradlew -p plugin-template recipeJars` builds one jar each in `plugin-template/build/libs/recipes`,
 ready for the plugins folder. What each one leans on:
@@ -258,7 +280,6 @@ ready for the plugins folder. What each one leans on:
 | Plugin | Lines | The API it uses |
 |---|---|---|
 | `AttackTimer`, attack and idle timers under the player, timed by the equipped weapon | 96 | `itemContainer(94)` slot 3 is the weapon and `item(id).intParam(14, 4)` its speed in ticks, read again on `ItemContainerChanged`; `AnimationChanged` for the local player starts the cooldown, unless `HitsplatApplied` on the player in the same cycle while `interacting()` is null marks it as the block animation; `GameTick` counts it and the idle ticks; `projectActor` places the bar; `playSound` and `chatMessage` warn. |
-| `GroundItemValues`, every pile's items with their worth, valuable drops in the chat | 51 | `groundItems { ... }` (piles come most valuable first), `item(id).value()`, `projectTile`, `textCentered`; `ItemSpawned` for the drops. |
 | `ItemTags`, a colour on an item from its right-click menu, drawn around it in the backpack and the bank | 59 | `MenuEntryAdded` for `MenuTarget.WIDGET` with `addMenuEntry`; a `MenuAction` whose id is the item; `widget(149, 0)` and `widget(762, 95)`, their `child(i)`, `itemId()`, `screenX()`, `drawRect`. |
 
 The shape they share: subscribe in `start`, keep state in fields and `config()`, draw in one

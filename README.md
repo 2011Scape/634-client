@@ -41,7 +41,7 @@ It connects to [2011Scape](https://2011.rs) (`play.2011.rs`). For your own serve
 - **Any Void server**: choose the host, port and keys from the launcher.
 - **OpenGL on Linux, Windows and macOS**, through [LWJGL](https://www.lwjgl.org).
 - **Smooth and sharp**: up to 144 fps, a window scaled to your screen, and MSAA or SMAA.
-- **Extras**: ground tiles, experience drops, name plates, an idle notifier, Discord presence,
+- **Extras**: ground items, ground tiles, experience drops, name plates, an idle notifier, Discord presence,
   shift-drop, a longer render distance and a wider zoom.
 - **Developer tools**: ids on right-click menus, coordinates on screen, a better console.
 - **Plugins**: jars in `~/.634-client/plugins` that read the game, draw on it and add menu entries
@@ -84,6 +84,8 @@ are off unless the client is started with `--dev-commands`.
 | Option | What it does | In game |
 |---|---|---|
 | | Ground tiles: hold Shift and right-click a tile for *Mark tile*; a marked tile can be labelled and coloured, is kept between sessions, and is drawn on the minimap if you like. Import and Export share them in RuneLite's ground marker format through the clipboard. | `::groundtiles`, `::groundtiles export`, `::groundtiles import`, `::groundtiles clear` |
+| | Ground items, as RuneLite's: every item on the ground with its quantity and Grand Exchange and High Alchemy value, coloured by value tier and by your highlight and hide lists (hold Alt to edit them with a click), with despawn timers, lootbeams, menu colours and drop notifications, each a setting in the plugin manager. | `::grounditems` |
+| | NPC indicators, as RuneLite's: hold Shift and right-click an npc to tag it (or every npc of its name); tagged npcs are outlined, named over their heads and on the minimap, and their respawn is timed. | `::tag <name>`, `::untag <name>` |
 | | A "+N Skill" drop rises and fades near the minimap when you gain experience (on until turned off). | `::xpdrops` |
 | | Idle notifier, as RuneLite's: says when you stop skilling, fighting or moving, when the mouse and keyboard have been untouched, and when life points, prayer or energy cross a threshold, in the chat, a red frame, a sound, a desktop notification or the window brought to the front (by default only while the window is unfocused); each is a setting in the plugin manager, where the plugin is turned on. | `::idle`, `::idle <seconds>` |
 | | Inventory value: what your backpack is worth, with its three most valuable items, at the top of the game view. | `::invvalue` |
