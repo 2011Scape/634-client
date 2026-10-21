@@ -221,9 +221,12 @@ object ClientPage {
 		return hit
 	}
 
-	/** A slot child of [parentHash] by slot, or null. */
+	/** A slot child of [parentHash] by slot, or null (for a slot a page has not got, -1 included). */
 	@JvmStatic
 	fun childOf(parentHash: Int, slot: Int): Component? {
+		if (slot < 0) {
+			return null
+		}
 		val parent: Component = Interface.getComponent(parentHash) ?: return null
 		val children: Array<Component?> = parent.slotChildren ?: return null
 		return if (slot < children.size) children[slot] else null
