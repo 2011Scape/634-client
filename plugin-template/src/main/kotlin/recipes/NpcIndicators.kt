@@ -1,14 +1,17 @@
 package recipes
 
+import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.PluginContext
 import com.jagex.game.runetek5.plugin.api.events.Events
 
 /**
- * Npc indicators: `::tag <name>` outlines every npc of that name on its tiles and names it over
- * its head, red while it fights you and cyan otherwise; `::untag <name>` forgets it. The npcs are
- * walked each frame through [com.jagex.game.runetek5.plugin.api.ClientApi.npc], their tiles come
- * from `tilePolygon`, their heads from `projectActor`.
+ * Npc indicators: "Tag" on an npc's right-click menu (or `::tag <name>`) outlines every npc of
+ * that name on its tiles and names it over its head, red while it fights you and cyan otherwise;
+ * "Untag" (or `::untag <name>`) forgets it. The menu entry comes from [Events.MENU_ENTRY_ADDED] for
+ * [MenuTarget.NPC], whose id is the npc's index. The npcs are walked each frame through
+ * [com.jagex.game.runetek5.plugin.api.ClientApi.npc], their tiles come from `tilePolygon`, their
+ * heads from `projectActor`.
  */
 class NpcIndicators : Plugin {
     private val names = ArrayList<String>()
@@ -23,14 +26,26 @@ class NpcIndicators : Plugin {
             context.config().set("names", names.joinToString(";"))
             context.config().save()
         }
-        context.registerCommand("tag") { _, args -> if (args.isNotEmpty()) { names.add(args.joinToString(" ")); save() } }
-        context.registerCommand("untag") { _, args -> names.removeAll { it.equals(args.joinToString(" "), ignoreCase = true) }; save() }
+        fun tagged(name: String) = names.any { it.equals(name, ignoreCase = true) }
+        fun tag(name: String) { if (!tagged(name)) { names.add(name); save() } }
+        fun untag(name: String) { names.removeAll { it.equals(name, ignoreCase = true) }; save() }
+        context.registerCommand("tag") { _, args -> if (args.isNotEmpty()) tag(args.joinToString(" ")) }
+        context.registerCommand("untag") { _, args -> untag(args.joinToString(" ")) }
+        // the right-click menu: Tag on an npc not yet tagged, Untag on one that is; the id is Npc.index, so npcByIndex, not npc(i)
+        val tagAction = context.registerMenuAction { _, _, _, index -> client.npcByIndex(index)?.name()?.let { tag(it) } }
+        val untagAction = context.registerMenuAction { _, _, _, index -> client.npcByIndex(index)?.name()?.let { untag(it) } }
+        context.events().subscribe(Events.MENU_ENTRY_ADDED) { event ->
+            if (event.target === MenuTarget.NPC) {
+                val name = client.npcByIndex(event.id)?.name()
+                if (name != null) client.addMenuEntry(if (tagged(name)) "Untag" else "Tag", if (tagged(name)) untagAction else tagAction)
+            }
+        }
         context.addOverlay { g, view ->
             val me = client.localPlayer()
             for (i in 0 until client.npcCount()) {
                 val npc = client.npc(i) ?: continue
                 val name = npc.name() ?: continue
-                if (names.none { it.equals(name, ignoreCase = true) }) continue
+                if (!tagged(name)) continue
                 val colour = if (npc.interacting() === me) 0xFFFF4040.toInt() else 0xFF40FFFF.toInt()
                 val tileX = npc.x() shr 9
                 val tileY = npc.z() shr 9
