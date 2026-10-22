@@ -38,7 +38,7 @@ import kotlin.jvm.JvmStatic
 object OpponentInfo : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("opponentinfo", "Opponent Information", "1", PluginApi.VERSION, "Show name and hitpoints information about the NPC you are fighting", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("opponentinfo", "Opponent Information", "1", PluginApi.VERSION, "Shows the name and health of the npc or player you are fighting, marks your opponent in the right-click menu, and can compare a player's combat levels with yours.", "Pixel")
 
 	/** RuneLite's HitpointsDisplayStyle. */
 	@JvmField val STYLES: Array<String> = arrayOf("Hitpoints", "Percentage", "Both")

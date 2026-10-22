@@ -28,7 +28,7 @@ import kotlin.jvm.JvmStatic
 object TileIndicators : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("tileindicators", "Tile Indicators", "1", PluginApi.VERSION, "Highlight the tile you are walking to, the tile under the mouse and your true tile (::tileindicators turns it on and off).", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("tileindicators", "Tile Indicators", "1", PluginApi.VERSION, "Highlights the tile you are walking to, the tile under your mouse and your true tile on the server.", "Pixel")
 
 	/** RuneLite's defaults: grey and cyan borders, fills black at alpha 50, the hovered tile's border invisible. */
 	const val GRAY: Int = 0xFF808080.toInt()

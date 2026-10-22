@@ -40,7 +40,7 @@ import kotlin.jvm.JvmStatic
 object MenuEntrySwapper : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("menuswapper", "Menu Entry Swapper", "2", PluginApi.VERSION, "Choose the left click and the Shift-click of npcs, objects, ground items and items: hold Shift and right-click one; Shift-click Walk here; dead npc menus removed.", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("menuswapper", "Menu Entry Swapper", "2", PluginApi.VERSION, "Choose what left click and Shift-click do on npcs, objects, ground items and items (hold Shift and right-click one). Can also make Shift-click walk and hide the menus of dead npcs.", "Pixel")
 
 	/** The kinds a swap is kept by: the settings key's first word. */
 	const val KIND_NPC: Int = 0

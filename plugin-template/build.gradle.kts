@@ -65,8 +65,8 @@ tasks.jar {
  */
 val recipes: Map<String, List<String>> = mapOf(
     // class in recipes/ to plugin id, name and description
-    "AttackTimer" to listOf("attacktimer", "Attack timer", "A cooldown bar under you after each attack, and an idle warning (::attackspeed <ticks>)."),
-    "ItemTags" to listOf("itemtags", "Item tags", "Tag an item from its right-click menu; it is outlined in the backpack and the bank."),
+    "AttackTimer" to listOf("attacktimer", "Attack timer", "Shows a bar under you counting down to your next attack, and warns when you stop attacking (::attackspeed <ticks>)."),
+    "ItemTags" to listOf("itemtags", "Item tags", "Tag items from their right-click menu to outline them in your backpack and bank."),
 )
 val recipeJarTasks: List<TaskProvider<Jar>> = recipes.map { (recipeClass, meta) ->
     tasks.register<Jar>("recipeJar$recipeClass") {

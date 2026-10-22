@@ -41,7 +41,7 @@ import kotlin.math.pow
 object XpDrops : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("xpdrops", "XP Drops", "2", PluginApi.VERSION, "XP drops as Old School draws them (where, size, speed, colour, grouped, with a counter and a progress bar), with options for no skill icons, a standard colour, prayer colours and fake drops. Setup from the XP button.", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("xpdrops", "XP Drops", "2", PluginApi.VERSION, "Shows experience drops the Old School way, with adjustable position, size, speed and colour, grouping, a counter and a progress bar (set up from the XP button).", "Pixel")
 
 	// OSRS's XP drop setup, its choices in its words
 	@JvmField val POSITIONS: Array<String> = arrayOf("Right", "Middle", "Left")

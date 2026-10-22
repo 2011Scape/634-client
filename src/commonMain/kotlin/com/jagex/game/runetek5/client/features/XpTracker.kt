@@ -36,7 +36,7 @@ import kotlin.jvm.JvmStatic
 object XpTracker : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("xptracker", "XP Tracker", "1", PluginApi.VERSION, "Experience gained and per hour, actions and time to level for every skill you train, in a window of its own (::xp) and as boxes on the game view.", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("xptracker", "XP Tracker", "1", PluginApi.VERSION, "Tracks experience gained, XP per hour, actions and time to level for each skill you train, in its own window (::xp) and as boxes on the game view.", "Pixel")
 
 	/** RuneLite's XpPanelLabel: what a label shows. */
 	@JvmField

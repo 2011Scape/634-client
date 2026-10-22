@@ -32,7 +32,7 @@ import kotlin.jvm.JvmStatic
 object InventoryValue : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("invvalue", "Inventory value", "1", PluginApi.VERSION, "What the backpack is worth, with its three most valuable items, at the top of the game view (::invvalue turns it on and off).", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("invvalue", "Inventory value", "1", PluginApi.VERSION, "Shows what your backpack is worth and its three most valuable items at the top of the game view.", "Pixel")
 
 	/** The backpack's container id. */
 	private const val BACKPACK: Int = 93

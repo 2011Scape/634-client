@@ -40,7 +40,7 @@ import kotlin.jvm.JvmStatic
 object TimersAndBuffs : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("timers", "Timers and Buffs", "1", PluginApi.VERSION, "Show various timers in an infobox: potions, teleblock, freezes, vengeance, charge, cannon and more (::timers turns it on and off).", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("timers", "Timers and Buffs", "1", PluginApi.VERSION, "Shows timers as infoboxes for potions, teleblock, freezes, vengeance, charge, your cannon and more.", "Pixel")
 
 	/** A server tick in milliseconds, and in client cycles. */
 	const val TICK_MILLIS: Long = 600L

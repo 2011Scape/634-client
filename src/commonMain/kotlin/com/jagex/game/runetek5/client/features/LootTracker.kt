@@ -33,7 +33,7 @@ import kotlin.jvm.JvmStatic
 object LootTracker : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("loottracker", "Loot Tracker", "1", PluginApi.VERSION, "The loot of every kill, chest, clue scroll and pickpocket, with its Grand Exchange and High Alchemy value, by source or kill by kill, remembered between sessions (::loot).", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("loottracker", "Loot Tracker", "1", PluginApi.VERSION, "Records the loot from kills, chests, clue scrolls and pickpocketing with its Grand Exchange and High Alchemy value, by source or kill by kill, saved between sessions (::loot).", "Pixel")
 
 	@JvmField
 	val PRICE_TYPES: Array<String> = arrayOf("Grand Exchange", "High Alchemy")

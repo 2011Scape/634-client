@@ -31,7 +31,7 @@ import kotlin.jvm.JvmStatic
 object XpGlobes : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("xpglobes", "XP Globes", "1", PluginApi.VERSION, "XP globes showing current progress towards the next level (::xpglobes turns it on and off).", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("xpglobes", "XP Globes", "1", PluginApi.VERSION, "Shows a globe for each skill you gain experience in with your progress to the next level; hover it for XP left, actions left, XP per hour and time to goal.", "Pixel")
 
 	/** RuneLite's MAXIMUM_SHOWN_GLOBES. */
 	const val MAXIMUM_SHOWN_GLOBES: Int = 5

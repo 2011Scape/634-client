@@ -37,7 +37,7 @@ import kotlin.jvm.JvmStatic
 object Boosts : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("boosts", "Boosts Information", "1", PluginApi.VERSION, "Show combat and/or skill boost information", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("boosts", "Boosts Information", "1", PluginApi.VERSION, "Shows your boosted and drained combat and skill levels and the time to the next change, as a panel or infoboxes, and can warn when a boost runs low.", "Pixel")
 
 	/** RuneLite's DisplayBoosts and DisplayChangeMode, as the settings show them. */
 	@JvmField val DISPLAY_BOOSTS: Array<String> = arrayOf("None", "Combat", "Non Combat", "Both")
