@@ -2,6 +2,7 @@ package com.jagex.game.runetek5.client.features
 
 import com.jagex.game.runetek5.FontMetricsLoader
 import com.jagex.game.runetek5.InterfaceManager
+import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.config.Resource
 import com.jagex.game.runetek5.config.rsinterface.Component
 import com.jagex.game.runetek5.config.rsinterface.ComponentType
@@ -72,6 +73,9 @@ object ClientPage {
 	const val SCROLL_UP: Int = 773
 
 	const val SCROLL_DOWN: Int = 788
+
+	/** Client cycles without a hold before a thumb drag counts as over. */
+	const val DRAG_GAP: Int = 5
 
 	/** The components [scrollbar] appends. */
 	const val SCROLLBAR_PIECES: Int = 9
@@ -269,6 +273,67 @@ object ClientPage {
 		}
 		val thumbY: Int = (pointerY - SCROLL_ARROW - grab).coerceIn(0, room)
 		return (thumbY * most + room / 2) / room
+	}
+
+	/** The thumb's height on a page [visible] tall over [content] (its scrollbar the page's height). */
+	@JvmStatic
+	fun pageThumb(visible: Int, content: Int): Int {
+		return maxOf(SCROLL_THUMB_MIN, scrollTrack(visible) * visible / content)
+	}
+
+	/**
+	 * Puts a scrolling page's scrollbar (see [scrollbar], first piece at [first]) where the layer
+	 * shows [scrollY] of [content], [visible] of it at once: the bar rides along with the scroll, so it
+	 * stays in view. The caller lays the layer out again.
+	 */
+	@JvmStatic
+	fun placePageScrollbar(parentHash: Int, first: Int, scrollY: Int, visible: Int, content: Int) {
+		val most: Int = content - visible
+		if (first < 0 || most <= 0) {
+			return
+		}
+		val thumbHeight: Int = pageThumb(visible, content)
+		placeScrollbar(parentHash, first, scrollY, visible, (scrollTrack(visible) - thumbHeight) * scrollY / most, thumbHeight)
+	}
+
+	/**
+	 * A thumb drag. The thumb's press hook calls [press]; the layer's onHold hook (which comes only
+	 * while the button is held over the layer) calls [hold]; the layer's onClick hook calls [end], as
+	 * it runs before the thumb's. A gap in the holds (the button let go, or the pointer off the layer)
+	 * also ends it. The layer's hooks come with every click on the page, so a screen handles them
+	 * before anything that treats a hook as a click elsewhere.
+	 */
+	class ThumbDrag {
+		/** Where the thumb was grabbed, below its top; -1 when it is not being dragged. */
+		private var grab: Int = -1
+
+		private var cycle: Int = 0
+
+		fun press(grabY: Int) {
+			grab = grabY
+			cycle = ClientState.clientCycle
+		}
+
+		fun end() {
+			grab = -1
+		}
+
+		/**
+		 * Where the pointer [pointerY] below the layer's top puts the scroll, 0 to [most], for a bar at
+		 * [barY], [height] tall, with a thumb [thumbHeight] tall; -1 when there is no drag.
+		 */
+		fun hold(pointerY: Int, barY: Int, height: Int, thumbHeight: Int, most: Int): Int {
+			if (grab < 0) {
+				return -1
+			}
+			val now: Int = ClientState.clientCycle
+			if (now - cycle > DRAG_GAP) {
+				grab = -1
+				return -1
+			}
+			cycle = now
+			return scrollFromThumb(pointerY - barY, grab, height, thumbHeight, most)
+		}
 	}
 
 	private fun layoutScrollbar(pieces: List<Component>, y: Int, height: Int, thumbY: Int, thumbHeight: Int) {

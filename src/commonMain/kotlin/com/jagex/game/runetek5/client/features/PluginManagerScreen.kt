@@ -165,9 +165,6 @@ object PluginManagerScreen {
 	private const val A_THUMB_PRESS: Int = 38
 	private const val A_THUMB_DRAG: Int = 39
 	private const val A_BODY_PRESS: Int = 40
-
-	/** Client cycles without a hold before a thumb drag counts as over (the button let go, or the pointer gone from the window). */
-	private const val DRAG_GAP: Int = 5
 	private const val A_SEARCH: Int = 30
 	private const val A_SORT: Int = 31
 	private const val A_GEAR_HOVER: Int = 32
@@ -344,10 +341,7 @@ object PluginManagerScreen {
 
 	private var scrollBar: Int = -1
 
-	/** While the thumb is dragged: where it was grabbed, below its top (-1 when it is not), and the last cycle it was held. */
-	private var dragGrab: Int = -1
-
-	private var dragCycle: Int = 0
+	private val drag: ClientPage.ThumbDrag = ClientPage.ThumbDrag()
 
 	private var scrolledFor: PluginRegistration? = null
 
@@ -597,7 +591,7 @@ object PluginManagerScreen {
 		open = false
 		selected = null
 		picking = null
-		dragGrab = -1
+		drag.end()
 		searching = false
 		sortOpen = false
 		tipFor = -1
@@ -659,7 +653,7 @@ object PluginManagerScreen {
 		body.onClick = if (wheel) arrayOf<Any?>(SENTINEL, A_BODY_PRESS, 0) else null
 		body.onHold = if (wheel) arrayOf<Any?>(SENTINEL, A_THUMB_DRAG, 0) else null
 		if (!wheel) {
-			dragGrab = -1
+			drag.end()
 		}
 		if (!scrolls) {
 			body.scrollY = 0
@@ -674,45 +668,25 @@ object PluginManagerScreen {
 		val most: Int = maxOf(0, body.scrollHeight - BODY_HEIGHT)
 		body.scrollY = y.coerceIn(0, most)
 		if (scrollBar >= 0 && most > 0) {
-			// the bar rides along with the layer's scroll, so it stays in view
-			val thumbHeight: Int = pageThumb(body)
-			ClientPage.placeScrollbar(BODY, scrollBar, body.scrollY, BODY_HEIGHT, (ClientPage.scrollTrack(BODY_HEIGHT) - thumbHeight) * body.scrollY / most, thumbHeight)
+			ClientPage.placePageScrollbar(BODY, scrollBar, body.scrollY, BODY_HEIGHT, body.scrollHeight)
 			Component.layoutChildren(false, body)
 		}
 		Component.redrawComponent(body)
 	}
 
-	/** The settings page's thumb height, for its content's height. */
-	private fun pageThumb(body: Component): Int {
-		return maxOf(ClientPage.SCROLL_THUMB_MIN, ClientPage.scrollTrack(BODY_HEIGHT) * BODY_HEIGHT / body.scrollHeight)
-	}
-
 	/** A held cycle of a thumb drag: the pointer [y] below the layer's top puts the thumb, and the page or list follows. */
 	private fun dragThumb(y: Int) {
-		if (dragGrab < 0) {
-			return
-		}
-		val now: Int = ClientState.clientCycle
-		if (now - dragCycle > DRAG_GAP) {
-			dragGrab = -1
-			return
-		}
-		dragCycle = now
 		val body: Component = Interface.getComponent(BODY) ?: return
 		if (selected != null) {
-			val most: Int = body.scrollHeight - BODY_HEIGHT
-			if (most > 0) {
-				scrollTo(ClientPage.scrollFromThumb(y, dragGrab, BODY_HEIGHT, pageThumb(body), most))
+			val at: Int = drag.hold(y, 0, BODY_HEIGHT, ClientPage.pageThumb(BODY_HEIGHT, maxOf(1, body.scrollHeight)), body.scrollHeight - BODY_HEIGHT)
+			if (at >= 0) {
+				scrollTo(at)
 			}
 			return
 		}
 		val rows: Int = listed().size
-		val most: Int = rows - VISIBLE_ROWS
-		if (most <= 0) {
-			return
-		}
-		val row: Int = ClientPage.scrollFromThumb(y - LIST_BAR_Y, dragGrab, LIST_BAR_HEIGHT, listThumb(rows), most)
-		if (row != listTop) {
+		val row: Int = drag.hold(y, LIST_BAR_Y, LIST_BAR_HEIGHT, listThumb(rows), rows - VISIBLE_ROWS)
+		if (row >= 0 && row != listTop) {
 			listTop = row
 			rebuild()
 		}
@@ -1834,7 +1808,7 @@ object PluginManagerScreen {
 		}
 		// the layer's press and hold hooks only follow a thumb drag: they come with every click on the page, so they must not count as a click elsewhere
 		if (action == A_BODY_PRESS) {
-			dragGrab = -1
+			drag.end()
 			return
 		}
 		if (action == A_THUMB_DRAG) {
@@ -1884,10 +1858,7 @@ object PluginManagerScreen {
 			A_LIST_DOWN_ROW -> scrollListBy(1)
 			A_PAGE_UP -> scrollBy(-1)
 			A_PAGE_DOWN -> scrollBy(1)
-			A_THUMB_PRESS -> {
-				dragGrab = hook.mouseY
-				dragCycle = ClientState.clientCycle
-			}
+			A_THUMB_PRESS -> drag.press(hook.mouseY)
 			A_WHEEL -> if (plugin != null) {
 				val body: Component = Interface.getComponent(BODY) ?: return
 				scrollTo(body.scrollY + hook.mouseY * SETTING_PITCH) // the wheel's turns, positive downwards

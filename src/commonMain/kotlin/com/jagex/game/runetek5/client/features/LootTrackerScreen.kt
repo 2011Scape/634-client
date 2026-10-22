@@ -44,17 +44,14 @@ object LootTrackerScreen {
 
 	private const val BODY_HEIGHT: Int = HEIGHT - 29
 
-	private const val SCROLLBAR_X: Int = WIDTH - 10
-
-	private const val SCROLLBAR_WIDTH: Int = 6
-
-	private const val THUMB_MIN: Int = 12
+	private const val SCROLLBAR_X: Int = WIDTH - 4 - ClientPage.SCROLLBAR_WIDTH
 
 	private const val WHEEL_STEP: Int = 24
 
 	private const val BOX_X: Int = 8
 
-	private const val BOX_WIDTH: Int = WIDTH - 24
+	/** The boxes stop short of the scrollbar. */
+	private const val BOX_WIDTH: Int = SCROLLBAR_X - 4 - BOX_X
 
 	private const val HEADER_HEIGHT: Int = 20
 
@@ -93,6 +90,11 @@ object LootTrackerScreen {
 	private const val A_WHEEL: Int = 14
 	private const val A_TIP: Int = 15
 	private const val A_TIP_LEAVE: Int = 16
+	private const val A_SCROLL_UP: Int = 17
+	private const val A_SCROLL_DOWN: Int = 18
+	private const val A_THUMB_PRESS: Int = 19
+	private const val A_THUMB_DRAG: Int = 20
+	private const val A_BODY_PRESS: Int = 21
 
 	@JvmField
 	var open: Boolean = false
@@ -120,9 +122,9 @@ object LootTrackerScreen {
 
 	private var contentHeight: Int = 0
 
-	private var scrollTrack: Int = -1
+	private var scrollBar: Int = -1
 
-	private var scrollThumb: Int = -1
+	private val drag: ClientPage.ThumbDrag = ClientPage.ThumbDrag()
 
 	private var tipSlot: Int = -1
 
@@ -203,6 +205,7 @@ object LootTrackerScreen {
 	fun reset() {
 		open = false
 		confirm = null
+		drag.end()
 		forget()
 	}
 
@@ -210,8 +213,7 @@ object LootTrackerScreen {
 		buttons.clear()
 		shownBoxes.clear()
 		shownItems.clear()
-		scrollTrack = -1
-		scrollThumb = -1
+		scrollBar = -1
 		tipSlot = -1
 	}
 
@@ -262,16 +264,19 @@ object LootTrackerScreen {
 		boxesShown = shownBoxes.size
 		contentHeight = y + 6
 		if (contentHeight > BODY_HEIGHT) {
-			scrollTrack = children.size
-			children.add(ClientPage.rect(BODY, children.size, SCROLLBAR_X, 0, SCROLLBAR_WIDTH, BODY_HEIGHT, ClientPage.BOX_FILL, true))
-			scrollThumb = children.size
-			children.add(ClientPage.rect(BODY, children.size, SCROLLBAR_X, 0, SCROLLBAR_WIDTH, THUMB_MIN, ClientPage.TEXT_TOP, true))
+			scrollBar = ClientPage.scrollbar(BODY, children, SCROLLBAR_X, 0, BODY_HEIGHT, 0, ClientPage.SCROLL_THUMB_MIN, SENTINEL, A_SCROLL_UP, A_SCROLL_DOWN, A_THUMB_PRESS)
 		}
 		body.slotChildren = children.toTypedArray<Component?>()
 		val scrolls: Boolean = contentHeight > BODY_HEIGHT
 		body.scrollHeight = if (scrolls) contentHeight else 0
 		body.hasScript = scrolls
 		body.onMouseMove = if (scrolls) arrayOf<Any?>(SENTINEL, A_WHEEL, 0) else null
+		// the thumb drags: a press on the layer ends a drag, the thumb's starts one, each held cycle moves it
+		body.onClick = if (scrolls) arrayOf<Any?>(SENTINEL, A_BODY_PRESS, 0) else null
+		body.onHold = if (scrolls) arrayOf<Any?>(SENTINEL, A_THUMB_DRAG, 0) else null
+		if (!scrolls) {
+			drag.end()
+		}
 		if (!scrolls) {
 			body.scrollY = 0
 		}
@@ -283,13 +288,8 @@ object LootTrackerScreen {
 		val body: Component = Interface.getComponent(BODY) ?: return
 		val most: Int = maxOf(0, body.scrollHeight - BODY_HEIGHT)
 		body.scrollY = y.coerceIn(0, most)
-		if (scrollTrack >= 0 && scrollThumb >= 0 && most > 0) {
-			val thumbHeight: Int = maxOf(THUMB_MIN, BODY_HEIGHT * BODY_HEIGHT / body.scrollHeight)
-			ClientPage.childOf(BODY, scrollTrack)?.basePositionY = body.scrollY
-			ClientPage.childOf(BODY, scrollThumb)?.let {
-				it.basePositionY = body.scrollY + (BODY_HEIGHT - thumbHeight) * body.scrollY / most
-				it.baseHeight = thumbHeight
-			}
+		if (scrollBar >= 0 && most > 0) {
+			ClientPage.placePageScrollbar(BODY, scrollBar, body.scrollY, BODY_HEIGHT, body.scrollHeight)
 			Component.layoutChildren(false, body)
 		}
 		Component.redrawComponent(body)
@@ -498,6 +498,17 @@ object LootTrackerScreen {
 			A_WHEEL -> {
 				val body: Component = Interface.getComponent(BODY) ?: return
 				scrollTo(body.scrollY + hook.mouseY * WHEEL_STEP)
+			}
+			A_SCROLL_UP -> scrollBy(-1)
+			A_SCROLL_DOWN -> scrollBy(1)
+			A_THUMB_PRESS -> drag.press(hook.mouseY)
+			A_BODY_PRESS -> drag.end()
+			A_THUMB_DRAG -> {
+				val body: Component = Interface.getComponent(BODY) ?: return
+				val at: Int = drag.hold(hook.mouseY, 0, BODY_HEIGHT, ClientPage.pageThumb(BODY_HEIGHT, maxOf(1, body.scrollHeight)), body.scrollHeight - BODY_HEIGHT)
+				if (at >= 0) {
+					scrollTo(at)
+				}
 			}
 			A_TIP -> showTip(tooltip(index))
 			A_TIP_LEAVE -> showTip("")
