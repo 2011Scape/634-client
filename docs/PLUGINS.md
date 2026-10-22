@@ -9,8 +9,8 @@ the ground items (`GroundItems`), the loot tracker (`LootTracker`), the object m
 (`ObjectIndicators`), the XP tracker (`XpTracker`), the opponent information (`OpponentInfo`), the
 boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the status bars (`StatusBars`), the
 timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the
-Barrows Brothers (`BarrowsBrothers`) and the attack styles (`AttackStyles`) are twenty-one, built in, so
-the client's own code shows the way.
+Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`) and the cannon (`Cannon`) are
+twenty-two, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -373,6 +373,15 @@ combat tab, and **Hide auto retaliate** its button. The style comes from the ser
 the worn weapon's type (the cache's param 686, with the styles each type has on Void); autocasting is
 Casting, or Defensive Casting. Not here from RuneLite: hiding the staff's autocast buttons (634 keeps
 them in the spellbook, not the combat tab).
+
+**Cannon** is RuneLite's, for the dwarf multicannon. The cannonballs left show over your cannon (green
+over 15, orange over 5, else red) and, with **Show cannonball infobox**, in an infobox; you get a
+notification when it runs out, and once when it falls to **Low warning threshold**. **Show double hit
+spots** marks the tiles where it hits twice, and while you carry all four parts some common cannon spots
+are marked (RuneLite's, where the monsters are on Void). Void never sends the ammo, so the plugin counts
+it: what "You load the cannon with N cannon balls." adds, less each cannonball it sees leave the cannon;
+the cannon is found beside you as you set it up. After a new login the count of a cannon still standing
+is not known. Not here from RuneLite: granite cannonballs (not on Void).
 
 ## Writing a plugin
 
