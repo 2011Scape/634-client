@@ -224,12 +224,16 @@ object SmokeTest {
 
 	private var lootStep: Int = 0
 
+	private var lootScrollSummary: String = ""
+
 	private var lootFrame: Int = -1
 
 	/** client.test.xpTracker: experience fed through the stat hook, a canvas box for it, and the XP tracker's window. */
 	private val XP_TRACKER: Boolean = "true" == lang.getProperty("client.test.xpTracker")
 
 	private var xpTrackerStep: Int = 0
+
+	private var xpScrollSummary: String = ""
 
 	private var xpTrackerFrame: Int = -1
 
@@ -2875,6 +2879,33 @@ object SmokeTest {
 	}
 
 	/**
+	 * A window taller than its shell: it scrolls, and the wheel takes it to its end. The frame of the
+	 * end waits for the next step ([scrolledBack]): the screen shows a frame a little after it is drawn.
+	 * A summary for the pass line.
+	 */
+	private fun scrollToEnd(name: String, before: IntArray, scroll: (Int) -> Unit, position: () -> IntArray): String {
+		if (before[1] <= before[2]) {
+			fail("the " + name + " window does not scroll (content " + before[1] + ", visible " + before[2] + ")")
+			return "no scrolling"
+		}
+		scroll(100)
+		val end: IntArray = position()
+		if (end[0] != end[1] - end[2]) {
+			fail("the wheel did not take the " + name + " window to its end (at " + end[0] + " of " + (end[1] - end[2]) + ")")
+		}
+		return "scrolled " + end[1] + " tall to its end and back"
+	}
+
+	/** The frame of the window at its end (frame-<name>-scrolled.png), and the wheel back to its top. */
+	private fun scrolledBack(name: String, scroll: (Int) -> Unit, position: () -> IntArray) {
+		saveFrame("build/smoke/frame-" + name.lowercase() + "-scrolled.png")
+		scroll(-100)
+		if (position()[0] != 0) {
+			fail("the wheel did not take the " + name + " window back to its top")
+		}
+	}
+
+	/**
 	 * The XP Tracker: once it has taken the login's experience, two Attack gains go through the client's
 	 * stat hook (PluginRuntime.statChanged, as the server's stat packet does), Attack goes on the canvas,
 	 * a frame of the box (-xpcanvas); then the window opens on its box, a frame of it (-xptracker), and
@@ -2894,6 +2925,11 @@ object SmokeTest {
 			}
 			if (!XpTracker.canvas.contains(attack)) {
 				XpTracker.toggleCanvas(attack)
+			}
+			// gains in nine skills more, so that the window has to scroll
+			for (skill in 1..9) {
+				val start: Int = XpTracker.states[skill]?.currentXp()?.toInt() ?: continue
+				PluginRuntime.statChanged(skill, start, start + 25, 1)
 			}
 			xpTrackerFrame = frames
 			xpTrackerStep = 1
@@ -2916,14 +2952,28 @@ object SmokeTest {
 			xpTrackerStep = 2
 			return false
 		}
-		checkImage("-xptracker", SHOT.replace(".png", "-xptracker.png"))
-		if (XpTrackerScreen.boxesShown != 1) {
-			fail("the XP tracker's window shows " + XpTrackerScreen.boxesShown + " skill boxes, not 1")
+		if (xpTrackerStep == 2) {
+			checkImage("-xptracker", SHOT.replace(".png", "-xptracker.png"))
+			if (XpTrackerScreen.boxesShown != 10) {
+				fail("the XP tracker's window shows " + XpTrackerScreen.boxesShown + " skill boxes, not 10")
+			}
 		}
-		XpTrackerScreen.close()
+		if (xpTrackerStep == 2) {
+			xpScrollSummary = scrollToEnd("XP", XpTrackerScreen.scrollPosition(), { XpTrackerScreen.scrollBy(it) }, { XpTrackerScreen.scrollPosition() })
+			xpTrackerFrame = frames
+			xpTrackerStep = 3
+			return false
+		}
+		scrolledBack("XP", { XpTrackerScreen.scrollBy(it) }, { XpTrackerScreen.scrollPosition() })
+		val xpScroll: String = xpScrollSummary
+		XpTrackerScreen.hookBack()
+		if (XpTrackerScreen.open || !PluginManagerScreen.open) {
+			fail("Back in the XP tracker's window did not bring the plugin manager back")
+		}
+		PluginManagerScreen.close()
 		XpTracker.toggleCanvas(attack)
-		XpTracker.resetSkill(attack)
-		firstImage += "; XP tracker: 80 Attack experience counted, its canvas box and its window drawn"
+		XpTracker.resetAll()
+		firstImage += "; XP tracker: 80 Attack experience counted, its canvas box and its window drawn with 10 skills, " + xpScroll + ", Back to the plugin manager"
 		return true
 	}
 
@@ -3039,6 +3089,10 @@ object SmokeTest {
 				fail("the guide's made-up kill left no loot record with its two items (" + LootTracker.sessionRecords.size + " records)")
 				return true
 			}
+			// enough sources more that the window has to scroll
+			for (i in 1..12) {
+				LootTracker.addLoot(ClientApiImpl, "Smoke source " + i, i, LootTrackerData.NPC, listOf(intArrayOf(995, i * 10), intArrayOf(526, 1)))
+			}
 			val why: String? = LootTrackerScreen.open()
 			if (why != null) {
 				fail("the loot window did not open: " + why)
@@ -3049,18 +3103,32 @@ object SmokeTest {
 			lootStep = 2
 			return false
 		}
-		checkImage("-loottracker", SHOT.replace(".png", "-loottracker.png"))
-		if (LootTrackerScreen.boxesShown < 1) {
-			fail("the loot window shows " + LootTrackerScreen.boxesShown + " boxes")
+		if (lootStep == 2) {
+			checkImage("-loottracker", SHOT.replace(".png", "-loottracker.png"))
+			if (LootTrackerScreen.boxesShown < 13) {
+				fail("the loot window shows " + LootTrackerScreen.boxesShown + " boxes, not the guide's and twelve more")
+			}
 		}
+		if (lootStep == 2) {
+			lootScrollSummary = scrollToEnd("loot", LootTrackerScreen.scrollPosition(), { LootTrackerScreen.scrollBy(it) }, { LootTrackerScreen.scrollPosition() })
+			lootFrame = frames
+			lootStep = 3
+			return false
+		}
+		scrolledBack("loot", { LootTrackerScreen.scrollBy(it) }, { LootTrackerScreen.scrollPosition() })
+		val lootScroll: String = lootScrollSummary
 		LootTrackerScreen.changeGrouping(false)
 		val single: Int = LootTrackerScreen.boxesShown
 		LootTrackerScreen.changeGrouping(true)
-		LootTrackerScreen.close()
-		if (LootTrackerScreen.open) {
-			fail("the loot window did not close")
+		LootTrackerScreen.backToPluginManager()
+		if (LootTrackerScreen.open || !PluginManagerScreen.open) {
+			fail("Back in the loot window did not bring the plugin manager back")
 		}
-		firstImage += ", window drawn with " + LootTrackerScreen.boxesShown + " box, " + single + " kill by kill"
+		PluginManagerScreen.close()
+		for (i in 1..12) {
+			LootTracker.reset("Smoke source " + i, LootTrackerData.NPC)
+		}
+		firstImage += ", window drawn with " + LootTrackerScreen.boxesShown + " boxes, " + single + " kill by kill, " + lootScroll + ", Back to the plugin manager"
 		return true
 	}
 

@@ -75,6 +75,11 @@ object XpTrackerScreen {
 	private const val A_WHEEL: Int = 4
 	private const val A_TIP: Int = 5
 	private const val A_TIP_LEAVE: Int = 6
+	private const val A_BACK: Int = 7
+	private const val A_HOVER: Int = 8
+	private const val A_LEAVE: Int = 9
+
+	private val buttons: ArrayList<ClientPage.Button> = ArrayList()
 
 	@JvmField
 	var open: Boolean = false
@@ -167,6 +172,7 @@ object XpTrackerScreen {
 	}
 
 	private fun forget() {
+		buttons.clear()
 		shown.clear()
 		scrollTrack = -1
 		scrollThumb = -1
@@ -184,7 +190,10 @@ object XpTrackerScreen {
 		val body: Component = Interface.getComponent(BODY) ?: return
 		forget()
 		val children: ArrayList<Component> = ArrayList()
-		var y: Int = overall(children, 4)
+		// Back to the plugin manager, which shares the window's shell
+		val backWidth: Int = ClientPage.textWidth(ClientPage.FONT_BUTTON, "Back") + 26
+		buttons.add(ClientPage.button(BODY, children, "Back", false, SENTINEL, A_BACK, 0, A_HOVER, A_LEAVE, buttons.size, BOX_X, 4, backWidth))
+		var y: Int = overall(children, 36)
 		for (skill in XpTracker.order) {
 			val state: XpTrackerState = XpTracker.states[skill] ?: continue
 			y = box(children, skill, state, y)
@@ -339,6 +348,9 @@ object XpTrackerScreen {
 		val index: Int = params[2] as Int
 		when (action) {
 			A_CLOSE -> close()
+			A_BACK -> hookBack()
+			A_HOVER -> if (index < buttons.size) ClientPage.paint(buttons[index], true)
+			A_LEAVE -> if (index < buttons.size) ClientPage.paint(buttons[index], false)
 			A_WHEEL -> {
 				val body: Component = Interface.getComponent(BODY) ?: return
 				scrollTo(body.scrollY + hook.mouseY * WHEEL_STEP)
@@ -354,6 +366,27 @@ object XpTrackerScreen {
 			A_OVERALL -> overallOption(hook.clickedOption)
 			A_BOX -> shown.getOrNull(index)?.let { boxOption(it, hook.clickedOption) }
 		}
+	}
+
+	/** The smoke test's Back. */
+	@JvmStatic
+	fun hookBack() {
+		close()
+		PluginManagerScreen.open()
+	}
+
+	/** The smoke test's wheel: [notches] turns down (up when negative). */
+	@JvmStatic
+	fun scrollBy(notches: Int) {
+		val body: Component = Interface.getComponent(BODY) ?: return
+		scrollTo(body.scrollY + notches * WHEEL_STEP)
+	}
+
+	/** The scroll position, the content height (0 when the page does not scroll) and the visible height. */
+	@JvmStatic
+	fun scrollPosition(): IntArray {
+		val body: Component = Interface.getComponent(BODY) ?: return intArrayOf(0, 0, BODY_HEIGHT)
+		return intArrayOf(body.scrollY, body.scrollHeight, BODY_HEIGHT)
 	}
 
 	private fun overallOption(option: Int) {
