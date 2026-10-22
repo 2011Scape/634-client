@@ -42,8 +42,9 @@ package com.jagex.game.runetek5.plugin.api
  *   and [OverlayMenuEntry]s), [OverlayPanel] and [PanelComponent]; infoboxes ([InfoBox], [Counter], [Timer],
  *   [PluginContext.addInfoBox]); [Graphics.translate], [Graphics.image] and [ClientApi.loadImage]; [ClientApi.addTooltip].
  * - 13: quests: [ClientApi.questCount], [ClientApi.questName] and [ClientApi.questState] ([QuestState]).
+ * - 14: [InfoBox.itemId], an item's icon as an infobox's picture.
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 13
+	const val VERSION: Int = 14
 }
