@@ -1584,6 +1584,22 @@ object PluginManagerScreen {
 		return true
 	}
 
+	/** Opens the window on plugin [id]'s settings page (a plugin's own Setup, as XP Drops' on the XP button); null when it opened, else why not. */
+	@JvmStatic
+	fun openSettings(id: String): String? {
+		val registration: PluginRegistration = PluginRuntime.find(id) ?: return "No plugin " + id
+		val why: String? = open()
+		if (why != null) {
+			return why
+		}
+		if (!hasSettings(registration)) {
+			return "The plugin is off: turn it on to change its settings"
+		}
+		selected = registration
+		rebuild()
+		return null
+	}
+
 	@JvmStatic
 	fun clickSettings(id: String): Boolean {
 		val registration: PluginRegistration = PluginRuntime.find(id) ?: return false

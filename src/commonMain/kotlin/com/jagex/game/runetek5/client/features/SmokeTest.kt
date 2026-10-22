@@ -2742,9 +2742,37 @@ object SmokeTest {
 	}
 
 	/**
+	 * The XP button by the minimap, found by its own option in the game frame shown, and XP Drops' Setup
+	 * from it: the plugin manager opens on XP Drops' settings page. A summary for the pass line.
+	 */
+	private fun xpButtonSetup(): String {
+		val frame: Int = ClientState.BASE_WINDOW_ID
+		var found: Int = -1
+		for (component in 0 until 400) {
+			val widget = ClientApiImpl.widgetById((frame shl 16) or component) ?: continue
+			for (i in 0 until widget.actionCount()) {
+				if (widget.action(i) == XpDrops.XP_BUTTON_OPTION) {
+					found = component
+				}
+			}
+		}
+		if (found < 0) {
+			fail("no component of interface " + frame + " has the XP button's \"" + XpDrops.XP_BUTTON_OPTION + "\"")
+			return "no XP button"
+		}
+		val why: String? = PluginManagerScreen.openSettings(XpDrops.DESCRIPTOR.id)
+		if (why != null || !PluginManagerScreen.open) {
+			fail("Setup did not open XP Drops' settings: " + why)
+		}
+		PluginManagerScreen.close()
+		println("SMOKE XP button: " + frame + ":" + found)
+		return "the XP button is " + frame + ":" + found + ", its Setup opens the settings"
+	}
+
+	/**
 	 * Steps through the experience drop check: logging in must have made no drops. Void sends no
 	 * stats at login, so it first sets the test account's Attack to 1 with its admin command
-	 * ::level (the update only primes the skill), then to 2, which must make a "+83 Attack" drop
+	 * ::level (the update only primes the skill), then to 2, which must make a "+83" drop with the Attack icon
 	 * that frames draw, and then back to 1. True once it is done.
 	 */
 	private fun xpDropsDone(): Boolean {
@@ -2755,6 +2783,10 @@ object SmokeTest {
 			}
 			xpWasEnabled = XpDrops.enabled
 			XpDrops.enabled = true
+			// Old School's setup at its fullest: in the middle, the total counter and the progress bar under it
+			XpDrops.position = XpDrops.POSITION_MIDDLE
+			XpDrops.counter = XpDrops.COUNTER_TOTAL
+			XpDrops.progressBar = 1
 			sendCommand("level attack 1")
 			xpFrame = frames
 			xpStep = 1
@@ -2793,8 +2825,8 @@ object SmokeTest {
 			if (frames - xpDrawnFrame < 10) {
 				return false
 			}
-			if ("+83 Attack" != XpDrops.lastDropText) {
-				fail("the experience drop reads \"" + XpDrops.lastDropText + "\", not \"+83 Attack\"")
+			if ("+83" != XpDrops.lastDropText || XpDrops.drops.lastOrNull()?.skills != listOf(0)) {
+				fail("the XP drop reads \"" + XpDrops.lastDropText + "\" for skills " + XpDrops.drops.lastOrNull()?.skills + ", not \"+83\" with the Attack icon")
 			}
 			// saved for a look, never compared: the drop rises and fades, so no two runs catch the same frame
 			checkImage("-xpdrop", SHOT.replace(".png", "-xpdrop.png"))
@@ -2812,7 +2844,10 @@ object SmokeTest {
 				return false
 			}
 			XpDrops.enabled = xpWasEnabled
-			firstImage += "; experience drop \"" + XpDrops.lastDropText + "\" drawn, Attack back to 1"
+			XpDrops.position = XpDrops.POSITION_RIGHT
+			XpDrops.counter = XpDrops.COUNTER_NONE
+			XpDrops.progressBar = 0
+			firstImage += "; XP drop \"" + XpDrops.lastDropText + "\" drawn with the Attack icon, Attack back to 1; " + xpButtonSetup()
 			xpStep = 4
 		}
 		return true

@@ -41,7 +41,7 @@ It connects to [2011Scape](https://2011.rs) (`play.2011.rs`). For your own serve
 - **Any Void server**: choose the host, port and keys from the launcher.
 - **OpenGL on Linux, Windows and macOS**, through [LWJGL](https://www.lwjgl.org).
 - **Smooth and sharp**: up to 144 fps, a window scaled to your screen, and MSAA or SMAA.
-- **Extras**: ground items, a loot tracker, object markers, ground tiles, experience drops, name plates, an idle notifier, Discord presence,
+- **Extras**: ground items, a loot tracker, object markers, ground tiles, XP drops, name plates, an idle notifier, Discord presence,
   shift-drop, a longer render distance and a wider zoom.
 - **Developer tools**: ids on right-click menus, coordinates on screen, a better console.
 - **Plugins**: jars in `~/.634-client/plugins` that read the game, draw on it and add menu entries
@@ -88,7 +88,7 @@ are off unless the client is started with `--dev-commands`.
 | | Loot tracker, as RuneLite's: the loot of every kill, pickpocket and chest with its Grand Exchange and High Alchemy value, by source or kill by kill, remembered between sessions, in a window of its own. | `::loot` |
 | | Object markers, as RuneLite's: hold Shift and right-click an object to mark it; marked objects are drawn as a hull, an outline, a click box or their tiles, each marker in colours and styles of its own, kept between sessions in RuneLite's format. | `::objectmarkers` |
 | | NPC indicators, as RuneLite's: hold Shift and right-click an npc to tag it (or every npc of its name); tagged npcs are outlined, named over their heads and on the minimap, and their respawn is timed. | `::tag <name>`, `::untag <name>` |
-| | A "+N Skill" drop rises and fades near the minimap when you gain experience (on until turned off). | `::xpdrops` |
+| | XP drops as Old School draws them, with RuneLite's XP Drop options: skill icons and "+N" rising by the minimap, in the middle or on the left, in five sizes, with an XP counter and a progress bar if you like, coloured by your active combat prayer; right-click the XP button by the minimap for Setup. | `::xpdrops` |
 | | Idle notifier, as RuneLite's: says when you stop skilling, fighting or moving, when the mouse and keyboard have been untouched, and when life points, prayer or energy cross a threshold, in the chat, a red frame, a sound, a desktop notification or the window brought to the front (by default only while the window is unfocused); each is a setting in the plugin manager, where the plugin is turned on. | `::idle`, `::idle <seconds>` |
 | | Inventory value: what your backpack is worth, with its three most valuable items, at the top of the game view. | `::invvalue` |
 | | Name plates: other players' names over their heads: red when they can attack you, green for friends, blue for your friends chat with its name underneath. | `::nameplates` |

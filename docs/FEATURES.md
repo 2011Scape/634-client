@@ -65,7 +65,7 @@ as `FeaturePlatform` does for `Graphics2D` scaling.
   `OverlayManager.projectedScreenPosition` ([0] is -1 when the point is off screen), relative to
   the view, so add `areaX`/`areaY`.
 - **What the interfaces cover.** The interfaces draw after the game view: the minimap, the orbs and
-  the chat box sit on top of it. Keep drawing clear of them (the experience drops start left of
+  the chat box sit on top of it. Keep drawing clear of them (the XP drops on the right start left of
   the minimap), and clear of the debug overlay's lines at the top right.
 - **Which npcs and players.** Walk them the way `OverlayManager.drawEntities` does: this cycle's
   npcs in `NPCList.NPC_UPDATE_INDICES` (looked up in `NPCList.NPC_MAP`), an npc type through
