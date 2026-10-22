@@ -26,6 +26,7 @@ import com.jagex.game.runetek5.plugin.api.MenuEntry
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.plugin.api.Npc
 import com.jagex.game.runetek5.plugin.api.Overlay
+import com.jagex.game.runetek5.plugin.api.PanelOverlay
 import com.jagex.game.runetek5.plugin.api.Player
 import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.Task
@@ -93,7 +94,7 @@ object PluginRuntime {
 	 * that the name is taken: the client's own commands run first whatever a plugin registered
 	 * (ClientCommandProcessor), so a name missing here is never reached rather than taken over.
 	 */
-	private val RESERVED_COMMANDS: Array<String> = arrayOf("plugins", "plugin", "commands", "help", "cls", "displayfps", "renderer", "heap", "tk0", "tk1", "tk2", "tk3", "tk5", "tk6", "xpdrops", "shiftdrop", "msaa", "smaa", "renderscale", "hd", "hdsettings", "pluginmanager", "printfps", "occlude", "fpson", "fpsoff", "fps", "systemmem", "rebuild", "zoom", "errortest", "nativememerror", "heapdump", "setoutput", "closeoutput", "runscript")
+	private val RESERVED_COMMANDS: Array<String> = arrayOf("plugins", "plugin", "commands", "help", "cls", "displayfps", "renderer", "heap", "tk0", "tk1", "tk2", "tk3", "tk5", "tk6", "xpdrops", "shiftdrop", "msaa", "smaa", "renderscale", "hd", "hdsettings", "pluginmanager", "printfps", "occlude", "fpson", "fpsoff", "fps", "systemmem", "rebuild", "zoom", "errortest", "nativememerror", "heapdump", "setoutput", "closeoutput", "runscript", "resetanchors")
 
 	@JvmField
 	val bus: EventBusImpl = EventBusImpl()
@@ -141,6 +142,9 @@ object PluginRuntime {
 
 	@JvmStatic
 	fun viewY(): Int = viewport.y
+
+	@JvmStatic
+	fun viewWidth(): Int = viewport.width
 
 	/** The scene tile under the mouse this cycle, -1 for none (ViewportMiniMenuPicking). */
 	@JvmField
@@ -449,6 +453,8 @@ object PluginRuntime {
 			pendingTasks.removeAll { it.owner === registration }
 		}
 		scheduledTasks.removeAll { it.owner === registration }
+		OverlayLayout.removeAll(registration)
+		InfoBoxes.removeAll(registration)
 		for (i in 0 until overlayCount) {
 			if (overlayOwners[i] === registration) {
 				overlays[i] = null
@@ -526,6 +532,10 @@ object PluginRuntime {
 	}
 
 	fun addOverlay(owner: PluginRegistration, overlay: Overlay) {
+		if (overlay is PanelOverlay) {
+			OverlayLayout.add(owner, overlay)
+			return
+		}
 		if (overlayCount == MAX_OVERLAYS) {
 			lang.printlnErr("Plugin " + owner.descriptor + ": no room for another overlay (the most is " + MAX_OVERLAYS + ")")
 			return
@@ -536,6 +546,10 @@ object PluginRuntime {
 	}
 
 	fun removeOverlay(overlay: Overlay) {
+		if (overlay is PanelOverlay) {
+			OverlayLayout.remove(overlay)
+			return
+		}
 		for (i in 0 until overlayCount) {
 			if (overlays[i] === overlay) {
 				overlays[i] = null
@@ -723,9 +737,6 @@ object PluginRuntime {
 		bus.afterListener = resetGraphics
 		bus.post(Events.VIEWPORT_DRAW, viewportDrawEvent)
 		bus.afterListener = null
-		if (overlayCount == 0) {
-			return
-		}
 		drawingOverlays = true
 		var i: Int = 0
 		while (i < overlayCount) {
@@ -740,6 +751,9 @@ object PluginRuntime {
 			}
 			i++
 		}
+		// the panels after the overlays that draw where they like, as RuneLite's dynamic overlays come first
+		InfoBoxes.cull()
+		OverlayLayout.draw(viewport)
 		drawingOverlays = false
 		compactOverlays()
 	}
@@ -747,7 +761,12 @@ object PluginRuntime {
 	/** After the whole frame is drawn, before it is shown. */
 	@JvmStatic
 	fun drawFrame(width: Int, height: Int) {
-		if (!started || !bus.hasListeners(Events.FRAME_DRAW)) {
+		if (!started) {
+			return
+		}
+		// the tooltips over everything, the frame's interfaces included
+		Tooltips.draw(width, height)
+		if (!bus.hasListeners(Events.FRAME_DRAW)) {
 			return
 		}
 		frameDrawEvent.width = width
@@ -1343,6 +1362,42 @@ object PluginRuntime {
 		parent.queueSize++
 	}
 
+	/**
+	 * The client's own entry opening a submenu (the panels' Overlay Origin, OverlayLayout), outside the
+	 * building of a target's entries: [label] with [target] after it, its children's param0 [param0]. The
+	 * submenu's index, or -1 when there is no room.
+	 */
+	fun clientSubmenu(label: String, target: String, param0: Int): Int {
+		if (MiniMenu.isOpen || submenuCount >= MAX_SUBMENUS) {
+			return -1
+		}
+		val index: Int = submenuCount++
+		submenus[index] = ColoredMiniMenuEntry(label)
+		val before: Int = MiniMenu.entryCount
+		MiniMenu.addEntry(false, target, 0, true, param0, -1, true, MiniMenuAction.PLUGIN_SUBMENU, 0L, label, index.toLong(), -1)
+		if (MiniMenu.entryCount == before) {
+			submenus[index] = null
+			submenuCount--
+			return -1
+		}
+		submenuParents[index] = MiniMenu.entryList.last() as MiniMenuEntry?
+		return index
+	}
+
+	/** An entry of the client's own in [submenu] (clientSubmenu), clicked as MiniMenuAction.OVERLAY_MENU with [param0] and [param1]. */
+	fun clientSubmenuEntry(submenu: Int, label: String, param0: Int, param1: Int) {
+		if (submenu < 0 || submenu >= submenuCount) {
+			return
+		}
+		val parent: ColoredMiniMenuEntry = submenus[submenu] ?: return
+		if (parent.queueSize >= MAX_SUBMENU_ENTRIES) {
+			return
+		}
+		val child: MiniMenuEntry = MiniMenuEntry(label, "", Cursor.interfaceCursorId, MiniMenuAction.OVERLAY_MENU, -1, 0L, param0, param1, true, false, 0L, true)
+		parent.nodeQueue.insert(child)
+		parent.queueSize++
+	}
+
 	/** The submenu a hovered plugin entry opens, or null when [entry] is not one of those. */
 	@JvmStatic
 	fun submenuOf(entry: MiniMenuEntry?): ColoredMiniMenuEntry? {
@@ -1416,6 +1471,12 @@ object PluginRuntime {
 			}
 		}
 		val first: String = words[0].lowercase()
+		if (first == "resetanchors") {
+			// RuneLite's ::resetanchors: the snap corners back where they were
+			OverlayLayout.resetAnchors()
+			Console.printToConsole("Snap corners reset.")
+			return true
+		}
 		if (first == "plugins") {
 			listPlugins()
 			return true

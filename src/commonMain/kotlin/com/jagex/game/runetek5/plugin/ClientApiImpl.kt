@@ -25,6 +25,7 @@ import com.jagex.game.runetek5.entity.gameobject.GameObject
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
 import com.jagex.game.runetek5.plugin.api.Actor
 import com.jagex.game.runetek5.plugin.api.ClientApi
+import com.jagex.game.runetek5.plugin.api.Image
 import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.GroundItemVisitor
 import com.jagex.game.runetek5.AbstractMouseManager
@@ -782,5 +783,13 @@ object ClientApiImpl : ClientApi {
 
 	private fun cross(ox: Int, oy: Int, ax: Int, ay: Int, bx: Int, by: Int): Long {
 		return (ax - ox).toLong() * (by - oy) - (ay - oy).toLong() * (bx - ox)
+	}
+
+	override fun loadImage(png: ByteArray): Image? {
+		return PluginImage.fromPng(png)
+	}
+
+	override fun addTooltip(text: String) {
+		Tooltips.add(text)
 	}
 }

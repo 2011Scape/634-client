@@ -54,9 +54,14 @@ import com.jagex.game.runetek5.plugin.PluginRegistration
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.entity.NPCEntity
 import com.jagex.game.runetek5.plugin.PluginRuntime
+import com.jagex.game.runetek5.cache.node.Node
+import com.jagex.game.runetek5.client.event.mouse.MouseLog
+import com.jagex.game.runetek5.plugin.api.OverlayPosition
+import com.jagex.game.runetek5.plugin.Tooltips
+import com.jagex.game.runetek5.plugin.InfoBoxes
+import com.jagex.game.runetek5.plugin.OverlayLayout
 import com.jagex.game.runetek5.plugin.api.Skill
 import kotlin.jvm.JvmStatic
-import lang.Class
 import lang.jClass
 import lang.javaSplit
 import lang.javaTrim
@@ -238,6 +243,28 @@ object SmokeTest {
 	private val OPPONENT_INFO: Boolean = "true" == lang.getProperty("client.test.opponentInfo")
 
 	private var opponentStep: Int = 0
+
+	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
+	private val BOOSTS: Boolean = "true" == lang.getProperty("client.test.boosts")
+
+	private var boostsStep: Int = 0
+
+	private var boostsFrame: Int = -1
+
+	private var boostsSummary: String = ""
+
+	/** client.test.overlayDrag: the plugins' panels managed with the drag key held: outlines, a drag, a snap, a resize, a detach and merge, the shift menu and a reset. */
+	private val OVERLAY_DRAG: Boolean = "true" == lang.getProperty("client.test.overlayDrag")
+
+	private var dragStep: Int = 0
+
+	private var dragFrame: Int = -1
+
+	private var dragSummary: String = ""
+
+	private var dragStartX: Int = 0
+
+	private var dragStartY: Int = 0
 
 	private var opponentFrame: Int = -1
 
@@ -1006,6 +1033,18 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 2048
+		}
+		if ((BOOSTS || OVERLAY_DRAG) && (checksDone and 4096) == 0) {
+			if (!boostsDone()) {
+				return
+			}
+			checksDone = checksDone or 4096
+		}
+		if (OVERLAY_DRAG && (checksDone and 8192) == 0) {
+			if (!overlayDragDone()) {
+				return
+			}
+			checksDone = checksDone or 8192
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3011,8 +3050,8 @@ object SmokeTest {
 		}
 		if (xpTrackerStep == 1) {
 			checkImage("-xpcanvas", SHOT.replace(".png", "-xpcanvas.png"))
-			if (XpTrackerOverlay.drawnLastFrame != 1) {
-				fail("the XP tracker drew " + XpTrackerOverlay.drawnLastFrame + " canvas boxes, not 1")
+			if (XpTrackerOverlay.drawnLastFrame() != 1) {
+				fail("the XP tracker drew " + XpTrackerOverlay.drawnLastFrame() + " canvas boxes, not 1")
 			}
 			val why: String? = XpTrackerScreen.open()
 			if (why != null) {
@@ -3128,6 +3167,407 @@ object SmokeTest {
 	 * the player itself made the opponent with hiscores put in shows lifepoints and the comparison; and
 	 * dealing with nothing for more than five seconds forgets the opponent.
 	 */
+	/** A level as the stat packet sets it: the plugins hear of it first, then the client stores it. */
+	private fun setLevel(skill: Int, level: Int) {
+		val xp: Int = client.statXp[skill]
+		PluginRuntime.statChanged(skill, xp, xp, level)
+		client.statLevels[skill] = level
+	}
+
+	/** Attack's and Defence's levels and Defence's base before the boosts check, to put back. */
+	private var boostsAttack: Int = -1
+	private var boostsDefence: Int = -1
+	private var boostsDefenceBase: Int = -1
+
+	/** Attack, Defence and Boosts Information's settings back as they were. */
+	private fun restoreBoosts() {
+		if (boostsAttack < 0) {
+			return
+		}
+		StatBaseLevels.statBaseLevels[Skill.DEFENCE] = boostsDefenceBase
+		setLevel(Skill.ATTACK, boostsAttack)
+		setLevel(Skill.DEFENCE, boostsDefence)
+		boostsAttack = -1
+		Boosts.quiet = false
+		Boosts.context()?.config()?.let { Boosts.readSettings(it) }
+		Boosts.configChanged()
+		Boosts.reset()
+	}
+
+	/**
+	 * Boosts Information: Attack boosted by five and then down one (a boost wearing off: the buff timer
+	 * starts, and the threshold of four notifies), Defence's base made 10 and it drained to 6 and back up
+	 * one (a drain coming back: the debuff timer). Then the infoboxes (-boosts-infobox: two skills and two
+	 * timers), the panel (-boosts-panel) and the compact list with relative boosts (-boosts-compact).
+	 * Left boosted for the overlay check when that runs too.
+	 */
+	private fun boostsDone(): Boolean {
+		val api = ClientApiImpl
+		if (boostsStep == 0) {
+			Boosts.context() ?: return false
+			boostsAttack = client.statLevels[Skill.ATTACK]
+			boostsDefence = client.statLevels[Skill.DEFENCE]
+			boostsDefenceBase = StatBaseLevels.statBaseLevels[Skill.DEFENCE]
+			Boosts.enabled = true
+			Boosts.quiet = true
+			Boosts.displayBoosts = Boosts.BOOSTS_COMBAT
+			Boosts.relativeBoost = false
+			Boosts.displayIndicators = true
+			Boosts.displayPanel = false
+			Boosts.compactDisplay = false
+			Boosts.displayNextBuffChange = Boosts.CHANGE_BOOSTED
+			Boosts.displayNextDebuffChange = Boosts.CHANGE_BOOSTED
+			Boosts.boostThreshold = 4
+			Boosts.notifyOnBoost = true
+			Boosts.configChanged()
+			Boosts.lastNotification = null
+			val base: Int = api.skillBaseLevel(Skill.ATTACK)
+			setLevel(Skill.ATTACK, base + 5)
+			setLevel(Skill.ATTACK, base + 4)
+			StatBaseLevels.statBaseLevels[Skill.DEFENCE] = 10
+			setLevel(Skill.DEFENCE, 6)
+			setLevel(Skill.DEFENCE, 7)
+			boostsFrame = frames
+			boostsStep = 1
+			return false
+		}
+		if (frames - boostsFrame < MARKER_FRAMES) {
+			return false
+		}
+		if (boostsStep == 1) {
+			checkImage("-boosts-infobox", SHOT.replace(".png", "-boosts-infobox.png"))
+			val base: Int = api.skillBaseLevel(Skill.ATTACK)
+			if (Boosts.lastNotification != "Attack level is getting low!") {
+				fail("the boost falling to the threshold notified " + Boosts.lastNotification + ", not \"Attack level is getting low!\"")
+			}
+			if (!Boosts.toDisplay[Skill.ATTACK] || !Boosts.toDisplay[Skill.DEFENCE] || !Boosts.changedUp || !Boosts.changedDown) {
+				fail("Boosts shows Attack " + Boosts.toDisplay[Skill.ATTACK] + " and Defence " + Boosts.toDisplay[Skill.DEFENCE] + ", up " + Boosts.changedUp + ", down " + Boosts.changedDown)
+			}
+			val down: Int = Boosts.changeDownSeconds(api)
+			val up: Int = Boosts.changeUpSeconds(api)
+			if (down !in 50..60 || up !in 50..60) {
+				fail("the boost timers read " + down + " s (buff) and " + up + " s (debuff), not about a minute")
+			}
+			val layer: InfoBoxes.Layer? = InfoBoxes.layers[InfoBoxes.DEFAULT_LAYER]
+			val texts: List<String> = layer?.drawn?.map { it.box.box.name + "=" + it.text } ?: emptyList()
+			val expected: List<String> = listOf("Boost Attack=" + (base + 4), "Boost Defence=7")
+			if (texts.size != 4 || texts.subList(0, 2) != expected || !texts[2].startsWith("BoostsPlugin_StatChangeIndicator=") || !texts[3].startsWith("BoostsPlugin_StatChangeIndicator=")) {
+				fail("the infoboxes drawn are " + texts + ", not " + expected + " and the two timers")
+			}
+			boostsSummary = "Boosts: infoboxes " + texts.size + " (Attack " + (base + 4) + ", Defence 7, timers " + down + " s and " + up + " s), notified at the threshold"
+			Boosts.displayIndicators = false
+			Boosts.displayPanel = true
+			boostsFrame = frames
+			boostsStep = 2
+			return false
+		}
+		if (boostsStep == 2) {
+			checkImage("-boosts-panel", SHOT.replace(".png", "-boosts-panel.png"))
+			val base: Int = api.skillBaseLevel(Skill.ATTACK)
+			val rows: List<String>? = BoostsOverlay.panelRows
+			if (rows == null || rows.size != 4 || !rows[0].startsWith("Next + restore in ") || !rows[1].startsWith("Next - restore in ") || rows[2] != "Attack " + (base + 4) + "/" + base || rows[3] != "Defence 7/10") {
+				fail("the boosts panel drew " + rows)
+			}
+			boostsSummary += ", panel " + rows
+			Boosts.displayPanel = false
+			Boosts.compactDisplay = true
+			Boosts.relativeBoost = true
+			boostsFrame = frames
+			boostsStep = 3
+			return false
+		}
+		checkImage("-boosts-compact", SHOT.replace(".png", "-boosts-compact.png"))
+		val rows: List<String>? = BoostsOverlay.compactRows
+		if (rows == null || rows.size != 4 || rows[0] != "Attack +4" || rows[1] != "Defence -3" || !rows[2].startsWith("- ") || !rows[3].startsWith("+ ")) {
+			fail("the compact boosts drew " + rows)
+		}
+		boostsSummary += ", compact " + rows
+		firstImage += "; " + boostsSummary
+		if (!OVERLAY_DRAG) {
+			restoreBoosts()
+		} else {
+			// the overlay check moves the panel and the infoboxes: both shown
+			Boosts.compactDisplay = false
+			Boosts.relativeBoost = false
+			Boosts.displayPanel = true
+			Boosts.displayIndicators = true
+		}
+		return true
+	}
+
+	/** The middle of [entry] this frame. */
+	private fun middle(entry: OverlayLayout.Entry, out: IntArray) {
+		out[0] = entry.x + entry.width / 2
+		out[1] = entry.y + entry.height / 2
+	}
+
+	private val dragPoint: IntArray = IntArray(4)
+
+	/**
+	 * The plugins' panels managed as a player would with Alt held (OverlayLayout's test mouse and key):
+	 * the outlines and corners (-overlay-edit); Boosts' panel pressed (the press is the layout's, never the
+	 * game's), dragged 150 right and 60 down and let go, kept as a place of its own; dragged into the top
+	 * right corner, snapped there; the infobox panel narrowed from its right edge to two boxes a row; one
+	 * box detached into a panel of its own and dropped back on the first; Shift's menu on the panel
+	 * (Configure and Overlay Origin); and Alt and a right click putting the panel back.
+	 */
+	private fun overlayDragDone(): Boolean {
+		val panelKey: String = "boosts.BoostsOverlay"
+		if (dragStep == 0) {
+			OverlayLayout.testMouse = true
+			OverlayLayout.testKeyHeld = true
+			OverlayLayout.testButtonDown = false
+			OverlayLayout.testMouseX = 600
+			OverlayLayout.testMouseY = 300
+			dragFrame = frames
+			dragStep = 1
+			return false
+		}
+		if (frames - dragFrame < 20) {
+			return false
+		}
+		val panel: OverlayLayout.Entry? = OverlayLayout.entryNamed("BoostsOverlay")
+		if (panel == null || panel.width == 0) {
+			fail("the boosts panel is not drawn for the overlay check")
+			return true
+		}
+		if (dragStep == 1) {
+			if (!OverlayLayout.editMode) {
+				fail("holding the drag key did not start managing the panels")
+				return true
+			}
+			checkImage("-overlay-edit", SHOT.replace(".png", "-overlay-edit.png"))
+			middle(panel, dragPoint)
+			OverlayLayout.testMouseX = dragPoint[0]
+			OverlayLayout.testMouseY = dragPoint[1]
+			dragFrame = frames
+			dragStep = 2
+			return false
+		}
+		if (dragStep == 2) {
+			// the panel is under the mouse now: pressing it is the layout's
+			dragStartX = panel.x
+			dragStartY = panel.y
+			if (!OverlayLayout.mousePressed(OverlayLayout.testMouseX, OverlayLayout.testMouseY, MouseLog.TYPE_PRESS_LEFT) || !OverlayLayout.dragging) {
+				fail("a press on the boosts panel with the drag key held did not start dragging it")
+				return true
+			}
+			OverlayLayout.testButtonDown = true
+			OverlayLayout.testMouseX += 150
+			OverlayLayout.testMouseY += 60
+			dragFrame = frames
+			dragStep = 3
+			return false
+		}
+		if (dragStep == 3) {
+			OverlayLayout.testButtonDown = false
+			dragFrame = frames
+			dragStep = 4
+			return false
+		}
+		if (dragStep == 4) {
+			if (!panel.overlay.hasPreferredLocation || panel.x != dragStartX + 150 || panel.y != dragStartY + 60 || OverlayLayout.dragging) {
+				fail("the boosts panel went from " + dragStartX + "," + dragStartY + " to " + panel.x + "," + panel.y + ", not 150 right and 60 down")
+				return true
+			}
+			if (OverlayLayout.config().get(panelKey + "_preferredLocation", "").isEmpty()) {
+				fail("the boosts panel's place was not kept")
+			}
+			dragSummary = "dragged from " + dragStartX + "," + dragStartY + " to " + panel.x + "," + panel.y + " (kept as " + OverlayLayout.config().get(panelKey + "_preferredLocation", "") + " from " + panel.overlay.originX + " " + panel.overlay.originY + ")"
+			// into the top right corner
+			middle(panel, dragPoint)
+			OverlayLayout.testMouseX = dragPoint[0]
+			OverlayLayout.testMouseY = dragPoint[1]
+			OverlayLayout.mousePressed(dragPoint[0], dragPoint[1], MouseLog.TYPE_PRESS_LEFT)
+			OverlayLayout.testButtonDown = true
+			OverlayLayout.cornerBox(OverlayPosition.TOP_RIGHT, dragPoint)
+			OverlayLayout.testMouseX = dragPoint[0] + dragPoint[2] / 2
+			OverlayLayout.testMouseY = dragPoint[1] + dragPoint[3] / 2
+			dragFrame = frames
+			dragStep = 5
+			return false
+		}
+		if (dragStep == 5) {
+			OverlayLayout.testButtonDown = false
+			dragFrame = frames
+			dragStep = 6
+			return false
+		}
+		if (dragStep == 6) {
+			// the top right corner is left of the minimap's frame on the resizable screen
+			val viewMiddle: Int = PluginRuntime.viewX() + PluginRuntime.viewWidth() / 2
+			if (panel.overlay.preferredPosition !== OverlayPosition.TOP_RIGHT || panel.overlay.hasPreferredLocation || panel.x < viewMiddle) {
+				fail("dropped on the top right corner, the boosts panel is " + panel.overlay.preferredPosition + " at " + panel.x + "," + panel.y)
+				return true
+			}
+			checkImage("-overlay-snapped", SHOT.replace(".png", "-overlay-snapped.png"))
+			dragSummary += ", snapped to " + panel.overlay.preferredPosition + " at " + panel.x + "," + panel.y
+			// the infobox panel narrowed from its right edge
+			val boxes: OverlayLayout.Entry? = OverlayLayout.entryNamed(InfoBoxes.DEFAULT_LAYER)
+			if (boxes == null || boxes.width == 0) {
+				fail("the infobox panel is not drawn for the overlay check")
+				return true
+			}
+			dragStartX = boxes.width
+			dragStartY = boxes.height
+			OverlayLayout.testMouseX = boxes.x + boxes.width - 2
+			OverlayLayout.testMouseY = boxes.y + boxes.height / 2
+			dragFrame = frames
+			dragStep = 7
+			return false
+		}
+		val boxes: OverlayLayout.Entry? = OverlayLayout.entryNamed(InfoBoxes.DEFAULT_LAYER)
+		if (boxes == null) {
+			fail("the infobox panel went")
+			return true
+		}
+		if (dragStep == 7) {
+			if (!OverlayLayout.mousePressed(OverlayLayout.testMouseX, OverlayLayout.testMouseY, MouseLog.TYPE_PRESS_LEFT) || !OverlayLayout.resizing) {
+				fail("a press on the infobox panel's right edge did not start resizing it")
+				return true
+			}
+			OverlayLayout.testButtonDown = true
+			val size: Int = OverlayLayout.infoBoxSize
+			OverlayLayout.testMouseX = boxes.x + 2 * (size + 1)
+			dragFrame = frames
+			dragStep = 8
+			return false
+		}
+		if (dragStep == 8) {
+			OverlayLayout.testButtonDown = false
+			dragFrame = frames
+			dragStep = 9
+			return false
+		}
+		if (dragStep == 9) {
+			val size: Int = OverlayLayout.infoBoxSize
+			if (boxes.overlay.preferredWidth <= 0 || boxes.width > 2 * (size + 1) || boxes.height < 2 * size) {
+				fail("narrowed from " + dragStartX + "x" + dragStartY + ", the infobox panel is " + boxes.width + "x" + boxes.height + " (preferred width " + boxes.overlay.preferredWidth + "), not two boxes a row")
+				return true
+			}
+			checkImage("-overlay-resized", SHOT.replace(".png", "-overlay-resized.png"))
+			dragSummary += ", infoboxes narrowed from " + dragStartX + "x" + dragStartY + " to " + boxes.width + "x" + boxes.height
+			// hover the first box (Attack's): its tooltip, and its menu for the detach
+			OverlayLayout.testMouseX = boxes.x + 5
+			OverlayLayout.testMouseY = boxes.y + 5
+			dragFrame = frames
+			dragStep = 10
+			return false
+		}
+		if (dragStep == 10) {
+			if (!Tooltips.drawnLastFrame.contains("Attack boost")) {
+				fail("hovering Attack's infobox showed the tooltips " + Tooltips.drawnLastFrame + ", not \"Attack boost\"")
+			}
+			val detach = boxes.overlay.menuEntries().firstOrNull { it.option == "Detach" }
+			if (detach == null) {
+				fail("the hovered infobox offers " + boxes.overlay.menuEntries().map { it.option } + ", no Detach")
+				return true
+			}
+			detach.action.run()
+			if (InfoBoxes.layers.size != 2) {
+				fail("Detach left " + InfoBoxes.layers.size + " infobox panels, not 2")
+				return true
+			}
+			dragFrame = frames
+			dragStep = 11
+			return false
+		}
+		if (dragStep == 11) {
+			val detached: OverlayLayout.Entry? = OverlayLayout.entries.firstOrNull { it.overlay is InfoBoxes.Layer && it.overlay.name != InfoBoxes.DEFAULT_LAYER }
+			if (detached == null || detached.width == 0) {
+				fail("the detached infobox panel is not drawn")
+				return true
+			}
+			dragSummary += ", Attack's box detached into " + detached.overlay.name
+			// drag it by its middle onto the first panel: dropped there, the two merge
+			middle(detached, dragPoint)
+			OverlayLayout.testMouseX = dragPoint[0]
+			OverlayLayout.testMouseY = dragPoint[1]
+			dragFrame = frames
+			dragStep = 12
+			return false
+		}
+		if (dragStep == 12) {
+			val detached: OverlayLayout.Entry = OverlayLayout.entries.first { it.overlay is InfoBoxes.Layer && it.overlay.name != InfoBoxes.DEFAULT_LAYER }
+			OverlayLayout.mousePressed(OverlayLayout.testMouseX, OverlayLayout.testMouseY, MouseLog.TYPE_PRESS_LEFT)
+			OverlayLayout.testButtonDown = true
+			OverlayLayout.testMouseX += boxes.x + boxes.width / 2 - (detached.x + detached.width / 2)
+			OverlayLayout.testMouseY += boxes.y + boxes.height / 2 - (detached.y + detached.height / 2)
+			dragFrame = frames
+			dragStep = 13
+			return false
+		}
+		if (dragStep == 13) {
+			OverlayLayout.testButtonDown = false
+			dragFrame = frames
+			dragStep = 14
+			return false
+		}
+		if (dragStep == 14) {
+			if (InfoBoxes.layers.size != 1 || (InfoBoxes.layers[InfoBoxes.DEFAULT_LAYER]?.boxes?.size ?: 0) != Skill.COUNT + 2) {
+				fail("dropped on the first infobox panel, the detached one did not merge back: " + InfoBoxes.layers.keys)
+				return true
+			}
+			dragSummary += " and dropped back on the first"
+			// Shift's menu on the panel
+			OverlayLayout.testKeyHeld = false
+			OverlayLayout.testShift = true
+			middle(panel, dragPoint)
+			OverlayLayout.testMouseX = dragPoint[0]
+			OverlayLayout.testMouseY = dragPoint[1]
+			dragFrame = frames
+			dragStep = 15
+			return false
+		}
+		if (dragStep == 15) {
+			if (OverlayLayout.editMode) {
+				fail("letting go of the drag key did not stop managing the panels")
+			}
+			val options: ArrayList<String> = ArrayList()
+			var node: Node? = MiniMenu.entryList.sentinel.previous
+			while (node != null && node !== MiniMenu.entryList.sentinel) {
+				if (node is MiniMenuEntry) {
+					options.add((node.opBase ?: "") + " " + OpponentInfo.removeTags(node.op ?: ""))
+				}
+				node = node.previous
+			}
+			if (!options.contains("Configure Boosts overlay") || !options.contains("Overlay Origin ")) {
+				fail("Shift over the boosts panel made the menu " + options + ", without Configure and Overlay Origin")
+			}
+			dragSummary += "; Shift's menu " + options.filter { it.startsWith("Configure") || it.startsWith("Overlay Origin") }
+			OverlayLayout.testShift = false
+			OverlayLayout.testKeyHeld = true
+			dragFrame = frames
+			dragStep = 16
+			return false
+		}
+		if (dragStep == 16) {
+			middle(panel, dragPoint)
+			if (!OverlayLayout.mousePressed(dragPoint[0], dragPoint[1], MouseLog.TYPE_PRESS_RIGHT)) {
+				fail("a right press on the boosts panel with the drag key held was not the layout's")
+			}
+			if (panel.overlay.preferredPosition != null || panel.overlay.hasPreferredLocation || OverlayLayout.config().get(panelKey + "_preferredPosition", "").isNotEmpty()) {
+				fail("the right press did not put the boosts panel back: " + panel.overlay.preferredPosition)
+			}
+			OverlayLayout.entryNamed(InfoBoxes.DEFAULT_LAYER)?.let { e ->
+				middle(e, dragPoint)
+				OverlayLayout.testMouseX = dragPoint[0]
+				OverlayLayout.testMouseY = dragPoint[1]
+			}
+			dragFrame = frames
+			dragStep = 17
+			return false
+		}
+		// the infobox panel put back too, and the mouse and key the player's again
+		OverlayLayout.entryNamed(InfoBoxes.DEFAULT_LAYER)?.let { e -> OverlayLayout.mousePressed(e.x + 2, e.y + 2, MouseLog.TYPE_PRESS_RIGHT) }
+		OverlayLayout.testKeyHeld = false
+		OverlayLayout.testMouse = false
+		dragSummary += "; Alt and a right click put it back"
+		firstImage += "; overlays: " + dragSummary
+		restoreBoosts()
+		return true
+	}
+
 	private fun opponentInfoDone(player: PlayerEntity): Boolean {
 		if (opponentStep == 0) {
 			var guide: NPCEntity? = null

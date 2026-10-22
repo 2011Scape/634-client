@@ -110,6 +110,9 @@ object MiniMenuAction {
 	/** Not part of the original client: a plugin's entry that opens a submenu (PluginRuntime.addSubmenu); clicking it does nothing. */
 	const val PLUGIN_SUBMENU: Int = 1013
 
+	/** Not part of the original client: an entry of a plugin panel's (shift and a right click on it, OverlayLayout.menuBuilt). */
+	const val OVERLAY_MENU: Int = 1014
+
 	/**
 	 * Not part of the original client: the click types the plugins' menu actions get
 	 * (PluginRuntime.registerMenuAction), one each, from 1100 up so that they sort below the

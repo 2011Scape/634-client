@@ -74,6 +74,18 @@ interface Graphics {
 	 * and nothing drawn, for the frame or two the icon takes to render.
 	 */
 	fun itemIcon(itemId: Int, quantity: Int, x: Int, y: Int): Boolean
+
+	/**
+	 * Moves what is drawn from now on by ([dx], [dy]), added to every point, clip included, until the end
+	 * of the overlay; how a [PanelOverlay] draws at (0, 0). Since API 12.
+	 */
+	fun translate(dx: Int, dy: Int)
+
+	/** Draws [image] with its top-left corner at ([x], [y]). False, and nothing drawn, when there is no toolkit to draw with. Since API 12. */
+	fun image(image: Image, x: Int, y: Int): Boolean
+
+	/** Draws [image] stretched to [width] by [height]. Since API 12. */
+	fun imageScaled(image: Image, x: Int, y: Int, width: Int, height: Int): Boolean
 }
 
 /** Where the game view is on the screen: its top-left corner and size, in screen pixels. */

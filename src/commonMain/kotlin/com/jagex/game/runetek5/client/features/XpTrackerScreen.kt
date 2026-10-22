@@ -274,7 +274,7 @@ object XpTrackerScreen {
 		val height: Int = if (state.compact) ICON + 8 else 64
 		children.add(ClientPage.rect(BODY, children.size, BOX_X, top, BOX_WIDTH, height, ClientPage.BEVEL_FILL, true))
 		children.add(ClientPage.rect(BODY, children.size, BOX_X, top, BOX_WIDTH, height, ClientPage.BOX_LINE, false))
-		children.add(ClientPage.sprite(BODY, children.size, BOX_X + 6, top + 4, ICON, ICON, XpTracker.ICONS[skill], false, false, false))
+		children.add(ClientPage.sprite(BODY, children.size, BOX_X + 6, top + 4, ICON, ICON, SkillSprites.ICONS[skill], false, false, false))
 		val textX: Int = BOX_X + 6 + ICON + 10
 		val barY: Int
 		if (state.compact) {
@@ -311,7 +311,7 @@ object XpTrackerScreen {
 	private fun bar(children: ArrayList<Component>, skill: Int, state: XpTrackerState, x: Int, y: Int, width: Int) {
 		children.add(ClientPage.rect(BODY, children.size, x, y, width, BAR_HEIGHT, BAR_BACKGROUND, true))
 		val filled: Int = (width * (state.progress() / 100.0)).toInt().coerceIn(0, width)
-		val fill: Component = ClientPage.rect(BODY, children.size, x, y, filled, BAR_HEIGHT, XpTracker.COLOURS[skill], true)
+		val fill: Component = ClientPage.rect(BODY, children.size, x, y, filled, BAR_HEIGHT, SkillSprites.COLOURS[skill], true)
 		if (state.isPaused()) {
 			fill.transparency = PAUSED_TRANSPARENCY
 		}

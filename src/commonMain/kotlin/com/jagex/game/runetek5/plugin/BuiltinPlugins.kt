@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.client.features.Boosts
 import com.jagex.game.runetek5.client.features.DiscordPresence
 import com.jagex.game.runetek5.client.features.GroundItems
 import com.jagex.game.runetek5.client.features.LootTracker
@@ -11,6 +12,7 @@ import com.jagex.game.runetek5.client.features.NamePlates
 import com.jagex.game.runetek5.client.features.NpcIndicators
 import com.jagex.game.runetek5.client.features.ObjectIndicators
 import com.jagex.game.runetek5.client.features.OpponentInfo
+import com.jagex.game.runetek5.client.features.OverlaySettings
 import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.client.features.XpTracker
 import com.jagex.game.runetek5.plugin.api.Plugin
@@ -40,6 +42,8 @@ object BuiltinPlugins {
 			builtIn(ObjectIndicators.DESCRIPTOR, ObjectIndicators),
 			builtIn(XpTracker.DESCRIPTOR, XpTracker),
 			builtIn(OpponentInfo.DESCRIPTOR, OpponentInfo),
+			builtIn(Boosts.DESCRIPTOR, Boosts),
+			builtIn(OverlaySettings.DESCRIPTOR, OverlaySettings),
 		)
 	}
 

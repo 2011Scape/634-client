@@ -41,7 +41,8 @@ It connects to [2011Scape](https://2011.rs) (`play.2011.rs`). For your own serve
 - **Any Void server**: choose the host, port and keys from the launcher.
 - **OpenGL on Linux, Windows and macOS**, through [LWJGL](https://www.lwjgl.org).
 - **Smooth and sharp**: up to 144 fps, a window scaled to your screen, and MSAA or SMAA.
-- **Extras**: ground items, a loot tracker, object markers, an XP tracker, opponent information, ground tiles, XP drops, name plates, an idle notifier, Discord presence,
+- **Extras**: ground items, a loot tracker, object markers, an XP tracker, opponent information, boosts information, ground tiles, XP drops, name plates, an idle notifier, Discord presence,
+  panels you move with Alt as in RuneLite,
   shift-drop, a longer render distance and a wider zoom.
 - **Developer tools**: ids on right-click menus, coordinates on screen, a better console.
 - **Plugins**: jars in `~/.634-client/plugins` that read the game, draw on it and add menu entries
@@ -88,6 +89,8 @@ are off unless the client is started with `--dev-commands`.
 | | Loot tracker, as RuneLite's: the loot of every kill, pickpocket and chest with its Grand Exchange and High Alchemy value, by source or kill by kill, remembered between sessions, in a window of its own. | `::loot` |
 | | XP tracker, as RuneLite's: experience gained and per hour, actions and time to level for every skill you train, in a window of its own and as boxes on the game view; pauses, resets and the tracking kept between sessions. | `::xp` |
 | | Opponent information, as RuneLite's: the name and health of what you are fighting at the top left, as lifepoints, a percentage or both, the Attack entries of your opponents marked, and a player's combat levels against yours from the hiscores. | `::opponentinfo` |
+| | Boosts information, as RuneLite's: boosted and drained skills as infoboxes, a panel or a compact list, in green, yellow or red by your boost threshold, with the seconds to the next boost wearing off and the next drain coming back, and a notification when a boost runs down. | `::boosts` |
+| | Moving the panels, as in RuneLite: hold Alt to drag any plugin's panel or infoboxes, drop it on a corner to snap it there, drag an edge to resize it, and Alt and right-click to put it back; Shift and right-click a panel for its settings and its origin. The fonts, colours and drag key are the Overlays settings in the plugin manager. | `::resetanchors` |
 | | Object markers, as RuneLite's: hold Shift and right-click an object to mark it; marked objects are drawn as a hull, an outline, a click box or their tiles, each marker in colours and styles of its own, kept between sessions in RuneLite's format. | `::objectmarkers` |
 | | NPC indicators, as RuneLite's: hold Shift and right-click an npc to tag it (or every npc of its name); tagged npcs are outlined, named over their heads and on the minimap, and their respawn is timed. | `::tag <name>`, `::untag <name>` |
 | | XP drops as Old School draws them, with RuneLite's XP Drop options: skill icons and "+N" rising by the minimap, in the middle or on the left, in five sizes, with an XP counter and a progress bar if you like, coloured by your active combat prayer; right-click the XP button by the minimap for Setup. | `::xpdrops` |
@@ -271,6 +274,9 @@ as a zip beside the jar.
 - [SMAA](https://github.com/iryoku/smaa) by Jorge Jimenez, Jose I. Echevarria, Belen Masia, Fernando
   Navarro and Diego Gutierrez, for the SMAA shader and lookup textures (MIT licence, in
   `src/jvmMain/resources/smaa/`).
+- [RuneLite](https://github.com/runelite/runelite), whose plugins the built-in ones follow, and for
+  the Boosts Information buff and debuff pictures (BSD 2-Clause licence, in
+  `src/commonMain/kotlin/com/jagex/game/runetek5/client/features/BoostImages.kt`).
 - [117HD](https://github.com/117HD/RLHD), for the lava flow map behind the fire cape and the lava
   and the water's normal, flow and foam maps (BSD 2-Clause licence, in
   `src/jvmMain/resources/634hd/materials/flow/`), for the per-area fog and ground fog of its

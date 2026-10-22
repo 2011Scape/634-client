@@ -2,9 +2,12 @@ package com.jagex.game.runetek5.client.features
 
 import com.jagex.game.runetek5.plugin.api.Actor
 import com.jagex.game.runetek5.plugin.api.ClientApi
-import com.jagex.game.runetek5.plugin.api.Font
 import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.Graphics
+import com.jagex.game.runetek5.plugin.api.PanelComponent
+import com.jagex.game.runetek5.plugin.api.PanelOverlay
+import com.jagex.game.runetek5.plugin.api.Size
+import com.jagex.game.runetek5.plugin.api.Task
 import com.jagex.game.runetek5.plugin.api.Viewport
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
@@ -13,7 +16,7 @@ import kotlin.math.round
 
 /**
  * Not part of the original client: Opponent Information's panel, RuneLite's OpponentInfoOverlay: the
- * opponent's name over its health bar, at the top left of the game view. The name, the bar and the most
+ * opponent's name over its health bar, at the top left of the game view (or where the player moved it). The name, the bar and the most
  * lifepoints are taken while the opponent's bar shows and kept between bars, as RuneLite keeps them. The
  * lifepoints are worked back from the bar as RuneLite does; with the most unknown the bar shows a
  * percentage whatever the style.
@@ -27,12 +30,7 @@ object OpponentInfoOverlay {
 	private const val GAP: Int = 2
 	private const val BAR_HEIGHT: Int = 16
 
-	/** Where the panel sits: the left edge and the top the other left-hand panels use. */
-	private const val LEFT: Int = 4
-	const val TOP: Int = 34
-
-	/** RuneLite's STANDARD_BACKGROUND_COLOR (70, 61, 50 at 156), HP_GREEN and HP_RED. */
-	private const val BACKGROUND: Int = 0x9C463D32.toInt()
+	/** RuneLite's HP_GREEN and HP_RED. */
 	private const val HP_GREEN: Int = 0xE6009236.toInt()
 	private const val HP_RED: Int = 0xE6660F10.toInt()
 
@@ -46,9 +44,22 @@ object OpponentInfoOverlay {
 	private var lastHealthScale: Int = 0
 	private var opponentName: String? = null
 
-	/** Where the panel ends (from the view's top; 0 when not drawn), for the left-hand panels below it. */
+	/**
+	 * The panel: RuneLite's OverlayPanel at the top left, before the other panels there (PRIORITY_HIGH),
+	 * resizable, with a Configure entry on shift and a right click.
+	 */
 	@JvmField
-	var panelBottom: Int = 0
+	val panel: PanelOverlay = object : PanelOverlay("OpponentInfoOverlay") {
+		init {
+			priority = PRIORITY_HIGH
+			resizable = true
+			addMenuEntry("Configure", "Opponent info overlay", Task { PluginManagerScreen.openSettings(OpponentInfo.DESCRIPTOR.id) })
+		}
+
+		override fun render(g: Graphics, view: Viewport): Size? = draw(g, this)
+	}
+
+	private val size: Size = Size()
 
 	/** The name and the bar's text drawn last frame (null when none), for the smoke test. */
 	@JvmField var drawnName: String? = null
@@ -60,37 +71,35 @@ object OpponentInfoOverlay {
 		lastRatio = 0
 		lastHealthScale = 0
 		opponentName = null
-		panelBottom = 0
 	}
 
+	/** The panel at (0, 0), on [overlay]'s background and as wide as the player made it; its size, or null when not shown. */
 	@JvmStatic
-	fun draw(g: Graphics, view: Viewport) {
-		panelBottom = 0
+	fun draw(g: Graphics, overlay: PanelOverlay): Size? {
 		drawnName = null
 		drawnLabel = null
 		val plugin: OpponentInfo = OpponentInfo
-		val client: ClientApi = plugin.context()?.client() ?: return
+		val client: ClientApi = plugin.context()?.client() ?: return null
 		if (!plugin.enabled || !g.fontReady() || client.gameState() !== GameState.LOGGED_IN) {
-			return
+			return null
 		}
 		val opponent: Actor? = plugin.lastOpponent
 		if (opponent == null) {
 			opponentName = null
-			return
+			return null
 		}
 		refresh(opponent)
-		val name: String = opponentName ?: return
+		val name: String = opponentName ?: return null
 		if (!plugin.showOpponentHealthOverlay) {
-			return
+			return null
 		}
-		g.font(Font.REGULAR)
 		val lineHeight: Int = g.fontHeight()
-		val width: Int = maxOf(STANDARD_WIDTH, g.textWidth(name) + STANDARD_BORDER + STANDARD_BORDER)
+		val width: Int = if (overlay.preferredWidth > 0) overlay.preferredWidth else maxOf(STANDARD_WIDTH, g.textWidth(name) + STANDARD_BORDER + STANDARD_BORDER)
 		val showBar: Boolean = lastRatio >= 0 && lastHealthScale > 0
 		val height: Int = BORDER + lineHeight + (if (showBar) GAP + BAR_HEIGHT else 0) + BORDER
-		val x: Int = view.x + LEFT
-		val top: Int = view.y + TOP
-		g.fillRect(x, top, width, height, BACKGROUND)
+		val x: Int = 0
+		val top: Int = 0
+		PanelComponent.background(g, x, top, width, height, overlay.backgroundColour)
 		g.textCentered(x + width / 2, top + BORDER + lineHeight - 2, name, WHITE, BLACK)
 		drawnName = name
 		if (showBar) {
@@ -100,7 +109,7 @@ object OpponentInfoOverlay {
 			val label: String = bar(g, barX, barY, barWidth, plugin.hitpointsDisplayStyle)
 			drawnLabel = label
 		}
-		panelBottom = top + height - view.y
+		return size.set(width, height)
 	}
 
 	/** RuneLite's refresh: while the bar shows, the opponent's name, bar and most lifepoints. */
