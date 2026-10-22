@@ -40,7 +40,7 @@ import kotlin.jvm.JvmStatic
 object ObjectIndicators : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("objectindicators", "Object Markers", "1", PluginApi.VERSION, "RuneLite's Object Markers: Shift right-click an object to mark it; marked objects are outlined (hull, outline, click box or tiles) in a colour of their own, kept between sessions in RuneLite's format.", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("objectindicators", "Object Markers", "1", PluginApi.VERSION, "Mark objects with an outline, hull, click box or tile highlight in a colour of your choice (Shift right-click an object). Marks are saved between sessions.", "Pixel")
 
 	/** One marker, RuneLite's ObjectPoint: the base id and the name it had, where (a 64x64 map region and the tile in it), and its own colours and styles (null: the settings'). */
 	class ObjectPoint(@JvmField val id: Int, @JvmField val name: String, @JvmField val regionId: Int, @JvmField val regionX: Int, @JvmField val regionY: Int, @JvmField val z: Int) {

@@ -43,7 +43,7 @@ import kotlin.jvm.JvmStatic
 object NpcIndicators : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("npcindicators", "NPC Indicators", "2", PluginApi.VERSION, "Highlights the npcs you tag (Shift right-click: Tag, Tag-All) by hull or tile, names them, colours their menu entries and times their respawn (::tag <name>, ::untag <name>).", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("npcindicators", "NPC Indicators", "2", PluginApi.VERSION, "Highlights the npcs you tag (Shift right-click: Tag or Tag-All) with an outline or tile, shows their names, colours their menu entries and times their respawn (::tag <name>, ::untag <name>).", "Pixel")
 
 	/** The colours the settings offer, cyan first as RuneLite has it. */
 	@JvmField

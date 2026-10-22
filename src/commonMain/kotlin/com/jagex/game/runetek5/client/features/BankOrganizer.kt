@@ -37,7 +37,7 @@ import kotlin.jvm.JvmStatic
 object BankOrganizer : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("bankorganizer", "Bank Organizer", "1", PluginApi.VERSION, "Boxes over bank items by category (melee, magic, range, skilling, potions, slayer loot, tools, food, farming, outfits), each in its own colour, and quest items to keep or discard (::bankorganizer turns it on and off).", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("bankorganizer", "Bank Organizer", "1", PluginApi.VERSION, "Colours bank items by category (melee, magic, ranged, skilling, potions, food, tools, farming, slayer loot, outfits) and marks quest items to keep or discard.", "Pixel")
 
 	/** The bank's interface and its item grid. */
 	const val BANK_INTERFACE: Int = 762

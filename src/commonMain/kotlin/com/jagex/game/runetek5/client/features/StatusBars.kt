@@ -38,7 +38,7 @@ import kotlin.jvm.JvmStatic
 object StatusBars : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("statusbars", "Status Bars", "1", PluginApi.VERSION, "Draws status bars next to the side panel with lifepoints, prayer, run energy, special attack or summoning (::statusbars turns it on and off).", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("statusbars", "Status Bars", "1", PluginApi.VERSION, "Shows lifepoints, prayer, run energy, special attack or summoning as bars beside the side panel, with optional counters and icons, and how much a hovered food or potion would restore.", "Pixel")
 
 	/** RuneLite's BarMode, as the settings show them; Summoning in Warmth's place. */
 	@JvmField

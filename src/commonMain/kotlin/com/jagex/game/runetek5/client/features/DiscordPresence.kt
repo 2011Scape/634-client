@@ -41,7 +41,7 @@ import kotlin.jvm.JvmField
 object DiscordPresence : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("discord", "Discord", "1", PluginApi.VERSION, "Shows what you are doing in the Discord user panel: the skill you train, where you are (cities, dungeons, minigames, bosses, regions), and for how long (::discord turns it on and off, ::discord status reports the connection).", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("discord", "Discord", "1", PluginApi.VERSION, "Shows what you are doing on your Discord profile: the skill you are training, where you are and for how long (::discord status checks the connection).", "Pixel")
 
 	/** The Discord application "Void Client", whose uploaded art the image keys name. */
 	const val APPLICATION_ID: String = "1562513489396768839"

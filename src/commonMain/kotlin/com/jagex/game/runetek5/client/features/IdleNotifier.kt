@@ -42,7 +42,7 @@ import kotlin.jvm.JvmField
 object IdleNotifier : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("idle", "Idle notifier", "2", PluginApi.VERSION, "Says when you stop skilling, fighting or moving, when you have been away from the keyboard, and when life points, prayer or energy cross a threshold: in the chat, a red frame, a sound or on the desktop (::idle turns it on and off, ::idle <seconds> sets the wait).", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("idle", "Idle notifier", "2", PluginApi.VERSION, "Alerts you when you stop skilling, fighting or moving, go away from the keyboard, or when life points, prayer or run energy cross a threshold: by chat message, red screen border, sound or desktop notification (::idle <seconds> sets the wait).", "Pixel")
 
 	private const val MIN_SECONDS: Int = 2
 

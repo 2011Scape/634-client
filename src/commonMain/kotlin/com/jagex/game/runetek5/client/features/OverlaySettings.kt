@@ -26,7 +26,7 @@ import kotlin.jvm.JvmStatic
 object OverlaySettings : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("overlays", "Overlays", "1", PluginApi.VERSION, "How the plugins' panels, infoboxes and tooltips look, and the key held to move them (Alt: drag a panel, drop it on a corner, Alt and right-click to put it back).", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("overlays", "Overlays", "1", PluginApi.VERSION, "Sets the fonts, colour and infobox size of plugin overlays, and the key that moves them: hold Alt to drag a panel, Alt and right-click to put it back.", "Pixel")
 
 	/** RuneLite's FontType, in the client's three fonts. */
 	@JvmField
