@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.client.features.BankOrganizer
+import com.jagex.game.runetek5.client.features.BarrowsBrothers
 import com.jagex.game.runetek5.client.features.Boosts
 import com.jagex.game.runetek5.client.features.DiscordPresence
 import com.jagex.game.runetek5.client.features.GroundItems
@@ -54,6 +55,7 @@ object BuiltinPlugins {
 			builtIn(TimersAndBuffs.DESCRIPTOR, TimersAndBuffs),
 			builtIn(TileIndicators.DESCRIPTOR, TileIndicators),
 			builtIn(XpGlobes.DESCRIPTOR, XpGlobes),
+			builtIn(BarrowsBrothers.DESCRIPTOR, BarrowsBrothers),
 		)
 	}
 

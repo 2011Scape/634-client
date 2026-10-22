@@ -41,6 +41,13 @@ interface Widget {
 
 	fun isHidden(): Boolean
 
+	/**
+	 * Hides the component (and what is inside it) or shows it again, on this client only, as RuneLite's
+	 * Widget.setHidden: the server and the interface's scripts may show it again, so a plugin that keeps
+	 * one hidden sets it each tick, and shows it again when it stops. Since API 17.
+	 */
+	fun setHidden(hidden: Boolean)
+
 	/** The item the component shows (an inventory slot, a shop's stock), or -1. */
 	fun itemId(): Int
 

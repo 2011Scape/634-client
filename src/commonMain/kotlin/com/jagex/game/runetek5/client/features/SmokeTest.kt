@@ -280,6 +280,17 @@ object SmokeTest {
 
 	private var globesFrame: Int = -1
 
+	/**
+	 * client.test.barrows: Barrows Brothers on the Void server: teleported to the hills (the brothers'
+	 * letters on the minimap), into Dharok's crypt (the server's overlay, the panel in its place, the prayer
+	 * drain timer), the puzzle door's window opened here with a puzzle's models (the answer outlined), and home.
+	 */
+	private val BARROWS: Boolean = "true" == lang.getProperty("client.test.barrows")
+
+	private var barrowsStep: Int = 0
+
+	private var barrowsFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -344,6 +355,9 @@ object SmokeTest {
 	private const val FIXED_TAB_AREA_WIDTH: Int = 190
 
 	private const val BANK_WAIT_FRAMES: Int = 500
+
+	/** How long a teleport (and the crypt overlay the server opens with it) may take. */
+	private const val BARROWS_WAIT_FRAMES: Int = 500
 
 	private var markerStep: Int = 0
 
@@ -1129,6 +1143,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 262144
+		}
+		if (BARROWS && (checksDone and 524288) == 0) {
+			if (!barrowsDone()) {
+				return
+			}
+			checksDone = checksDone or 524288
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3290,6 +3310,117 @@ object SmokeTest {
 		OverlayLayout.testMouse = false
 		XpGlobes.globes.clear()
 		return true
+	}
+
+	private fun barrowsDone(): Boolean {
+		val api = ClientApiImpl
+		if (barrowsStep == 0) {
+			BarrowsBrothers.enabled = true
+			sendCommand("tele 3565 3290 0")
+			barrowsFrame = frames
+			barrowsStep = 1
+			return false
+		}
+		if (barrowsStep == 1) {
+			if (api.regionId() != BarrowsBrothers.BARROWS_REGION || frames - barrowsFrame < MARKER_FRAMES) {
+				if (frames - barrowsFrame > BARROWS_WAIT_FRAMES) {
+					fail("the teleport to the Barrows hills left the player in region " + api.regionId())
+					return true
+				}
+				return false
+			}
+			if (BarrowsOverlay.drawnLetters != BarrowsBrothers.BROTHERS.size) {
+				fail("Barrows Brothers drew " + BarrowsOverlay.drawnLetters + " letters on the minimap, not " + BarrowsBrothers.BROTHERS.size)
+				return true
+			}
+			saveFrame("build/smoke/frame-barrows-minimap.png")
+			println("SMOKE barrows: " + BarrowsOverlay.drawnLetters + " letters on the minimap")
+			sendCommand("tele 3556 9716 3")
+			barrowsFrame = frames
+			barrowsStep = 2
+			return false
+		}
+		if (barrowsStep == 2) {
+			if (!BarrowsBrothers.overlayOpen || frames - barrowsFrame < MARKER_FRAMES) {
+				if (frames - barrowsFrame > BARROWS_WAIT_FRAMES) {
+					fail("the crypt's overlay (" + BarrowsBrothers.OVERLAY_INTERFACE + ") did not open; region " + api.regionId())
+					return true
+				}
+				return false
+			}
+			if (BarrowsOverlay.drawnLines != BarrowsBrothers.BROTHERS.size || BarrowsBrothers.prayerDrainTimer == null) {
+				fail("Barrows panel drew " + BarrowsOverlay.drawnLines + " brothers; prayer timer " + BarrowsBrothers.prayerDrainTimer)
+				return true
+			}
+			for (component in BarrowsBrothers.OVERLAY_HIDDEN) {
+				if (api.widget(BarrowsBrothers.OVERLAY_INTERFACE, component)?.isHidden() != true) {
+					fail("the crypt overlay's component " + component + " is not hidden behind the panel")
+					return true
+				}
+			}
+			saveFrame("build/smoke/frame-barrows.png")
+			println("SMOKE barrows: panel of " + BarrowsOverlay.drawnLines + " brothers, potential " + BarrowsOverlay.drawnPotential + ", prayer drain timer " + BarrowsBrothers.prayerDrainTimer?.text())
+			val parent: Int = freeModalParent()
+			if (parent == -1) {
+				fail("no free container to open the Barrows puzzle into")
+				return true
+			}
+			openSubInterface(BarrowsBrothers.PUZZLE_INTERFACE, parent, SubInterfaceType.MODAL)
+			barrowsFrame = frames
+			barrowsStep = 3
+			return false
+		}
+		if (barrowsStep == 3) {
+			// Void's "squares" puzzle: the sequence 6722-6724, the answer 6719 (the first less 3) put in the middle choice
+			val models: IntArray = intArrayOf(6, 6722, 7, 6723, 8, 6724, 2, 6721, 3, 6719, 5, 6720)
+			for (i in 0 until models.size / 2) {
+				val component: Component? = Interface.interfaces!![BarrowsBrothers.PUZZLE_INTERFACE]?.getOrNull(models[i * 2])
+				if (component == null) {
+					fail("the Barrows puzzle has no component " + models[i * 2])
+					return true
+				}
+				component.mediaType = MediaType.RAW_MODEL
+				component.primaryMediaId = models[i * 2 + 1]
+			}
+			barrowsFrame = frames
+			barrowsStep = 4
+			return false
+		}
+		if (barrowsStep == 4) {
+			if (frames - barrowsFrame < MARKER_FRAMES) {
+				return false
+			}
+			if (BarrowsOverlay.drawnAnswer?.componentId() != 3) {
+				fail("the Barrows puzzle outlined " + BarrowsOverlay.drawnAnswer?.componentId() + ", not the answer 3 (puzzle open " + BarrowsBrothers.puzzleOpen + ")")
+				closeModals()
+				return true
+			}
+			saveFrame("build/smoke/frame-barrows-puzzle.png")
+			println("SMOKE barrows: puzzle answer outlined at 25:3")
+			closeModals()
+			sendCommand("tele 3094 3107 0")
+			barrowsFrame = frames
+			barrowsStep = 5
+			return false
+		}
+		if (api.regionId() == BarrowsBrothers.CRYPT_REGION || frames - barrowsFrame < MARKER_FRAMES) {
+			return frames - barrowsFrame > BARROWS_WAIT_FRAMES
+		}
+		if (BarrowsBrothers.prayerDrainTimer != null) {
+			fail("the prayer drain timer outlived the crypt")
+		}
+		return true
+	}
+
+	/** The first container of the root interface with nothing open in it, as subInterfacesDone finds one; -1 for none. */
+	private fun freeModalParent(): Int {
+		val root: Array<Component?> = Interface.interfaces!![ClientState.BASE_WINDOW_ID] ?: return -1
+		for (c in root) {
+			if (c != null && c.type === ComponentType.CONTAINER && c.parentId != -1 && InterfaceManager.OPEN_INTERFACES.get(c.idHash.toLong()) == null) {
+				return c.idHash
+			}
+		}
+		return -1
 	}
 
 	/**

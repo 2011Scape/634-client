@@ -113,3 +113,38 @@ open class Timer(name: String, @JvmField val durationMillis: Long) : InfoBox(nam
 		const val RED_BRIGHTER: Int = 0xFFFF0000.toInt()
 	}
 }
+
+/**
+ * RuneLite's LoopTimer: a timer that starts again each time [periodMillis] runs out, as m:ss, red in the
+ * last tenth of a loop; the time left in the loop when [reverse], else the time gone. [reset] starts the
+ * loop again from now. Since API 17.
+ */
+open class LoopTimer(name: String, @JvmField val periodMillis: Long, @JvmField val reverse: Boolean) : InfoBox(name) {
+	private var start: TimeSource.Monotonic.ValueTimeMark = TimeSource.Monotonic.markNow()
+
+	init {
+		require(periodMillis > 0L) { "negative period!" }
+	}
+
+	/** Starts the loop again from now. */
+	fun reset() {
+		start = TimeSource.Monotonic.markNow()
+	}
+
+	/** Milliseconds gone in this loop, or left of it when [reverse]. */
+	fun progressMillis(): Long {
+		val progress: Long = start.elapsedNow().inWholeMilliseconds % periodMillis
+		return if (reverse) periodMillis - progress else progress
+	}
+
+	override fun text(): String? {
+		val seconds: Long = progressMillis() / 1000L
+		val secondsPart: Long = seconds % 60L
+		return ((seconds % 3600L) / 60L).toString() + ":" + (if (secondsPart < 10L) "0" else "") + secondsPart
+	}
+
+	override fun textColour(): Int {
+		// RuneLite compares whole seconds against a tenth of the period's seconds
+		return if (progressMillis() / 1000L < (periodMillis / 1000L) * 0.10) Timer.RED_BRIGHTER else Counter.WHITE
+	}
+}
