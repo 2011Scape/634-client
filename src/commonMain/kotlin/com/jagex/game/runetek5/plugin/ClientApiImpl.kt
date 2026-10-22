@@ -823,4 +823,15 @@ object ClientApiImpl : ClientApi {
 		}
 		return QuestProgress.state(values, starts, ends)
 	}
+
+	// the flag is -1 when there is none; a region change also moves a cleared one by the change (MapBuildStart), so
+	// only a tile inside the scene, past its edge row, counts
+	override fun destinationTileX(): Int = if (hasDestination()) Minimap.minimapFlagX else -1
+
+	override fun destinationTileY(): Int = if (hasDestination()) Minimap.minimapFlagY else -1
+
+	private fun hasDestination(): Boolean {
+		val size: Int = sceneSize()
+		return Minimap.minimapFlagX in 1 until size && Minimap.minimapFlagY in 1 until size
+	}
 }

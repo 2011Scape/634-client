@@ -266,6 +266,13 @@ object SmokeTest {
 
 	private var timersFrame: Int = -1
 
+	/** client.test.tileIndicators: Tile Indicators' destination (the minimap flag two tiles east) and true tile drawn. */
+	private val TILE_INDICATORS: Boolean = "true" == lang.getProperty("client.test.tileIndicators")
+
+	private var tileStep: Int = 0
+
+	private var tileFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1095,6 +1102,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 65536
+		}
+		if (TILE_INDICATORS && (checksDone and 131072) == 0) {
+			if (!tileIndicatorsDone(player)) {
+				return
+			}
+			checksDone = checksDone or 131072
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3211,6 +3224,38 @@ object SmokeTest {
 	 * The kill is the Loot Tracker's, under the guide's name; the loot window opens on it (grouped), a
 	 * frame of it, then kill by kill, and it closes. Frame in build/smoke as -loottracker.
 	 */
+	/**
+	 * Tile Indicators with all three tiles on: the minimap's flag set two tiles east of the player stands for a
+	 * walk's destination; the destination and the true tile must be drawn (the hovered one needs the mouse
+	 * over the game). Frame: frame-tileindicators.png.
+	 */
+	private fun tileIndicatorsDone(player: PlayerEntity): Boolean {
+		if (tileStep == 0) {
+			TileIndicators.enabled = true
+			TileIndicators.highlightDestinationTile = true
+			TileIndicators.highlightHoveredTile = true
+			TileIndicators.highlightCurrentTile = true
+			Minimap.minimapFlagX = player.movementBaseX[0] + 2
+			Minimap.minimapFlagY = player.movementBaseY[0]
+			tileFrame = frames
+			tileStep = 1
+			return false
+		}
+		if (frames - tileFrame < MARKER_FRAMES) {
+			return false
+		}
+		val drawn: BooleanArray = TileIndicators.drawn
+		if (!drawn[0] || !drawn[2]) {
+			fail("Tile Indicators drew the destination " + drawn[0] + " and the true tile " + drawn[2] + " (flag " + Minimap.minimapFlagX + "," + Minimap.minimapFlagY + ", API " + ClientApiImpl.destinationTileX() + ")")
+			return true
+		}
+		saveFrame("build/smoke/frame-tileindicators.png")
+		println("SMOKE tile indicators: destination " + ClientApiImpl.destinationTileX() + "," + ClientApiImpl.destinationTileY() + " and true tile drawn, hovered " + drawn[1])
+		Minimap.resetMinimapFlag()
+		TileIndicators.enabled = false
+		return true
+	}
+
 	/**
 	 * Timers and Buffs: an antifire and a teleblock line through the runtime's chat hook (the plugin's own
 	 * listener), an antipoison's protection on the poison varp and a vengeance cast; their infoboxes (item
