@@ -14,6 +14,7 @@ import com.jagex.game.runetek5.client.features.NpcIndicators
 import com.jagex.game.runetek5.client.features.ObjectIndicators
 import com.jagex.game.runetek5.client.features.OpponentInfo
 import com.jagex.game.runetek5.client.features.OverlaySettings
+import com.jagex.game.runetek5.client.features.StatusBars
 import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.client.features.XpTracker
 import com.jagex.game.runetek5.plugin.api.Plugin
@@ -46,6 +47,7 @@ object BuiltinPlugins {
 			builtIn(Boosts.DESCRIPTOR, Boosts),
 			builtIn(OverlaySettings.DESCRIPTOR, OverlaySettings),
 			builtIn(BankOrganizer.DESCRIPTOR, BankOrganizer),
+			builtIn(StatusBars.DESCRIPTOR, StatusBars),
 		)
 	}
 
