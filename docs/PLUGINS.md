@@ -8,7 +8,8 @@ the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Disc
 (`DiscordPresence`), the ground items (`GroundItems`), the loot tracker (`LootTracker`), the
 object markers (`ObjectIndicators`), the XP tracker (`XpTracker`), the opponent information
 (`OpponentInfo`), the boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the
-status bars (`StatusBars`) and the timers (`TimersAndBuffs`) are seventeen, built in, so the client's own code shows the way.
+status bars (`StatusBars`), the timers (`TimersAndBuffs`) and the tile indicators (`TileIndicators`) are
+eighteen, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -334,6 +335,11 @@ on death, as RuneLite's. A freeze lasts as RuneLite's (half under Protect from M
 goes once you move; Charge counts only when cast with nothing targeted (the god spells share its
 animation). Not here from RuneLite: Old School's potions, items and spells (stamina, divine potions,
 imbued heart, Arceuus spells, raids supplies and so on).
+
+**Tile Indicators** is RuneLite's. The tile you are walking to (the minimap's flag), the tile under the
+mouse and your true tile (where the server has you, ahead of your model while you walk), each with its
+own switch, border colour, fill colour and border width, in RuneLite's defaults: the destination on, grey,
+the other two off. Not here from RuneLite: its cutscene check (634 has no such flag).
 
 ## Writing a plugin
 

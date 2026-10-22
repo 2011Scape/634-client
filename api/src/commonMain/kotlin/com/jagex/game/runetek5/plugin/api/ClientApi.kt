@@ -377,4 +377,12 @@ interface ClientApi {
 	 * started at or past its start. [QuestState.NOT_STARTED] for an id the cache does not have. Since API 13.
 	 */
 	fun questState(id: Int): Int
+
+	/**
+	 * The scene tile the player is walking to, the minimap's flag: its x and y, -1 when there is none
+	 * (RuneLite's local destination). On the local player's level. Since API 15.
+	 */
+	fun destinationTileX(): Int
+
+	fun destinationTileY(): Int
 }

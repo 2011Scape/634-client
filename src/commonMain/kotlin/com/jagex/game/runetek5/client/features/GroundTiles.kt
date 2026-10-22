@@ -506,21 +506,12 @@ object GroundTiles : Plugin {
 
 	/** One tile: its fill, its border and its label (or the label being typed); false when it is off the screen. */
 	private fun drawTile(g: Graphics, view: Viewport, client: ClientApi, marker: Marker, sceneX: Int, sceneY: Int, level: Int): Boolean {
-		if (!client.tilePolygon(sceneX, sceneY, level, 1, xs, ys)) {
+		if (!TileOutline.draw(g, view, client, sceneX, sceneY, level, 1, marker.colour, (fillOpacity shl 24) or (marker.colour and 0xFFFFFF), borderWidth, xs, ys)) {
 			return false
 		}
 		for (i in 0 until 4) {
-			xs[i] += view.x
-			ys[i] += view.y
 			lastCorners[i * 2] = xs[i]
 			lastCorners[i * 2 + 1] = ys[i]
-		}
-		if (fillOpacity > 0) {
-			g.fillPolygon(xs, ys, 4, (fillOpacity shl 24) or (marker.colour and 0xFFFFFF))
-		}
-		for (i in 0 until 4) {
-			val j: Int = if (i == 3) 0 else i + 1
-			g.thickLine(xs[i], ys[i], xs[j], ys[j], borderWidth, marker.colour)
 		}
 		val label: String? = if (labelling === marker) labelText.toString() + "_" else marker.label
 		if (label != null && g.fontReady() && client.projectTile(sceneX, sceneY, level, 0, point)) {
