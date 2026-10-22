@@ -50,6 +50,14 @@ object ClientPage {
 	const val TICK_MARK: Int = 8
 	const val ITEM_HEIGHT: Int = 15
 
+	/** A dropdown list's own scrollbar, its smallest thumb, the window's title bar it stays under, the gap it keeps from the window's edge, its fewest rows, and the rows a turn of the wheel moves. */
+	const val POPUP_SCROLLBAR: Int = 8
+	const val THUMB_MIN: Int = 12
+	const val POPUP_TITLE: Int = 29
+	const val POPUP_MARGIN: Int = 4
+	const val POPUP_MIN_ROWS: Int = 4
+	const val POPUP_WHEEL_ROWS: Int = 2
+
 	@JvmField
 	val BUTTON_NORMAL: IntArray = intArrayOf(4037, 4031, 4034)
 
@@ -262,7 +270,7 @@ object ClientPage {
 	 * as their click and the cache's hover script 1356; a click anywhere on the window root closes it
 	 * (`[sentinel, closeAction, 0]`, script 2696's way). One list is open at a time.
 	 */
-	class Popup(private val root: Int, private val body: Int, private val popup: Int, private val items: Int, private val scroll: Int, private val sentinel: Int, private val itemAction: Int, private val closeAction: Int) {
+	class Popup(private val root: Int, private val body: Int, private val popup: Int, private val items: Int, private val scroll: Int, private val sentinel: Int, private val itemAction: Int, private val closeAction: Int, private val wheelAction: Int = -1) {
 
 		@JvmField
 		var values: Array<String> = arrayOf()
@@ -280,15 +288,22 @@ object ClientPage {
 			val popupComponent: Component = Interface.getComponent(popup) ?: return
 			val itemsComponent: Component = Interface.getComponent(items) ?: return
 			this.values = values
-			val height: Int = ITEM_HEIGHT * values.size + 2
-			var y: Int = rootComponent.y + bodyComponent.y - bodyComponent.scrollY + hit.y + hit.height - 1
+			// under the box, or above it when there is more room there; a list longer than the room scrolls (with a wheel action to scroll by)
+			val hitTop: Int = rootComponent.y + bodyComponent.y - bodyComponent.scrollY + hit.y
+			val below: Int = rootComponent.y + rootComponent.height - (hitTop + hit.height - 1) - POPUP_MARGIN
+			val above: Int = hitTop + 1 - (rootComponent.y + POPUP_TITLE) - POPUP_MARGIN
+			val room: Int = if (wheelAction >= 0) maxOf(below, above) else Int.MAX_VALUE
+			val rows: Int = minOf(values.size, maxOf(POPUP_MIN_ROWS, (room - 2) / ITEM_HEIGHT))
+			scrolls = rows < values.size
+			val height: Int = ITEM_HEIGHT * rows + 2
+			var y: Int = hitTop + hit.height - 1
 			if (y + height > rootComponent.y + rootComponent.height) {
-				y = rootComponent.y + bodyComponent.y - bodyComponent.scrollY + hit.y - height + 1
+				y = hitTop - height + 1
 			}
 			place(popupComponent, rootComponent.x + bodyComponent.x - bodyComponent.scrollX + hit.x, y, hit.width, height)
 			popupComponent.hidden = false
 			InterfaceManager.relayoutAgainstParent(popupComponent)
-			itemsComponent.baseWidth = 2
+			itemsComponent.baseWidth = if (scrolls) 2 + POPUP_SCROLLBAR else 2
 			itemsComponent.aspectWidthType = 1
 			val children: Array<Component?> = arrayOfNulls(values.size)
 			for (i in values.indices) {
@@ -305,10 +320,22 @@ object ClientPage {
 			}
 			itemsComponent.slotChildren = children
 			itemsComponent.scrollWidth = 0
-			itemsComponent.scrollHeight = 0
+			itemsComponent.scrollHeight = if (scrolls) ITEM_HEIGHT * values.size else 0
+			itemsComponent.scrollY = 0
+			itemsComponent.hasScript = scrolls
+			itemsComponent.onMouseMove = if (scrolls) arrayOf<Any?>(sentinel, wheelAction, 0) else null
 			val scrollComponent: Component? = Interface.getComponent(scroll)
 			if (scrollComponent != null) {
 				scrollComponent.hidden = true
+			}
+			// our own scrollbar beside the items, as the settings page has one: a track and a thumb
+			popupComponent.slotChildren = if (scrolls) {
+				arrayOf<Component?>(
+					rect(popup, 0, hit.width - POPUP_SCROLLBAR, 1, POPUP_SCROLLBAR - 1, height - 2, BOX_FILL, true),
+					rect(popup, 1, hit.width - POPUP_SCROLLBAR, 1, POPUP_SCROLLBAR - 1, maxOf(THUMB_MIN, (height - 2) * rows / values.size), TEXT_TOP, true),
+				)
+			} else {
+				null
 			}
 			Component.layoutChildren(false, popupComponent)
 			Component.redrawComponent(popupComponent)
@@ -318,19 +345,53 @@ object ClientPage {
 			open = true
 		}
 
+		/** Whether the open list is longer than its room, and scrolls. */
+		@JvmField
+		var scrolls: Boolean = false
+
+		/** Scrolls the open list by [turns] of the wheel (positive downwards), held to its ends; the thumb follows. */
+		fun scrollBy(turns: Int) {
+			if (!open || !scrolls) {
+				return
+			}
+			val popupComponent: Component = Interface.getComponent(popup) ?: return
+			val itemsComponent: Component = Interface.getComponent(items) ?: return
+			val visible: Int = itemsComponent.height
+			val most: Int = maxOf(0, itemsComponent.scrollHeight - visible)
+			itemsComponent.scrollY = (itemsComponent.scrollY + turns * ITEM_HEIGHT * POPUP_WHEEL_ROWS).coerceIn(0, most)
+			val thumb: Component? = popupComponent.slotChildren?.getOrNull(1)
+			if (thumb != null && most > 0) {
+				thumb.basePositionY = 1 + (popupComponent.height - 2 - thumb.baseHeight) * itemsComponent.scrollY / most
+				Component.layoutChildren(false, popupComponent)
+			}
+			Component.redrawComponent(popupComponent)
+		}
+
+		/** The open list's scroll position and its most, for the smoke test. */
+		fun scrollPosition(): IntArray {
+			val itemsComponent: Component = Interface.getComponent(items) ?: return intArrayOf(0, 0)
+			return intArrayOf(itemsComponent.scrollY, maxOf(0, itemsComponent.scrollHeight - itemsComponent.height))
+		}
+
 		fun close() {
 			if (!open) {
 				return
 			}
 			open = false
+			scrolls = false
 			val popupComponent: Component? = Interface.getComponent(popup)
 			if (popupComponent != null) {
 				popupComponent.hidden = true
+				popupComponent.slotChildren = null
 				Component.redrawComponent(popupComponent)
 			}
 			val itemsComponent: Component? = Interface.getComponent(items)
 			if (itemsComponent != null) {
 				itemsComponent.slotChildren = null
+				itemsComponent.scrollY = 0
+				itemsComponent.scrollHeight = 0
+				itemsComponent.hasScript = false
+				itemsComponent.onMouseMove = null
 			}
 			val rootComponent: Component? = Interface.getComponent(root)
 			if (rootComponent != null) {

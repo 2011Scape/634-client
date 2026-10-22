@@ -96,11 +96,11 @@ The reply's fields land in the named statics the CS2 `USERDETAIL_*` ops read:
 
 Each step changes `ClientState.mainLogicStep` through `setMainLogicStep`. The steps are listed in `MainLogicStep`.
 
-## Example: experience drops
+## Example: XP drops
 
 `client/features/XpDrops` reads an existing packet without changing how it is decoded: the
 `UPDATE_STAT` branch of `PacketDecoder.decode` reads the level, skill id and experience, and calls
-`XpDrops.statUpdated(skillId, client.statXp[skillId], xp)` before it stores the new experience. The
-stat arrays (`client.statXp`, `client.statLevels`) are in the root `client`, out of reach of
-packaged code, so the decoder passes the values. The drops are drawn after the scene in
-`ClientState.drawGameArea`, with `Renderers.FONT_RENDERER`.
+`PluginRuntime.statChanged(skillId, client.statXp[skillId], xp, level)` before it stores the new
+experience. The stat arrays (`client.statXp`, `client.statLevels`) are in the root `client`, out of
+reach of packaged code, so the decoder passes the values; the plugins hear them as `StatChanged`, and
+XP Drops draws its drops through its overlay (`XpDropsOverlay`).

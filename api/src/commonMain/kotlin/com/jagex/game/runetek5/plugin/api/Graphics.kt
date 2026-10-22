@@ -62,10 +62,10 @@ interface Graphics {
 	/** Draws sprite [id] stretched to [width] by [height]. */
 	fun spriteScaled(id: Int, x: Int, y: Int, width: Int, height: Int): Boolean
 
-	/** The width of sprite [id], or 0 until it is loaded. */
+	/** The width of sprite [id] as [sprite] draws it (its padding included), or 0 until it is loaded. */
 	fun spriteWidth(id: Int): Int
 
-	/** The height of sprite [id], or 0 until it is loaded. */
+	/** The height of sprite [id] as [sprite] draws it (its padding included), or 0 until it is loaded. */
 	fun spriteHeight(id: Int): Int
 
 	/**

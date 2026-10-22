@@ -2,7 +2,7 @@
 
 How to add to the client without changing it: a plugin is a jar in a folder, written against a
 small, stable API, that reads the game, draws on it, adds menu entries and commands, and keeps its
-own settings. The experience drops (`XpDrops`), the idle notifier (`IdleNotifier`), the menu
+own settings. The XP drops (`XpDrops`), the idle notifier (`IdleNotifier`), the menu
 swapper (`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name plates (`NamePlates`),
 the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Discord presence
 (`DiscordPresence`), the ground items (`GroundItems`), the loot tracker (`LootTracker`), the
@@ -104,7 +104,7 @@ stack trace is in the client's log (the launcher keeps it in `~/.void/logs`).
 ## The built-in plugins
 
 Twelve plugins come with the client, on the same API as the ones from the plugins folder, each with
-its switch in the Plugins window: experience drops (`::xpdrops`), the idle notifier (`::idle`), the
+its switch in the Plugins window: XP drops (`::xpdrops`), the idle notifier (`::idle`), the
 menu entry swapper (`::menuswapper`), the inventory value (`::invvalue`), name plates (`::nameplates`), the
 ground tiles, the npc indicators, the Discord presence (`::discord`), the ground items (`::grounditems`), the loot tracker (`::loot`), the object markers (`::objectmarkers`) and the XP tracker (`::xp`).
 
@@ -145,6 +145,18 @@ and the respawn timer, which remembers where a tagged npc stood and how long it 
 the first death counts up on its tile (dimmed) while the respawn is learnt, every death after it
 counts down. Not here from RuneLite: the model outline (the hull is
 its bounding box), per-npc colours and styles, and ignoring pets.
+
+**XP Drops** draws XP drops the way Old School does, with RuneLite's XP Drop plugin on top. RuneLite's
+plugin restyles the game's own drops, which 634 does not have, so the drops are drawn here and Old
+School's XP drop setup is part of the settings: the position (Right, left of the minimap; Middle;
+Left), the size (Smallest to Largest), the duration and the speed, the colour (White, Lilac, Cyan,
+Jade, Lime, Yellow, Orange, Pink), the skills gained in one tick in one drop or one each (Group), an XP
+counter (the total or the most recent skill) and a progress bar under it (the most recent skill or one
+you choose). RuneLite's options: hide the skill icons, a standard colour of your own, and a colour for
+a melee, ranged or magic drop while a prayer or curse of that kind is on (#1580AD by default), and the
+fake XP drop delay, which shows the last drop again after that many ticks without one. Right-click the XP
+button by the minimap for **Setup**, which opens these settings. Not quite Old School: its goals and its
+drops for actions that give no experience (634 sends nothing for those).
 
 **Discord** shows what you are doing in the Discord user panel, the way RuneLite's Discord plugin
 does, under "Playing Void Client": the skill you are training ("Training: Fishing", with the
@@ -297,7 +309,7 @@ Start from [`plugin-template/`](../plugin-template): copy the folder, and change
 | `client()` | `ClientApi`: the game's state, world-to-screen projection, chat and console output, `addMenuEntry`; `isFocused()`, `notify(text)`, a notification on the desktop (notify-send on Linux, a balloon from the system tray elsewhere, a browser notification), and `requestFocus()`, the window to the front, since API 8. |
 | `events()` | `subscribe(Events.X, listener)` and `unsubscribe`. |
 | `config()` | `PluginConfig`: `get`/`set` (and `Int`/`Boolean`), `save()`. |
-| `addOverlay(overlay)` | Draws on the game view every frame, after the scene and the client's own overlays, before the interfaces. The minimap, the orbs and the chat box cover what is under them; the client's experience drops start 300 pixels left of the view's right edge for that reason. |
+| `addOverlay(overlay)` | Draws on the game view every frame, after the scene and the client's own overlays, before the interfaces. The minimap, the orbs and the chat box cover what is under them; the XP drops on the right start left of the minimap (in the resizable modes) for that reason. |
 | `registerCommand(name, handler)` | `::name` in the console, after the client's own commands have had their turn; a plugin's command is not sent to the server, and Tab (completion) never runs it. False when the name is taken or the client's own. |
 | `registerMenuAction(action)` | A click type to give `client().addMenuEntry(label, clickType)` from a `MenuEntryAdded` listener. The action gets the target kind, the scene tile (an npc's or player's south-west tile) and the id (npc index, player index, item id, location id). |
 | `log(message)` | Standard error, with the plugin id. |

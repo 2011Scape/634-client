@@ -123,6 +123,7 @@ object PluginManagerScreen {
 	private const val A_SET_TOGGLE: Int = 10
 	private const val A_SET_CHOICE: Int = 13
 	private const val A_ITEM: Int = 14
+	private const val A_POPUP_WHEEL: Int = 29
 	private const val A_POPUP_CLOSE: Int = 15
 	private const val A_EDIT: Int = 16
 	private const val A_ROW_HOVER: Int = 17
@@ -247,7 +248,7 @@ object PluginManagerScreen {
 
 	private val choices: ArrayList<Choice> = ArrayList()
 
-	private val popup: ClientPage.Popup = ClientPage.Popup(ROOT, BODY, POPUP, POPUP_ITEMS, POPUP_SCROLL, SENTINEL, A_ITEM, A_POPUP_CLOSE)
+	private val popup: ClientPage.Popup = ClientPage.Popup(ROOT, BODY, POPUP, POPUP_ITEMS, POPUP_SCROLL, SENTINEL, A_ITEM, A_POPUP_CLOSE, A_POPUP_WHEEL)
 
 	private var popupFor: Choice? = null
 
@@ -1513,6 +1514,7 @@ object PluginManagerScreen {
 				}
 			}
 			A_POPUP_CLOSE -> closePopup()
+			A_POPUP_WHEEL -> popup.scrollBy(hook.mouseY)
 			A_OPEN_PANEL -> if (index < PluginRuntime.count) {
 				val opener: (() -> String?)? = PluginRuntime.registrations[index]?.descriptor?.id?.let { panels[it] }
 				if (opener != null) {
@@ -1582,6 +1584,37 @@ object PluginManagerScreen {
 		toggle(registration)
 		rebuild()
 		return true
+	}
+
+	/** Opens the window on plugin [id]'s settings page (a plugin's own Setup, as XP Drops' on the XP button); null when it opened, else why not. */
+	@JvmStatic
+	fun openSettings(id: String): String? {
+		val registration: PluginRegistration = PluginRuntime.find(id) ?: return "No plugin " + id
+		val why: String? = open()
+		if (why != null) {
+			return why
+		}
+		if (!hasSettings(registration)) {
+			return "The plugin is off: turn it on to change its settings"
+		}
+		selected = registration
+		rebuild()
+		return null
+	}
+
+	/** The smoke test's click on the selected plugin's choice [key]: its list opens; whether it scrolls (1 or 0) and how far it can. */
+	@JvmStatic
+	fun openChoiceList(key: String): IntArray {
+		val choice: Choice = choices.firstOrNull { it.entry.key == key } ?: return intArrayOf(0, 0)
+		openPopup(choice)
+		return intArrayOf(if (popup.scrolls) 1 else 0, popup.scrollPosition()[1])
+	}
+
+	/** The smoke test's wheel on the open list: its position and its most after [turns]. */
+	@JvmStatic
+	fun scrollChoiceList(turns: Int): IntArray {
+		popup.scrollBy(turns)
+		return popup.scrollPosition()
 	}
 
 	@JvmStatic
