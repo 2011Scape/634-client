@@ -322,7 +322,7 @@ Saradomin brew, Guthix rest, recover special and summoning potions by their 2011
 combat delay** hides the bars that many game ticks after you last dealt with something you can attack (0:
 always shown); **Bar width** applies on the resizable screen. On the fixed screen the bars stand on the
 stone columns either side of the tabs, as RuneLite's; the resizable side panel reaches the screen's right
-edge, so there both bars stand left of it. Not here from RuneLite:
+edge, so there both bars stand left of its box, as tall as it, 4 pixels apart (RuneLite's resizable box layout). Not here from RuneLite:
 Warmth (Summoning takes its place), venom, stamina and parasites.
 
 **Timers and Buffs** is RuneLite's, for what 634 has: antifire and super antifire, overload, antipoison,

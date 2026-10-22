@@ -8,11 +8,12 @@ import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
 /**
- * Not part of the original client: Status Bars' drawing, RuneLite's StatusBarsOverlay and BarRenderer. The
- * bars stand beside the side panel's tab area (where every tab opens), 4 pixels down and RuneLite's 252
- * tall: on the fixed screen over the stone columns either side of it, as RuneLite's do; on the resizable
- * one the left bar against its left edge, and the right one too (left of the left one) when the panel
- * reaches the screen's edge. Drawn at FRAME_DRAW, over the interfaces, as RuneLite's ABOVE_WIDGETS overlay.
+ * Not part of the original client: Status Bars' drawing, RuneLite's StatusBarsOverlay and BarRenderer. On
+ * the fixed screen the bars stand on the stone columns either side of the side panel's tab area (where
+ * every tab opens), 4 pixels down and RuneLite's 252 tall, as RuneLite's do. On the resizable screen the
+ * panel's box reaches the screen's edge, so both stand left of the box, as tall as it, 4 pixels apart and
+ * 4 from it, the left bar outermost (RuneLite's resizable box layout). Drawn at FRAME_DRAW, over the
+ * interfaces, as RuneLite's ABOVE_WIDGETS overlay.
  */
 object StatusBarsOverlay {
 
@@ -25,6 +26,9 @@ object StatusBarsOverlay {
 	/** RuneLite's offsets and height: both bars 4 pixels below the tab area's top, 252 tall. */
 	private const val OFFSET_Y: Int = 4
 	private const val HEIGHT: Int = 252
+
+	/** On the resizable screen: the space between the bars, and between the inner bar and the panel's box. */
+	private const val GAP: Int = 4
 
 	/** RuneLite's colours, ARGB. */
 	const val BACKGROUND: Int = (150 shl 24)
@@ -71,9 +75,10 @@ object StatusBarsOverlay {
 	val drawn: IntArray = IntArray(4)
 
 	/**
-	 * The tab area the bars stand beside (RuneLite's side panels): x, y, width, height on the screen, false
-	 * when it does not show. It is the outermost container of the tab slots that is the same size as they
-	 * are (fixed 548:194, resizable 746:85), so it shows whichever tab is open, or none.
+	 * The tab area the bars stand beside (RuneLite's side panels): x, y, width, height on the screen, then
+	 * the same for the box around it (its parent; the tab area itself when it has none), false when it does
+	 * not show. The tab area is the outermost container of the tab slots that is the same size as they are
+	 * (fixed 548:194, resizable 746:85 in the box 746:75), so it shows whichever tab is open, or none.
 	 */
 	@JvmStatic
 	fun sidePanel(client: ClientApi, out: IntArray): Boolean {
@@ -97,6 +102,11 @@ object StatusBarsOverlay {
 		out[1] = panel.screenY()
 		out[2] = panel.width()
 		out[3] = panel.height()
+		val box: Widget = (if (panel.parentId() == -1) null else client.widgetById(panel.parentId())) ?: panel
+		out[4] = box.screenX()
+		out[5] = box.screenY()
+		out[6] = box.width()
+		out[7] = box.height()
 		return true
 	}
 
@@ -120,7 +130,7 @@ object StatusBarsOverlay {
 		return true
 	}
 
-	private val panel: IntArray = IntArray(4)
+	private val panel: IntArray = IntArray(8)
 
 	@JvmStatic
 	fun draw(g: Graphics, client: ClientApi, screenWidth: Int) {
@@ -129,12 +139,18 @@ object StatusBarsOverlay {
 			return
 		}
 		val width: Int = if (client.topInterface() == RESIZABLE) StatusBars.barWidth else StatusBars.DEFAULT_WIDTH
-		val height: Int = minOf(HEIGHT, panel[3] - OFFSET_Y)
-		val y: Int = panel[1] + OFFSET_Y
-		// the resizable side panel reaches the screen's right edge: then both bars stand left of it, the left bar outermost
-		val room: Boolean = panel[0] + panel[2] + width <= screenWidth
-		val leftX: Int = if (room) panel[0] - width else panel[0] - 2 * width
-		val rightX: Int = if (room) panel[0] + panel[2] else panel[0] - width
+		// the fixed screen: on the columns either side of the tab area, as RuneLite's
+		var height: Int = minOf(HEIGHT, panel[3] - OFFSET_Y)
+		var y: Int = panel[1] + OFFSET_Y
+		var leftX: Int = panel[0] - width
+		var rightX: Int = panel[0] + panel[2]
+		if (rightX + width > screenWidth) {
+			// the resizable box reaches the screen's right edge: both left of it, as tall as it, the left bar outermost
+			y = panel[5]
+			height = panel[7]
+			rightX = panel[4] - GAP - width
+			leftX = rightX - GAP - width
+		}
 		if (StatusBars.leftBarMode != StatusBars.DISABLED) {
 			renderBar(g, client, StatusBars.leftBarMode, leftX, y, width, height)
 		}
