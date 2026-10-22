@@ -54,6 +54,7 @@ import com.jagex.game.runetek5.plugin.PluginRegistration
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.entity.NPCEntity
 import com.jagex.game.runetek5.plugin.PluginRuntime
+import com.jagex.game.runetek5.plugin.api.Skill
 import kotlin.jvm.JvmStatic
 import lang.Class
 import lang.jClass
@@ -232,6 +233,13 @@ object SmokeTest {
 
 	/** client.test.xpTracker: experience fed through the stat hook, a canvas box for it, and the XP tracker's window. */
 	private val XP_TRACKER: Boolean = "true" == lang.getProperty("client.test.xpTracker")
+
+	/** client.test.opponentInfo: a made-up fight with the guide in Opponent Information's panel, its Attack entry marked, a player's comparison and the opponent forgotten. */
+	private val OPPONENT_INFO: Boolean = "true" == lang.getProperty("client.test.opponentInfo")
+
+	private var opponentStep: Int = 0
+
+	private var opponentFrame: Int = -1
 
 	private var xpTrackerStep: Int = 0
 
@@ -992,6 +1000,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 1024
+		}
+		if (OPPONENT_INFO && (checksDone and 2048) == 0) {
+			if (!opponentInfoDone(player)) {
+				return
+			}
+			checksDone = checksDone or 2048
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3108,6 +3122,107 @@ object SmokeTest {
 	 * The kill is the Loot Tracker's, under the guide's name; the loot window opens on it (grouped), a
 	 * frame of it, then kill by kill, and it closes. Frame in build/smoke as -loottracker.
 	 */
+	/**
+	 * Opponent Information: the player turns to the guide (the opponent) whose bar shows half, the panel
+	 * names it with a percentage (the guide's lifepoints are not known); an Attack entry on it is marked;
+	 * the player itself made the opponent with hiscores put in shows lifepoints and the comparison; and
+	 * dealing with nothing for more than five seconds forgets the opponent.
+	 */
+	private fun opponentInfoDone(player: PlayerEntity): Boolean {
+		if (opponentStep == 0) {
+			var guide: NPCEntity? = null
+			for (i in 0 until NPCList.npcCount) {
+				val npc: NPCEntity? = NPCList.NPC_ARRAY[i]?.npc
+				if (npc != null && npc.npcType?.id == GUIDE_NPC) {
+					guide = npc
+				}
+			}
+			if (guide == null) {
+				fail("no guide (npc " + GUIDE_NPC + ") in the scene for the opponent check")
+				return true
+			}
+			OpponentInfo.enabled = true
+			OpponentInfo.showOpponentHealthOverlay = true
+			OpponentInfo.showOpponentsInMenu = true
+			OpponentInfo.lookupOnInteraction = true
+			OpponentInfo.hitpointsDisplayStyle = OpponentInfo.STYLE_HITPOINTS
+			player.faceEntity = guide.index()
+			PluginRuntime.interactingChanged(player)
+			if (OpponentInfo.lastOpponent !== guide) {
+				fail("turning to the guide did not make it the opponent")
+				return true
+			}
+			guide.healthRatio = 128
+			guide.healthBarEndCycle = ClientState.clientCycle + 3000
+			// its Attack entry, marked as the opponent's
+			MiniMenuReset.resetEntries()
+			MiniMenu.addEntry(false, "<col=ffff00>Guide", 1, true, 1, -1, true, MiniMenuAction.OPNPC2, 0L, "Attack", guide.index().toLong(), -1)
+			MiniMenu.addEntry(false, "", 1, true, 1, -1, true, MiniMenuAction.WALK, 0L, "Walk here", 0L, -1)
+			MiniMenuInputTick.processMenuInput()
+			val marked: String? = findEntry("Attack")?.op
+			MiniMenuReset.resetEntries()
+			if (marked == null || !marked.startsWith("*")) {
+				fail("the opponent's Attack entry was not marked: \"" + marked + "\"")
+				return true
+			}
+			opponentFrame = frames
+			opponentStep = 1
+			return false
+		}
+		if (frames - opponentFrame < MARKER_FRAMES) {
+			return false
+		}
+		if (opponentStep == 1) {
+			// 128 of 255 with the most unknown: a percentage, whatever the style
+			if (OpponentInfoOverlay.drawnName == null || OpponentInfoOverlay.drawnLabel != "50.2%") {
+				fail("the opponent panel drew \"" + OpponentInfoOverlay.drawnName + "\" with \"" + OpponentInfoOverlay.drawnLabel + "\", not the guide at 50.2%")
+				return true
+			}
+			saveFrame("build/smoke/frame-opponent.png")
+			// the player as its own opponent, a player with hiscores: lifepoints from Constitution, and the comparison
+			val name: String = OpponentInfo.nameOf(player) ?: "smoketest"
+			val levels: IntArray = IntArray(Skill.COUNT) { 1 }
+			levels[Skill.ATTACK] = 99
+			levels[Skill.CONSTITUTION] = 10
+			HiscoreLookup.put(name, HiscoreLookup.Result(name, levels))
+			OpponentInfo.hitpointsDisplayStyle = OpponentInfo.STYLE_BOTH
+			OpponentInfo.lastOpponent = player
+			player.healthRatio = 255
+			player.healthBarEndCycle = ClientState.clientCycle + 3000
+			opponentFrame = frames
+			opponentStep = 2
+			return false
+		}
+		if (opponentStep == 2) {
+			if (OpponentInfoOverlay.drawnLabel != "100/100 (100.0%)" || PlayerComparisonOverlay.drawnRows != 9) {
+				fail("the player opponent drew \"" + OpponentInfoOverlay.drawnLabel + "\" (not 100/100 (100.0%)) and " + PlayerComparisonOverlay.drawnRows + " comparison rows of 9")
+				return true
+			}
+			saveFrame("build/smoke/frame-opponent-player.png")
+			// dealing with nothing: kept for five seconds, then forgotten
+			player.faceEntity = -1
+			PluginRuntime.interactingChanged(player)
+			val stopped: Long = OpponentInfo.lastTime
+			OpponentInfo.clock = { stopped + OpponentInfo.WAIT_MILLIS + 1 }
+			opponentFrame = frames
+			opponentStep = 3
+			return false
+		}
+		OpponentInfo.clock = { lang.currentTimeMillis() }
+		val gone: Boolean = OpponentInfo.lastOpponent == null && OpponentInfoOverlay.drawnName == null
+		OpponentInfo.showOpponentsInMenu = false
+		OpponentInfo.lookupOnInteraction = false
+		OpponentInfo.hitpointsDisplayStyle = OpponentInfo.STYLE_HITPOINTS
+		player.healthBarEndCycle = -1000
+		HiscoreLookup.clear()
+		if (!gone) {
+			fail("the opponent was not forgotten after five seconds of dealing with nothing")
+			return true
+		}
+		println("SMOKE opponent info: the guide at 50.2%, its Attack marked, a player at 100/100 with 9 comparison rows, forgotten after 5 s")
+		return true
+	}
+
 	private fun lootTrackerDone(): Boolean {
 		if (lootStep == 0) {
 			var guide: NPCEntity? = null

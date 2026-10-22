@@ -575,7 +575,9 @@ object NpcIndicators : Plugin {
 
 	// --- drawing ---
 
-	private fun isNpcEntry(clickType: Int): Boolean {
+	/** Whether a menu entry of [clickType] is on an npc (any of its options, with or without the level penalty); Opponent Information's too. */
+	@JvmStatic
+	fun isNpcEntry(clickType: Int): Boolean {
 		for (type in NPC_CLICK_TYPES) {
 			if (clickType == type || clickType == type + LEVEL_PENALTY) {
 				return true

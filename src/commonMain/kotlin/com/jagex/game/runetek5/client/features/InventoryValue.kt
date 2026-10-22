@@ -151,7 +151,8 @@ object InventoryValue : Plugin {
 		}
 		lastTotal = total
 		val x: Int = view.x + 8
-		val top: Int = view.y + 34
+		// under Opponent Information's panel when it shows (last frame's: the plugins draw in turn)
+		val top: Int = view.y + maxOf(OpponentInfoOverlay.TOP, OpponentInfoOverlay.panelBottom + 6)
 		g.fillRect(x - 4, top, 220, 6 + 34 * (shown + 1), PANEL)
 		panelBottom = top + 6 + 34 * (shown + 1) - view.y
 		g.font(Font.BOLD)

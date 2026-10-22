@@ -93,6 +93,10 @@ abstract class PathingEntity : AbstractInteractiveEntity, Actor {
 		return this.healthRatio == 0 && this.healthBarEndCycle > ClientState.clientCycle
 	}
 
+	override fun healthScale(): Int {
+		return if (this.healthBarEndCycle > ClientState.clientCycle) HEALTH_SCALE else -1
+	}
+
 	/** Not part of the original client: the body model's bounds as it was last drawn, for plugin.api.ClientApi.actorHull; [hullCycle] says which frame. */
 	@JvmField
 	var hullCycle: Int = -1
@@ -1066,6 +1070,9 @@ abstract class PathingEntity : AbstractInteractiveEntity, Actor {
 	}
 
 	companion object {
+
+		/** Not part of the original client: a full health bar's ratio (634 sends health as 0 to 255), the plugin API's Actor.healthScale. */
+		const val HEALTH_SCALE: Int = 255
 
 		/**
 		 * Not part of the original client: builds currentSequence with the initial values its fields had on

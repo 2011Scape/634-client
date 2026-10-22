@@ -72,4 +72,10 @@ interface Actor {
 
 	/** Whether its health bar shows empty: it is dying, and about to go. Since API 7. */
 	fun isDying(): Boolean
+
+	/**
+	 * The most [healthRatio] can be while the health bar shows (255, a full bar), or -1 when no bar
+	 * shows: RuneLite's health scale. Health is [healthRatio] in [healthScale] parts. Since API 11.
+	 */
+	fun healthScale(): Int
 }
