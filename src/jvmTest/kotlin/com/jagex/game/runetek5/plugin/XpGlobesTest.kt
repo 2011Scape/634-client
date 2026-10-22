@@ -1,16 +1,16 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.client.features.XpGlobeImages
 import com.jagex.game.runetek5.client.features.XpGlobes
 import com.jagex.game.runetek5.client.features.XpGlobesOverlay
 import com.jagex.game.runetek5.client.features.XpTrackerState
 import com.jagex.game.runetek5.plugin.api.PanelComponent
 import com.jagex.game.runetek5.plugin.api.Skill
-import kotlin.math.abs
-import kotlin.math.hypot
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** Not part of the original client: XP Globes against RuneLite's rules (XpGlobesPlugin, XpGlobesOverlay). */
@@ -102,20 +102,30 @@ class XpGlobesTest {
 
 	@Test
 	fun theArcStartsAtTheTopAndGoesClockwise() {
-		val xs = IntArray(200)
-		val ys = IntArray(200)
-		// a quarter from the top (90 degrees), backwards: to three o'clock
-		val n: Int = XpGlobesOverlay.arcPoints(50.0, 50.0, 21.0, 19.0, 90.0, -90.0, xs, ys)
-		assertTrue(n >= 6)
-		// first outer point at the top, last outer point at the right
-		assertEquals(50, xs[0])
-		assertEquals(29, ys[0])
-		assertEquals(71, xs[n / 2 - 1])
-		assertEquals(50, ys[n / 2 - 1])
-		for (i in 0 until n / 2) {
-			assertTrue(abs(hypot(xs[i] - 50.0, ys[i] - 50.0) - 21.0) < 1.0)
-		}
-		assertEquals(0, XpGlobesOverlay.arcPoints(50.0, 50.0, 21.0, 19.0, 90.0, 0.0, xs, ys))
+		// a quarter from the top (90 degrees), backwards: through one o'clock to three o'clock, not past it
+		assertTrue(XpGlobeImages.inSweep(1.0, -10.0, 90.0, -90.0))
+		assertTrue(XpGlobeImages.inSweep(7.0, -7.0, 90.0, -90.0))
+		assertFalse(XpGlobeImages.inSweep(-7.0, -7.0, 90.0, -90.0))
+		assertFalse(XpGlobeImages.inSweep(7.0, 7.0, 90.0, -90.0))
+		assertTrue(XpGlobeImages.inSweep(-7.0, 7.0, 0.0, 360.0))
+		assertFalse(XpGlobeImages.inSweep(0.0, -10.0, 90.0, 0.0))
+	}
+
+	@Test
+	fun theRingsAreSmooth() {
+		val orb = 40
+		val canvas = 46
+		val image = XpGlobeImages.rings(orb, canvas, 0xFF000000.toInt(), 5, 0xFF00FF00.toInt(), 2, 90.0, -90.0)
+		val c: Int = canvas / 2
+		// on the circle at the top: the arc's green over the black ring
+		assertEquals(0xFF00FF00.toInt(), image.pixels[(c - orb / 2) * canvas + c] or 0)
+		// at the bottom the arc has not come yet: the ring alone
+		assertEquals(0xFF000000.toInt(), image.pixels[(c + orb / 2) * canvas + c])
+		// the middle is empty, and some edge pixels are partly covered (the smoothing)
+		assertEquals(0, image.pixels[c * canvas + c])
+		assertTrue(image.pixels.any { val a = it ushr 24; a in 1..254 })
+		// over: a half-covered green over black
+		assertEquals(0xFF008000.toInt() ushr 24, XpGlobeImages.over(0x8000FF00.toInt(), 0xFF000000.toInt()) ushr 24)
 	}
 
 	@Test
