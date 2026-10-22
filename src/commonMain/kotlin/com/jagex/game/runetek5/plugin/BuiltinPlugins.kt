@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.client.features.BankOrganizer
 import com.jagex.game.runetek5.client.features.Boosts
 import com.jagex.game.runetek5.client.features.DiscordPresence
 import com.jagex.game.runetek5.client.features.GroundItems
@@ -44,6 +45,7 @@ object BuiltinPlugins {
 			builtIn(OpponentInfo.DESCRIPTOR, OpponentInfo),
 			builtIn(Boosts.DESCRIPTOR, Boosts),
 			builtIn(OverlaySettings.DESCRIPTOR, OverlaySettings),
+			builtIn(BankOrganizer.DESCRIPTOR, BankOrganizer),
 		)
 	}
 

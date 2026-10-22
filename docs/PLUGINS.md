@@ -6,8 +6,9 @@ own settings. The XP drops (`XpDrops`), the idle notifier (`IdleNotifier`), the 
 swapper (`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name plates (`NamePlates`),
 the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Discord presence
 (`DiscordPresence`), the ground items (`GroundItems`), the loot tracker (`LootTracker`), the
-object markers (`ObjectIndicators`), the XP tracker (`XpTracker`) and the opponent information
-(`OpponentInfo`) are thirteen, built in, so the client's own code shows the way.
+object markers (`ObjectIndicators`), the XP tracker (`XpTracker`), the opponent information
+(`OpponentInfo`), the boosts information (`Boosts`) and the bank organizer (`BankOrganizer`) are
+fifteen, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -295,6 +296,15 @@ Berserker curse, which holds a boost one firing longer on the server, makes the 
 after the last instead of 60. Constitution, Prayer and Summoning are points, not boosts, and are left out
 as RuneLite leaves out Hitpoints and Prayer; Dungeoneering is one of the other skills.
 
+**Bank Organizer** is the plugin hub's (by Ideonomy). While the bank is open, every item in a category
+that is on gets a box over its slot in the category's colour, split into one segment a category when it
+falls in several: Melee, Magic, Range, Skilling, Potions, Slayer loot, Tools & misc, Food, Farming and
+Skilling outfits, each with its own switch, colour and **excluded items** (comma-separated words; an item
+whose name contains one is left out). A category matches words in item names; the lists were remade for
+2011 items (the plugin's are Old School's). Melee and Farming are on at first, as in RuneLite. **Show
+boxes** hides them all. Not here from the plugin: its Sailing category and its Bank Cleanup, whose
+keep-or-discard rules follow Old School quests and diaries.
+
 ## Writing a plugin
 
 Start from [`plugin-template/`](../plugin-template): copy the folder, and change the manifest in
@@ -391,7 +401,7 @@ ready for the plugins folder. What each one leans on:
 | Plugin | Lines | The API it uses |
 |---|---|---|
 | `AttackTimer`, attack and idle timers under the player, timed by the equipped weapon | 96 | `itemContainer(94)` slot 3 is the weapon and `item(id).intParam(14, 4)` its speed in ticks, read again on `ItemContainerChanged`; `AnimationChanged` for the local player starts the cooldown, unless `HitsplatApplied` on the player in the same cycle while `interacting()` is null marks it as the block animation; `GameTick` counts it and the idle ticks; `projectActor` places the bar; `playSound` and `chatMessage` warn. |
-| `ItemTags`, a colour on an item from its right-click menu, drawn around it in the backpack and the bank | 59 | `MenuEntryAdded` for `MenuTarget.WIDGET` with `addMenuEntry`; a `MenuAction` whose id is the item; `widget(149, 0)` and `widget(762, 95)`, their `child(i)`, `itemId()`, `screenX()`, `drawRect`. |
+| `ItemTags`, a colour on an item from its right-click menu, drawn around it in the backpack and the bank | 59 | `MenuEntryAdded` for `MenuTarget.WIDGET` with `addMenuEntry`; a `MenuAction` whose id is the item; `widget(149, 0)` and `widget(762, 93)`, drawn at `FRAME_DRAW` (over the interfaces), their `child(i)`, `itemId()`, `screenX()`, `drawRect`. |
 
 The shape they share: subscribe in `start`, keep state in fields and `config()`, draw in one
 overlay, and allocate outside the per-frame paths (the `IntArray`s for projection are fields).

@@ -9,7 +9,7 @@ import com.jagex.game.runetek5.plugin.api.events.Events
 /**
  * Inventory and bank tags: right-click an item anywhere in an interface and choose "Tag" to give
  * it a colour, "Untag" to take it away; every slot showing a tagged item, in the backpack (149:0)
- * or the bank's item grid (762:95), is outlined in it. The slots are the containers' dynamic
+ * or the bank's item grid (762:93), is outlined in it. The slots are the containers' dynamic
  * children ([Widget.child]), placed with [Widget.screenX]; the entry comes from
  * [Events.MENU_ENTRY_ADDED] for [MenuTarget.WIDGET].
  */
@@ -43,10 +43,10 @@ class ItemTags : Plugin {
                 client.addMenuEntry(if (colours.containsKey(event.itemId)) "Untag" else "Tag", if (colours.containsKey(event.itemId)) untag else tag)
             }
         }
-        context.addOverlay { g, _ ->
-            if (colours.isEmpty()) return@addOverlay
-            outline(client.widget(149, 0), g)
-            outline(client.widget(762, 95), g)
+        context.events().subscribe(Events.FRAME_DRAW) { event ->
+            if (colours.isEmpty()) return@subscribe
+            outline(client.widget(149, 0), event.graphics)
+            outline(client.widget(762, 93), event.graphics)
         }
     }
 
