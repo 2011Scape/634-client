@@ -6,8 +6,8 @@ own settings. The XP drops (`XpDrops`), the idle notifier (`IdleNotifier`), the 
 swapper (`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name plates (`NamePlates`),
 the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Discord presence
 (`DiscordPresence`), the ground items (`GroundItems`), the loot tracker (`LootTracker`), the
-object markers (`ObjectIndicators`) and the XP tracker (`XpTracker`) are twelve, built in, so the
-client's own code shows the way.
+object markers (`ObjectIndicators`), the XP tracker (`XpTracker`) and the opponent information
+(`OpponentInfo`) are thirteen, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -103,10 +103,10 @@ stack trace is in the client's log (the launcher keeps it in `~/.void/logs`).
 
 ## The built-in plugins
 
-Twelve plugins come with the client, on the same API as the ones from the plugins folder, each with
+Thirteen plugins come with the client, on the same API as the ones from the plugins folder, each with
 its switch in the Plugins window: XP drops (`::xpdrops`), the idle notifier (`::idle`), the
 menu entry swapper (`::menuswapper`), the inventory value (`::invvalue`), name plates (`::nameplates`), the
-ground tiles, the npc indicators, the Discord presence (`::discord`), the ground items (`::grounditems`), the loot tracker (`::loot`), the object markers (`::objectmarkers`) and the XP tracker (`::xp`).
+ground tiles, the npc indicators, the Discord presence (`::discord`), the ground items (`::grounditems`), the loot tracker (`::loot`), the object markers (`::objectmarkers`), the XP tracker (`::xp`) and the opponent information (`::opponentinfo`).
 
 **Ground Tiles** marks tiles on the ground the way RuneLite's Ground Markers do. Hold Shift and
 right-click a tile for **Mark tile**; a marked tile's Shift menu has **Unmark tile**, **Label tile**
@@ -243,6 +243,17 @@ experience, resetting the rates after minutes, the labels and the bar's label, a
 trained skills to the top. Not here from RuneLite: its Wise Old Man link (an Old School website) and
 skill-guide goals (634 has none), so the goal is always the next level, and the intermediate level
 markers have nothing to mark.
+
+**Opponent Information** is RuneLite's. The npc or player you last attacked, followed or traded with is
+your opponent until you have dealt with nothing for five seconds; a panel at the top left of the game
+view shows its name and health bar, as lifepoints out of its most, a percentage, or both (**Display
+style**). An npc's most lifepoints come with the client (`NpcHitpoints`, taken from the Void server's npc
+definitions; an npc not there shows a percentage), a player's from the website's hiscores (Constitution
+times ten). The lifepoints are worked back from the bar as RuneLite does, so they can be a little out.
+**Show opponents in menu** puts a `*` before an npc's name on its Attack entry while it is your opponent
+or fights you. **Lookup players on interaction** compares a player you deal with to you: their combat
+levels against yours, green where yours are higher and red where lower, in a panel at the bottom left.
+Not here from RuneLite: the game's own boss health bar, which 634 does not have.
 
 ## Writing a plugin
 

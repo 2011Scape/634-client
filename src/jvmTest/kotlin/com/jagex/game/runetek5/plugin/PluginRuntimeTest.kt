@@ -68,6 +68,8 @@ class PluginRuntimeTest {
 
 		override fun isDying(): Boolean = false
 
+		override fun healthScale(): Int = -1
+
 		override fun orientation(): Int = 0
 
 		override fun isRunning(): Boolean = false

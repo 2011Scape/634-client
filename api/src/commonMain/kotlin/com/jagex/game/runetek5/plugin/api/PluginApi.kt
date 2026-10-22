@@ -37,8 +37,9 @@ package com.jagex.game.runetek5.plugin.api
  *   [PluginConfig.getColour], [PluginConfig.setColour] and [KeyCode.name]; [PluginContext.pickColour].
  * - 10: a location's shape on the screen: [ClientApi.locHull], [ClientApi.locClickbox] and
  *   [ClientApi.locOutline]; [ClientApi.resolveLoc] for a location that changes with the player's variables.
+ * - 11: [Actor.healthScale], whether an actor's health bar shows and what a full one is.
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 10
+	const val VERSION: Int = 11
 }
