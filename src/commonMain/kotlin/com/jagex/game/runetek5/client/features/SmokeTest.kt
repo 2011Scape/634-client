@@ -301,6 +301,13 @@ object SmokeTest {
 
 	private var cannonFrame: Int = -1
 
+	/** client.test.antiDrag: Anti Drag with Shift held (by the test): the backpack's slots take the delay, and their own once let go. */
+	private val ANTI_DRAG: Boolean = "true" == lang.getProperty("client.test.antiDrag")
+
+	private var antiDragStep: Int = 0
+
+	private var antiDragFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1171,6 +1178,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 2097152
+		}
+		if (ANTI_DRAG && (checksDone and 4194304) == 0) {
+			if (!antiDragDone()) {
+				return
+			}
+			checksDone = checksDone or 4194304
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3498,6 +3511,47 @@ object SmokeTest {
 			return true
 		}
 		println("SMOKE cannon: count " + drawn + " drawn over the cannon, double-hit tiles on")
+		return true
+	}
+
+	private fun antiDragDone(): Boolean {
+		val api = ClientApiImpl
+		if (antiDragStep == 0) {
+			AntiDrag.enabled = true
+			AntiDrag.onShiftOnly = true
+			AntiDrag.testShift = true
+			antiDragFrame = frames
+			antiDragStep = 1
+			return false
+		}
+		if (frames - antiDragFrame < MARKER_FRAMES) {
+			return false
+		}
+		val slot: com.jagex.game.runetek5.plugin.api.Widget? = api.widget(149, 0)?.child(0)
+		if (slot == null) {
+			fail("Anti Drag: the backpack (149:0) has no slots")
+			return true
+		}
+		if (antiDragStep == 1) {
+			if (slot.dragDeadTime() != AntiDrag.dragDelay) {
+				fail("Anti Drag: a backpack slot's drag dead time is " + slot.dragDeadTime() + " with Shift held, not " + AntiDrag.dragDelay)
+				AntiDrag.testShift = null
+				AntiDrag.enabled = false
+				return true
+			}
+			AntiDrag.testShift = false
+			antiDragFrame = frames
+			antiDragStep = 2
+			return false
+		}
+		val restored: Int = slot.dragDeadTime()
+		AntiDrag.testShift = null
+		AntiDrag.enabled = false
+		if (restored == AntiDrag.dragDelay) {
+			fail("Anti Drag: the backpack kept the delay after Shift was let go")
+			return true
+		}
+		println("SMOKE anti drag: backpack slots " + AntiDrag.dragDelay + " cycles with Shift held, " + restored + " after")
 		return true
 	}
 

@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.client.features.AntiDrag
 import com.jagex.game.runetek5.client.features.AttackStyles
 import com.jagex.game.runetek5.client.features.BankOrganizer
 import com.jagex.game.runetek5.client.features.BarrowsBrothers
@@ -60,6 +61,7 @@ object BuiltinPlugins {
 			builtIn(BarrowsBrothers.DESCRIPTOR, BarrowsBrothers),
 			builtIn(AttackStyles.DESCRIPTOR, AttackStyles),
 			builtIn(Cannon.DESCRIPTOR, Cannon),
+			builtIn(AntiDrag.DESCRIPTOR, AntiDrag),
 		)
 	}
 

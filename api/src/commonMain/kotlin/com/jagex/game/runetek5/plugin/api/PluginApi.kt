@@ -46,8 +46,9 @@ package com.jagex.game.runetek5.plugin.api
  * - 15: the walk destination, [ClientApi.destinationTileX] and [ClientApi.destinationTileY].
  * - 16: panel tooltips, [ClientApi.addTooltip] with a [PanelComponent].
  * - 17: [Widget.setHidden], and the [LoopTimer] infobox.
+ * - 18: [Widget.dragDeadTime] and [Widget.setDragDeadTime].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 17
+	const val VERSION: Int = 18
 }

@@ -9,8 +9,8 @@ the ground items (`GroundItems`), the loot tracker (`LootTracker`), the object m
 (`ObjectIndicators`), the XP tracker (`XpTracker`), the opponent information (`OpponentInfo`), the
 boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the status bars (`StatusBars`), the
 timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the
-Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`) and the cannon (`Cannon`) are
-twenty-two, built in, so the client's own code shows the way.
+Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`) and the
+anti drag (`AntiDrag`) are twenty-three, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -48,7 +48,8 @@ the game for you.
   pictures of its own (a PNG), within a clip of its own choosing; panels the client places in a corner
   of the game view and the player moves (RuneLite's overlays, with its panel, line and title
   components), infoboxes in the shared infobox panel, and tooltips by the mouse; and hide a component
-  of an interface on this client (to draw its own in its place).
+  of an interface on this client (to draw its own in its place), or change how long an item must be
+  held before it drags.
 - Add: entries to the right-click menu of a tile, npc, player, ground item, location or interface
   component (an inventory slot included), with an action of its own, and entries that open a
   submenu of its own beside the menu; console commands (`::name`); lines in the chat box and the
@@ -382,6 +383,12 @@ are marked (RuneLite's, where the monsters are on Void). Void never sends the am
 it: what "You load the cannon with N cannon balls." adds, less each cannonball it sees leave the cannon;
 the cannon is found beside you as you set it up. After a new login the count of a cannon still standing
 is not known. Not here from RuneLite: granite cannonballs (not on Void).
+
+**Anti Drag** is RuneLite's, off until switched on. An item in the backpack, the bank, the bank's
+backpack or the deposit box only starts to drag once the mouse has been held on it for **Drag delay**
+client cycles (30, a game tick's worth; the game's own is 5, or 10 in the bank's backpack): only while
+Shift is held with **On shift only**, else always but not while Control is held with **Disable on
+control pressed**. The game's delay comes back when the key is let go or the window loses focus.
 
 ## Writing a plugin
 
