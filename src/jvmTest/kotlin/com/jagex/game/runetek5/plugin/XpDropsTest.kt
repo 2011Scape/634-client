@@ -3,11 +3,13 @@ package com.jagex.game.runetek5.plugin
 import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.GameState
+import com.jagex.game.runetek5.plugin.api.PluginConfig
 import com.jagex.game.runetek5.plugin.api.Skill
 import java.lang.reflect.Proxy
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
 /** Not part of the original client: XP Drops' drops and RuneLite's XP Drop rules (XpDrops). */
@@ -96,5 +98,22 @@ class XpDropsTest {
 		assertEquals(25, XpDrops.drops[1].amount, "the last gain again")
 		assertEquals(Skill.WOODCUTTING, XpDrops.drops[1].skills[0])
 		XpDrops.duration = 2
+	}
+
+	@Test
+	fun pickingAStandardColourTurnsItOn() {
+		val saved: HashMap<String, Any?> = HashMap()
+		val config: PluginConfig = Proxy.newProxyInstance(PluginConfig::class.java.classLoader, arrayOf(PluginConfig::class.java)) { _, method, args ->
+			when (method.name) {
+				"getBoolean" -> saved[args[0]] ?: args[1]
+				"setBoolean" -> saved.put(args[0] as String, args[1]).let { null }
+				"save" -> true
+				else -> null
+			}
+		} as PluginConfig
+		XpDrops.standardColourPicked(config, "colour")
+		assertFalse(saved.containsKey("useStandardColor"), "another setting leaves the switch alone")
+		XpDrops.standardColourPicked(config, "standardColor")
+		assertEquals(true, saved["useStandardColor"])
 	}
 }

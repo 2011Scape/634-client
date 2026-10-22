@@ -155,7 +155,7 @@ object XpDrops : Plugin {
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
-			context?.config()?.let { readSettings(it) }
+			context?.config()?.let { standardColourPicked(it, event.key); readSettings(it) }
 		}
 	}
 
@@ -211,6 +211,15 @@ object XpDrops : Plugin {
 	private fun choice(config: PluginConfig, key: String, options: Array<String>, default: Int): Int {
 		val i: Int = options.indexOf(config.get(key, options[default]))
 		return if (i < 0) default else i
+	}
+
+	/** Picking a standard colour turns it on, as setting RuneLite's (an empty setting there) does; the switch still turns it off. */
+	@JvmStatic
+	fun standardColourPicked(config: PluginConfig, key: String) {
+		if (key == "standardColor" && !config.getBoolean("useStandardColor", false)) {
+			config.setBoolean("useStandardColor", true)
+			config.save()
+		}
 	}
 
 	@JvmStatic
