@@ -102,7 +102,27 @@ object PluginManagerScreen {
 
 	private const val ROW_PITCH: Int = 28
 
-	private const val ROWS_PER_PAGE: Int = 9
+	/** The list page's toolbar (the search box and the sort list) above the rows, and the rows' top under it. */
+	private const val TOOLBAR_Y: Int = 8
+
+	private const val LIST_Y: Int = 40
+
+	/** The rows the list shows at once; the list scrolls a row at a time, so a row is never under the toolbar. */
+	private const val VISIBLE_ROWS: Int = (HEIGHT - 29 - LIST_Y) / ROW_PITCH
+
+	private const val SEARCH_WIDTH: Int = 260
+
+	private const val MAX_SEARCH: Int = 30
+
+	/** The list's orders, as the sort list names them: A to Z first, the default. */
+	private val SORTS: Array<String> = arrayOf("Name A-Z", "Name Z-A", "Enabled first", "Disabled first")
+
+	/** The gear a row's settings open by, drawn by the client ([gearPixels]), and its lit twin for the hover. */
+	private const val GEAR_SIZE: Int = 20
+
+	private const val GEAR_SPRITE: Int = ICON_SPRITE - 1
+
+	private const val GEAR_LIT_SPRITE: Int = ICON_SPRITE - 2
 
 	private const val SETTING_PITCH: Int = 24
 
@@ -116,8 +136,8 @@ object PluginManagerScreen {
 	private const val A_TOGGLE: Int = 3
 	private const val A_SETTINGS: Int = 4
 	private const val A_BACK: Int = 5
-	private const val A_PREV: Int = 6
-	private const val A_NEXT: Int = 7
+	private const val A_LIST_UP: Int = 6
+	private const val A_LIST_DOWN: Int = 7
 	private const val A_HOVER: Int = 8
 	private const val A_LEAVE: Int = 9
 	private const val A_SET_TOGGLE: Int = 10
@@ -138,6 +158,10 @@ object PluginManagerScreen {
 	private const val A_PICK_ALPHA: Int = 26
 	private const val A_PICK_RECENT: Int = 27
 	private const val A_OPEN_PANEL: Int = 28
+	private const val A_SEARCH: Int = 30
+	private const val A_SORT: Int = 31
+	private const val A_GEAR_HOVER: Int = 32
+	private const val A_GEAR_LEAVE: Int = 33
 
 	/** Built-ins with a window of their own (the Loot Tracker's), by plugin id: what their row's Open button does; null, or why it did not open. */
 	private val panels: HashMap<String, () -> String?> = HashMap()
@@ -238,8 +262,37 @@ object PluginManagerScreen {
 	/** The plugin whose settings page is shown, or null for the list. */
 	private var selected: PluginRegistration? = null
 
-	/** The list's page, 0 up. */
-	private var page: Int = 0
+	/** The list's first shown row, 0 up, in the filtered and sorted order. */
+	private var listTop: Int = 0
+
+	/** What the search box holds, and whether it has the keyboard; kept through rebuilds and the settings pages. */
+	private var searchText: String = ""
+
+	private var searching: Boolean = false
+
+	/** The list's order: an index into [SORTS]; kept for the session. */
+	private var sortMode: Int = 0
+
+	/** The slots of the search box's outline and value text, and of the sort list's outline and arrow, the hit, and whether its list is open. */
+	private var searchOutline: Int = -1
+
+	private var searchValue: Int = -1
+
+	private var sortOutline: Int = -1
+
+	private var sortArrow: Int = -1
+
+	private var sortHit: Component? = null
+
+	private var sortOpen: Boolean = false
+
+	/** Each shown row's gear sprite slot, by registration index. */
+	private val gearSlots: HashMap<Int, Int> = HashMap()
+
+	/** The gear's sprites, and the toolkit they were made for. */
+	private var gears: Array<NativeSprite>? = null
+
+	private var gearToolkit: Toolkit? = null
 
 	private val buttons: ArrayList<ClientPage.Button> = ArrayList()
 
@@ -307,6 +360,7 @@ object PluginManagerScreen {
 	fun tick() {
 		if (open) {
 			ensureRowIcons()
+			ensureGears()
 		}
 		val root: Component? = Interface.peekComponent(TAB_ROOT)
 		if (root == null) {
@@ -495,7 +549,9 @@ object PluginManagerScreen {
 		}
 		open = true
 		selected = null
-		page = 0
+		listTop = 0
+		searchText = ""
+		searching = false
 		rebuild()
 		return null
 	}
@@ -507,6 +563,7 @@ object PluginManagerScreen {
 			return
 		}
 		picking = null // a colour being picked when the window closes is left as it was
+		searching = false
 		closePopup()
 		val parent: Int = modalSlot()
 		val sub: SubInterface? = InterfaceManager.OPEN_INTERFACES.get(parent.toLong()) as SubInterface?
@@ -526,6 +583,8 @@ object PluginManagerScreen {
 		open = false
 		selected = null
 		picking = null
+		searching = false
+		sortOpen = false
 		tipFor = -1
 		forget()
 	}
@@ -541,6 +600,12 @@ object PluginManagerScreen {
 		keyValue.clear()
 		pickEdit = 0
 		rowHits.clear()
+		gearSlots.clear()
+		searchOutline = -1
+		searchValue = -1
+		sortOutline = -1
+		sortArrow = -1
+		sortHit = null
 		scrollTrack = -1
 		scrollThumb = -1
 		settingsContent = 0
@@ -572,8 +637,10 @@ object PluginManagerScreen {
 		// a settings page taller than the layer scrolls: the layer draws and clips its children by scrollY, and the wheel comes to it as a hook
 		val scrolls: Boolean = plugin != null && pick == null && settingsContent > BODY_HEIGHT
 		body.scrollHeight = if (scrolls) settingsContent else 0
-		body.hasScript = scrolls
-		body.onMouseMove = if (scrolls) arrayOf<Any?>(SENTINEL, A_WHEEL, 0) else null
+		// the list scrolls by rows instead (rebuilt from listTop), so the layer stays put under the toolbar
+		val wheel: Boolean = scrolls || (plugin == null && pick == null && listed().size > VISIBLE_ROWS)
+		body.hasScript = wheel
+		body.onMouseMove = if (wheel) arrayOf<Any?>(SENTINEL, A_WHEEL, 0) else null
 		if (!scrolls) {
 			body.scrollY = 0
 		}
@@ -617,29 +684,67 @@ object PluginManagerScreen {
 		buttons.add(ClientPage.button(BODY, children, label, selected, SENTINEL, action, index, A_HOVER, A_LEAVE, buttons.size, x, y, width))
 	}
 
-	private fun pageCount(): Int {
-		val n: Int = PluginRuntime.count
-		return if (n == 0) 1 else (n + ROWS_PER_PAGE - 1) / ROWS_PER_PAGE
+	/** Whether [registration] matches the search box: its name, id or author holds the text, any case. */
+	private fun matches(registration: PluginRegistration): Boolean {
+		val query: String = searchText.trim()
+		if (query.isEmpty()) {
+			return true
+		}
+		val d = registration.descriptor
+		return d.name.contains(query, true) || d.id.contains(query, true) || d.author.contains(query, true)
+	}
+
+	/** Running, and not failed: what Enabled first and Disabled first group by. */
+	private fun enabled(registration: PluginRegistration): Boolean {
+		return registration.state != PluginRegistration.FAILED && isOn(registration)
+	}
+
+	/** The registrations' indices the list shows: those matching the search, in [sortMode]'s order (A to Z inside a group). */
+	private fun listed(): ArrayList<Int> {
+		val indices: ArrayList<Int> = ArrayList()
+		for (i in 0 until PluginRuntime.count) {
+			val registration: PluginRegistration = PluginRuntime.registrations[i] ?: continue
+			if (matches(registration)) {
+				indices.add(i)
+			}
+		}
+		val byName: Comparator<Int> = Comparator { a, b -> PluginRuntime.registrations[a]!!.descriptor.name.compareTo(PluginRuntime.registrations[b]!!.descriptor.name, true) }
+		val order: Comparator<Int> = when (sortMode) {
+			1 -> byName.reversed()
+			2 -> compareBy<Int> { if (enabled(PluginRuntime.registrations[it]!!)) 0 else 1 }.then(byName)
+			3 -> compareBy<Int> { if (enabled(PluginRuntime.registrations[it]!!)) 1 else 0 }.then(byName)
+			else -> byName
+		}
+		indices.sortWith(order)
+		return indices
 	}
 
 	/**
-	 * Every plugin, [ROWS_PER_PAGE] a page: its icon, name, version, author and where it came from (or
-	 * why it failed), a Settings button for one with settings, and its tickbox.
+	 * The toolbar (the search box and the sort list), then every plugin matching the search, a
+	 * window's height of them from [listTop]: its icon, name, version, author and where it came from
+	 * (or why it failed), Open for one with a window, the gear for one with settings, and its tickbox;
+	 * a scrollbar when there are more than fit.
 	 */
 	private fun listPage(children: ArrayList<Component>) {
-		val pages: Int = pageCount()
-		if (page >= pages) {
-			page = pages - 1
+		toolbar(children)
+		val shown: ArrayList<Int> = listed()
+		listTop = listTop.coerceIn(0, maxOf(0, shown.size - VISIBLE_ROWS))
+		if (shown.isEmpty()) {
+			val why: String = if (PluginRuntime.count == 0) "No plugins." else "No plugins match \"" + searchText.trim() + "\"."
+			children.add(ClientPage.text(BODY, children.size, 0, LIST_Y + 8, WIDTH, 16, ClientPage.FONT_LABEL, why, DIM, 1, 1, false))
+			return
 		}
-		val settingsWidth: Int = ClientPage.textWidth(ClientPage.FONT_BUTTON, "Settings") + 30
+		val scrolls: Boolean = shown.size > VISIBLE_ROWS
+		// the rows stop short of the scrollbar when there is one
+		val right: Int = if (scrolls) SCROLLBAR_X - 6 else WIDTH - 12
 		val x0: Int = 12 + ICON_SLOT + ICON_GAP
-		var y: Int = 10
-		val first: Int = page * ROWS_PER_PAGE
-		val last: Int = minOf(PluginRuntime.count, first + ROWS_PER_PAGE)
-		for (i in first until last) {
+		var y: Int = LIST_Y + 4
+		val last: Int = minOf(shown.size, listTop + VISIBLE_ROWS)
+		for (n in listTop until last) {
+			val i: Int = shown[n]
 			val registration: PluginRegistration = PluginRuntime.registrations[i] ?: continue
 			// the row's hit, under everything else in it: hovering it shows the plugin's description
-			val hit: Component = ClientPage.text(BODY, children.size, 6, y - 4, WIDTH - 12, ROW_PITCH - 3, ClientPage.FONT_SMALL, "", ClientPage.TEXT, 0, 0, false)
+			val hit: Component = ClientPage.text(BODY, children.size, 6, y - 4, right - 6, ROW_PITCH - 3, ClientPage.FONT_SMALL, "", ClientPage.TEXT, 0, 0, false)
 			hit.hasScript = true // the input pass visits only components flagged so; no option, so no menu entry
 			hit.onMouseOver = arrayOf<Any?>(SENTINEL, A_ROW_HOVER, i)
 			hit.onMouseLeaveScript = arrayOf<Any?>(SENTINEL, A_ROW_LEAVE, i)
@@ -651,37 +756,197 @@ object PluginManagerScreen {
 			children.add(ClientPage.text(BODY, children.size, x0, y, 190, 16, ClientPage.FONT_LABEL, registration.descriptor.name, ClientPage.TEXT, 0, 1, true))
 			val detail: String = detailLine(registration, true)
 			val detailColour: Int = if (registration.state == PluginRegistration.FAILED) FAILED else DIM
-			children.add(ClientPage.text(BODY, children.size, x0, y + 13, WIDTH - 12 - x0, 12, ClientPage.FONT_SMALL, detail, detailColour, 0, 1, false))
-			var bx: Int = WIDTH - 12 - ClientPage.TICK_SIZE
+			children.add(ClientPage.text(BODY, children.size, x0, y + 13, right - x0, 12, ClientPage.FONT_SMALL, detail, detailColour, 0, 1, false))
+			var bx: Int = right - ClientPage.TICK_SIZE
 			val on: Boolean = isOn(registration)
 			if (switchable(registration)) {
 				ClientPage.tickbox(BODY, children, on, SENTINEL, A_TOGGLE, i, bx, y + 4, if (on) "Turn off" else "Turn on")
 			}
 			if (hasSettings(registration)) {
-				bx -= settingsWidth + 10
-				button(children, "Settings", false, A_SETTINGS, i, bx, y - 2, settingsWidth)
+				bx -= GEAR_SIZE + 10
+				gear(children, registration, i, bx, y + 2)
 			}
 			if (registration.context != null && panels.containsKey(registration.descriptor.id)) {
 				val openWidth: Int = ClientPage.textWidth(ClientPage.FONT_BUTTON, "Open") + 30
 				bx -= openWidth + 10
 				button(children, "Open", false, A_OPEN_PANEL, i, bx, y - 2, openWidth)
 			}
-			if (i < last - 1) {
-				children.add(ClientPage.rect(BODY, children.size, 6, y + ROW_PITCH - 3, WIDTH - 12, 1, ClientPage.BOX_LINE, true))
+			if (n < last - 1) {
+				children.add(ClientPage.rect(BODY, children.size, 6, y + ROW_PITCH - 3, right - 6, 1, ClientPage.BOX_LINE, true))
 			}
 			y += ROW_PITCH
 		}
-		if (pages > 1) {
-			val fy: Int = HEIGHT - 29 - 30
-			val w: Int = ClientPage.textWidth(ClientPage.FONT_BUTTON, "Next") + 30
-			children.add(ClientPage.text(BODY, children.size, 0, fy + 5, WIDTH, 16, ClientPage.FONT_SMALL, "Page " + (page + 1) + " of " + pages, ClientPage.TEXT, 1, 1, false))
-			if (page > 0) {
-				button(children, "Prev", false, A_PREV, 0, 12, fy, w)
-			}
-			if (page < pages - 1) {
-				button(children, "Next", false, A_NEXT, 0, WIDTH - 12 - w, fy, w)
+		if (scrolls) {
+			listScrollbar(children, shown.size)
+		}
+	}
+
+	/** The search box at the left and the sort list at the right, a line under them. */
+	private fun toolbar(children: ArrayList<Component>) {
+		val y: Int = TOOLBAR_Y
+		val height: Int = ClientPage.ITEM_HEIGHT + 4
+		children.add(ClientPage.rect(BODY, children.size, 12, y, SEARCH_WIDTH, height, ClientPage.BOX_FILL, true))
+		searchOutline = children.size
+		children.add(ClientPage.rect(BODY, children.size, 12, y, SEARCH_WIDTH, height, if (searching) ClientPage.BOX_LINE_OPEN else ClientPage.BOX_LINE, false))
+		searchValue = children.size
+		val empty: Boolean = searchText.isEmpty() && !searching
+		val value: Component = ClientPage.text(BODY, children.size, 16, y, SEARCH_WIDTH - 8, height, ClientPage.FONT_LABEL, if (empty) "Search plugins" else searchShown(), if (empty) DIM else ClientPage.TEXT, 0, 1, false)
+		value.hasScript = true
+		value.addOptionName(0, "Search")
+		value.opBase = ""
+		value.params = arrayOf<Any?>(SENTINEL, A_SEARCH, 0)
+		children.add(value)
+		var boxWidth: Int = 0
+		for (sort in SORTS) {
+			boxWidth = maxOf(boxWidth, ClientPage.textWidth(ClientPage.FONT_SMALL, sort))
+		}
+		boxWidth += 25
+		val right: Int = WIDTH - 12
+		children.add(ClientPage.text(BODY, children.size, right - boxWidth - 50, y, 44, height, ClientPage.FONT_SMALL, "Sort", DIM, 2, 1, false))
+		val slots: IntArray = IntArray(3)
+		sortHit = ClientPage.dropdown(BODY, children, "Sort", SORTS[sortMode], ClientPage.TEXT, SENTINEL, A_SORT, 0, right, y + 1, boxWidth, slots)
+		sortOutline = slots[0]
+		sortArrow = slots[1]
+		children.add(ClientPage.rect(BODY, children.size, 6, LIST_Y - 6, WIDTH - 12, 1, ClientPage.BOX_LINE, true))
+	}
+
+	/** The search box's text while it has the keyboard: the end of what was typed, with the cursor. */
+	private fun searchShown(): String {
+		return fitText(if (searching) searchText + "|" else searchText, SEARCH_WIDTH - 8)
+	}
+
+	/** The list's scrollbar beside the rows: the track, the thumb, and a hit above and below the thumb that moves a window's height. */
+	private fun listScrollbar(children: ArrayList<Component>, rows: Int) {
+		val top: Int = LIST_Y - 2
+		val height: Int = BODY_HEIGHT - top - 4
+		val most: Int = rows - VISIBLE_ROWS
+		val thumbHeight: Int = maxOf(THUMB_MIN, height * VISIBLE_ROWS / rows)
+		val thumbY: Int = top + (height - thumbHeight) * listTop / most
+		children.add(ClientPage.rect(BODY, children.size, SCROLLBAR_X, top, SCROLLBAR_WIDTH, height, ClientPage.BOX_FILL, true))
+		children.add(ClientPage.rect(BODY, children.size, SCROLLBAR_X, thumbY, SCROLLBAR_WIDTH, thumbHeight, ClientPage.TEXT_TOP, true))
+		if (listTop > 0) {
+			trackHit(children, "Scroll up", A_LIST_UP, top, thumbY - top)
+		}
+		if (listTop < most) {
+			trackHit(children, "Scroll down", A_LIST_DOWN, thumbY + thumbHeight, top + height - thumbY - thumbHeight)
+		}
+	}
+
+	private fun trackHit(children: ArrayList<Component>, option: String, action: Int, y: Int, height: Int) {
+		if (height <= 0) {
+			return
+		}
+		val hit: Component = ClientPage.text(BODY, children.size, SCROLLBAR_X - 2, y, SCROLLBAR_WIDTH + 4, height, ClientPage.FONT_SMALL, "", ClientPage.TEXT, 1, 1, false)
+		hit.hasScript = true
+		hit.addOptionName(0, option)
+		hit.opBase = ""
+		hit.params = arrayOf<Any?>(SENTINEL, action, 0)
+		children.add(hit)
+	}
+
+	/** Moves the list by [rows] (down when positive), held to its ends. */
+	private fun scrollListBy(rows: Int) {
+		val before: Int = listTop
+		listTop = (listTop + rows).coerceIn(0, maxOf(0, listed().size - VISIBLE_ROWS))
+		if (listTop != before) {
+			rebuild()
+		}
+	}
+
+	/** A row's gear: the sprite, and over it the hit that opens the settings and lights the gear while the pointer is on it. */
+	private fun gear(children: ArrayList<Component>, registration: PluginRegistration, index: Int, x: Int, y: Int) {
+		gearSlots[index] = children.size
+		children.add(ClientPage.sprite(BODY, children.size, x, y, GEAR_SIZE, GEAR_SIZE, GEAR_SPRITE, false, false, false))
+		val hit: Component = ClientPage.text(BODY, children.size, x, y, GEAR_SIZE, GEAR_SIZE, ClientPage.FONT_SMALL, "", ClientPage.TEXT, 1, 1, false)
+		hit.hasScript = true
+		hit.addOptionName(0, "Settings")
+		hit.opBase = registration.descriptor.name
+		hit.params = arrayOf<Any?>(SENTINEL, A_SETTINGS, index)
+		hit.onMouseOver = arrayOf<Any?>(SENTINEL, A_GEAR_HOVER, index)
+		hit.onMouseLeaveScript = arrayOf<Any?>(SENTINEL, A_GEAR_LEAVE, index)
+		children.add(hit)
+	}
+
+	/** The gear and its lit twin in the component sprite cache, made for the active toolkit (again after a change) and put back whenever the cache was emptied. */
+	private fun ensureGears() {
+		val toolkit: Toolkit = ClientState.activeToolkit ?: return
+		if (gears == null || gearToolkit !== toolkit) {
+			val plain: NativeSprite = toolkit.createNativeSprite(gearPixels(GEAR_SIZE, false), GEAR_SIZE, GEAR_SIZE, GEAR_SIZE, false) ?: return
+			val lit: NativeSprite = toolkit.createNativeSprite(gearPixels(GEAR_SIZE, true), GEAR_SIZE, GEAR_SIZE, GEAR_SIZE, false) ?: return
+			gears = arrayOf(plain, lit)
+			gearToolkit = toolkit
+		}
+		val sprites: Array<NativeSprite> = gears ?: return
+		if (Component.NATIVE_SPRITE_CACHE.get(GEAR_SPRITE.toLong()) == null) {
+			Component.NATIVE_SPRITE_CACHE.put(sprites[0], GEAR_SPRITE.toLong(), GEAR_SIZE * GEAR_SIZE * 4)
+		}
+		if (Component.NATIVE_SPRITE_CACHE.get(GEAR_LIT_SPRITE.toLong()) == null) {
+			Component.NATIVE_SPRITE_CACHE.put(sprites[1], GEAR_LIT_SPRITE.toLong(), GEAR_SIZE * GEAR_SIZE * 4)
+		}
+	}
+
+	/**
+	 * A gear [size] pixels square as ARGB: eight teeth round a ring with a hole in its middle, a dark
+	 * outline, and grey metal lit from above ([lit]: brighter, warm, for the hover). Each pixel is
+	 * sampled four times for smooth edges.
+	 */
+	@JvmStatic
+	fun gearPixels(size: Int, lit: Boolean): IntArray {
+		val pixels: IntArray = IntArray(size * size)
+		val centre: Float = size / 2f
+		val outer: Float = size * 0.49f // the teeth's tips
+		val body: Float = size * 0.38f // the ring between the teeth
+		val hole: Float = size * 0.12f
+		val outline: Float = 1.0f
+		val top: Int = if (lit) 0xfff2d8 else 0xb4b0a6
+		val bottom: Int = if (lit) 0xc9a85c else 0x5c5850
+		val line: Int = if (lit) 0x3a2c10 else 0x1e1c18
+		for (py in 0 until size) {
+			for (px in 0 until size) {
+				var cover: Int = 0
+				var inner: Int = 0
+				for (s in 0 until 4) {
+					val x: Float = px + 0.25f + (s and 1) * 0.5f - centre
+					val y: Float = py + 0.25f + (s shr 1) * 0.5f - centre
+					val d: Float = gearDistance(x, y, outer, body, hole)
+					if (d <= 0f) {
+						cover++
+						if (d <= -outline) {
+							inner++
+						}
+					}
+				}
+				if (cover == 0) {
+					continue
+				}
+				// the face's shade runs top to bottom; the outline is the band at the edge
+				val face: Int = blend(top, bottom, py.toFloat() / (size - 1))
+				val colour: Int = blend(line, face, inner / 4f)
+				pixels[py * size + px] = ((cover * 255 / 4) shl 24) or colour
 			}
 		}
+		return pixels
+	}
+
+	/** How far ([x], [y]) is inside the gear: negative inside, by about the pixels to its edge. */
+	private fun gearDistance(x: Float, y: Float, outer: Float, body: Float, hole: Float): Float {
+		val r: Float = kotlin.math.sqrt(x * x + y * y)
+		// a tooth where the angle is near one of eight spokes: its half-width in pixels across the spoke
+		val angle: Float = kotlin.math.atan2(y, x)
+		val spoke: Float = (angle / (kotlin.math.PI.toFloat() / 4f))
+		val off: Float = kotlin.math.abs(spoke - kotlin.math.round(spoke)) * (kotlin.math.PI.toFloat() / 4f) * r
+		val toothHalf: Float = outer * 0.3f
+		val toothEdge: Float = maxOf(off - toothHalf, r - outer)
+		val edge: Float = minOf(r - body, toothEdge)
+		return maxOf(edge, hole - r)
+	}
+
+	private fun blend(a: Int, b: Int, t: Float): Int {
+		val k: Float = t.coerceIn(0f, 1f)
+		val r: Int = (((a shr 16) and 0xFF) * (1f - k) + ((b shr 16) and 0xFF) * k).toInt()
+		val g: Int = (((a shr 8) and 0xFF) * (1f - k) + ((b shr 8) and 0xFF) * k).toInt()
+		val bl: Int = ((a and 0xFF) * (1f - k) + (b and 0xFF) * k).toInt()
+		return (r shl 16) or (g shl 8) or bl
 	}
 
 	/**
@@ -968,6 +1233,7 @@ object PluginManagerScreen {
 	private fun startPick(initial: Int, alpha: Boolean, openedForIt: Boolean, done: (Int) -> Unit) {
 		closeEdit()
 		closePopup()
+		searching = false
 		picking = Pick(alpha, if (alpha) initial else initial or ALPHA_MASK, done, openedForIt)
 		rebuild()
 	}
@@ -1255,6 +1521,10 @@ object PluginManagerScreen {
 			pickKeyTyped(record)
 			return true
 		}
+		if (open && searching) {
+			searchKeyTyped(record)
+			return true
+		}
 		val entry: PluginSchemaImpl.Entry = editing ?: return false
 		if (!open) {
 			editing = null
@@ -1307,7 +1577,38 @@ object PluginManagerScreen {
 			rebuild()
 			return true
 		}
-		return editing != null || pickEdit != 0
+		return editing != null || pickEdit != 0 || searching
+	}
+
+	/** A key into the search box: the list follows each change; Enter leaves the box with its text, Escape empties it. */
+	private fun searchKeyTyped(record: KeyRecord) {
+		val code: Int = record.getKeyCode()
+		val ch: Char = record.getKeyChar()
+		if (code == KEY_ENTER) {
+			searching = false
+		} else if (code == KEY_ESCAPE) {
+			searching = false
+			searchText = ""
+		} else if (code == KEY_BACKSPACE) {
+			if (searchText.isEmpty()) {
+				return
+			}
+			searchText = searchText.substring(0, searchText.length - 1)
+		} else if (ch >= ' ' && ch < '\u007f' && searchText.length < MAX_SEARCH) {
+			searchText += ch
+		} else {
+			return
+		}
+		listTop = 0
+		rebuild()
+	}
+
+	/** Gives the search box the keyboard, or takes it back. */
+	private fun toggleSearch() {
+		closePopup()
+		hideTip()
+		searching = !searching
+		rebuild()
 	}
 
 	// --- the tooltip ---
@@ -1410,7 +1711,42 @@ object PluginManagerScreen {
 		popupFor = choice
 	}
 
+	/** The sort list under its box: the orders other than the one shown. */
+	private fun openSort() {
+		closePopup()
+		hideTip()
+		val hit: Component = sortHit ?: return
+		val values: ArrayList<String> = ArrayList()
+		for (sort in SORTS) {
+			if (sort != SORTS[sortMode]) {
+				values.add(sort)
+			}
+		}
+		val shown: Array<String> = values.toTypedArray()
+		popup.open(hit, shown, shown, IntArray(shown.size) { ClientPage.TEXT })
+		if (!popup.open) {
+			return
+		}
+		ClientPage.setSprite(BODY, sortArrow, ClientPage.ARROW_OPEN)
+		ClientPage.setColour(BODY, sortOutline, ClientPage.BOX_LINE_OPEN)
+		sortOpen = true
+	}
+
+	private fun setSort(mode: Int) {
+		sortMode = mode
+		listTop = 0
+		rebuild()
+	}
+
 	private fun closePopup() {
+		if (sortOpen) {
+			sortOpen = false
+			popup.close()
+			if (open) {
+				ClientPage.setSprite(BODY, sortArrow, ClientPage.ARROW)
+				ClientPage.setColour(BODY, sortOutline, ClientPage.BOX_LINE)
+			}
+		}
 		val choice: Choice = popupFor ?: return
 		popupFor = null
 		popup.close()
@@ -1448,6 +1784,15 @@ object PluginManagerScreen {
 		if (pickEdit != 0 && action != A_PICK_HEX && action != A_PICK_ALPHA && action != A_HOVER && action != A_LEAVE) {
 			endPickEdit(false)
 		}
+		if (searching && action != A_SEARCH && action != A_HOVER && action != A_LEAVE && action != A_ROW_HOVER && action != A_ROW_LEAVE && action != A_WHEEL && action != A_GEAR_HOVER && action != A_GEAR_LEAVE) {
+			searching = false // a click elsewhere leaves the box, its text kept
+			ClientPage.setColour(BODY, searchOutline, ClientPage.BOX_LINE)
+			ClientPage.childOf(BODY, searchValue)?.let {
+				it.text = if (searchText.isEmpty()) "Search plugins" else searchShown()
+				it.color = if (searchText.isEmpty()) DIM else ClientPage.TEXT
+				Component.redrawComponent(it)
+			}
+		}
 		if (capturing != null && action != A_HOVER && action != A_LEAVE && action != A_ROW_HOVER && action != A_ROW_LEAVE && action != A_WHEEL) {
 			capturing = null // a click elsewhere leaves the key as it was
 			rebuild()
@@ -1469,18 +1814,18 @@ object PluginManagerScreen {
 				selected = null
 				rebuild()
 			}
-			A_PREV -> {
-				page--
-				rebuild()
-			}
-			A_NEXT -> {
-				page++
-				rebuild()
-			}
+			A_LIST_UP -> scrollListBy(-(VISIBLE_ROWS - 1))
+			A_LIST_DOWN -> scrollListBy(VISIBLE_ROWS - 1)
 			A_WHEEL -> if (plugin != null) {
 				val body: Component = Interface.getComponent(BODY) ?: return
 				scrollTo(body.scrollY + hook.mouseY * SETTING_PITCH) // the wheel's turns, positive downwards
+			} else if (picking == null) {
+				scrollListBy(hook.mouseY)
 			}
+			A_SEARCH -> toggleSearch()
+			A_SORT -> if (sortOpen) closePopup() else openSort()
+			A_GEAR_HOVER -> ClientPage.setSprite(BODY, gearSlots[index] ?: -1, GEAR_LIT_SPRITE)
+			A_GEAR_LEAVE -> ClientPage.setSprite(BODY, gearSlots[index] ?: -1, GEAR_SPRITE)
 			A_HOVER -> if (index < buttons.size) ClientPage.paint(buttons[index], true)
 			A_LEAVE -> if (index < buttons.size) ClientPage.paint(buttons[index], false)
 			A_SET_TOGGLE -> if (plugin != null) {
@@ -1504,7 +1849,13 @@ object PluginManagerScreen {
 					openPopup(choice)
 				}
 			}
-			A_ITEM -> {
+			A_ITEM -> if (sortOpen) {
+				val mode: Int = if (index < popup.values.size) SORTS.indexOf(popup.values[index]) else -1
+				closePopup()
+				if (mode >= 0) {
+					setSort(mode)
+				}
+			} else {
 				val choice: Choice? = popupFor
 				if (plugin != null && choice != null && index < popup.values.size) {
 					val value: String = popup.values[index]
@@ -1566,13 +1917,64 @@ object PluginManagerScreen {
 
 	// --- for the smoke test: the same actions the clicks take ---
 
-	/** How many plugin rows the list page shows now, -1 when the window is not ours. */
+	/** How many plugins the list holds now (those matching the search; it scrolls, so not all show at once), -1 when the window is not ours. */
 	@JvmStatic
 	fun rowsShown(): Int {
 		if (!open || selected != null) {
 			return -1
 		}
-		return minOf(PluginRuntime.count - page * ROWS_PER_PAGE, ROWS_PER_PAGE)
+		return listed().size
+	}
+
+	/** The rows the list shows at once. */
+	@JvmStatic
+	fun visibleRows(): Int = VISIBLE_ROWS
+
+	/** Types [text] into the search box as a player does (the box emptied first), then leaves it with Enter. */
+	@JvmStatic
+	fun search(text: String) {
+		searchText = text.take(MAX_SEARCH)
+		searching = false
+		listTop = 0
+		if (open) {
+			rebuild()
+		}
+	}
+
+	/** Picks the sort list's order [mode] (0 A to Z, 1 Z to A, 2 enabled first, 3 disabled first). */
+	@JvmStatic
+	fun sort(mode: Int) {
+		if (mode in SORTS.indices && open) {
+			setSort(mode)
+		}
+	}
+
+	/** The listed plugins' ids, in the list's order. */
+	@JvmStatic
+	fun listedIds(): List<String> = listed().map { PluginRuntime.registrations[it]!!.descriptor.id }
+
+	/** Whether plugin [id] counts as on for the sort. */
+	@JvmStatic
+	fun listedEnabled(id: String): Boolean = PluginRuntime.find(id)?.let { enabled(it) } ?: false
+
+	/** The smoke test's wheel over the list: [rows] down (up when negative); the first shown row after. */
+	@JvmStatic
+	fun scrollList(rows: Int): Int {
+		scrollListBy(rows)
+		return listTop
+	}
+
+	/** The pointer over or off plugin [id]'s gear, as the hover hooks do it; the gear's sprite id after, -1 when the row shows no gear. */
+	@JvmStatic
+	fun hoverGear(id: String, over: Boolean): Int {
+		for (i in 0 until PluginRuntime.count) {
+			if (PluginRuntime.registrations[i]?.descriptor?.id == id) {
+				val slot: Int = gearSlots[i] ?: return -1
+				ClientPage.setSprite(BODY, slot, if (over) GEAR_LIT_SPRITE else GEAR_SPRITE)
+				return ClientPage.childOf(BODY, slot)?.spriteId ?: -1
+			}
+		}
+		return -1
 	}
 
 	@JvmStatic
@@ -1628,9 +2030,17 @@ object PluginManagerScreen {
 		return true
 	}
 
-	/** The canvas position of the middle of plugin [id]'s row, for the smoke test's pointer; null when not listed. */
+	/** The canvas position of the middle of plugin [id]'s row, scrolled into view, for the smoke test's pointer; null when not listed. */
 	@JvmStatic
 	fun rowCentre(id: String): IntArray? {
+		val at: Int = listedIds().indexOf(id)
+		if (at < 0) {
+			return null
+		}
+		if (at < listTop || at >= listTop + VISIBLE_ROWS) {
+			listTop = at
+			rebuild()
+		}
 		for (i in 0 until PluginRuntime.count) {
 			val registration: PluginRegistration = PluginRuntime.registrations[i] ?: continue
 			if (registration.descriptor.id == id) {

@@ -382,6 +382,9 @@ object SmokeTest {
 
 	private var pluginManagerTipLines: Int = -1
 
+	/** The plugin manager's filtered list, the gear lit, is on screen for its shot. */
+	private var pluginManagerSearched: Boolean = false
+
 	private const val MENU_WALK_FRAMES: Int = 400
 
 	private var menuWalkFrame: Int = -1
@@ -4306,6 +4309,10 @@ object SmokeTest {
 			pluginManagerStep = 2
 			return
 		}
+		if (pluginManagerStep == 2 && pluginManagerSearched) {
+			pluginManagerSearchedCheck()
+			return
+		}
 		if (pluginManagerStep == 2) {
 			val rows: Int = PluginManagerScreen.rowsShown()
 			pluginManagerTipLines = PluginManagerScreen.tipLines()
@@ -4325,12 +4332,16 @@ object SmokeTest {
 			if (XpDrops.enabled != before) {
 				fail("the experience drops' switch did not go back")
 			}
-			if (!PluginManagerScreen.clickSettings("idle")) {
-				fail("the idle notifier's Settings did not open its page")
+			pluginManagerSortCheck(rows)
+			// the list filtered and the experience drops' gear lit, for the shot the next pass saves
+			PluginManagerScreen.search("xp")
+			val gear: Int = PluginManagerScreen.hoverGear("xpdrops", true)
+			if (gear < 0 || gear == PluginManagerScreen.hoverGear("xpdrops", false) || PluginManagerScreen.hoverGear("xpdrops", true) != gear) {
+				fail("the experience drops' gear did not light under the pointer")
 			}
-			println("SMOKE plugin manager: " + rows + " rows; the idle notifier's tooltip of " + pluginManagerTipLines + " lines; experience drops switched off and on; the idle notifier's settings page open")
+			println("SMOKE plugin manager: " + rows + " rows; the idle notifier's tooltip of " + pluginManagerTipLines + " lines; experience drops switched off and on; \"xp\" lists " + PluginManagerScreen.listedIds())
+			pluginManagerSearched = true
 			pluginManagerFrame = gameFrames
-			pluginManagerStep = 3
 			return
 		}
 		saveFrame("build/smoke/plugins-settings.png")
@@ -4382,6 +4393,57 @@ object SmokeTest {
 		// the screen shows a frame a little after it is drawn: the shot of the scrolled page waits for the next step
 		pluginManagerFrame = gameFrames
 		pluginManagerStep = 4
+	}
+
+	/** The list's orders, the search and the scrolling, on the list of [rows] plugins. */
+	private fun pluginManagerSortCheck(rows: Int) {
+		val az: List<String> = PluginManagerScreen.listedIds()
+		PluginManagerScreen.sort(1)
+		if (PluginManagerScreen.listedIds() != az.reversed()) {
+			fail("Name Z-A is not A-Z reversed: " + PluginManagerScreen.listedIds())
+		}
+		PluginManagerScreen.sort(2)
+		val enabledFirst: List<Boolean> = PluginManagerScreen.listedIds().map { PluginManagerScreen.listedEnabled(it) }
+		if (enabledFirst.indexOf(false) in 0 until enabledFirst.lastIndexOf(true)) {
+			fail("Enabled first lists an off plugin before an on one")
+		}
+		PluginManagerScreen.sort(3)
+		val disabledFirst: List<Boolean> = PluginManagerScreen.listedIds().map { PluginManagerScreen.listedEnabled(it) }
+		if (disabledFirst.indexOf(true) in 0 until disabledFirst.lastIndexOf(false)) {
+			fail("Disabled first lists an on plugin before an off one")
+		}
+		PluginManagerScreen.sort(0)
+		PluginManagerScreen.search("IDLE")
+		val idle: List<String> = PluginManagerScreen.listedIds()
+		if (!idle.contains("idle") || idle.size >= rows) {
+			fail("searching \"IDLE\" lists " + idle)
+		}
+		PluginManagerScreen.search("zzzz")
+		if (PluginManagerScreen.rowsShown() != 0) {
+			fail("searching \"zzzz\" still lists " + PluginManagerScreen.rowsShown())
+		}
+		PluginManagerScreen.search("")
+		val most: Int = maxOf(0, rows - PluginManagerScreen.visibleRows())
+		val end: Int = PluginManagerScreen.scrollList(1000)
+		val top: Int = PluginManagerScreen.scrollList(-1000)
+		if (end != most || top != 0) {
+			fail("the list scrolled to " + end + " of " + most + " and back to " + top)
+		}
+		println("SMOKE plugin manager: sorted A-Z, Z-A, enabled first, disabled first; \"IDLE\" lists " + idle + "; scrolled " + end + " rows to the end and back")
+	}
+
+	/** The filtered list's shot, then the search emptied, the gear put out, and the idle notifier's settings page opened by its gear's action. */
+	private fun pluginManagerSearchedCheck() {
+		saveFrame("build/smoke/plugins-search.png")
+		PluginManagerScreen.hoverGear("xpdrops", false)
+		PluginManagerScreen.search("")
+		if (!PluginManagerScreen.clickSettings("idle")) {
+			fail("the idle notifier's Settings did not open its page")
+		}
+		println("SMOKE plugin manager: the filtered list shot; the idle notifier's settings page open")
+		pluginManagerSearched = false
+		pluginManagerFrame = gameFrames
+		pluginManagerStep = 3
 	}
 
 	/** The scrolled page's shot, then back to its top, Back, and the window closed. */
