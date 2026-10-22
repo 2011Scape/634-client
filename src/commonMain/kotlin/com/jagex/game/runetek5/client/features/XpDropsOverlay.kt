@@ -35,7 +35,7 @@ object XpDropsOverlay {
 
 	private const val COUNTER_WIDTH: Int = 130
 
-	private const val BAR_HEIGHT: Int = 10
+	private const val BAR_HEIGHT: Int = 14
 
 	private const val BACKGROUND: Int = 0x9C463D32.toInt()
 
@@ -98,13 +98,13 @@ object XpDropsOverlay {
 				xp += client.skillXp(skill)
 			}
 		}
-		val height: Int = maxOf(g.fontHeight(), if (recent) iconHeight(g, ICONS[plugin.lastSkill]) else 0) + 6
+		val height: Int = maxOf(g.fontHeight(), if (recent) iconHeight(g, ICONS[plugin.lastSkill]) else 0) + 4
 		val x: Int = boxX(anchorX, COUNTER_WIDTH)
 		g.fillRect(x, top, COUNTER_WIDTH, height, BACKGROUND)
 		g.drawRect(x, top, COUNTER_WIDTH, height, BORDER)
 		if (recent) {
 			val icon: Int = ICONS[plugin.lastSkill]
-			g.sprite(icon, x + 3, top + (height - iconHeight(g, icon)) / 2)
+			g.sprite(icon, x + 2, top + (height - iconHeight(g, icon)) / 2)
 		} else {
 			g.text(x + 5, top + height / 2 + g.fontHeight() / 2 - 2, "XP:", WHITE, BLACK)
 		}
@@ -112,7 +112,7 @@ object XpDropsOverlay {
 		return top + height + 2
 	}
 
-	/** Old School's progress bar under the counter: the chosen skill (or the most recent) from its level to the next. */
+	/** Old School's progress bar under the counter: the chosen skill (or the most recent) from its level to the next, named on the bar with its level and the way to the next. */
 	private fun progressBar(g: Graphics, client: ClientApi, plugin: XpDrops, anchorX: Int, top: Int): Int {
 		if (plugin.progressBar == 0) {
 			return top
@@ -130,6 +130,11 @@ object XpDropsOverlay {
 		g.fillRect(x, top, COUNTER_WIDTH, BAR_HEIGHT, BAR_BACKGROUND)
 		g.fillRect(x, top, (COUNTER_WIDTH * fraction).toInt().coerceIn(0, COUNTER_WIDTH), BAR_HEIGHT, BAR_FILL)
 		g.drawRect(x, top, COUNTER_WIDTH, BAR_HEIGHT, BORDER)
+		g.font(Font.SMALL)
+		val baseline: Int = top + BAR_HEIGHT - 3
+		g.text(x + 3, baseline, Skill.NAMES[skill] + " " + level, WHITE, BLACK)
+		g.textRight(x + COUNTER_WIDTH - 3, baseline, (fraction * 100).toInt().coerceIn(0, 100).toString() + "%", WHITE, BLACK)
+		g.font(FONTS[plugin.size])
 		return top + BAR_HEIGHT + 2
 	}
 

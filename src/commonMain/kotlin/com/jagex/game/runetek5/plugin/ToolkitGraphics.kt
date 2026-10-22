@@ -212,12 +212,13 @@ object ToolkitGraphics : Graphics {
 
 	override fun spriteWidth(id: Int): Int {
 		val sprite: NativeSprite = sprite(id) ?: return 0
-		return sprite.getWidth()
+		// the whole canvas, padding and all, as sprite() draws it: getWidth() is the trimmed image only
+		return sprite.scaleWidth()
 	}
 
 	override fun spriteHeight(id: Int): Int {
 		val sprite: NativeSprite = sprite(id) ?: return 0
-		return sprite.getHeight()
+		return sprite.scaleHeight()
 	}
 
 	override fun itemIcon(itemId: Int, quantity: Int, x: Int, y: Int): Boolean {

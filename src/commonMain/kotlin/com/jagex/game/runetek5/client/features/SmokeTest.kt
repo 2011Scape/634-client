@@ -2845,6 +2845,7 @@ object SmokeTest {
 			XpDrops.position = XpDrops.POSITION_RIGHT
 			XpDrops.size = 4
 			XpDrops.counter = XpDrops.COUNTER_RECENT
+			XpDrops.progressBar = 2 + 3 // Constitution's bar, under Attack's counter
 			xpRightFrame = frames
 			println("SMOKE experience drop \"" + XpDrops.lastDropText + "\" drawn; setting Attack back to 1")
 			sendCommand("level attack 1")
