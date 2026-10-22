@@ -364,4 +364,17 @@ interface ClientApi {
 	 * what follows. Since API 12.
 	 */
 	fun addTooltip(text: String)
+
+	/** How many quests the cache has: the quest ids are 0 until this. Since API 13. */
+	fun questCount(): Int
+
+	/** Quest [id]'s name, as the quest journal lists it; null for an id the cache does not have. Since API 13. */
+	fun questName(id: Int): String?
+
+	/**
+	 * Where the player is with quest [id], a [QuestState], worked out as the game's quest journal does
+	 * from the quest's progress variables in the cache: each is finished at or past its end value and
+	 * started at or past its start. [QuestState.NOT_STARTED] for an id the cache does not have. Since API 13.
+	 */
+	fun questState(id: Int): Int
 }

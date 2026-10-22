@@ -41,8 +41,9 @@ package com.jagex.game.runetek5.plugin.api
  * - 12: overlays the client places and the player moves: [PanelOverlay] (its [OverlayPosition], [OverlayOrigin]
  *   and [OverlayMenuEntry]s), [OverlayPanel] and [PanelComponent]; infoboxes ([InfoBox], [Counter], [Timer],
  *   [PluginContext.addInfoBox]); [Graphics.translate], [Graphics.image] and [ClientApi.loadImage]; [ClientApi.addTooltip].
+ * - 13: quests: [ClientApi.questCount], [ClientApi.questName] and [ClientApi.questState] ([QuestState]).
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 12
+	const val VERSION: Int = 13
 }
