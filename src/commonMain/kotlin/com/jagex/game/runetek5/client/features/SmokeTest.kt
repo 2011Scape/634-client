@@ -209,6 +209,8 @@ object SmokeTest {
 
 	private var xpStep: Int = 0
 
+	private var xpRightFrame: Int = -1
+
 	private var xpFrame: Int = -1
 
 	private var xpWasEnabled: Boolean = false
@@ -2764,9 +2766,18 @@ object SmokeTest {
 		if (why != null || !PluginManagerScreen.open) {
 			fail("Setup did not open XP Drops' settings: " + why)
 		}
+		// the progress bar's list (27 choices) is longer than the window: it scrolls to its end with the wheel
+		val list: IntArray = PluginManagerScreen.openChoiceList("progressBar")
+		if (list[0] != 1 || list[1] <= 0) {
+			fail("the progress bar's list does not scroll (" + list[0] + ", most " + list[1] + ")")
+		}
+		val end: IntArray = PluginManagerScreen.scrollChoiceList(100)
+		if (end[0] != end[1]) {
+			fail("the wheel did not take the progress bar's list to its end (" + end[0] + " of " + end[1] + ")")
+		}
 		PluginManagerScreen.close()
 		println("SMOKE XP button: " + frame + ":" + found)
-		return "the XP button is " + frame + ":" + found + ", its Setup opens the settings"
+		return "the XP button is " + frame + ":" + found + ", its Setup opens the settings, the progress bar's list scrolls " + end[1] + " pixels"
 	}
 
 	/**
@@ -2830,6 +2841,11 @@ object SmokeTest {
 			}
 			// saved for a look, never compared: the drop rises and fades, so no two runs catch the same frame
 			checkImage("-xpdrop", SHOT.replace(".png", "-xpdrop.png"))
+			// the same drop on the right at the largest size with the most recent counter, for the next frame
+			XpDrops.position = XpDrops.POSITION_RIGHT
+			XpDrops.size = 4
+			XpDrops.counter = XpDrops.COUNTER_RECENT
+			xpRightFrame = frames
 			println("SMOKE experience drop \"" + XpDrops.lastDropText + "\" drawn; setting Attack back to 1")
 			sendCommand("level attack 1")
 			xpFrame = frames
@@ -2837,6 +2853,11 @@ object SmokeTest {
 			return false
 		}
 		if (xpStep == 3) {
+			if (xpRightFrame >= 0 && frames - xpRightFrame >= 10) {
+				saveFrame("build/smoke/frame-xpdrop-right.png")
+				xpRightFrame = -1
+				XpDrops.size = 2
+			}
 			if (level != 1) {
 				if (frames - xpFrame >= XP_WAIT) {
 					fail("Attack did not go back to 1 (it is " + level + ")")

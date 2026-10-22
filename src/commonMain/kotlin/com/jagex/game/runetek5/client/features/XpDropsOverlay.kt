@@ -22,10 +22,11 @@ object XpDropsOverlay {
 	@JvmField
 	val ICONS: IntArray = intArrayOf(197, 199, 198, 203, 200, 201, 202, 212, 214, 208, 211, 213, 207, 210, 209, 205, 204, 206, 216, 217, 215, 220, 221, 222, 3032)
 
-	/** The icon's side and the font, by size (Smallest to Largest). */
-	private val ICON_SIZES: IntArray = intArrayOf(16, 20, 24, 26, 32)
-
+	/** The font by size (Smallest to Largest); the skill icons are drawn at their own size, as Old School draws them. */
 	private val FONTS: IntArray = intArrayOf(Font.SMALL, Font.SMALL, Font.REGULAR, Font.BOLD, Font.BOLD)
+
+	/** The Stats tab icons' size before the sprite has loaded. */
+	private const val ICON_FALLBACK: Int = 25
 
 	/** The minimap's width over the game view's top-right corner in the resizable modes. */
 	private const val MINIMAP_WIDTH: Int = 215
@@ -57,7 +58,7 @@ object XpDropsOverlay {
 			return
 		}
 		g.font(FONTS[plugin.size])
-		val lineHeight: Int = maxOf(g.fontHeight(), if (plugin.hideSkillIcons) 0 else ICON_SIZES[plugin.size])
+		val lineHeight: Int = maxOf(g.fontHeight(), if (plugin.hideSkillIcons) 0 else iconHeight(g, ICONS[0]))
 		// the anchor: the right edge, the centre or the left edge of what is drawn
 		val resizable: Boolean = view.x == 0 && view.y == 0
 		val anchorX: Int = when (plugin.position) {
@@ -97,12 +98,13 @@ object XpDropsOverlay {
 				xp += client.skillXp(skill)
 			}
 		}
-		val height: Int = maxOf(g.fontHeight(), 20) + 6
+		val height: Int = maxOf(g.fontHeight(), if (recent) iconHeight(g, ICONS[plugin.lastSkill]) else 0) + 6
 		val x: Int = boxX(anchorX, COUNTER_WIDTH)
 		g.fillRect(x, top, COUNTER_WIDTH, height, BACKGROUND)
 		g.drawRect(x, top, COUNTER_WIDTH, height, BORDER)
 		if (recent) {
-			g.spriteScaled(ICONS[plugin.lastSkill], x + 3, top + 3, height - 6, height - 6)
+			val icon: Int = ICONS[plugin.lastSkill]
+			g.sprite(icon, x + 3, top + (height - iconHeight(g, icon)) / 2)
 		} else {
 			g.text(x + 5, top + height / 2 + g.fontHeight() / 2 - 2, "XP:", WHITE, BLACK)
 		}
@@ -151,16 +153,25 @@ object XpDropsOverlay {
 		}
 	}
 
+	private fun iconWidth(g: Graphics, id: Int): Int = g.spriteWidth(id).takeIf { it > 0 } ?: ICON_FALLBACK
+
+	private fun iconHeight(g: Graphics, id: Int): Int = g.spriteHeight(id).takeIf { it > 0 } ?: ICON_FALLBACK
+
 	private fun drawDrop(g: Graphics, plugin: XpDrops, drop: XpDrops.Drop, anchorX: Int, top: Int, lineHeight: Int, alpha: Int) {
 		val text: String = "+" + GroundItemRules.withCommas(drop.amount.toLong())
-		val icon: Int = ICON_SIZES[plugin.size]
-		val icons: Int = if (plugin.hideSkillIcons) 0 else drop.skills.size * (icon + 2)
+		var icons: Int = 0
+		if (!plugin.hideSkillIcons) {
+			for (skill in drop.skills) {
+				icons += iconWidth(g, ICONS[skill]) + 2
+			}
+		}
 		val width: Int = icons + g.textWidth(text)
 		var x: Int = boxX(anchorX, width)
 		if (!plugin.hideSkillIcons) {
 			for (skill in drop.skills) {
-				g.spriteScaled(ICONS[skill], x, top + (lineHeight - icon) / 2, icon, icon)
-				x += icon + 2
+				val icon: Int = ICONS[skill]
+				g.sprite(icon, x, top + (lineHeight - iconHeight(g, icon)) / 2)
+				x += iconWidth(g, icon) + 2
 			}
 		}
 		val baseline: Int = top + lineHeight / 2 + g.fontHeight() / 2 - 2
