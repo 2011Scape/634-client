@@ -326,6 +326,9 @@ object InfoBoxes {
 			} else if (spriteId >= 0) {
 				imageWidth = g.spriteWidth(spriteId)
 				imageHeight = g.spriteHeight(spriteId)
+			} else if (infoBox.itemId >= 0) {
+				imageWidth = ITEM_ICON_WIDTH
+				imageHeight = ITEM_ICON_HEIGHT
 			}
 			if (imageWidth <= 0 || imageHeight <= 0) {
 				out.set(0, 0)
@@ -354,6 +357,9 @@ object InfoBoxes {
 				} else {
 					g.imageScaled(image, ix, iy, fitted[0], fitted[1])
 				}
+			} else if (spriteId < 0) {
+				// an item's icon comes at its own size (36 by 32), centred on the box
+				g.itemIcon(infoBox.itemId, 1, x + (size - ITEM_ICON_WIDTH) / 2, y + (size - ITEM_ICON_HEIGHT) / 2)
 			} else if (fitted[0] == imageWidth && fitted[1] == imageHeight) {
 				g.sprite(spriteId, ix, iy)
 			} else {
@@ -385,6 +391,10 @@ object InfoBoxes {
 	private const val GAP: Int = 1
 	private const val DEFAULT_WRAP_COUNT: Int = 4
 	private const val DEFAULT_SIZE: Int = 32
+
+	/** An item's icon, as the client draws it. */
+	private const val ITEM_ICON_WIDTH: Int = 36
+	private const val ITEM_ICON_HEIGHT: Int = 32
 	private const val SEPARATOR: Int = 3
 	private const val WHITE: Int = -0x1
 	private const val BLACK: Int = -0x1000000

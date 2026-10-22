@@ -259,6 +259,13 @@ object SmokeTest {
 
 	private var statusStartMode: WindowModeType? = null
 
+	/** client.test.timers: Timers and Buffs from the server's lines (through the plugin runtime), its poison varp and a cast animation. */
+	private val TIMERS: Boolean = "true" == lang.getProperty("client.test.timers")
+
+	private var timersStep: Int = 0
+
+	private var timersFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1082,6 +1089,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 32768
+		}
+		if (TIMERS && (checksDone and 65536) == 0) {
+			if (!timersDone()) {
+				return
+			}
+			checksDone = checksDone or 65536
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3198,6 +3211,48 @@ object SmokeTest {
 	 * The kill is the Loot Tracker's, under the guide's name; the loot window opens on it (grouped), a
 	 * frame of it, then kill by kill, and it closes. Frame in build/smoke as -loottracker.
 	 */
+	/**
+	 * Timers and Buffs: an antifire and a teleblock line through the runtime's chat hook (the plugin's own
+	 * listener), an antipoison's protection on the poison varp and a vengeance cast; their infoboxes (item
+	 * icons and spell sprites) must be drawn. Then the antifire runs out. Frame: frame-timers.png.
+	 */
+	private fun timersDone(): Boolean {
+		if (timersStep == 0) {
+			TimersAndBuffs.enabled = true
+			PluginRuntime.chatMessage(0, null, "You drink the antifire (4).", null)
+			PluginRuntime.chatMessage(0, null, "You have been teleblocked.", null)
+			TimersAndBuffs.poison(-200)
+			ClientApiImpl.localPlayer()?.let { TimersAndBuffs.animation(it, TimersAndBuffs.VENGEANCE_ANIMATION) }
+			timersFrame = frames
+			timersStep = 1
+			return false
+		}
+		if (frames - timersFrame < MARKER_FRAMES) {
+			return false
+		}
+		val layer: InfoBoxes.Layer? = InfoBoxes.layers[InfoBoxes.DEFAULT_LAYER]
+		val names: List<String> = layer?.drawn?.map { it.box.box.name } ?: emptyList()
+		if (timersStep == 1) {
+			val expected: List<String> = listOf("Antifire", "Teleblock", "Antipoison", "Vengeance", "Vengeance active")
+			if (!names.containsAll(expected)) {
+				fail("Timers and Buffs drew the infoboxes " + names + ", not " + expected)
+				return true
+			}
+			saveFrame("build/smoke/frame-timers.png")
+			println("SMOKE timers: " + names)
+			PluginRuntime.chatMessage(0, null, "<col=480000>Your resistance to dragonfire has run out.", null)
+			timersFrame = frames
+			timersStep = 2
+			return false
+		}
+		if (names.contains("Antifire")) {
+			fail("the antifire infobox stayed after its run-out line")
+			return true
+		}
+		TimersAndBuffs.clear()
+		return true
+	}
+
 	/**
 	 * Status Bars on with counters and icons (lifepoints left, prayer right), a shark as the hovered backpack
 	 * item for the restore preview; the bars must stand beside the side panel. Frame: frame-statusbars.png.

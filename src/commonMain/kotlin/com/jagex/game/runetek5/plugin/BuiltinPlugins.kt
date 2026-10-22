@@ -15,6 +15,7 @@ import com.jagex.game.runetek5.client.features.ObjectIndicators
 import com.jagex.game.runetek5.client.features.OpponentInfo
 import com.jagex.game.runetek5.client.features.OverlaySettings
 import com.jagex.game.runetek5.client.features.StatusBars
+import com.jagex.game.runetek5.client.features.TimersAndBuffs
 import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.client.features.XpTracker
 import com.jagex.game.runetek5.plugin.api.Plugin
@@ -48,6 +49,7 @@ object BuiltinPlugins {
 			builtIn(OverlaySettings.DESCRIPTOR, OverlaySettings),
 			builtIn(BankOrganizer.DESCRIPTOR, BankOrganizer),
 			builtIn(StatusBars.DESCRIPTOR, StatusBars),
+			builtIn(TimersAndBuffs.DESCRIPTOR, TimersAndBuffs),
 		)
 	}
 

@@ -7,8 +7,8 @@ swapper (`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name p
 the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Discord presence
 (`DiscordPresence`), the ground items (`GroundItems`), the loot tracker (`LootTracker`), the
 object markers (`ObjectIndicators`), the XP tracker (`XpTracker`), the opponent information
-(`OpponentInfo`), the boosts information (`Boosts`), the bank organizer (`BankOrganizer`) and the
-status bars (`StatusBars`) are sixteen, built in, so the client's own code shows the way.
+(`OpponentInfo`), the boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the
+status bars (`StatusBars`) and the timers (`TimersAndBuffs`) are seventeen, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -322,6 +322,18 @@ combat delay** hides the bars that many game ticks after you last dealt with som
 always shown); **Bar width** applies on the resizable screen. 634's side panel reaches the screen's right
 edge, so when the right bar would not fit there both bars stand left of the panel. Not here from RuneLite:
 Warmth (Summoning takes its place), venom, stamina and parasites.
+
+**Timers and Buffs** is RuneLite's, for what 634 has: antifire and super antifire, overload, antipoison,
+the juju potions, the cannon, magic imbue, charge, vengeance and vengeance active, teleblock and freezes
+(the ice spells, bind, snare and entangle), each an infobox with the potion's or the spell's icon counting
+down, each with its own switch. The Void server sends only the poison variable (an antipoison's protection
+and its time left), so the rest start from its chat lines ("You drink the antifire (4)."), the player's
+animations and graphics and the "Taste vengeance!" overhead, and are timed in the client: they go at logout
+(the server starts its own again without a word), and teleblock, freezes, overload and vengeance active go
+on death, as RuneLite's. A freeze lasts as RuneLite's (half under Protect from Magic or Deflect Magic) and
+goes once you move; Charge counts only when cast with nothing targeted (the god spells share its
+animation). Not here from RuneLite: Old School's potions, items and spells (stamina, divine potions,
+imbued heart, Arceuus spells, raids supplies and so on).
 
 ## Writing a plugin
 

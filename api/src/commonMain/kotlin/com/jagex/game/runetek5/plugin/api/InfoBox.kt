@@ -6,8 +6,8 @@ import kotlin.time.TimeSource
 /**
  * A small square with a picture and a line of text, RuneLite's InfoBox: given to
  * [PluginContext.addInfoBox], it joins the infobox panel at the top left of the game view with every
- * plugin's others, sorted by [priority] and then by plugin. The picture is the cache sprite [spriteId] or
- * the plugin's [image], shrunk to fit the box; hovering shows [tooltip]. Shift-right-clicking one offers
+ * plugin's others, sorted by [priority] and then by plugin. The picture is the cache sprite [spriteId], the
+ * plugin's [image] or the icon of item [itemId] (since API 14), shrunk to fit the box; hovering shows [tooltip]. Shift-right-clicking one offers
  * to detach it into a panel of its own (with the others of the same [name]), to flip a panel between
  * across and down, and to put a detached panel's boxes back. Since API 12.
  */
@@ -21,6 +21,10 @@ abstract class InfoBox(
 
 	@JvmField
 	var image: Image? = null
+
+	/** The item whose icon to show when there is neither [image] nor [spriteId], -1 for none. Since API 14. */
+	@JvmField
+	var itemId: Int = -1
 
 	@JvmField
 	var tooltip: String? = null
