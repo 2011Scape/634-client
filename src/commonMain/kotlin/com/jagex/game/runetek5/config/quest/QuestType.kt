@@ -67,6 +67,15 @@ class QuestType {
 	@JvmField
 	var graphicId: Int = -1
 
+	/** Not part of the original client: the name, for the plugins' quest list. */
+	fun displayName(): String? = name
+
+	/** Not part of the original client: the progress varps as (varp, start, end), null for none. */
+	fun progressVarps(): Array<IntArray?>? = varpValues
+
+	/** Not part of the original client: the progress varbits as (varbit, start, end), null for none. */
+	fun progressVarbits(): Array<IntArray?>? = varbitValues
+
 	@OriginalMember(owner = "client!cq", name = "a", descriptor = "(B)V")
 	fun postDecode() {
 		if (this.sortName == null) {

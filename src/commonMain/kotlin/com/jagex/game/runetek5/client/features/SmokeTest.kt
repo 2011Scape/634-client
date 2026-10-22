@@ -60,6 +60,7 @@ import com.jagex.game.runetek5.plugin.api.OverlayPosition
 import com.jagex.game.runetek5.plugin.Tooltips
 import com.jagex.game.runetek5.plugin.InfoBoxes
 import com.jagex.game.runetek5.plugin.OverlayLayout
+import com.jagex.game.runetek5.plugin.api.QuestState
 import com.jagex.game.runetek5.plugin.api.Skill
 import kotlin.jvm.JvmStatic
 import lang.jClass
@@ -302,6 +303,8 @@ object SmokeTest {
 	private const val MARKER_FRAMES: Int = 40
 
 	private const val COINS: Int = 995
+
+	private const val COOKS_ASSISTANT: Int = 6
 
 	private const val BANK_WAIT_FRAMES: Int = 500
 
@@ -3213,6 +3216,18 @@ object SmokeTest {
 		}
 		saveFrame("build/smoke/frame-bank.png")
 		println("SMOKE bank organizer: " + BankOrganizer.drawnBoxes + " box(es) over the bank grid " + BankOrganizer.BANK_INTERFACE + ":" + BankOrganizer.BANK_ITEMS)
+		// the quest state behind Bank Cleanup, on the account's own variables: Cook's Assistant is quest 6, varp 29 (1 started, 2 finished)
+		val api = ClientApiImpl
+		val cooks: Int = api.questState(COOKS_ASSISTANT)
+		val expected: Int = when {
+			api.varp(29) >= 2 -> QuestState.FINISHED
+			api.varp(29) >= 1 -> QuestState.IN_PROGRESS
+			else -> QuestState.NOT_STARTED
+		}
+		if (api.questName(COOKS_ASSISTANT) != "Cook's Assistant" || cooks != expected) {
+			fail("quest " + COOKS_ASSISTANT + " is \"" + api.questName(COOKS_ASSISTANT) + "\" in state " + cooks + " with varp 29 at " + api.varp(29) + ", not Cook's Assistant in state " + expected)
+		}
+		println("SMOKE bank cleanup: " + api.questCount() + " quests, Cook's Assistant state " + cooks + " (varp 29 = " + api.varp(29) + "), " + BankCleanupRules.size() + " rules")
 		closeModals()
 		BankOrganizer.enabled = false
 		BankOrganizer.marks.clear()

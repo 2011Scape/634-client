@@ -31,7 +31,8 @@ the game for you.
 
 - Read: the players, npcs and items on the ground in the scene, and what each actor is doing (its
   animation, graphic, target, facing, hit splats, overhead text and icons); skills, player variables
-  (varps and varbits), inventories; the interfaces, component by component (type, place on the
+  (varps and varbits), inventories; the quests and where the player is with each (not started, in
+  progress or finished, as the quest journal shows it); the interfaces, component by component (type, place on the
   screen, item, sprite, options, children) and which are open; the item, npc and location types
   from the cache (names, options, sizes, values); the locations and the movement flags of any tile;
   whether a player is a friend, in your friends chat or could attack you here; where any of it is
@@ -302,8 +303,13 @@ falls in several: Melee, Magic, Range, Skilling, Potions, Slayer loot, Tools & m
 Skilling outfits, each with its own switch, colour and **excluded items** (comma-separated words; an item
 whose name contains one is left out). A category matches words in item names; the lists were remade for
 2011 items (the plugin's are Old School's). Melee and Farming are on at first, as in RuneLite. **Show
-boxes** hides them all. Not here from the plugin: its Sailing category and its Bank Cleanup, whose
-keep-or-discard rules follow Old School quests and diaries.
+boxes** hides them all. **Bank cleanup** adds a last segment to quest items: white (**Keep colour**) while a
+quest that needs the item is not finished, black (**Discard colour**) once every quest that needs it is.
+The rules were remade for 2011 quests; items with a use after their quests (rewards, teleports, items other
+content needs) are not marked. A quest is finished when the game's own quest journal says so (the quest's
+progress variables against the cache's quest list, `ClientApi.questState`), so a quest the server does not
+run stays not started and its items stay Keep. Not here from the plugin: its Sailing category and the
+achievement diary conditions of its Bank Cleanup.
 
 ## Writing a plugin
 

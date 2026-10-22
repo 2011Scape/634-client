@@ -14,6 +14,7 @@ import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.GameShell
 import com.jagex.game.runetek5.client.input.console.Console
 import com.jagex.game.runetek5.config.TypeLists
+import com.jagex.game.runetek5.config.quest.QuestType
 import com.jagex.game.runetek5.config.rsinterface.Component
 import com.jagex.game.runetek5.config.rsinterface.Interface
 import com.jagex.game.runetek5.core.constants.MainLogicStep
@@ -56,6 +57,7 @@ import com.jagex.game.runetek5.plugin.api.LocVisitor
 import com.jagex.game.runetek5.plugin.api.Npc
 import com.jagex.game.runetek5.plugin.api.NpcDefinition
 import com.jagex.game.runetek5.plugin.api.Player
+import com.jagex.game.runetek5.plugin.api.QuestState
 import com.jagex.game.runetek5.plugin.api.Skill
 import com.jagex.game.runetek5.plugin.api.Widget
 import com.jagex.game.runetek5.preference.GamePreferences
@@ -791,5 +793,34 @@ object ClientApiImpl : ClientApi {
 
 	override fun addTooltip(text: String) {
 		Tooltips.add(text)
+	}
+
+	override fun questCount(): Int = TypeLists.QUEST?.count ?: 0
+
+	override fun questName(id: Int): String? {
+		if (id < 0 || id >= questCount()) {
+			return null
+		}
+		return TypeLists.QUEST!!.list(id).displayName()
+	}
+
+	override fun questState(id: Int): Int {
+		if (id < 0 || id >= questCount()) {
+			return QuestState.NOT_STARTED
+		}
+		val quest: QuestType = TypeLists.QUEST!!.list(id)
+		val varps: Array<IntArray?> = quest.progressVarps() ?: arrayOf()
+		val varbits: Array<IntArray?> = quest.progressVarbits() ?: arrayOf()
+		val n: Int = varps.size + varbits.size
+		val values: IntArray = IntArray(n)
+		val starts: IntArray = IntArray(n)
+		val ends: IntArray = IntArray(n)
+		for (i in 0 until n) {
+			val range: IntArray = (if (i < varps.size) varps[i] else varbits[i - varps.size]) ?: continue
+			values[i] = if (i < varps.size) varp(range[0]) else varbit(range[0])
+			starts[i] = range[1]
+			ends[i] = range[2]
+		}
+		return QuestProgress.state(values, starts, ends)
 	}
 }

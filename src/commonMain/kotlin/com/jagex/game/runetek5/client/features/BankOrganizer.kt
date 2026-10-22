@@ -10,6 +10,7 @@ import com.jagex.game.runetek5.plugin.api.PluginApi
 import com.jagex.game.runetek5.plugin.api.PluginConfig
 import com.jagex.game.runetek5.plugin.api.PluginContext
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
+import com.jagex.game.runetek5.plugin.api.QuestState
 import com.jagex.game.runetek5.plugin.api.SettingsSchema
 import com.jagex.game.runetek5.plugin.api.Widget
 import com.jagex.game.runetek5.plugin.api.events.EventListener
@@ -17,6 +18,7 @@ import com.jagex.game.runetek5.plugin.api.events.Events
 import com.jagex.game.runetek5.plugin.api.events.FrameDraw
 import com.jagex.game.runetek5.plugin.api.events.ItemContainerChanged
 import com.jagex.game.runetek5.plugin.api.events.SettingChanged
+import com.jagex.game.runetek5.plugin.api.events.VarpChanged
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
@@ -26,13 +28,16 @@ import kotlin.jvm.JvmStatic
  * category's colour, split into one segment a category when it falls in several. The categories
  * match item names (BankOrganizerMatcher); their lists are made for the 2011 items (BankCategories).
  *
- * 634 differences: no Sailing category (the lists were rebuilt against this cache's names), and no
- * Bank Cleanup (its keep/discard rules are OSRS quests and diaries).
+ * Bank Cleanup adds a last segment to quest items (BankCleanupRules): Keep while a quest that needs the
+ * item is not finished, Discard once all of them are, by the quests' state in the game ([ClientApi.questState]).
+ *
+ * 634 differences: no Sailing category (the lists were rebuilt against this cache's names); Bank Cleanup's
+ * rules are remade for 2011 quests and leave out the achievement diaries.
  */
 object BankOrganizer : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("bankorganizer", "Bank Organizer", "1", PluginApi.VERSION, "Boxes over bank items by category (melee, magic, range, skilling, potions, slayer loot, tools, food, farming, outfits), each in its own colour (::bankorganizer turns it on and off).", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("bankorganizer", "Bank Organizer", "1", PluginApi.VERSION, "Boxes over bank items by category (melee, magic, range, skilling, potions, slayer loot, tools, food, farming, outfits), each in its own colour, and quest items to keep or discard (::bankorganizer turns it on and off).", "Pixel")
 
 	/** The bank's interface and its item grid. */
 	const val BANK_INTERFACE: Int = 762
@@ -47,6 +52,11 @@ object BankOrganizer : Plugin {
 
 	private const val MAX_LIST: Int = 2000
 
+	/** Bank Cleanup's default colours, RuneLite's: white to keep, black to discard. */
+	const val KEEP: Int = 0xFFFFFFFF.toInt()
+
+	const val DISCARD: Int = 0xFF000000.toInt()
+
 	@JvmField
 	var enabled: Boolean = false
 
@@ -55,6 +65,19 @@ object BankOrganizer : Plugin {
 
 	@JvmField
 	val matcher: BankOrganizerMatcher = BankOrganizerMatcher()
+
+	/** Bank Cleanup: quest items marked to keep or to discard, in these colours. */
+	@JvmField
+	var cleanupActive: Boolean = false
+
+	@JvmField
+	var keepColour: Int = KEEP
+
+	@JvmField
+	var discardColour: Int = DISCARD
+
+	/** A variable changed while Bank Cleanup is on: a quest may have moved on, so the marks are made again. */
+	private var questsChanged: Boolean = false
 
 	/** By item id: the colours of its box segments, made when the bank changes or a setting does. */
 	@JvmField
@@ -91,6 +114,12 @@ object BankOrganizer : Plugin {
 
 	private val frameListener: EventListener<FrameDraw> = EventListener { event -> draw(event.graphics) }
 
+	private val varpListener: EventListener<VarpChanged> = EventListener {
+		if (cleanupActive) {
+			questsChanged = true
+		}
+	}
+
 	private val toggle: CommandHandler = CommandHandler { _, _ ->
 		val context: PluginContext = this.context ?: return@CommandHandler
 		enabled = !enabled
@@ -106,6 +135,7 @@ object BankOrganizer : Plugin {
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
 		context.events().subscribe(Events.ITEM_CONTAINER_CHANGED, containerListener)
 		context.events().subscribe(Events.FRAME_DRAW, frameListener)
+		context.events().subscribe(Events.VARP_CHANGED, varpListener)
 		context.registerCommand("bankorganizer", toggle)
 		// the bank as it is when the plugin starts
 		mark(context.client())
@@ -125,6 +155,9 @@ object BankOrganizer : Plugin {
 			s.colour("colorCat" + id, name + " colour", BankCategories.DEFAULT_COLOURS[id], false)
 			s.text("excludeCat" + id, name + " excluded items", "", MAX_LIST)
 		}
+		s.toggle("specialItemsActive", "Bank cleanup", false)
+		s.colour("specialItemsKeepColor", "Keep colour (still needed by a quest)", KEEP, false)
+		s.colour("specialItemsDiscardColor", "Discard colour (no quest needs it)", DISCARD, false)
 	}
 
 	@JvmStatic
@@ -136,6 +169,9 @@ object BankOrganizer : Plugin {
 			matcher.colours[id] = config.getColour("colorCat" + id, BankCategories.DEFAULT_COLOURS[id])
 			matcher.exclude(id, config.get("excludeCat" + id, ""))
 		}
+		cleanupActive = config.getBoolean("specialItemsActive", false)
+		keepColour = config.getColour("specialItemsKeepColor", KEEP)
+		discardColour = config.getColour("specialItemsDiscardColor", DISCARD)
 	}
 
 	/** Works out the box colours of every item in the bank. */
@@ -153,16 +189,27 @@ object BankOrganizer : Plugin {
 			return
 		}
 		val name: String = client.itemName(id) ?: return
-		val colours: IntArray = matcher.colours(name)
+		var colours: IntArray = matcher.colours(name)
+		val cleanup: Int? = if (cleanupActive) cleanupColour(client, id) else null
+		if (cleanup != null) {
+			colours += cleanup
+		}
 		if (colours.isNotEmpty()) {
 			marks[id] = colours
 		}
 	}
 
+	/** Bank Cleanup's colour for item [id]: Keep while a quest that needs it is not finished, Discard once all are; null for no rule. */
+	@JvmStatic
+	fun cleanupColour(client: ClientApi, id: Int): Int? {
+		val quests: IntArray = BankCleanupRules.quests(id) ?: return null
+		return if (quests.any { client.questState(it) != QuestState.FINISHED }) keepColour else discardColour
+	}
+
 	private fun draw(g: Graphics) {
 		drawnBoxes = 0
 		val client: ClientApi = context?.client() ?: return
-		if (!enabled || !showBoxes || marks.isEmpty()) {
+		if (!enabled || !showBoxes) {
 			return
 		}
 		bankOpen = false
@@ -170,6 +217,10 @@ object BankOrganizer : Plugin {
 		val grid: Widget = client.widget(BANK_INTERFACE, BANK_ITEMS) ?: return
 		if (!bankOpen || grid.isHidden()) {
 			return
+		}
+		if (questsChanged) {
+			questsChanged = false
+			mark(client)
 		}
 		// the slots scroll under the grid's edges
 		g.clip(grid.screenX(), grid.screenY(), grid.width(), grid.height())

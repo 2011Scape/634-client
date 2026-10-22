@@ -20,11 +20,15 @@ class QuestTypeList {
 	@OriginalMember(owner = "client!qga", name = "a", descriptor = "Lclient!in;")
 	private val configClient: Js5ResourceProvider?
 
+	/** Not part of the original client: how many quests there are (the capacity the original reads and drops). */
+	var count: Int = 0
+		private set
+
 	@OriginalMember(owner = "client!qga", name = "<init>", descriptor = "(Lclient!sj;ILclient!in;)V")
 	constructor(@OriginalArg(0) modeGame: Game?, @OriginalArg(1) languageId: Int, @OriginalArg(2) configClient: Js5ResourceProvider?) {
 		this.configClient = configClient
 		if (this.configClient != null) {
-			this.configClient.getGroupCapacity(35)
+			this.count = this.configClient.getGroupCapacity(35)
 		}
 	}
 
