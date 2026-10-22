@@ -7,8 +7,8 @@ swapper (`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name p
 the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Discord presence
 (`DiscordPresence`), the ground items (`GroundItems`), the loot tracker (`LootTracker`), the
 object markers (`ObjectIndicators`), the XP tracker (`XpTracker`), the opponent information
-(`OpponentInfo`), the boosts information (`Boosts`) and the bank organizer (`BankOrganizer`) are
-fifteen, built in, so the client's own code shows the way.
+(`OpponentInfo`), the boosts information (`Boosts`), the bank organizer (`BankOrganizer`) and the
+status bars (`StatusBars`) are sixteen, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -310,6 +310,18 @@ content needs) are not marked. A quest is finished when the game's own quest jou
 progress variables against the cache's quest list, `ClientApi.questState`), so a quest the server does not
 run stays not started and its items stay Keep. Not here from the plugin: its Sailing category and the
 achievement diary conditions of its Bank Cleanup.
+
+**Status Bars** is RuneLite's. A bar on each side of the side panel shows lifepoints, prayer, run energy,
+special attack or summoning points (**Left bar** and **Right bar**), filled from the bottom in RuneLite's
+colours: lifepoints green while poisoned and orange while diseased, prayer brighter while a prayer or curse
+is on, run energy brown while resting. **Show icons** puts the orb's icon on top (it follows the orb: a
+poisoned heart), **Show counters** the value, and **Show restores** what the food or potion under the mouse
+in the backpack would restore (lifepoints from the Void server's food, prayer, super restore, energy,
+Saradomin brew, Guthix rest, recover special and summoning potions by their 2011 effects). **Hide after
+combat delay** hides the bars that many game ticks after you last dealt with something you can attack (0:
+always shown); **Bar width** applies on the resizable screen. 634's side panel reaches the screen's right
+edge, so when the right bar would not fit there both bars stand left of the panel. Not here from RuneLite:
+Warmth (Summoning takes its place), venom, stamina and parasites.
 
 ## Writing a plugin
 

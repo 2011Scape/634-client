@@ -250,6 +250,15 @@ object SmokeTest {
 
 	private var bankStep: Int = 0
 
+	/** client.test.statusBars: Status Bars beside the side panel, with counters and a shark's restore preview. */
+	private val STATUS_BARS: Boolean = "true" == lang.getProperty("client.test.statusBars")
+
+	private var statusStep: Int = 0
+
+	private var statusFrame: Int = -1
+
+	private var statusStartMode: WindowModeType? = null
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -305,6 +314,8 @@ object SmokeTest {
 	private const val COINS: Int = 995
 
 	private const val COOKS_ASSISTANT: Int = 6
+
+	private const val SHARK: Int = 385
 
 	private const val BANK_WAIT_FRAMES: Int = 500
 
@@ -1065,6 +1076,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 16384
+		}
+		if (STATUS_BARS && (checksDone and 32768) == 0) {
+			if (!statusBarsDone()) {
+				return
+			}
+			checksDone = checksDone or 32768
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3181,6 +3198,48 @@ object SmokeTest {
 	 * The kill is the Loot Tracker's, under the guide's name; the loot window opens on it (grouped), a
 	 * frame of it, then kill by kill, and it closes. Frame in build/smoke as -loottracker.
 	 */
+	/**
+	 * Status Bars on with counters and icons (lifepoints left, prayer right), a shark as the hovered backpack
+	 * item for the restore preview; the bars must stand beside the side panel. Frame: frame-statusbars.png.
+	 */
+	private fun statusBarsDone(): Boolean {
+		if (statusStep == 0) {
+			StatusBars.enabled = true
+			StatusBars.enableCounter = true
+			StatusBars.enableSkillIcon = true
+			StatusBars.enableRestorationBars = true
+			StatusBars.barsDisplayed = true
+			statusFrame = frames
+			statusStep = 1
+			return false
+		}
+		// the menu is rebuilt every cycle: put the shark back each frame
+		StatusBars.hoveredItem = SHARK
+		if (frames - statusFrame < MARKER_FRAMES) {
+			return false
+		}
+		val d: IntArray = StatusBarsOverlay.drawn
+		val mode: String = if (WindowMode.getWindowMode() === WindowModeType.FIXED) "fixed" else "resizable"
+		if (d[3] <= 0) {
+			fail("Status Bars drew no bars beside the side panel (" + mode + ")")
+			return true
+		}
+		saveFrame("build/smoke/frame-statusbars-" + mode + ".png")
+		println("SMOKE status bars (" + mode + "): left at x " + d[0] + ", right at x " + d[1] + ", y " + d[2] + ", " + d[3] + " tall; lifepoints " + StatusBars.current(ClientApiImpl, StatusBars.HITPOINTS) + "/" + StatusBars.maximum(ClientApiImpl, StatusBars.HITPOINTS) + ", a shark restores " + StatusBars.restore(ClientApiImpl, StatusBars.HITPOINTS))
+		if (statusStep == 1) {
+			// the other screen layout, then back
+			statusStartMode = WindowMode.getWindowMode()
+			sendCommand(if (statusStartMode === WindowModeType.FIXED) "wm2" else "wm1")
+			statusFrame = frames
+			statusStep = 2
+			return false
+		}
+		sendCommand(if (statusStartMode === WindowModeType.FIXED) "wm1" else "wm2")
+		StatusBars.hoveredItem = -1
+		StatusBars.enabled = false
+		return true
+	}
+
 	/**
 	 * Opens the bank and waits for Bank Organizer's box over the coins, the smoke account's only bank item. Coins
 	 * are in no category, so the test gives them two colours itself: the matching is the unit tests' job
