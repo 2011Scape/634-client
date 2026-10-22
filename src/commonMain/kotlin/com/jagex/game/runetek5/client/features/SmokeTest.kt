@@ -324,6 +324,9 @@ object SmokeTest {
 
 	private const val SHARK: Int = 385
 
+	private const val FIXED_TAB_AREA_X: Int = 547
+	private const val FIXED_TAB_AREA_WIDTH: Int = 190
+
 	private const val BANK_WAIT_FRAMES: Int = 500
 
 	private var markerStep: Int = 0
@@ -3273,10 +3276,26 @@ object SmokeTest {
 		if (frames - statusFrame < MARKER_FRAMES) {
 			return false
 		}
+		// after a switch, wait for the other screen's root interface (a switch to resizable resizes the window first)
+		val wantedRoot: Int = if (WindowMode.getWindowMode() === WindowModeType.FIXED) StatusBarsOverlay.FIXED else StatusBarsOverlay.RESIZABLE
+		if (ClientApiImpl.topInterface() != wantedRoot && frames - statusFrame < BANK_WAIT_FRAMES) {
+			return false
+		}
 		val d: IntArray = StatusBarsOverlay.drawn
-		val mode: String = if (WindowMode.getWindowMode() === WindowModeType.FIXED) "fixed" else "resizable"
+		val mode: String = if (ClientApiImpl.topInterface() == StatusBarsOverlay.FIXED) "fixed" else "resizable"
+		if (statusStep == 2 && ClientApiImpl.topInterface() != wantedRoot) {
+			println("SMOKE status bars: the switch to the other screen did not happen; only " + mode + " checked")
+			StatusBars.hoveredItem = -1
+			StatusBars.enabled = false
+			return true
+		}
 		if (d[3] <= 0) {
 			fail("Status Bars drew no bars beside the side panel (" + mode + ")")
+			return true
+		}
+		// on the fixed screen they stand on the stone columns either side of the tab area (548:194, x 547 to 737)
+		if (mode == "fixed" && (d[0] != FIXED_TAB_AREA_X - StatusBars.DEFAULT_WIDTH || d[1] != FIXED_TAB_AREA_X + FIXED_TAB_AREA_WIDTH)) {
+			fail("on the fixed screen the bars stand at x " + d[0] + " and " + d[1] + ", not on the columns at " + (FIXED_TAB_AREA_X - StatusBars.DEFAULT_WIDTH) + " and " + (FIXED_TAB_AREA_X + FIXED_TAB_AREA_WIDTH))
 			return true
 		}
 		saveFrame("build/smoke/frame-statusbars-" + mode + ".png")

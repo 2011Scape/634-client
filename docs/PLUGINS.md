@@ -319,8 +319,9 @@ poisoned heart), **Show counters** the value, and **Show restores** what the foo
 in the backpack would restore (lifepoints from the Void server's food, prayer, super restore, energy,
 Saradomin brew, Guthix rest, recover special and summoning potions by their 2011 effects). **Hide after
 combat delay** hides the bars that many game ticks after you last dealt with something you can attack (0:
-always shown); **Bar width** applies on the resizable screen. 634's side panel reaches the screen's right
-edge, so when the right bar would not fit there both bars stand left of the panel. Not here from RuneLite:
+always shown); **Bar width** applies on the resizable screen. On the fixed screen the bars stand on the
+stone columns either side of the tabs, as RuneLite's; the resizable side panel reaches the screen's right
+edge, so there both bars stand left of it. Not here from RuneLite:
 Warmth (Summoning takes its place), venom, stamina and parasites.
 
 **Timers and Buffs** is RuneLite's, for what 634 has: antifire and super antifire, overload, antipoison,

@@ -118,7 +118,7 @@ object StatusBars : Plugin {
 	private val frameListener: EventListener<FrameDraw> = EventListener { event ->
 		val client: ClientApi = context?.client() ?: return@EventListener
 		if (enabled && barsDisplayed && client.gameState() === GameState.LOGGED_IN) {
-			StatusBarsOverlay.draw(event.graphics, client)
+			StatusBarsOverlay.draw(event.graphics, client, event.width)
 		}
 	}
 
