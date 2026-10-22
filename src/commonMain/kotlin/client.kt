@@ -72,7 +72,6 @@ import com.jagex.game.runetek5.entity.pathingentity.EntityUpdating
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerAppearance
 import com.jagex.game.runetek5.graphics.font.FontManager
 import com.jagex.game.runetek5.network.BufferedConnectionContext
-import com.jagex.game.runetek5.scene.culling.Culling
 import com.jagex.game.runetek5.sound.player.area.SoundEffectPlayer
 import com.jagex.game.runetek5.systeminfo.SystemInfo
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecorder
@@ -342,9 +341,7 @@ class client : GameShell() {
 			GameShell.aClass184_2 = null
 			Resource.referenceTableDecompressor = null
 		}
-		if (ServerEnvironment.LIVE !== ModeWhere.WTRC) {
-			Culling.wallCullingEnabled = true
-		}
+		// Not part of the original client: the FPS display (Culling.wallCullingEnabled) stays off at startup everywhere, not just on WTRC; ::displayfps turns it on
 		AwtLoadingBarPainter.loadingText = LocalizedText.aClass351_14.get(ClientState.language)
 	}
 

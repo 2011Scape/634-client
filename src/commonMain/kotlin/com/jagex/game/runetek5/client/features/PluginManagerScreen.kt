@@ -158,6 +158,16 @@ object PluginManagerScreen {
 	private const val A_PICK_ALPHA: Int = 26
 	private const val A_PICK_RECENT: Int = 27
 	private const val A_OPEN_PANEL: Int = 28
+	private const val A_LIST_UP_ROW: Int = 34
+	private const val A_LIST_DOWN_ROW: Int = 35
+	private const val A_PAGE_UP: Int = 36
+	private const val A_PAGE_DOWN: Int = 37
+	private const val A_THUMB_PRESS: Int = 38
+	private const val A_THUMB_DRAG: Int = 39
+	private const val A_BODY_PRESS: Int = 40
+
+	/** Client cycles without a hold before a thumb drag counts as over (the button let go, or the pointer gone from the window). */
+	private const val DRAG_GAP: Int = 5
 	private const val A_SEARCH: Int = 30
 	private const val A_SORT: Int = 31
 	private const val A_GEAR_HOVER: Int = 32
@@ -204,11 +214,12 @@ object PluginManagerScreen {
 	/** The content layer's visible height (the window's less its title bar), and the scrollbar's place in it. */
 	private const val BODY_HEIGHT: Int = HEIGHT - 29
 
-	private const val SCROLLBAR_X: Int = WIDTH - 10
+	private const val SCROLLBAR_X: Int = WIDTH - 4 - ClientPage.SCROLLBAR_WIDTH
 
-	private const val SCROLLBAR_WIDTH: Int = 6
+	/** The list's scrollbar: from just above the rows to just above the window's bottom. */
+	private const val LIST_BAR_Y: Int = LIST_Y - 2
 
-	private const val THUMB_MIN: Int = 12
+	private const val LIST_BAR_HEIGHT: Int = BODY_HEIGHT - LIST_BAR_Y - 4
 
 	/** The tooltip: the stock pale box with black text, lines wrapped to this width. */
 	private const val TIP_FILL: Int = 0xffffa0
@@ -328,12 +339,15 @@ object PluginManagerScreen {
 	/** The Plugins button's hit component in the Settings tab. */
 	private var tabButton: Component? = null
 
-	/** The settings page's content height, its scrollbar's track and thumb slots (-1 without one), and the plugin the page was last built for. */
+	/** The settings page's content height, its scrollbar's first slot (-1 without one), and the plugin the page was last built for. */
 	private var settingsContent: Int = 0
 
-	private var scrollTrack: Int = -1
+	private var scrollBar: Int = -1
 
-	private var scrollThumb: Int = -1
+	/** While the thumb is dragged: where it was grabbed, below its top (-1 when it is not), and the last cycle it was held. */
+	private var dragGrab: Int = -1
+
+	private var dragCycle: Int = 0
 
 	private var scrolledFor: PluginRegistration? = null
 
@@ -583,6 +597,7 @@ object PluginManagerScreen {
 		open = false
 		selected = null
 		picking = null
+		dragGrab = -1
 		searching = false
 		sortOpen = false
 		tipFor = -1
@@ -606,8 +621,7 @@ object PluginManagerScreen {
 		sortOutline = -1
 		sortArrow = -1
 		sortHit = null
-		scrollTrack = -1
-		scrollThumb = -1
+		scrollBar = -1
 		settingsContent = 0
 	}
 
@@ -641,6 +655,12 @@ object PluginManagerScreen {
 		val wheel: Boolean = scrolls || (plugin == null && pick == null && listed().size > VISIBLE_ROWS)
 		body.hasScript = wheel
 		body.onMouseMove = if (wheel) arrayOf<Any?>(SENTINEL, A_WHEEL, 0) else null
+		// a page with a scrollbar drags its thumb: a press anywhere in the layer ends a drag (the layer's hook runs before its children's), the thumb's starts one, and each held cycle moves it
+		body.onClick = if (wheel) arrayOf<Any?>(SENTINEL, A_BODY_PRESS, 0) else null
+		body.onHold = if (wheel) arrayOf<Any?>(SENTINEL, A_THUMB_DRAG, 0) else null
+		if (!wheel) {
+			dragGrab = -1
+		}
 		if (!scrolls) {
 			body.scrollY = 0
 		}
@@ -653,17 +673,49 @@ object PluginManagerScreen {
 		val body: Component = Interface.getComponent(BODY) ?: return
 		val most: Int = maxOf(0, body.scrollHeight - BODY_HEIGHT)
 		body.scrollY = y.coerceIn(0, most)
-		if (scrollTrack >= 0 && scrollThumb >= 0 && most > 0) {
-			val thumbHeight: Int = maxOf(THUMB_MIN, BODY_HEIGHT * BODY_HEIGHT / body.scrollHeight)
-			val thumbY: Int = body.scrollY + (BODY_HEIGHT - thumbHeight) * body.scrollY / most
-			ClientPage.childOf(BODY, scrollTrack)?.basePositionY = body.scrollY
-			ClientPage.childOf(BODY, scrollThumb)?.let {
-				it.basePositionY = thumbY
-				it.baseHeight = thumbHeight
-			}
+		if (scrollBar >= 0 && most > 0) {
+			// the bar rides along with the layer's scroll, so it stays in view
+			val thumbHeight: Int = pageThumb(body)
+			ClientPage.placeScrollbar(BODY, scrollBar, body.scrollY, BODY_HEIGHT, (ClientPage.scrollTrack(BODY_HEIGHT) - thumbHeight) * body.scrollY / most, thumbHeight)
 			Component.layoutChildren(false, body)
 		}
 		Component.redrawComponent(body)
+	}
+
+	/** The settings page's thumb height, for its content's height. */
+	private fun pageThumb(body: Component): Int {
+		return maxOf(ClientPage.SCROLL_THUMB_MIN, ClientPage.scrollTrack(BODY_HEIGHT) * BODY_HEIGHT / body.scrollHeight)
+	}
+
+	/** A held cycle of a thumb drag: the pointer [y] below the layer's top puts the thumb, and the page or list follows. */
+	private fun dragThumb(y: Int) {
+		if (dragGrab < 0) {
+			return
+		}
+		val now: Int = ClientState.clientCycle
+		if (now - dragCycle > DRAG_GAP) {
+			dragGrab = -1
+			return
+		}
+		dragCycle = now
+		val body: Component = Interface.getComponent(BODY) ?: return
+		if (selected != null) {
+			val most: Int = body.scrollHeight - BODY_HEIGHT
+			if (most > 0) {
+				scrollTo(ClientPage.scrollFromThumb(y, dragGrab, BODY_HEIGHT, pageThumb(body), most))
+			}
+			return
+		}
+		val rows: Int = listed().size
+		val most: Int = rows - VISIBLE_ROWS
+		if (most <= 0) {
+			return
+		}
+		val row: Int = ClientPage.scrollFromThumb(y - LIST_BAR_Y, dragGrab, LIST_BAR_HEIGHT, listThumb(rows), most)
+		if (row != listTop) {
+			listTop = row
+			rebuild()
+		}
 	}
 
 	/** The smoke test's wheel: [notches] turns down (up when negative). */
@@ -760,7 +812,7 @@ object PluginManagerScreen {
 			var bx: Int = right - ClientPage.TICK_SIZE
 			val on: Boolean = isOn(registration)
 			if (switchable(registration)) {
-				ClientPage.tickbox(BODY, children, on, SENTINEL, A_TOGGLE, i, bx, y + 4, if (on) "Turn off" else "Turn on")
+				ClientPage.tickbox(BODY, children, on, SENTINEL, A_TOGGLE, i, bx, y + 5, if (on) "Turn off" else "Turn on")
 			}
 			if (hasSettings(registration)) {
 				bx -= GEAR_SIZE + 10
@@ -815,33 +867,31 @@ object PluginManagerScreen {
 		return fitText(if (searching) searchText + "|" else searchText, SEARCH_WIDTH - 8)
 	}
 
-	/** The list's scrollbar beside the rows: the track, the thumb, and a hit above and below the thumb that moves a window's height. */
+	/** The list's scrollbar beside the rows: the stock bar, whose arrows move a row, and a hit above and below the thumb that moves a window's height. */
 	private fun listScrollbar(children: ArrayList<Component>, rows: Int) {
-		val top: Int = LIST_Y - 2
-		val height: Int = BODY_HEIGHT - top - 4
+		val track: Int = ClientPage.scrollTrack(LIST_BAR_HEIGHT)
 		val most: Int = rows - VISIBLE_ROWS
-		val thumbHeight: Int = maxOf(THUMB_MIN, height * VISIBLE_ROWS / rows)
-		val thumbY: Int = top + (height - thumbHeight) * listTop / most
-		children.add(ClientPage.rect(BODY, children.size, SCROLLBAR_X, top, SCROLLBAR_WIDTH, height, ClientPage.BOX_FILL, true))
-		children.add(ClientPage.rect(BODY, children.size, SCROLLBAR_X, thumbY, SCROLLBAR_WIDTH, thumbHeight, ClientPage.TEXT_TOP, true))
+		val thumbHeight: Int = listThumb(rows)
+		val thumbY: Int = (track - thumbHeight) * listTop / most
+		ClientPage.scrollbar(BODY, children, SCROLLBAR_X, LIST_BAR_Y, LIST_BAR_HEIGHT, thumbY, thumbHeight, SENTINEL, A_LIST_UP_ROW, A_LIST_DOWN_ROW, A_THUMB_PRESS)
+		val trackTop: Int = LIST_BAR_Y + ClientPage.SCROLL_ARROW
 		if (listTop > 0) {
-			trackHit(children, "Scroll up", A_LIST_UP, top, thumbY - top)
+			trackHit(children, "Scroll up", A_LIST_UP, trackTop, thumbY)
 		}
 		if (listTop < most) {
-			trackHit(children, "Scroll down", A_LIST_DOWN, thumbY + thumbHeight, top + height - thumbY - thumbHeight)
+			trackHit(children, "Scroll down", A_LIST_DOWN, trackTop + thumbY + thumbHeight, track - thumbY - thumbHeight)
 		}
 	}
 
+	/** The list's thumb height, for [rows] listed. */
+	private fun listThumb(rows: Int): Int {
+		return maxOf(ClientPage.SCROLL_THUMB_MIN, ClientPage.scrollTrack(LIST_BAR_HEIGHT) * VISIBLE_ROWS / rows)
+	}
+
 	private fun trackHit(children: ArrayList<Component>, option: String, action: Int, y: Int, height: Int) {
-		if (height <= 0) {
-			return
+		if (height > 0) {
+			ClientPage.hit(BODY, children, SCROLLBAR_X, y, ClientPage.SCROLLBAR_WIDTH, height, SENTINEL, action, 0, option)
 		}
-		val hit: Component = ClientPage.text(BODY, children.size, SCROLLBAR_X - 2, y, SCROLLBAR_WIDTH + 4, height, ClientPage.FONT_SMALL, "", ClientPage.TEXT, 1, 1, false)
-		hit.hasScript = true
-		hit.addOptionName(0, option)
-		hit.opBase = ""
-		hit.params = arrayOf<Any?>(SENTINEL, action, 0)
-		children.add(hit)
 	}
 
 	/** Moves the list by [rows] (down when positive), held to its ends. */
@@ -1045,6 +1095,15 @@ object PluginManagerScreen {
 			}
 		}
 		boxWidth += 21
+		// the page's height is known before its rows: a page that scrolls keeps its rows clear of the bar
+		var rows: Int = 0
+		for (entry in entries) {
+			if (!(entry.key == "enabled" && entry.kind == PluginSchemaImpl.TOGGLE)) {
+				rows++
+			}
+		}
+		val scrolls: Boolean = maxOf(HEIGHT - 29 - 30, 40 + rows * SETTING_PITCH + 8) + 30 > BODY_HEIGHT
+		val right: Int = if (scrolls) SCROLLBAR_X - 8 else WIDTH - 12
 		var y: Int = 40
 		for (i in 0 until entries.size) {
 			val entry: PluginSchemaImpl.Entry = entries[i]
@@ -1052,11 +1111,10 @@ object PluginManagerScreen {
 				continue // the list's switch
 			}
 			children.add(ClientPage.text(BODY, children.size, 12, y, WIDTH - 24, 16, ClientPage.FONT_LABEL, entry.label, ClientPage.TEXT, 0, 1, true))
-			val right: Int = WIDTH - 12
 			when (entry.kind) {
 				PluginSchemaImpl.TOGGLE -> {
 					val on: Boolean = config.getBoolean(entry.key, entry.defaultInt == 1)
-					ClientPage.tickbox(BODY, children, on, SENTINEL, A_SET_TOGGLE, i, right - ClientPage.TICK_SIZE, y, if (on) "Turn off" else "Turn on")
+					ClientPage.tickbox(BODY, children, on, SENTINEL, A_SET_TOGGLE, i, right - ClientPage.TICK_SIZE, y + 1, if (on) "Turn off" else "Turn on")
 				}
 				PluginSchemaImpl.NUMBER -> {
 					// a box to type into: click, digits, Enter; the range beside it
@@ -1134,10 +1192,7 @@ object PluginManagerScreen {
 		button(children, "Back", false, A_BACK, 0, (WIDTH - backWidth) / 2, backY, backWidth)
 		settingsContent = backY + 30 // the button's 26 and a little under it: a page with room does not scroll
 		if (settingsContent > BODY_HEIGHT) {
-			scrollTrack = children.size
-			children.add(ClientPage.rect(BODY, children.size, SCROLLBAR_X, 0, SCROLLBAR_WIDTH, BODY_HEIGHT, ClientPage.BOX_FILL, true))
-			scrollThumb = children.size
-			children.add(ClientPage.rect(BODY, children.size, SCROLLBAR_X, 0, SCROLLBAR_WIDTH, THUMB_MIN, ClientPage.TEXT_TOP, true))
+			scrollBar = ClientPage.scrollbar(BODY, children, SCROLLBAR_X, 0, BODY_HEIGHT, 0, ClientPage.SCROLL_THUMB_MIN, SENTINEL, A_PAGE_UP, A_PAGE_DOWN, A_THUMB_PRESS)
 		}
 	}
 
@@ -1777,6 +1832,15 @@ object PluginManagerScreen {
 		if (!open) {
 			return
 		}
+		// the layer's press and hold hooks only follow a thumb drag: they come with every click on the page, so they must not count as a click elsewhere
+		if (action == A_BODY_PRESS) {
+			dragGrab = -1
+			return
+		}
+		if (action == A_THUMB_DRAG) {
+			dragThumb(hook.mouseY)
+			return
+		}
 		val plugin: PluginRegistration? = selected
 		if (editing != null && action != A_EDIT && action != A_HOVER && action != A_LEAVE && action != A_ROW_HOVER && action != A_ROW_LEAVE && action != A_WHEEL) {
 			closeEdit() // a click elsewhere on the page ends the typing
@@ -1816,6 +1880,14 @@ object PluginManagerScreen {
 			}
 			A_LIST_UP -> scrollListBy(-(VISIBLE_ROWS - 1))
 			A_LIST_DOWN -> scrollListBy(VISIBLE_ROWS - 1)
+			A_LIST_UP_ROW -> scrollListBy(-1)
+			A_LIST_DOWN_ROW -> scrollListBy(1)
+			A_PAGE_UP -> scrollBy(-1)
+			A_PAGE_DOWN -> scrollBy(1)
+			A_THUMB_PRESS -> {
+				dragGrab = hook.mouseY
+				dragCycle = ClientState.clientCycle
+			}
 			A_WHEEL -> if (plugin != null) {
 				val body: Component = Interface.getComponent(BODY) ?: return
 				scrollTo(body.scrollY + hook.mouseY * SETTING_PITCH) // the wheel's turns, positive downwards
