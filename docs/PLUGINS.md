@@ -8,8 +8,8 @@ the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Disc
 (`DiscordPresence`), the ground items (`GroundItems`), the loot tracker (`LootTracker`), the
 object markers (`ObjectIndicators`), the XP tracker (`XpTracker`), the opponent information
 (`OpponentInfo`), the boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the
-status bars (`StatusBars`), the timers (`TimersAndBuffs`) and the tile indicators (`TileIndicators`) are
-eighteen, built in, so the client's own code shows the way.
+status bars (`StatusBars`), the timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`) and the
+XP globes (`XpGlobes`) are nineteen, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -341,6 +341,15 @@ imbued heart, Arceuus spells, raids supplies and so on).
 mouse and your true tile (where the server has you, ahead of your model while you walk), each with its
 own switch, border colour, fill colour and border width, in RuneLite's defaults: the destination on, grey,
 the other two off. Not here from RuneLite: its cutscene check (634 has no such flag).
+
+**XP Globes** is RuneLite's. A skill that gains experience gets a globe at the top centre of the game view:
+its icon on a disc, ringed by its progress to the next level in the skill's colour (or one of your own).
+Hovering one darkens it, shows the percentage and a tooltip with its level, current experience, actions
+left, experience left, experience an hour and the time to the level, each line its own setting; the rates
+are the XP Tracker's while it is on, else the plugin's own. Up to five globes, in skill order, each gone
+after **Duration of orbs** seconds; **Hide maxed skills** (99, Dungeoneering 120), **Show virtual level**,
+the colours, the arc's width and the globes' size are settings. Shift and right-click the globes for
+Configure and Flip (down instead of across).
 
 ## Writing a plugin
 

@@ -365,6 +365,13 @@ interface ClientApi {
 	 */
 	fun addTooltip(text: String)
 
+	/**
+	 * Shows [panel] as a tooltip by the mouse this frame, over everything, with the text tooltips: RuneLite's
+	 * Tooltip with a PanelComponent (lines with a label on the left and a value on the right, its preferred
+	 * width). Call it while drawing, each frame it is to show; the panel is drawn as it stands then. Since API 16.
+	 */
+	fun addTooltip(panel: PanelComponent)
+
 	/** How many quests the cache has: the quest ids are 0 until this. Since API 13. */
 	fun questCount(): Int
 

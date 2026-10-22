@@ -56,6 +56,7 @@ import com.jagex.game.runetek5.plugin.api.LocKind
 import com.jagex.game.runetek5.plugin.api.LocVisitor
 import com.jagex.game.runetek5.plugin.api.Npc
 import com.jagex.game.runetek5.plugin.api.NpcDefinition
+import com.jagex.game.runetek5.plugin.api.PanelComponent
 import com.jagex.game.runetek5.plugin.api.Player
 import com.jagex.game.runetek5.plugin.api.QuestState
 import com.jagex.game.runetek5.plugin.api.Skill
@@ -793,6 +794,10 @@ object ClientApiImpl : ClientApi {
 
 	override fun addTooltip(text: String) {
 		Tooltips.add(text)
+	}
+
+	override fun addTooltip(panel: PanelComponent) {
+		Tooltips.add(panel)
 	}
 
 	override fun questCount(): Int = TypeLists.QUEST?.count ?: 0

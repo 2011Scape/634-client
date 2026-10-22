@@ -44,8 +44,9 @@ package com.jagex.game.runetek5.plugin.api
  * - 13: quests: [ClientApi.questCount], [ClientApi.questName] and [ClientApi.questState] ([QuestState]).
  * - 14: [InfoBox.itemId], an item's icon as an infobox's picture.
  * - 15: the walk destination, [ClientApi.destinationTileX] and [ClientApi.destinationTileY].
+ * - 16: panel tooltips, [ClientApi.addTooltip] with a [PanelComponent].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 15
+	const val VERSION: Int = 16
 }
