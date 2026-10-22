@@ -48,7 +48,7 @@ import kotlin.jvm.JvmStatic
 object GroundItems : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("grounditems", "Ground Items", "1", PluginApi.VERSION, "RuneLite's Ground Items: names, quantities and Grand Exchange and High Alchemy values over every item on the ground, coloured by value tier and your highlight and hide lists (hold Alt to edit them), despawn timers, lootbeams and drop notifications.", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("grounditems", "Ground Items", "1", PluginApi.VERSION, "Names, quantities and Grand Exchange and High Alchemy values over every item on the ground, coloured by value tier and your highlight and hide lists (hold Alt to edit them), despawn timers, lootbeams and drop notifications.", "Pixel")
 
 	const val COINS: Int = 995
 

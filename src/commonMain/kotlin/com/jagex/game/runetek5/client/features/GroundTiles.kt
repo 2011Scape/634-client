@@ -44,7 +44,7 @@ import kotlin.jvm.JvmStatic
 object GroundTiles : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("groundtiles", "Ground Tiles", "1", PluginApi.VERSION, "Shift right-click a tile to mark it: outlined and filled, with a label and a colour, kept between sessions and shared in RuneLite's ground marker format (::groundtiles export|import|clear).", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("groundtiles", "Ground Tiles", "1", PluginApi.VERSION, "Shift right-click a tile to mark it: outlined and filled, with a label and a colour, kept between sessions and shared as ground marker JSON (::groundtiles export|import|clear).", "Pixel")
 
 	/** One marked tile, where RuneLite keeps it: a 64x64 map region and the tile inside it. */
 	class Marker(@JvmField val regionId: Int, @JvmField val regionX: Int, @JvmField val regionY: Int, @JvmField val z: Int, @JvmField var colour: Int, @JvmField var label: String?) {
