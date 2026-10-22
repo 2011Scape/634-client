@@ -85,4 +85,24 @@ class XpTrackerStateTest {
 		assertEquals(0, XpTracker.skillOfComponent((320 shl 16) or 200), "Attack")
 		assertEquals(24, XpTracker.skillOfComponent((320 shl 16) or 158), "Dungeoneering")
 	}
+
+	@Test
+	fun canvasBoxesOnlyForSkillsTheWindowLists() {
+		try {
+			// Attack on the canvas from an earlier session, tracked but with no row this session (a restart)
+			XpTracker.canvas.add(0)
+			XpTracker.canvas.add(2)
+			XpTracker.states[0] = XpTrackerState(1000L)
+			XpTracker.states[2] = XpTrackerState(1000L)
+			XpTracker.order.add(2)
+			assertEquals(listOf(2), XpTracker.canvasShown())
+			// Attack gains again: its row, and its box, come back
+			XpTracker.order.add(0)
+			assertEquals(listOf(0, 2), XpTracker.canvasShown())
+		} finally {
+			XpTracker.canvas.clear()
+			XpTracker.order.clear()
+			XpTracker.states.fill(null)
+		}
+	}
 }
