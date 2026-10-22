@@ -312,6 +312,14 @@ abstract class AbstractFontRenderer {
 		}
 	}
 
+	/** Not part of the original client: [renderCentered] with `<img=N>` icons drawn, for a plugin's overhead text (Emojis). */
+	fun renderCenteredWithSprites(x: Int, color: Int, string: String?, shadow: Int, y: Int, sprites: Array<NativeSprite?>?, spriteHeights: IntArray?) {
+		if (string != null) {
+			this.calibrate(shadow, color)
+			this.renderLine(0, y, 0, sprites, null, string, spriteHeights, x - this.fontMetrics!!.getTextWidth(string, sprites) / 2)
+		}
+	}
+
 	@OriginalMember(owner = "client!da", name = "b", descriptor = "(Ljava/lang/String;IIIII)V")
 	fun drawString(@OriginalArg(0) string: String?, @OriginalArg(1) color: Int, @OriginalArg(2) y: Int, @OriginalArg(3) x: Int, @OriginalArg(4) shadow: Int) {
 		if (string != null) {

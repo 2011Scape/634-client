@@ -48,6 +48,14 @@ interface Actor {
 	/** The text over the actor's head, or null while none shows. */
 	fun overheadText(): String?
 
+	/**
+	 * Changes the text over the actor's head on this client (RuneLite's setOverheadText), for as long as
+	 * the game would have shown its own; from an [OverheadTextChanged][com.jagex.game.runetek5.plugin.api.events.OverheadTextChanged]
+	 * listener it replaces the line just said. Does nothing for an actor the client did not make. Since API 19.
+	 */
+	fun setOverheadText(text: String?) {
+	}
+
 	/** How many hit splat slots an actor has; the slot methods take 0 until this. */
 	fun hitsplatSlots(): Int
 

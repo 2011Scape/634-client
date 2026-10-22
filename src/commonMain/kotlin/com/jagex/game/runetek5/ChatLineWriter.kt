@@ -28,7 +28,7 @@ object ChatLineWriter {
 		ChatBox.CHAT_LINES[0] = chatLine
 		MiniMenu.lastChatMessageTick = ClientState.serverTick
 		ChatBox.NUM_CHAT_LINES++
-		PluginRuntime.chatMessage(type, name, message, clan) // Not part of the original client: the plugins' ChatMessage.
+		chatLine.message = PluginRuntime.chatMessage(type, name, message, clan) // Not part of the original client: the plugins' ChatMessage, which may rewrite the line.
 	}
 
 	@OriginalMember(owner = "client!di", name = "a", descriptor = "(Ljava/lang/String;IBILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V")
