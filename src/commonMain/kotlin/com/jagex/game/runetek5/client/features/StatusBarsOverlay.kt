@@ -9,10 +9,10 @@ import kotlin.jvm.JvmStatic
 
 /**
  * Not part of the original client: Status Bars' drawing, RuneLite's StatusBarsOverlay and BarRenderer. The
- * bars stand beside the side panel, on the fixed or the resizable screen: the left one against its left
- * edge, 4 pixels down, as tall as the panel; the right one against its right edge when there is room, else
- * (634's panel reaches the screen's edge) both on the left, the left one outermost. Drawn at FRAME_DRAW, over the interfaces,
- * as RuneLite's ABOVE_WIDGETS overlay.
+ * bars stand beside the side panel's tab area (where every tab opens), 4 pixels down and RuneLite's 252
+ * tall: on the fixed screen over the stone columns either side of it, as RuneLite's do; on the resizable
+ * one the left bar against its left edge, and the right one too (left of the left one) when the panel
+ * reaches the screen's edge. Drawn at FRAME_DRAW, over the interfaces, as RuneLite's ABOVE_WIDGETS overlay.
  */
 object StatusBarsOverlay {
 
@@ -22,8 +22,9 @@ object StatusBarsOverlay {
 	private const val FIXED_FIRST_TAB: Int = 202
 	private const val RESIZABLE_FIRST_TAB: Int = 86
 
-	/** RuneLite's offsets: the left bar ends where the panel starts, both 4 pixels below its top. */
+	/** RuneLite's offsets and height: both bars 4 pixels below the tab area's top, 252 tall. */
 	private const val OFFSET_Y: Int = 4
+	private const val HEIGHT: Int = 252
 
 	/** RuneLite's colours, ARGB. */
 	const val BACKGROUND: Int = (150 shl 24)
@@ -70,9 +71,9 @@ object StatusBarsOverlay {
 	val drawn: IntArray = IntArray(4)
 
 	/**
-	 * The panel the bars stand beside (RuneLite's side container): x, y, width, height on the screen, false
-	 * when it does not show. It is the outermost container of the tab slots that is smaller than the screen,
-	 * so the bars stand outside the panel's frame whichever tab is open, or none.
+	 * The tab area the bars stand beside (RuneLite's side panels): x, y, width, height on the screen, false
+	 * when it does not show. It is the outermost container of the tab slots that is the same size as they
+	 * are (fixed 548:194, resizable 746:85), so it shows whichever tab is open, or none.
 	 */
 	@JvmStatic
 	fun sidePanel(client: ClientApi, out: IntArray): Boolean {
@@ -82,13 +83,12 @@ object StatusBarsOverlay {
 			RESIZABLE -> RESIZABLE_FIRST_TAB
 			else -> return false
 		}
-		val root: Widget = client.widget(top, 0) ?: return false
 		var panel: Widget = client.widget(top, first) ?: return false
-		var parent: Widget? = container(client, panel, root)
+		var parent: Widget? = container(client, panel)
 		var depth: Int = 0
 		while (parent != null && depth++ < 8) {
 			panel = parent
-			parent = container(client, panel, root)
+			parent = container(client, panel)
 		}
 		if (!shown(client, panel) || panel.width() <= 0 || panel.height() <= 0) {
 			return false
@@ -100,10 +100,11 @@ object StatusBarsOverlay {
 		return true
 	}
 
-	/** [w]'s parent when it is smaller than half the screen ([root]), else null. */
-	private fun container(client: ClientApi, w: Widget, root: Widget): Widget? {
+	/** [w]'s parent when it covers the same area, else null. */
+	private fun container(client: ClientApi, w: Widget): Widget? {
 		val parent: Widget = (if (w.parentId() == -1) null else client.widgetById(w.parentId())) ?: return null
-		return if (parent.width() * 2 > root.width()) null else parent
+		val same: Boolean = parent.screenX() == w.screenX() && parent.screenY() == w.screenY() && parent.width() == w.width() && parent.height() == w.height()
+		return if (same) parent else null
 	}
 
 	/** Not hidden, nor any parent of it. */
@@ -122,17 +123,15 @@ object StatusBarsOverlay {
 	private val panel: IntArray = IntArray(4)
 
 	@JvmStatic
-	fun draw(g: Graphics, client: ClientApi) {
+	fun draw(g: Graphics, client: ClientApi, screenWidth: Int) {
 		drawn.fill(0)
 		if (!sidePanel(client, panel)) {
 			return
 		}
 		val width: Int = if (client.topInterface() == RESIZABLE) StatusBars.barWidth else StatusBars.DEFAULT_WIDTH
-		val height: Int = panel[3] - OFFSET_Y
+		val height: Int = minOf(HEIGHT, panel[3] - OFFSET_Y)
 		val y: Int = panel[1] + OFFSET_Y
-		// 634's side panel reaches the screen's right edge on both screens, where RuneLite's has a frame to draw
-		// over: then both bars stand left of the panel, the left bar outermost
-		val screenWidth: Int = client.widget(client.topInterface(), 0)?.width() ?: 0
+		// the resizable side panel reaches the screen's right edge: then both bars stand left of it, the left bar outermost
 		val room: Boolean = panel[0] + panel[2] + width <= screenWidth
 		val leftX: Int = if (room) panel[0] - width else panel[0] - 2 * width
 		val rightX: Int = if (room) panel[0] + panel[2] else panel[0] - width
