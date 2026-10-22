@@ -14,6 +14,7 @@ import com.jagex.game.runetek5.client.features.IdleNotifier
 import com.jagex.game.runetek5.client.features.InventoryValue
 import com.jagex.game.runetek5.client.features.LootTracker
 import com.jagex.game.runetek5.client.features.MenuEntrySwapper
+import com.jagex.game.runetek5.client.features.MouseTooltips
 import com.jagex.game.runetek5.client.features.NamePlates
 import com.jagex.game.runetek5.client.features.NpcIndicators
 import com.jagex.game.runetek5.client.features.ObjectIndicators
@@ -64,6 +65,7 @@ object BuiltinPlugins {
 			builtIn(Cannon.DESCRIPTOR, Cannon),
 			builtIn(AntiDrag.DESCRIPTOR, AntiDrag),
 			builtIn(Emojis.DESCRIPTOR, Emojis),
+			builtIn(MouseTooltips.DESCRIPTOR, MouseTooltips),
 		)
 	}
 

@@ -10,8 +10,8 @@ the ground items (`GroundItems`), the loot tracker (`LootTracker`), the object m
 boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the status bars (`StatusBars`), the
 timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the
 Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`), the
-anti drag (`AntiDrag`) and the emojis (`Emojis`) are twenty-four, built in, so the client's own code
-shows the way.
+anti drag (`AntiDrag`), the emojis (`Emojis`) and the mouse tooltips (`MouseTooltips`) are twenty-five,
+built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -397,6 +397,12 @@ over players' heads, a word that is one of RuneLite's 67 emoticons (`:)`, `^_^`,
 shown as the emoji, a Twemoji picture added to the chat icons. Only you see them: the line sent to the
 server is unchanged. Not here from RuneLite: its `:name:` shortcodes (they need its downloaded set of
 every emoji), and the browser build, which has no pictures for them.
+
+**Mouse Tooltips** is RuneLite's (its Mouse Highlighting plugin). What a left click will do, the menu's
+top entry ("Attack Goblin (level: 2)"), follows the mouse as a tooltip; Walk here, Cancel and Continue
+are left out, and **Interface tooltips**, **Chatbox tooltips** and **Disable spellbook tooltips** decide
+the interfaces' entries. Not here from RuneLite: its check for the game's own tooltip (634 draws its
+interface tooltips with scripts, so both can show at once).
 
 ## Writing a plugin
 
