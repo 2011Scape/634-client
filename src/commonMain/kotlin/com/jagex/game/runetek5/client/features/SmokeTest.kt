@@ -239,6 +239,13 @@ object SmokeTest {
 
 	private var opponentStep: Int = 0
 
+	/** client.test.bankOrganizer: the bank opened with the admin ::bank, Bank Organizer's two-colour box over its coins. */
+	private val BANK_ORGANIZER: Boolean = "true" == lang.getProperty("client.test.bankOrganizer")
+
+	private var bankStep: Int = 0
+
+	private var bankFrame: Int = -1
+
 	private var opponentFrame: Int = -1
 
 	private var xpTrackerStep: Int = 0
@@ -266,6 +273,10 @@ object SmokeTest {
 	private var groundItemsSummary: String = ""
 
 	private const val MARKER_FRAMES: Int = 40
+
+	private const val COINS: Int = 995
+
+	private const val BANK_WAIT_FRAMES: Int = 500
 
 	private var markerStep: Int = 0
 
@@ -1006,6 +1017,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 2048
+		}
+		if (BANK_ORGANIZER && (checksDone and 4096) == 0) {
+			if (!bankOrganizerDone()) {
+				return
+			}
+			checksDone = checksDone or 4096
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3128,6 +3145,47 @@ object SmokeTest {
 	 * the player itself made the opponent with hiscores put in shows lifepoints and the comparison; and
 	 * dealing with nothing for more than five seconds forgets the opponent.
 	 */
+	/**
+	 * Opens the bank and waits for Bank Organizer's box over the coins, the smoke account's only bank item. Coins
+	 * are in no category, so the test gives them two colours itself: the matching is the unit tests' job
+	 * (BankOrganizerTest), this checks the bank's grid, its open state and the drawing.
+	 */
+	private fun bankOrganizerDone(): Boolean {
+		if (bankStep == 0) {
+			BankOrganizer.enabled = true
+			BankOrganizer.showBoxes = true
+			sendCommand("bank")
+			bankFrame = frames
+			bankStep = 1
+			return false
+		}
+		if (bankStep == 1) {
+			// the bank's arrival works the marks out again: put the test's back each frame until the box shows
+			if (!BankOrganizer.marks.containsKey(COINS)) {
+				BankOrganizer.marks[COINS] = intArrayOf(BankCategories.DEFAULT_COLOURS[1], BankCategories.DEFAULT_COLOURS[2])
+			}
+			if (BankOrganizer.drawnBoxes == 0) {
+				if (frames - bankFrame > BANK_WAIT_FRAMES) {
+					fail("Bank Organizer drew no box over the bank (" + BankOrganizer.BANK_INTERFACE + ":" + BankOrganizer.BANK_ITEMS + ") in " + BANK_WAIT_FRAMES + " frames")
+					return true
+				}
+				return false
+			}
+			bankFrame = frames
+			bankStep = 2
+			return false
+		}
+		if (frames - bankFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-bank.png")
+		println("SMOKE bank organizer: " + BankOrganizer.drawnBoxes + " box(es) over the bank grid " + BankOrganizer.BANK_INTERFACE + ":" + BankOrganizer.BANK_ITEMS)
+		closeModals()
+		BankOrganizer.enabled = false
+		BankOrganizer.marks.clear()
+		return true
+	}
+
 	private fun opponentInfoDone(player: PlayerEntity): Boolean {
 		if (opponentStep == 0) {
 			var guide: NPCEntity? = null
