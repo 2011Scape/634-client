@@ -332,6 +332,8 @@ object SmokeTest {
 	private const val SHARK: Int = 385
 
 	private const val FIXED_TAB_AREA_X: Int = 547
+
+	private const val RESIZABLE_SIDE_BOX: Int = 75
 	private const val FIXED_TAB_AREA_WIDTH: Int = 190
 
 	private const val BANK_WAIT_FRAMES: Int = 500
@@ -3336,6 +3338,12 @@ object SmokeTest {
 		}
 		if (d[3] <= 0) {
 			fail("Status Bars drew no bars beside the side panel (" + mode + ")")
+			return true
+		}
+		// on the resizable screen both stand left of the side panel's box (746:75), 4 pixels apart and from it, as tall as it
+		val box = ClientApiImpl.widget(StatusBarsOverlay.RESIZABLE, RESIZABLE_SIDE_BOX)
+		if (mode == "resizable" && box != null && (d[1] != box.screenX() - 4 - StatusBars.barWidth || d[0] != d[1] - 4 - StatusBars.barWidth || d[2] != box.screenY() || d[3] != box.height())) {
+			fail("on the resizable screen the bars stand at x " + d[0] + " and " + d[1] + ", y " + d[2] + ", " + d[3] + " tall, not left of the box at " + box.screenX() + "," + box.screenY() + " (" + box.height() + " tall)")
 			return true
 		}
 		// on the fixed screen they stand on the stone columns either side of the tab area (548:194, x 547 to 737)
