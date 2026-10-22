@@ -48,7 +48,7 @@ object XpTrackerOverlay {
 		}
 		val x: Int = view.x + 4
 		var y: Int = view.y + maxOf(34, InventoryValue.panelBottom + 6)
-		for (skill in plugin.canvas) {
+		for (skill in plugin.canvasShown()) {
 			val state: XpTrackerState = plugin.states[skill] ?: continue
 			y += box(g, skill, state, x, y) + GAP
 			drawnLastFrame++

@@ -237,6 +237,14 @@ object XpTracker : Plugin {
 		}
 	}
 
+	/**
+	 * The canvas skills drawn: only those the window lists, so each box has its row to remove it from. A
+	 * canvas skill not tracked this session (gains reset, or none since a restart) keeps its place and
+	 * shows again once it gains experience.
+	 */
+	@JvmStatic
+	fun canvasShown(): List<Int> = canvas.filter { order.contains(it) && states[it] != null }
+
 	private fun clear() {
 		for (i in states.indices) {
 			states[i] = null
