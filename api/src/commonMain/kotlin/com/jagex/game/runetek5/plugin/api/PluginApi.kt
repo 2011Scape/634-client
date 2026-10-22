@@ -38,8 +38,11 @@ package com.jagex.game.runetek5.plugin.api
  * - 10: a location's shape on the screen: [ClientApi.locHull], [ClientApi.locClickbox] and
  *   [ClientApi.locOutline]; [ClientApi.resolveLoc] for a location that changes with the player's variables.
  * - 11: [Actor.healthScale], whether an actor's health bar shows and what a full one is.
+ * - 12: overlays the client places and the player moves: [PanelOverlay] (its [OverlayPosition], [OverlayOrigin]
+ *   and [OverlayMenuEntry]s), [OverlayPanel] and [PanelComponent]; infoboxes ([InfoBox], [Counter], [Timer],
+ *   [PluginContext.addInfoBox]); [Graphics.translate], [Graphics.image] and [ClientApi.loadImage]; [ClientApi.addTooltip].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 11
+	const val VERSION: Int = 12
 }

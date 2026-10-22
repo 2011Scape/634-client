@@ -6,7 +6,6 @@ import com.jagex.game.runetek5.plugin.api.CommandHandler
 import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.MenuEntry
 import com.jagex.game.runetek5.plugin.api.Npc
-import com.jagex.game.runetek5.plugin.api.Overlay
 import com.jagex.game.runetek5.plugin.api.Player
 import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.PluginApi
@@ -66,10 +65,6 @@ object OpponentInfo : Plugin {
 
 	private var context: PluginContext? = null
 
-	private val overlay: Overlay = Overlay { g, view -> OpponentInfoOverlay.draw(g, view) }
-
-	private val comparison: Overlay = Overlay { g, view -> PlayerComparisonOverlay.draw(g, view) }
-
 	private val interactingListener: EventListener<Actor> = EventListener { source -> context?.client()?.let { interactingChanged(it, source) } }
 
 	private val tickListener: EventListener<GameTick> = EventListener { _ -> context?.client()?.let { tick(it) } }
@@ -113,8 +108,8 @@ object OpponentInfo : Plugin {
 		context.events().subscribe(Events.GAME_TICK, tickListener)
 		context.events().subscribe(Events.GAME_STATE_CHANGED, stateListener)
 		context.events().subscribe(Events.MENU_BUILT, menuListener)
-		context.addOverlay(overlay)
-		context.addOverlay(comparison)
+		context.addOverlay(OpponentInfoOverlay.panel)
+		context.addOverlay(PlayerComparisonOverlay.panel)
 		context.registerCommand("opponentinfo", toggle)
 	}
 

@@ -1,4 +1,5 @@
 import com.jagex.game.runetek5.plugin.PluginRuntime
+import com.jagex.game.runetek5.plugin.OverlayLayout
 import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.client.login.LoginStep
 import com.jagex.game.runetek5.client.window.WindowModeType
@@ -816,6 +817,7 @@ class client : GameShell() {
 			// Not part of the original client: the zoom keeps its own copy of the wheel, which the console clears.
 			ClientFeatures.wheelDelta = 0
 		}
+		OverlayLayout.cycle() // Not part of the original client: managing the plugins' panels while the drag key (Alt) is held.
 		@Pc(176) var mouseEvent: MouseRecord? = MouseRecord.mouseRecorder!!.nextSubmission()
 		while (mouseEvent != null) {
 			@Pc(182) val clickType: Int = mouseEvent.getClickType()
@@ -829,7 +831,8 @@ class client : GameShell() {
 					}
 				}
 			} else if (MouseLog.isMousePressType(clickType)) {
-				if (!PluginRuntime.mouseClicked(mouseEvent, clickType)) { // Not part of the original client: the plugins' MouseClicked; a consumed click never reaches the game.
+				// Not part of the original client: a press on a panel being managed moves it (OverlayLayout), then the plugins' MouseClicked; a consumed click never reaches the game.
+				if (!OverlayLayout.mousePressed(mouseEvent.getMouseX(), mouseEvent.getMouseY(), clickType) && !PluginRuntime.mouseClicked(mouseEvent, clickType)) {
 					MouseManager.MOUSE_MOVEMENTS.addLast(mouseEvent)
 					if (MouseManager.MOUSE_MOVEMENTS.size() > 10) {
 						MouseManager.MOUSE_MOVEMENTS.removeFirst()

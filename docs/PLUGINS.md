@@ -7,8 +7,8 @@ swapper (`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name p
 the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Discord presence
 (`DiscordPresence`), the ground items (`GroundItems`), the loot tracker (`LootTracker`), the
 object markers (`ObjectIndicators`), the XP tracker (`XpTracker`), the opponent information
-(`OpponentInfo`) and the bank organizer (`BankOrganizer`) are fourteen, built in, so the client's
-own code shows the way.
+(`OpponentInfo`), the boosts information (`Boosts`) and the bank organizer (`BankOrganizer`) are
+fifteen, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -41,8 +41,10 @@ the game for you.
   the shape of a location on the screen (its hull, its click box, its outline drawn) and what a
   location that changes with the player's variables is now.
 - Draw: on the game view every frame (under the interfaces), or over the whole frame: lines, boxes,
-  circles, polygons, text in the client's three fonts, the cache's sprites and the icons of items,
-  within a clip of its own choosing.
+  circles, polygons, text in the client's three fonts, the cache's sprites, the icons of items and
+  pictures of its own (a PNG), within a clip of its own choosing; panels the client places in a corner
+  of the game view and the player moves (RuneLite's overlays, with its panel, line and title
+  components), infoboxes in the shared infobox panel, and tooltips by the mouse.
 - Add: entries to the right-click menu of a tile, npc, player, ground item, location or interface
   component (an inventory slot included), with an action of its own, and entries that open a
   submenu of its own beside the menu; console commands (`::name`); lines in the chat box and the
@@ -104,10 +106,35 @@ stack trace is in the client's log (the launcher keeps it in `~/.void/logs`).
 
 ## The built-in plugins
 
-Thirteen plugins come with the client, on the same API as the ones from the plugins folder, each with
+Fifteen plugins come with the client, on the same API as the ones from the plugins folder, each with
 its switch in the Plugins window: XP drops (`::xpdrops`), the idle notifier (`::idle`), the
 menu entry swapper (`::menuswapper`), the inventory value (`::invvalue`), name plates (`::nameplates`), the
-ground tiles, the npc indicators, the Discord presence (`::discord`), the ground items (`::grounditems`), the loot tracker (`::loot`), the object markers (`::objectmarkers`), the XP tracker (`::xp`) and the opponent information (`::opponentinfo`).
+ground tiles, the npc indicators, the Discord presence (`::discord`), the ground items (`::grounditems`), the loot tracker (`::loot`), the object markers (`::objectmarkers`), the XP tracker (`::xp`), the opponent information (`::opponentinfo`) and the boosts information (`::boosts`); and **Overlays**, which has no switch: the settings of every plugin's panels, below.
+
+**Moving the panels.** Every panel a plugin puts on the game view (the opponent's health, the XP
+tracker's boxes, the boosts, the inventory value, the infoboxes, a plugin of your own's) can be moved,
+as in RuneLite. Hold **Alt** (the Overlays drag hotkey) and each panel shows a yellow outline:
+
+- drag a panel to put it anywhere on the game view; it stays there, measured from the nearest side,
+  when the window is resized;
+- drop it on one of the corner boxes that appear while dragging (top left, top centre, top right,
+  bottom left, bottom right, above the chat box's right, the very top right) to stack it there with the
+  others; the boxes can be dragged too (`::resetanchors` puts them back);
+- drag a resizable panel's edge (the mouse shows the resize arrows) to make it wider or narrower; the
+  infobox panel wraps to the width you give it;
+- **Alt and right-click** a panel to put it back where it started.
+
+While Alt is held a click on a panel is the panel's, never the game's. **Shift and right-click** a panel
+for its own entries (**Configure** opens the plugin's settings) and **Overlay Origin**, which pins it to
+a side or corner of the screen, or to the side panel, the chat box or the minimap. On an infobox,
+**Detach** gives it (with the other boxes of the same kind) a panel of its own, **Flip** turns a panel
+between across and down, and **Delete** puts a detached panel's boxes back; dropping one infobox panel
+on another (it turns red) merges them. The places are kept in `plugin-config/overlay-layout.properties`,
+under RuneLite's key names.
+
+**Overlays** holds RuneLite's overlay settings: the font of the overlays drawn in the scene, of the
+tooltips, of the panels and of the infoboxes (small, regular or bold), whether tooltips go above or under
+the mouse, the infoboxes' size and outlined text, the panels' background colour, and the drag hotkey.
 
 **Ground Tiles** marks tiles on the ground the way RuneLite's Ground Markers do. Hold Shift and
 right-click a tile for **Mark tile**; a marked tile's Shift menu has **Unmark tile**, **Label tile**
@@ -256,6 +283,19 @@ or fights you. **Lookup players on interaction** compares a player you deal with
 levels against yours, green where yours are higher and red where lower, in a panel at the bottom left.
 Not here from RuneLite: the game's own boss health bar, which 634 does not have.
 
+**Boosts Information** is RuneLite's. The combat skills (Attack, Strength, Defence, Ranged, Magic), and
+with **Display boosts** set to Non Combat or Both the others, that are boosted above or drained below
+their level show as infoboxes (the skill's icon and its level, or the boost with **Show relative boosts**),
+in a panel ("Attack 112/99", **Display panel**) or in a compact list of small icons (**Compact display**),
+green above the **Boost threshold**, yellow at or under it and red when drained; **Notify on boost
+threshold** sends a desktop notification when a boost wears down to it. **Next buff change** and **Next
+debuff change** (always, only while a stat is boosted or drained, or never) show the seconds until the
+next boosted stat drops and the next drained one comes back: the server moves each stat one level toward
+its own every minute, timed from the last change seen. RuneLite's Preserve prayer is not in 634; the
+Berserker curse, which holds a boost one firing longer on the server, makes the next drop 69 seconds
+after the last instead of 60. Constitution, Prayer and Summoning are points, not boosts, and are left out
+as RuneLite leaves out Hitpoints and Prayer; Dungeoneering is one of the other skills.
+
 **Bank Organizer** is the plugin hub's (by Ideonomy). While the bank is open, every item in a category
 that is on gets a box over its slot in the category's colour, split into one segment a category when it
 falls in several: Melee, Magic, Range, Skilling, Potions, Slayer loot, Tools & misc, Food, Farming and
@@ -366,6 +406,38 @@ ready for the plugins folder. What each one leans on:
 The shape they share: subscribe in `start`, keep state in fields and `config()`, draw in one
 overlay, and allocate outside the per-frame paths (the `IntArray`s for projection are fields).
 
+### Overlays and infoboxes
+
+An `Overlay` draws where it likes, every frame: for things in the scene (a tile, an npc's outline).
+For a box of text or numbers, extend **`PanelOverlay`** instead (API 12), RuneLite's `Overlay` with a
+position: the client places it in its corner (`position`, by default `TOP_LEFT`), under the panels of
+that corner with a higher `priority`, or where the player dragged it, and calls `render(g, view)` with
+the drawing moved so that the panel's top-left corner is (0, 0); `render` returns the size it drew, or
+null for nothing this frame. Give it a `name` that stays the same between versions: its place is kept
+under the plugin's id and that name. `resizable` panels read `preferredWidth`; `addMenuEntry` adds a
+Shift-right-click entry; `backgroundColour` is the one the player chose.
+
+**`OverlayPanel`** is a `PanelOverlay` that is a `PanelComponent`, as RuneLite's: add this frame's
+lines in `render` and return `super.render(g, view)`.
+
+```kotlin
+class SpecPanel(private val client: ClientApi) : OverlayPanel("SpecPanel") {
+	override fun render(g: Graphics, view: Viewport): Size? {
+		panelComponent.addTitle("Special attack", 0xFFFF981F.toInt())
+		panelComponent.addLine("Energy", -1, (client.varp(300) / 10).toString() + "%", -1)
+		return super.render(g, view)
+	}
+}
+// in start: context.addOverlay(SpecPanel(context.client()))
+```
+
+An **`InfoBox`** is a small square in the infobox panel, shared by every plugin: give it a cache
+`spriteId` or an `image` (`ClientApi.loadImage` reads a PNG from the plugin's jar), and override
+`text()`, `textColour()` and, to hide it for now, `render()`. `Counter` shows a number and `Timer` a
+countdown that removes itself. Add one with `context.addInfoBox(box)`; boxes with the same `name` move
+together when the player detaches one. `ClientApi.addTooltip(text)` while drawing shows a tooltip by
+the mouse that frame.
+
 ## The API
 
 The API is the package `com.jagex.game.runetek5.plugin.api`, published with every client release as
@@ -435,6 +507,13 @@ built-in plugins):
   `PlayerEntity`, `ItemContainer` and `Component` implement the API's `Actor`, `Npc`, `Player`,
   `ItemContainer` and `Widget` themselves, so the API hands out the client's objects with no wrapping.
 - `ToolkitGraphics` draws through the active toolkit and `Renderers.FONT_RENDERER`.
+- `OverlayLayout` is RuneLite's OverlayManager and OverlayRenderer for the `PanelOverlay`s: it lays them
+  out after the plain overlays in `drawViewport` (each corner a `SnapCorner`), runs the drag key's
+  managing mode from `client` (`cycle` before the mouse's presses, `mousePressed` before the plugins'
+  `MouseClicked`, so a press it takes never reaches `MouseManager.MOUSE_MOVEMENTS`), and adds the Shift
+  menu from `MiniMenuInputTick` with the click type `MiniMenuAction.OVERLAY_MENU`. `InfoBoxes` is the
+  infobox manager (each group one `PanelOverlay`), `Tooltips` draws at `drawFrame`. The HUD a corner
+  measures from is the view less the resizable screen's minimap frame and tabs.
 - Plugins' menu entries take the click types `MiniMenuAction.PLUGIN_FIRST` to `PLUGIN_LAST`; the
   target kind rides in the high half of the entry's `param0`, the tile in `param1` and the low half.
 - `expect fun discoverPlugins()` is the platform seam: the JVM's actual (`plugin/loader`) reads the

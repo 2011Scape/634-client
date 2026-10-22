@@ -7,11 +7,12 @@ import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.Graphics
 import com.jagex.game.runetek5.plugin.api.ItemContainer
 import com.jagex.game.runetek5.plugin.api.ItemDefinition
-import com.jagex.game.runetek5.plugin.api.Overlay
+import com.jagex.game.runetek5.plugin.api.PanelOverlay
 import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.PluginApi
 import com.jagex.game.runetek5.plugin.api.PluginContext
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
+import com.jagex.game.runetek5.plugin.api.Size
 import com.jagex.game.runetek5.plugin.api.Viewport
 import com.jagex.game.runetek5.plugin.api.events.EventListener
 import com.jagex.game.runetek5.plugin.api.events.Events
@@ -20,8 +21,9 @@ import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
 /**
- * Not part of the original client: what the backpack is worth, at the top left of the game view,
- * with the three most valuable items drawn as their inventory icons. Off until turned on in the
+ * Not part of the original client: what the backpack is worth, at the top left of the game view
+ * (or where the player dragged it, holding Alt), with the three most valuable items drawn as their
+ * inventory icons. Off until turned on in the
  * plugin manager or with `::invvalue`, kept in the plugin's settings.
  *
  * A built-in plugin (BuiltinPlugins, docs/PLUGINS.md) on API 4: the item icons, the bold font and
@@ -45,12 +47,10 @@ object InventoryValue : Plugin {
 
 	private const val PANEL: Int = 0x80000000.toInt()
 
+	private const val WIDTH: Int = 220
+
 	@JvmField
 	var enabled: Boolean = false
-
-	/** Where the panel ended on the game view last frame (view-relative), 0 when it was not drawn: other panels go under it. */
-	@JvmField
-	var panelBottom: Int = 0
 
 	/** The frame's three most valuable slots, by value, most first. */
 	private val topIds: IntArray = IntArray(SHOWN)
@@ -65,7 +65,12 @@ object InventoryValue : Plugin {
 
 	private var context: PluginContext? = null
 
-	private val overlay: Overlay = Overlay { g, view -> draw(g, view) }
+	/** The panel, at the top left of the game view among the other panels unless the player moved it (OverlayLayout). */
+	private val overlay: PanelOverlay = object : PanelOverlay("InventoryValueOverlay") {
+		override fun render(g: Graphics, view: Viewport): Size? = draw(g)
+	}
+
+	private val size: Size = Size()
 
 	/** The plugin manager changed a setting: read it back. */
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
@@ -113,13 +118,13 @@ object InventoryValue : Plugin {
 		return out.toString()
 	}
 
-	private fun draw(g: Graphics, view: Viewport) {
-		panelBottom = 0
-		val client: ClientApi = context?.client() ?: return
+	/** The panel at (0, 0); its size, or null when it is not shown. */
+	private fun draw(g: Graphics): Size? {
+		val client: ClientApi = context?.client() ?: return null
 		if (!enabled || !g.fontReady() || client.gameState() !== GameState.LOGGED_IN) {
-			return
+			return null
 		}
-		val backpack: ItemContainer = client.itemContainer(BACKPACK) ?: return
+		val backpack: ItemContainer = client.itemContainer(BACKPACK) ?: return null
 		var total: Long = 0L
 		var shown: Int = 0
 		for (slot in 0 until backpack.size()) {
@@ -150,14 +155,12 @@ object InventoryValue : Plugin {
 			}
 		}
 		lastTotal = total
-		val x: Int = view.x + 8
-		// under Opponent Information's panel when it shows (last frame's: the plugins draw in turn)
-		val top: Int = view.y + maxOf(OpponentInfoOverlay.TOP, OpponentInfoOverlay.panelBottom + 6)
-		g.fillRect(x - 4, top, 220, 6 + 34 * (shown + 1), PANEL)
-		panelBottom = top + 6 + 34 * (shown + 1) - view.y
+		val x: Int = 4
+		val height: Int = 6 + 34 * (shown + 1)
+		g.fillRect(0, 0, WIDTH, height, PANEL)
 		g.font(Font.BOLD)
 		// the first baseline sits one line height below the panel's top
-		var y: Int = top + g.fontHeight()
+		var y: Int = g.fontHeight()
 		g.text(x, y, "Backpack: " + withCommas(total) + " coins", TITLE_COLOUR, SHADOW)
 		g.font(Font.SMALL)
 		y += 8
@@ -167,5 +170,6 @@ object InventoryValue : Plugin {
 			g.text(x + 40, y + 20, name + ": " + withCommas(topValues[i]), TEXT_COLOUR, SHADOW)
 			y += 34
 		}
+		return size.set(WIDTH, height)
 	}
 }

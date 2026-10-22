@@ -5,7 +5,6 @@ import com.jagex.game.runetek5.plugin.api.CommandHandler
 import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.MenuAction
 import com.jagex.game.runetek5.plugin.api.MenuTarget
-import com.jagex.game.runetek5.plugin.api.Overlay
 import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.PluginApi
 import com.jagex.game.runetek5.plugin.api.PluginConfig
@@ -69,17 +68,6 @@ object XpTracker : Plugin {
 		200, 28, 11, 193, 52, 76, 93, 68, 165, 101, 44, 172, 84, 179, 186, 36, 19, 60, 118, 126, 110, 142, 134, 150, 158,
 	)
 
-	/** The skills' icons, the Stats tab's sprites, by skill. */
-	@JvmField
-	val ICONS: IntArray = intArrayOf(197, 199, 198, 203, 200, 201, 202, 212, 214, 208, 211, 213, 207, 210, 209, 205, 204, 206, 216, 217, 215, 220, 221, 222, 3032)
-
-	/** RuneLite's SkillColor, by skill; Summoning and Dungeoneering, which it lacks, in their own colours. */
-	@JvmField
-	val COLOURS: IntArray = intArrayOf(
-		0x9b2007, 0x6277be, 0x04955a, 0x837e7e, 0x6d9017, 0x9f9323, 0x3250c1, 0x702386, 0x348c25, 0x038d7d, 0x6a84a4, 0xbd7819,
-		0x976e4d, 0x6c6b52, 0x5d8fa7, 0x078509, 0x3a3c89, 0x6c3457, 0x646464, 0x65983f, 0xaa8d1a, 0x5c5941, 0x82745f, 0x3c9999, 0x8a4b2a,
-	)
-
 	/** The total's index beside the skills'. */
 	const val OVERALL: Int = Skill.COUNT
 
@@ -131,8 +119,6 @@ object XpTracker : Plugin {
 
 	private var canvasAction: Int = -1
 
-	private val overlay: Overlay = Overlay { g, view -> XpTrackerOverlay.draw(g, view) }
-
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
 			context?.config()?.let { readSettings(it) }
@@ -142,7 +128,10 @@ object XpTracker : Plugin {
 
 	private val statListener: EventListener<StatChanged> = EventListener { event -> context?.client()?.let { statChanged(it, event) } }
 
-	private val tickListener: EventListener<ClientTick> = EventListener { event -> context?.client()?.let { cycle(it, event.cycle) } }
+	private val tickListener: EventListener<ClientTick> = EventListener { event ->
+		context?.let { XpTrackerOverlay.sync(it) }
+		context?.client()?.let { cycle(it, event.cycle) }
+	}
 
 	private val stateListener: EventListener<GameStateChanged> = EventListener { event -> context?.client()?.let { stateChanged(it, event.state) } }
 
@@ -187,7 +176,7 @@ object XpTracker : Plugin {
 		context.events().subscribe(Events.CLIENT_TICK, tickListener)
 		context.events().subscribe(Events.GAME_STATE_CHANGED, stateListener)
 		context.events().subscribe(Events.MENU_ENTRY_ADDED, menuListener)
-		context.addOverlay(overlay)
+		XpTrackerOverlay.sync(context)
 		context.registerCommand("xp", command)
 		PluginManagerScreen.registerPanel(DESCRIPTOR.id) { XpTrackerScreen.open() }
 		if (context.client().gameState() === GameState.LOGGED_IN) {
@@ -200,6 +189,7 @@ object XpTracker : Plugin {
 		XpTrackerScreen.close()
 		save()
 		context = null
+		XpTrackerOverlay.forget()
 		clear()
 		profile = null
 	}

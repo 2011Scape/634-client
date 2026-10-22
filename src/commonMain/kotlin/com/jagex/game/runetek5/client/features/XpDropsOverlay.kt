@@ -6,7 +6,6 @@ import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.Graphics
 import com.jagex.game.runetek5.plugin.api.Skill
 import com.jagex.game.runetek5.plugin.api.Viewport
-import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
 /**
@@ -17,10 +16,6 @@ import kotlin.jvm.JvmStatic
  * view's centre, on the left at its edge.
  */
 object XpDropsOverlay {
-
-	/** The skills' icons, the Stats tab's sprites, by skill. */
-	@JvmField
-	val ICONS: IntArray = intArrayOf(197, 199, 198, 203, 200, 201, 202, 212, 214, 208, 211, 213, 207, 210, 209, 205, 204, 206, 216, 217, 215, 220, 221, 222, 3032)
 
 	/** The font by size (Smallest to Largest); the skill icons are drawn at their own size, as Old School draws them. */
 	private val FONTS: IntArray = intArrayOf(Font.SMALL, Font.SMALL, Font.REGULAR, Font.BOLD, Font.BOLD)
@@ -58,7 +53,7 @@ object XpDropsOverlay {
 			return
 		}
 		g.font(FONTS[plugin.size])
-		val lineHeight: Int = maxOf(g.fontHeight(), if (plugin.hideSkillIcons) 0 else iconHeight(g, ICONS[0]))
+		val lineHeight: Int = maxOf(g.fontHeight(), if (plugin.hideSkillIcons) 0 else iconHeight(g, SkillSprites.ICONS[0]))
 		// the anchor: the right edge, the centre or the left edge of what is drawn
 		val resizable: Boolean = view.x == 0 && view.y == 0
 		val anchorX: Int = when (plugin.position) {
@@ -98,12 +93,12 @@ object XpDropsOverlay {
 				xp += client.skillXp(skill)
 			}
 		}
-		val height: Int = maxOf(g.fontHeight(), if (recent) iconHeight(g, ICONS[plugin.lastSkill]) else 0) + 4
+		val height: Int = maxOf(g.fontHeight(), if (recent) iconHeight(g, SkillSprites.ICONS[plugin.lastSkill]) else 0) + 4
 		val x: Int = boxX(anchorX, COUNTER_WIDTH)
 		g.fillRect(x, top, COUNTER_WIDTH, height, BACKGROUND)
 		g.drawRect(x, top, COUNTER_WIDTH, height, BORDER)
 		if (recent) {
-			val icon: Int = ICONS[plugin.lastSkill]
+			val icon: Int = SkillSprites.ICONS[plugin.lastSkill]
 			g.sprite(icon, x + 2, top + (height - iconHeight(g, icon)) / 2)
 		} else {
 			g.text(x + 5, top + height / 2 + g.fontHeight() / 2 - 2, "XP:", WHITE, BLACK)
@@ -167,14 +162,14 @@ object XpDropsOverlay {
 		var icons: Int = 0
 		if (!plugin.hideSkillIcons) {
 			for (skill in drop.skills) {
-				icons += iconWidth(g, ICONS[skill]) + 2
+				icons += iconWidth(g, SkillSprites.ICONS[skill]) + 2
 			}
 		}
 		val width: Int = icons + g.textWidth(text)
 		var x: Int = boxX(anchorX, width)
 		if (!plugin.hideSkillIcons) {
 			for (skill in drop.skills) {
-				val icon: Int = ICONS[skill]
+				val icon: Int = SkillSprites.ICONS[skill]
 				g.sprite(icon, x, top + (lineHeight - iconHeight(g, icon)) / 2)
 				x += iconWidth(g, icon) + 2
 			}
