@@ -13,6 +13,7 @@ import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
 import com.jagex.game.runetek5.client.features.LootTrackerScreen
 import com.jagex.game.runetek5.client.features.PluginManagerScreen
+import com.jagex.game.runetek5.client.features.XpTrackerScreen
 import kotlin.jvm.JvmStatic
 
 object SubInterfaceCloser {
@@ -26,6 +27,7 @@ object SubInterfaceCloser {
 			HdOptionsScreen.reset() // Not part of the original client: the 634HD page lives in Graphics Options
 			PluginManagerScreen.reset() // Not part of the original client: so does the plugin manager's window
 			LootTrackerScreen.reset() // Not part of the original client: and the loot tracker's
+			XpTrackerScreen.reset() // Not part of the original client: and the XP tracker's
 		}
 		PluginRuntime.interfaceClosed(type, pointer, subInterface.openType) // Not part of the original client: the plugins' InterfaceClosed, while the interface is still open.
 		subInterface.unlink()

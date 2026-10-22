@@ -5,8 +5,9 @@ small, stable API, that reads the game, draws on it, adds menu entries and comma
 own settings. The experience drops (`XpDrops`), the idle notifier (`IdleNotifier`), the menu
 swapper (`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name plates (`NamePlates`),
 the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Discord presence
-(`DiscordPresence`), the ground items (`GroundItems`), the loot tracker (`LootTracker`) and the
-object markers (`ObjectIndicators`) are eleven, built in, so the client's own code shows the way.
+(`DiscordPresence`), the ground items (`GroundItems`), the loot tracker (`LootTracker`), the
+object markers (`ObjectIndicators`) and the XP tracker (`XpTracker`) are twelve, built in, so the
+client's own code shows the way.
 
 ## Contents
 
@@ -102,10 +103,10 @@ stack trace is in the client's log (the launcher keeps it in `~/.void/logs`).
 
 ## The built-in plugins
 
-Eleven plugins come with the client, on the same API as the ones from the plugins folder, each with
+Twelve plugins come with the client, on the same API as the ones from the plugins folder, each with
 its switch in the Plugins window: experience drops (`::xpdrops`), the idle notifier (`::idle`), the
 menu entry swapper (`::menuswapper`), the inventory value (`::invvalue`), name plates (`::nameplates`), the
-ground tiles, the npc indicators, the Discord presence (`::discord`), the ground items (`::grounditems`), the loot tracker (`::loot`) and the object markers (`::objectmarkers`).
+ground tiles, the npc indicators, the Discord presence (`::discord`), the ground items (`::grounditems`), the loot tracker (`::loot`), the object markers (`::objectmarkers`) and the XP tracker (`::xp`).
 
 **Ground Tiles** marks tiles on the ground the way RuneLite's Ground Markers do. Hold Shift and
 right-click a tile for **Mark tile**; a marked tile's Shift menu has **Unmark tile**, **Label tile**
@@ -214,6 +215,22 @@ progress (a tree, a door, a farming patch) is drawn only while it is the one you
 quite RuneLite: 634's click box for an object is the game's own picking area (rounded), not RuneLite's
 box; and the hull and outline are worked out from the game's own picking of the model, sampled a few
 pixels apart on a large object.
+
+**XP Tracker** is RuneLite's XP Tracker. RuneLite shows it in a side panel, which this client does not
+have, so the panel is a window (`::xp`, or **Open** on its row of the plugin manager) and RuneLite's
+canvas boxes sit on the game view. The window has the total gained and per hour (right-click: **Reset
+All**, **Reset All/hr**, **Pause All**, **Unpause All**) and a box for each skill trained this session:
+its icon, four labels you choose (XP gained, XP left, XP/hr, actions left by default; also time to
+level, actions/hr and actions done), and a progress bar to the next level in the skill's colour.
+Right-click a box for **Collapse**, **Reset**, **Reset others**, **Reset/hr**, **Pause** and **Add to
+canvas**; hovering one shows its experience against the goal on the totals' line. A skill on the canvas
+is a small box at the left of the game view with its icon, two lines and the bar; the Stats tab's
+skills have **Add to canvas** in their menus too. Settings: RuneLite's, including saving the tracking
+between sessions (per account), hiding maxed skills, pausing at logout and after minutes without
+experience, resetting the rates after minutes, the labels and the bar's label, and moving recently
+trained skills to the top. Not here from RuneLite: its Wise Old Man link (an Old School website) and
+skill-guide goals (634 has none), so the goal is always the next level, and the intermediate level
+markers have nothing to mark.
 
 ## Writing a plugin
 

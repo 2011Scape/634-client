@@ -11,6 +11,7 @@ import com.jagex.game.runetek5.client.features.NamePlates
 import com.jagex.game.runetek5.client.features.NpcIndicators
 import com.jagex.game.runetek5.client.features.ObjectIndicators
 import com.jagex.game.runetek5.client.features.XpDrops
+import com.jagex.game.runetek5.client.features.XpTracker
 import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
 import kotlin.jvm.JvmStatic
@@ -36,6 +37,7 @@ object BuiltinPlugins {
 			builtIn(GroundItems.DESCRIPTOR, GroundItems),
 			builtIn(LootTracker.DESCRIPTOR, LootTracker),
 			builtIn(ObjectIndicators.DESCRIPTOR, ObjectIndicators),
+			builtIn(XpTracker.DESCRIPTOR, XpTracker),
 		)
 	}
 
