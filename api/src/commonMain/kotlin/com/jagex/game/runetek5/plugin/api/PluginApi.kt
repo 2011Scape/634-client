@@ -45,8 +45,9 @@ package com.jagex.game.runetek5.plugin.api
  * - 14: [InfoBox.itemId], an item's icon as an infobox's picture.
  * - 15: the walk destination, [ClientApi.destinationTileX] and [ClientApi.destinationTileY].
  * - 16: panel tooltips, [ClientApi.addTooltip] with a [PanelComponent].
+ * - 17: [Widget.setHidden], and the [LoopTimer] infobox.
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 16
+	const val VERSION: Int = 17
 }

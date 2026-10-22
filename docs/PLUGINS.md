@@ -8,8 +8,9 @@ the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Disc
 (`DiscordPresence`), the ground items (`GroundItems`), the loot tracker (`LootTracker`), the
 object markers (`ObjectIndicators`), the XP tracker (`XpTracker`), the opponent information
 (`OpponentInfo`), the boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the
-status bars (`StatusBars`), the timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`) and the
-XP globes (`XpGlobes`) are nineteen, built in, so the client's own code shows the way.
+status bars (`StatusBars`), the timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the
+XP globes (`XpGlobes`) and the Barrows Brothers (`BarrowsBrothers`) are twenty, built in, so the client's
+own code shows the way.
 
 ## Contents
 
@@ -46,7 +47,8 @@ the game for you.
   circles, polygons, text in the client's three fonts, the cache's sprites, the icons of items and
   pictures of its own (a PNG), within a clip of its own choosing; panels the client places in a corner
   of the game view and the player moves (RuneLite's overlays, with its panel, line and title
-  components), infoboxes in the shared infobox panel, and tooltips by the mouse.
+  components), infoboxes in the shared infobox panel, and tooltips by the mouse; and hide a component
+  of an interface on this client (to draw its own in its place).
 - Add: entries to the right-click menu of a tile, npc, player, ground item, location or interface
   component (an inventory slot included), with an action of its own, and entries that open a
   submenu of its own beside the menu; console commands (`::name`); lines in the chat box and the
@@ -351,6 +353,18 @@ after **Duration of orbs** seconds; **Hide maxed skills** (99, Dungeoneering 120
 the colours, the arc's width and the globes' size are settings. Shift and right-click the globes for
 Configure and Flip (down instead of across).
 
+**Barrows Brothers** is RuneLite's, for the Barrows as the Void server runs it. On the hills each brother's
+mound is lettered on the minimap (cyan, red once he is slain; both colours are settings). In the crypts a
+panel at the top left takes the place of the game's "Brothers slain" and "Creatures slain" lines: each
+brother with a tick or a cross, and the chest's reward potential. Void rolls the chest's runes on the sum of
+the combat levels killed in the run (at most 1012) and never sends it, so the plugin adds up each kill's
+level itself and keeps the sum between sessions; it is exact for a run played on this client. The
+potential is green from the blood runes' roll to the bolt racks', white under the death runes', else
+yellow, as in RuneLite. The tunnels' prayer drain (every 18 seconds on Void) gets a timer, set again by
+each drain it sees; the puzzle door's answer is outlined in green; and the chest's loot, as the backpack
+gains it (634 has no reward window), is priced in the chat at Grand Exchange prices. Each part has its
+switch.
+
 ## Writing a plugin
 
 Start from [`plugin-template/`](../plugin-template): copy the folder, and change the manifest in
@@ -479,8 +493,9 @@ class SpecPanel(private val client: ClientApi) : OverlayPanel("SpecPanel") {
 
 An **`InfoBox`** is a small square in the infobox panel, shared by every plugin: give it a cache
 `spriteId` or an `image` (`ClientApi.loadImage` reads a PNG from the plugin's jar), and override
-`text()`, `textColour()` and, to hide it for now, `render()`. `Counter` shows a number and `Timer` a
-countdown that removes itself. Add one with `context.addInfoBox(box)`; boxes with the same `name` move
+`text()`, `textColour()` and, to hide it for now, `render()`. `Counter` shows a number, `Timer` a
+countdown that removes itself, and `LoopTimer` (API 17) a countdown that starts again each period, with
+`reset()` to start it again from now. Add one with `context.addInfoBox(box)`; boxes with the same `name` move
 together when the player detaches one. `ClientApi.addTooltip(text)` while drawing shows a tooltip by
 the mouse that frame.
 

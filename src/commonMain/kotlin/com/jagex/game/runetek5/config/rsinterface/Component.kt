@@ -90,6 +90,10 @@ class Component : Widget {
 		return this.hidden
 	}
 
+	override fun setHidden(hidden: Boolean) {
+		this.hidden = hidden
+	}
+
 	override fun id(): Int {
 		return this.idHash
 	}
