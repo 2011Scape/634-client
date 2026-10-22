@@ -351,4 +351,17 @@ interface ClientApi {
 	 * overlay's or a frame listener's draw. False when it is not on the screen. Since API 10.
 	 */
 	fun locOutline(tileX: Int, tileY: Int, level: Int, baseId: Int, width: Int, feather: Int, argb: Int): Boolean
+
+	/**
+	 * A picture from the bytes of a PNG file (a plugin's own resource, say), for [Graphics.image] and an
+	 * [InfoBox]; null when the bytes are not a PNG the client can read. Since API 12.
+	 */
+	fun loadImage(png: ByteArray): Image?
+
+	/**
+	 * Shows [text] in a tooltip box by the mouse this frame, over everything, as RuneLite's TooltipManager:
+	 * call it while drawing, each frame it is to show. `</br>` breaks a line and `<col=rrggbb>` colours
+	 * what follows. Since API 12.
+	 */
+	fun addTooltip(text: String)
 }

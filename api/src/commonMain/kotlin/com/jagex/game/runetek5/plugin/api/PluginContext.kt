@@ -16,7 +16,10 @@ interface PluginContext {
 
 	fun config(): PluginConfig
 
-	/** Draws [overlay] on the game view every frame, after the scene and the client's own overlays. */
+	/**
+	 * Draws [overlay] on the game view every frame, after the scene and the client's own overlays. A
+	 * [PanelOverlay] is placed by the client, in its corner or where the player dragged it (since API 12).
+	 */
 	fun addOverlay(overlay: Overlay)
 
 	fun removeOverlay(overlay: Overlay)
@@ -67,4 +70,12 @@ interface PluginContext {
 	 * cannot open now (not in the game, another window open). Since API 9.
 	 */
 	fun pickColour(initial: Int, alpha: Boolean, callback: ColourCallback): Boolean
+
+	/** Shows [box] in the infobox panel until it is removed (or culls itself). Since API 12. */
+	fun addInfoBox(box: InfoBox)
+
+	fun removeInfoBox(box: InfoBox)
+
+	/** Removes each of the plugin's infoboxes [filter] picks. Since API 12. */
+	fun removeInfoBoxIf(filter: InfoBoxFilter)
 }

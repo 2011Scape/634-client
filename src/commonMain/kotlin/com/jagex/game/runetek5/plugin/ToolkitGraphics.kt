@@ -16,6 +16,8 @@ import com.jagex.game.runetek5.graphics.sprite.NativeSprite
 import com.jagex.game.runetek5.graphics.sprite.SpriteType
 import com.jagex.game.runetek5.plugin.api.Font
 import com.jagex.game.runetek5.plugin.api.Graphics
+import com.jagex.game.runetek5.plugin.api.Image
+import kotlin.jvm.JvmField
 import com.jagex.game.runetek5.rendering.Renderers
 import com.jagex.game.runetek5.statics.WorldMapPolygonFill
 
@@ -55,38 +57,55 @@ object ToolkitGraphics : Graphics {
 
 	private const val ICON_SHADOW: Int = 0xFF000000.toInt()
 
+	/** What [translate] added to every point, until [reset]. */
+	private var tx: Int = 0
+
+	private var ty: Int = 0
+
+	/** The [Font] text starts in after [reset]: the Overlays settings' dynamic overlay font, small unless the player chose another. */
+	@JvmField
+	var defaultFont: Int = Font.SMALL
+
 	private fun currentFont(): AbstractFontRenderer? {
-		return font ?: Renderers.FONT_RENDERER
+		return font ?: fontFor(defaultFont) ?: Renderers.FONT_RENDERER
+	}
+
+	private fun fontFor(font: Int): AbstractFontRenderer? {
+		return when (font) {
+			Font.REGULAR -> FontManager.aClass68_4
+			Font.BOLD -> MiniMenu.minimenuHeader
+			else -> null
+		}
 	}
 
 	override fun line(x1: Int, y1: Int, x2: Int, y2: Int, argb: Int) {
 		val toolkit: Toolkit = ClientState.activeToolkit ?: return
-		toolkit.line(x1, y1, x2, y2, argb, 1)
+		toolkit.line(x1 + tx, y1 + ty, x2 + tx, y2 + ty, argb, 1)
 	}
 
 	override fun fillRect(x: Int, y: Int, width: Int, height: Int, argb: Int) {
 		val toolkit: Toolkit = ClientState.activeToolkit ?: return
-		toolkit.aa(x, y, width, height, argb, 1)
+		toolkit.aa(x + tx, y + ty, width, height, argb, 1)
 	}
 
 	override fun drawRect(x: Int, y: Int, width: Int, height: Int, argb: Int) {
 		val toolkit: Toolkit = ClientState.activeToolkit ?: return
-		toolkit.outlineRect(x, y, width, height, argb, 1)
+		toolkit.outlineRect(x + tx, y + ty, width, height, argb, 1)
 	}
 
 	override fun text(x: Int, y: Int, text: String, argb: Int, shadowArgb: Int) {
 		val font: AbstractFontRenderer = currentFont() ?: return
-		font.drawString(text, argb, y, x, shadowArgb)
+		font.drawString(text, argb, y + ty, x + tx, shadowArgb)
 	}
 
 	override fun textCentered(x: Int, y: Int, text: String, argb: Int, shadowArgb: Int) {
 		val font: AbstractFontRenderer = currentFont() ?: return
-		font.renderCentered(x, argb, text, shadowArgb, y)
+		font.renderCentered(x + tx, argb, text, shadowArgb, y + ty)
 	}
 
 	override fun textRight(x: Int, y: Int, text: String, argb: Int, shadowArgb: Int) {
 		val font: AbstractFontRenderer = currentFont() ?: return
-		font.renderRightAligned(text, y, argb, x, shadowArgb)
+		font.renderRightAligned(text, y + ty, argb, x + tx, shadowArgb)
 	}
 
 	override fun textWidth(text: String): Int {
@@ -105,12 +124,12 @@ object ToolkitGraphics : Graphics {
 
 	override fun thickLine(x1: Int, y1: Int, x2: Int, y2: Int, width: Int, argb: Int) {
 		val toolkit: Toolkit = ClientState.activeToolkit ?: return
-		toolkit.strongLine(x1, y1, x2, y2, argb, if (width < 1) 1 else width)
+		toolkit.strongLine(x1 + tx, y1 + ty, x2 + tx, y2 + ty, argb, if (width < 1) 1 else width)
 	}
 
 	override fun fillCircle(x: Int, y: Int, radius: Int, argb: Int) {
 		val toolkit: Toolkit = ClientState.activeToolkit ?: return
-		toolkit.za(x, y, radius, argb, 1)
+		toolkit.za(x + tx, y + ty, radius, argb, 1)
 	}
 
 	override fun polygon(xs: IntArray, ys: IntArray, count: Int, argb: Int) {
@@ -120,7 +139,7 @@ object ToolkitGraphics : Graphics {
 		}
 		for (i in 0 until count) {
 			val j: Int = if (i + 1 == count) 0 else i + 1
-			toolkit.line(xs[i], ys[i], xs[j], ys[j], argb, 1)
+			toolkit.line(xs[i] + tx, ys[i] + ty, xs[j] + tx, ys[j] + ty, argb, 1)
 		}
 	}
 
@@ -133,8 +152,8 @@ object ToolkitGraphics : Graphics {
 			polygonScratch = IntArray(count * 2)
 		}
 		for (i in 0 until count) {
-			polygonScratch[i * 2] = xs[i]
-			polygonScratch[i * 2 + 1] = ys[i]
+			polygonScratch[i * 2] = xs[i] + tx
+			polygonScratch[i * 2 + 1] = ys[i] + ty
 		}
 		WorldMapPolygonFill.fillPolygon(toolkit, polygonScratch, count * 2, argb, null, null)
 	}
@@ -145,7 +164,7 @@ object ToolkitGraphics : Graphics {
 			toolkit.K(savedClip)
 			clipped = true
 		}
-		toolkit.KA(x, y, x + width, y + height)
+		toolkit.KA(x + tx, y + ty, x + tx + width, y + ty + height)
 	}
 
 	override fun unclip() {
@@ -158,11 +177,7 @@ object ToolkitGraphics : Graphics {
 	}
 
 	override fun font(font: Int) {
-		this.font = when (font) {
-			Font.REGULAR -> FontManager.aClass68_4
-			Font.BOLD -> MiniMenu.minimenuHeader
-			else -> null
-		}
+		this.font = fontFor(font) ?: Renderers.FONT_RENDERER
 	}
 
 	private fun sprite(id: Int): NativeSprite? {
@@ -200,13 +215,13 @@ object ToolkitGraphics : Graphics {
 
 	override fun sprite(id: Int, x: Int, y: Int): Boolean {
 		val sprite: NativeSprite = sprite(id) ?: return false
-		sprite.render(x, y)
+		sprite.render(x + tx, y + ty)
 		return true
 	}
 
 	override fun spriteScaled(id: Int, x: Int, y: Int, width: Int, height: Int): Boolean {
 		val sprite: NativeSprite = sprite(id) ?: return false
-		sprite.drawScaledColored(x, y, width, height, 1, 0, 1)
+		sprite.drawScaledColored(x + tx, y + ty, width, height, 1, 0, 1)
 		return true
 	}
 
@@ -242,7 +257,24 @@ object ToolkitGraphics : Graphics {
 			}
 			return false
 		}
-		icon.render(x, y)
+		icon.render(x + tx, y + ty)
+		return true
+	}
+
+	override fun translate(dx: Int, dy: Int) {
+		tx += dx
+		ty += dy
+	}
+
+	override fun image(image: Image, x: Int, y: Int): Boolean {
+		val sprite: NativeSprite = (image as? PluginImage)?.sprite() ?: return false
+		sprite.render(x + tx, y + ty)
+		return true
+	}
+
+	override fun imageScaled(image: Image, x: Int, y: Int, width: Int, height: Int): Boolean {
+		val sprite: NativeSprite = (image as? PluginImage)?.sprite() ?: return false
+		sprite.drawScaledColored(x + tx, y + ty, width, height, 1, 0, 1)
 		return true
 	}
 
@@ -250,6 +282,8 @@ object ToolkitGraphics : Graphics {
 	fun reset() {
 		unclip()
 		font = null
+		tx = 0
+		ty = 0
 	}
 
 	/** Each client cycle: the item batch has run, so a missing icon may be asked for again. */

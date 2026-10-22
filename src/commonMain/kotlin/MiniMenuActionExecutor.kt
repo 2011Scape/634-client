@@ -1,3 +1,4 @@
+import com.jagex.game.runetek5.plugin.OverlayLayout
 import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.network.packet.TcpPacket
@@ -17,7 +18,6 @@ import com.jagex.game.runetek5.client.menu.MiniMenuBuilder
 import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecorder
 import com.jagex.game.runetek5.client.menu.MiniMenu
-import com.jagex.game.runetek5.ClientPacket
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
 import com.jagex.game.runetek5.network.BufferedConnectionContext
 import com.jagex.game.runetek5.network.packet.ClientProt
@@ -27,7 +27,6 @@ import com.jagex.game.runetek5.PathFinder
 import com.jagex.game.runetek5.MapRegion
 import com.jagex.game.runetek5.Minimap
 import com.jagex.game.runetek5.vardomain.PlayerVarDomain
-import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.login.LoginManager
 import com.jagex.game.runetek5.graphics.sprite.StaticMedia
 import kotlin.jvm.JvmStatic
@@ -51,6 +50,11 @@ object MiniMenuActionExecutor {
 		@Pc(53) var packet: TcpPacket?
 		// Not part of the original client: the plugins hear of the click, and a plugin's own entry is theirs (PluginRuntime).
 		if (PluginRuntime.menuClicked(miniMenuEntryInner, clickType)) {
+			return
+		}
+		if (clickType == MiniMenuAction.OVERLAY_MENU) {
+			// Not part of the original client: a plugin panel's entry (OverlayLayout).
+			OverlayLayout.menuClicked(param0, param1)
 			return
 		}
 		if (clickType == MiniMenuAction.WALK) {

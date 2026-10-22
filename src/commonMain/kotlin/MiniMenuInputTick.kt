@@ -1,15 +1,14 @@
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.client.menu.MiniMenu
 import com.jagex.game.runetek5.plugin.PluginRuntime
+import com.jagex.game.runetek5.plugin.OverlayLayout
 import com.jagex.game.runetek5.client.menu.MiniMenuEntry
 import com.jagex.game.runetek5.Preferences
-import com.jagex.game.runetek5.DraggedComponentLayer
 import com.jagex.game.runetek5.core.datastruct.key.DequeIterator
 import com.jagex.game.runetek5.cache.node.QueueIterator
 import com.jagex.game.runetek5.client.menu.ColoredMiniMenuEntry
 import com.jagex.game.runetek5.client.menu.MiniMenuSubmenus
 import com.jagex.game.runetek5.client.input.mouse.MouseRecord
-import com.jagex.game.runetek5.graphics.gl.GlxMatrixScratch
 import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.client.event.keyboard.SimpleKeyboardMonitorConstants
@@ -49,6 +48,8 @@ object MiniMenuInputTick {
 		}
 		MiniMenu.aClass341_46.transferAllTo(MiniMenu.entryList)
 		MiniMenu.aClass341_36.transferAllTo(MiniMenu.entryList)
+		// Not part of the original client: with Shift held over a plugin's panel, its entries (OverlayLayout)
+		OverlayLayout.menuBuilt()
 		if (PluginRuntime.menuBuilt()) {
 			// Not part of the original client: the plugins' MenuBuilt, where they read and edit the finished menu; one they shortened may fit uncollapsed
 			MiniMenu.isCollapsed = MiniMenu.maxVisibleEntries != -1 && MiniMenu.entryCount >= MiniMenu.maxVisibleEntries || GameShell.screenCanvasHeight < MiniMenu.entryCount * 16 + (if (FontMetrics.useBoldFont) 26 else 22)

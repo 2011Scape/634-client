@@ -4,6 +4,8 @@ import com.jagex.game.runetek5.client.features.PluginManagerScreen
 import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.ColourCallback
 import com.jagex.game.runetek5.plugin.api.CommandHandler
+import com.jagex.game.runetek5.plugin.api.InfoBox
+import com.jagex.game.runetek5.plugin.api.InfoBoxFilter
 import com.jagex.game.runetek5.plugin.api.MenuAction
 import com.jagex.game.runetek5.plugin.api.Overlay
 import com.jagex.game.runetek5.plugin.api.PluginConfig
@@ -132,5 +134,20 @@ class PluginContextImpl(private val registration: PluginRegistration) : PluginCo
 			}
 		}
 		return why == null
+	}
+
+	override fun addInfoBox(box: InfoBox) {
+		if (closed) {
+			return
+		}
+		InfoBoxes.add(registration, box)
+	}
+
+	override fun removeInfoBox(box: InfoBox) {
+		InfoBoxes.remove(box)
+	}
+
+	override fun removeInfoBoxIf(filter: InfoBoxFilter) {
+		InfoBoxes.removeIf(registration, filter)
 	}
 }
