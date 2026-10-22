@@ -65,11 +65,13 @@ jobs:
         with:
           validate-wrappers: true
 
-      # check runs checkClasses on the release jar and compiles commonMain on its own before publishing
+      # check runs checkClasses on the release jar and compiles commonMain on its own before publishing.
+      # Two workers: the JVM, JS, metadata and test compiles share one Kotlin daemon (3 GB), and three or
+      # more at once fill its heap and stall the build in garbage collection.
       - name: Build and check the release jars
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: ./gradlew check compileCommonMainKotlinMetadata release -Pversion="$VERSION" --console=plain
+        run: ./gradlew check compileCommonMainKotlinMetadata release -Pversion="$VERSION" --console=plain --max-workers=2
 
       # on a dry run too, so the run shows what a release would publish
       - name: Write checksums
