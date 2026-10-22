@@ -81,6 +81,7 @@ import com.jagex.game.runetek5.client.features.ClientFeatures
 import com.jagex.game.runetek5.client.features.HdOptionsScreen
 import com.jagex.game.runetek5.client.features.LootTrackerScreen
 import com.jagex.game.runetek5.client.features.PluginManagerScreen
+import com.jagex.game.runetek5.client.features.XpTrackerScreen
 import com.jagex.game.runetek5.client.web.ClientURLTools
 import com.jagex.game.runetek5.rendering.MessageBox
 import com.jagex.game.runetek5.graphics.map.worldmap.WorldMap
@@ -5555,6 +5556,11 @@ object CS2Interpreter {
 		if (scriptId == LootTrackerScreen.SENTINEL) {
 			// Not part of the original client: a hook of the loot tracker's window, handled in Kotlin.
 			LootTrackerScreen.hook(hook)
+			return
+		}
+		if (scriptId == XpTrackerScreen.SENTINEL) {
+			// Not part of the original client: a hook of the XP tracker's window, handled in Kotlin.
+			XpTrackerScreen.hook(hook)
 			return
 		}
 		@Pc(12) var clientScript: ClientScript? = ClientScript.getClientScript(scriptId)

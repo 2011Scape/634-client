@@ -306,11 +306,8 @@ object LootTrackerScreen {
 	/** RuneLite's actions bar: Back and the source's name in the details view, and the view controls at the right. */
 	private fun controls(children: ArrayList<Component>): Int {
 		val y: Int = 4
-		val view: String? = currentView
-		if (view != null) {
-			val w: Int = button(children, "Back", false, A_BACK, 0, BOX_X, y)
-			children.add(ClientPage.text(BODY, children.size, BOX_X + w + 8, y, 200, 26, ClientPage.FONT_LABEL, view, WHITE, 0, 1, true))
-		}
+		// Back: out of a source's details to every source, else back to the plugin manager
+		val back: Int = button(children, "Back", false, A_BACK, 0, BOX_X, y)
 		val labels: Array<String> = arrayOf(if (isAllCollapsed()) "Expand all" else "Collapse all", if (hideIgnoredItems) "Show ignored" else "Hide ignored", "Single", "Grouped")
 		val actions: IntArray = intArrayOf(A_COLLAPSE_ALL, A_HIDDEN, A_SINGLE, A_GROUPED)
 		val selected: BooleanArray = booleanArrayOf(false, false, !groupLoot, groupLoot)
@@ -318,6 +315,11 @@ object LootTrackerScreen {
 		for (i in labels.indices) {
 			x -= buttonWidth(labels[i]) + 4
 			button(children, labels[i], selected[i], actions[i], 0, x, y)
+		}
+		val view: String? = currentView
+		if (view != null) {
+			val titleX: Int = BOX_X + back + 8
+			children.add(ClientPage.text(BODY, children.size, titleX, y, maxOf(0, x - 6 - titleX), 26, ClientPage.FONT_LABEL, view, WHITE, 0, 1, true))
 		}
 		return y + 32
 	}
@@ -506,7 +508,7 @@ object LootTrackerScreen {
 				rebuild()
 			}
 			A_COLLAPSE_ALL -> collapseAll()
-			A_BACK -> showDetails(null, null)
+			A_BACK -> if (currentView != null) showDetails(null, null) else backToPluginManager()
 			A_RESET_ALL -> ask(if (currentView == null) "This will permanently delete all loot." else "This will permanently delete \"" + currentView + "\" loot.") { LootTracker.reset(currentView, currentType) }
 			A_CONFIRM_YES -> {
 				val yes: (() -> Unit)? = confirm
@@ -555,6 +557,27 @@ object LootTrackerScreen {
 			}
 			4 -> showDetails(record.title, record.type)
 		}
+	}
+
+	/** Back from the list: the window closes and the plugin manager, which shares its shell, opens in its place. */
+	@JvmStatic
+	fun backToPluginManager() {
+		close()
+		PluginManagerScreen.open()
+	}
+
+	/** The smoke test's wheel: [notches] turns down (up when negative). */
+	@JvmStatic
+	fun scrollBy(notches: Int) {
+		val body: Component = Interface.getComponent(BODY) ?: return
+		scrollTo(body.scrollY + notches * WHEEL_STEP)
+	}
+
+	/** The scroll position, the content height (0 when the page does not scroll) and the visible height. */
+	@JvmStatic
+	fun scrollPosition(): IntArray {
+		val body: Component = Interface.getComponent(BODY) ?: return intArrayOf(0, 0, BODY_HEIGHT)
+		return intArrayOf(body.scrollY, body.scrollHeight, BODY_HEIGHT)
 	}
 
 	@JvmStatic
