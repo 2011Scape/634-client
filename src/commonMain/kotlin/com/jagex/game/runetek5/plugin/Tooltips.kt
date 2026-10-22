@@ -2,13 +2,15 @@ package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.client.input.mouse.MouseRecord
 import com.jagex.game.runetek5.plugin.api.PanelComponent
+import com.jagex.game.runetek5.plugin.api.Size
 import kotlin.jvm.JvmStatic
 
 /**
  * Not part of the original client: RuneLite's TooltipManager and TooltipOverlay. The tooltips asked for
  * while a frame is drawn ([add], ClientApi.addTooltip) are drawn over everything at its end, one under
  * another by the mouse (under it, or above it with the Overlays settings' tooltip position), kept on the
- * screen by last frame's size, and forgotten for the next frame.
+ * screen by last frame's size, and forgotten for the next frame. A tooltip is a text or a PanelComponent
+ * (RuneLite's Tooltip with a panel), drawn as the panel draws itself.
  */
 object Tooltips {
 
@@ -22,7 +24,8 @@ object Tooltips {
 	/** RuneLite's TooltipComponent.BR: `<br>` and `</br>`. */
 	private val BR: Regex = Regex("</?br>")
 
-	private val texts: ArrayList<String> = ArrayList()
+	/** This frame's tooltips: texts and panels. */
+	private val texts: ArrayList<Any> = ArrayList()
 
 	private var lastWidth: Int = 0
 
@@ -41,6 +44,24 @@ object Tooltips {
 	}
 
 	@JvmStatic
+	fun add(panel: PanelComponent) {
+		if (texts.size < 32) {
+			texts.add(panel)
+		}
+	}
+
+	/** A panel's lines as text, label and value, a line each: what the smoke test reads. */
+	private fun panelText(panel: PanelComponent): String {
+		return panel.children.joinToString("</br>") { child ->
+			when (child) {
+				is PanelComponent.LineComponent -> (child.left ?: "") + " " + (child.right ?: "")
+				is PanelComponent.TitleComponent -> child.text
+				else -> ""
+			}
+		}.trim()
+	}
+
+	@JvmStatic
 	fun draw(screenWidth: Int, screenHeight: Int) {
 		if (texts.isEmpty()) {
 			drawnLastFrame = emptyList()
@@ -55,7 +76,16 @@ object Tooltips {
 		var width: Int = 0
 		var height: Int = 0
 		val lineHeight: Int = g.fontHeight()
-		for (text in texts) {
+		for (entry in texts) {
+			if (entry is PanelComponent) {
+				val size: Size? = entry.render(g, x, y + height)
+				if (size != null) {
+					height += size.height + PADDING
+					width = maxOf(width, size.width)
+				}
+				continue
+			}
+			val text: String = entry as String
 			val lines: List<String> = text.split(BR)
 			var textWidth: Int = 0
 			for (line in lines) {
@@ -75,7 +105,7 @@ object Tooltips {
 		g.reset()
 		lastWidth = width
 		lastHeight = height
-		drawnLastFrame = ArrayList(texts)
+		drawnLastFrame = texts.map { if (it is PanelComponent) panelText(it) else it as String }
 		texts.clear()
 	}
 }

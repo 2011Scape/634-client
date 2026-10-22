@@ -18,6 +18,7 @@ import com.jagex.game.runetek5.client.features.StatusBars
 import com.jagex.game.runetek5.client.features.TileIndicators
 import com.jagex.game.runetek5.client.features.TimersAndBuffs
 import com.jagex.game.runetek5.client.features.XpDrops
+import com.jagex.game.runetek5.client.features.XpGlobes
 import com.jagex.game.runetek5.client.features.XpTracker
 import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
@@ -52,6 +53,7 @@ object BuiltinPlugins {
 			builtIn(StatusBars.DESCRIPTOR, StatusBars),
 			builtIn(TimersAndBuffs.DESCRIPTOR, TimersAndBuffs),
 			builtIn(TileIndicators.DESCRIPTOR, TileIndicators),
+			builtIn(XpGlobes.DESCRIPTOR, XpGlobes),
 		)
 	}
 

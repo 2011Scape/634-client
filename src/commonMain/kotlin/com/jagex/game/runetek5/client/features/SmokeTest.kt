@@ -273,6 +273,13 @@ object SmokeTest {
 
 	private var tileFrame: Int = -1
 
+	/** client.test.xpGlobes: Attack and Woodcutting gain experience through the stat hook; their globes, then one hovered for its tooltip. */
+	private val XP_GLOBES: Boolean = "true" == lang.getProperty("client.test.xpGlobes")
+
+	private var globesStep: Int = 0
+
+	private var globesFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1113,6 +1120,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 131072
+		}
+		if (XP_GLOBES && (checksDone and 262144) == 0) {
+			if (!xpGlobesDone()) {
+				return
+			}
+			checksDone = checksDone or 262144
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3229,6 +3242,53 @@ object SmokeTest {
 	 * The kill is the Loot Tracker's, under the guide's name; the loot window opens on it (grouped), a
 	 * frame of it, then kill by kill, and it closes. Frame in build/smoke as -loottracker.
 	 */
+	/**
+	 * XP Globes: two skills primed and then gaining experience through PluginRuntime.statChanged (as the
+	 * stat packet does); two globes must be drawn. Then the test mouse over the first: its tooltip panel
+	 * with the skill's line. Frame: frame-xpglobes.png.
+	 */
+	private fun xpGlobesDone(): Boolean {
+		if (globesStep == 0) {
+			XpGlobes.enabled = true
+			for (skill in intArrayOf(Skill.ATTACK, Skill.WOODCUTTING)) {
+				val xp: Int = client.statXp[skill]
+				PluginRuntime.statChanged(skill, xp, xp, 1)
+				PluginRuntime.statChanged(skill, xp, xp + 100, 1)
+			}
+			globesFrame = frames
+			globesStep = 1
+			return false
+		}
+		if (frames - globesFrame < MARKER_FRAMES) {
+			return false
+		}
+		if (globesStep == 1) {
+			if (XpGlobesOverlay.drawnGlobes != 2) {
+				fail("XP Globes drew " + XpGlobesOverlay.drawnGlobes + " globes, not 2")
+				return true
+			}
+			// the first globe's middle: the overlay's corner, the arcs' margin and half a globe
+			val margin: Int = 3
+			OverlayLayout.testMouse = true
+			OverlayLayout.testMouseX = XpGlobesOverlay.boundsX + margin + XpGlobes.xpOrbSize / 2
+			OverlayLayout.testMouseY = XpGlobesOverlay.boundsY + margin + XpGlobes.xpOrbSize / 2
+			globesFrame = frames
+			globesStep = 2
+			return false
+		}
+		val tooltip: String = Tooltips.drawnLastFrame.firstOrNull { it.startsWith("Attack") } ?: ""
+		if (XpGlobesOverlay.hoveredSkill != Skill.ATTACK || !tooltip.contains("Current XP:")) {
+			fail("hovering the Attack globe hovered skill " + XpGlobesOverlay.hoveredSkill + " with the tooltips " + Tooltips.drawnLastFrame)
+			OverlayLayout.testMouse = false
+			return true
+		}
+		saveFrame("build/smoke/frame-xpglobes.png")
+		println("SMOKE xp globes: 2 globes, Attack hovered: " + tooltip.replace("</br>", " | "))
+		OverlayLayout.testMouse = false
+		XpGlobes.globes.clear()
+		return true
+	}
+
 	/**
 	 * Tile Indicators with all three tiles on: the minimap's flag set two tiles east of the player stands for a
 	 * walk's destination; the destination and the true tile must be drawn (the hovered one needs the mouse
