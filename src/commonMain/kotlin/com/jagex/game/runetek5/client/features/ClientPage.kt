@@ -44,10 +44,37 @@ object ClientPage {
 	const val ARROW_OPEN: Int = 2556
 	const val ROW_PITCH: Int = 20
 
-	/** A tickbox's square, and the mark inside it when it is on. */
-	const val TICK_SIZE: Int = 16
+	/** A tickbox: the stock bevelled square, empty or with its green tick. */
+	const val TICK_SIZE: Int = 14
 
-	const val TICK_MARK: Int = 8
+	const val TICK_OFF: Int = 3745
+
+	const val TICK_ON: Int = 3746
+
+	/** The stock scrollbar (script 31's, the bank's): its width, an arrow's height, a thumb end's height and the smallest thumb. */
+	const val SCROLLBAR_WIDTH: Int = 16
+
+	const val SCROLL_ARROW: Int = 16
+
+	const val SCROLL_THUMB_CAP: Int = 5
+
+	const val SCROLL_THUMB_MIN: Int = 2 * SCROLL_THUMB_CAP + 2
+
+	/** Its sprites: the track and the thumb's middle tile, the thumb's ends, and the arrows. */
+	const val SCROLL_TRACK: Int = 792
+
+	const val SCROLL_THUMB_TOP: Int = 789
+
+	const val SCROLL_THUMB_MIDDLE: Int = 790
+
+	const val SCROLL_THUMB_BOTTOM: Int = 791
+
+	const val SCROLL_UP: Int = 773
+
+	const val SCROLL_DOWN: Int = 788
+
+	/** The components [scrollbar] appends. */
+	const val SCROLLBAR_PIECES: Int = 9
 	const val ITEM_HEIGHT: Int = 15
 
 	/** A dropdown list's own scrollbar, its smallest thumb, the window's title bar it stays under, the gap it keeps from the window's edge, its fewest rows, and the rows a turn of the wheel moves. */
@@ -168,25 +195,98 @@ object ClientPage {
 	}
 
 	/**
-	 * A tickbox: the dropdown box's fill and outline, [TICK_SIZE] square, with a [TICK_MARK] square
-	 * of [TEXT_TOP] inside when [on]; a click runs [action] with [index] through [sentinel]. Returns
-	 * the hit component, whose option is [optionName].
+	 * A tickbox: the stock [TICK_SIZE] square, ticked when [on]; a click runs [action] with [index]
+	 * through [sentinel]. Returns the hit component, whose option is [optionName].
 	 */
 	@JvmStatic
 	fun tickbox(parentHash: Int, children: ArrayList<Component>, on: Boolean, sentinel: Int, action: Int, index: Int, x: Int, y: Int, optionName: String): Component {
-		children.add(rect(parentHash, children.size, x, y, TICK_SIZE, TICK_SIZE, BOX_FILL, true))
-		children.add(rect(parentHash, children.size, x, y, TICK_SIZE, TICK_SIZE, BOX_LINE, false))
-		if (on) {
-			val inset: Int = (TICK_SIZE - TICK_MARK) / 2
-			children.add(rect(parentHash, children.size, x + inset, y + inset, TICK_MARK, TICK_MARK, TEXT_TOP, true))
-		}
-		val hit: Component = text(parentHash, children.size, x, y, TICK_SIZE, TICK_SIZE, FONT_SMALL, "", TEXT, 1, 1, false)
+		children.add(sprite(parentHash, children.size, x, y, TICK_SIZE, TICK_SIZE, if (on) TICK_ON else TICK_OFF, false, false, false))
+		return hit(parentHash, children, x, y, TICK_SIZE, TICK_SIZE, sentinel, action, index, optionName)
+	}
+
+	/** An invisible component over a place that runs [action] with [index] through [sentinel] on a click of [optionName]. */
+	@JvmStatic
+	fun hit(parentHash: Int, children: ArrayList<Component>, x: Int, y: Int, width: Int, height: Int, sentinel: Int, action: Int, index: Int, optionName: String): Component {
+		val hit: Component = text(parentHash, children.size, x, y, width, height, FONT_SMALL, "", TEXT, 1, 1, false)
 		hit.hasScript = true
 		hit.addOptionName(0, optionName)
 		hit.opBase = ""
 		hit.params = arrayOf<Any?>(sentinel, action, index)
 		children.add(hit)
 		return hit
+	}
+
+	/**
+	 * The stock scrollbar at [x], [y], [height] tall: the track, the thumb [thumbY] down the track
+	 * (between the arrows) and [thumbHeight] tall, and the arrows, which run [upAction] and
+	 * [downAction] through [sentinel]; a press on the thumb runs [thumbAction] with the pointer's
+	 * height in the thumb, to start a drag. Appends [SCROLLBAR_PIECES] components and returns the
+	 * first's slot, for [placeScrollbar].
+	 */
+	@JvmStatic
+	fun scrollbar(parentHash: Int, children: ArrayList<Component>, x: Int, y: Int, height: Int, thumbY: Int, thumbHeight: Int, sentinel: Int, upAction: Int, downAction: Int, thumbAction: Int): Int {
+		val first: Int = children.size
+		children.add(sprite(parentHash, children.size, x, 0, SCROLLBAR_WIDTH, 0, SCROLL_TRACK, true, false, false))
+		children.add(sprite(parentHash, children.size, x, 0, SCROLLBAR_WIDTH, SCROLL_THUMB_CAP, SCROLL_THUMB_TOP, false, false, false))
+		children.add(sprite(parentHash, children.size, x, 0, SCROLLBAR_WIDTH, 0, SCROLL_THUMB_MIDDLE, true, false, false))
+		children.add(sprite(parentHash, children.size, x, 0, SCROLLBAR_WIDTH, SCROLL_THUMB_CAP, SCROLL_THUMB_BOTTOM, false, false, false))
+		children.add(sprite(parentHash, children.size, x, 0, SCROLLBAR_WIDTH, SCROLL_ARROW, SCROLL_UP, false, false, false))
+		hit(parentHash, children, x, 0, SCROLLBAR_WIDTH, SCROLL_ARROW, sentinel, upAction, 0, "Scroll up")
+		children.add(sprite(parentHash, children.size, x, 0, SCROLLBAR_WIDTH, SCROLL_ARROW, SCROLL_DOWN, false, false, false))
+		hit(parentHash, children, x, 0, SCROLLBAR_WIDTH, SCROLL_ARROW, sentinel, downAction, 0, "Scroll down")
+		// the thumb's hit: no option, so no menu entry; the press hook alone
+		val grip: Component = text(parentHash, children.size, x, 0, SCROLLBAR_WIDTH, 0, FONT_SMALL, "", TEXT, 1, 1, false)
+		grip.hasScript = true
+		grip.onClick = arrayOf<Any?>(sentinel, thumbAction, 0)
+		children.add(grip)
+		layoutScrollbar(children.subList(first, children.size), y, height, thumbY, thumbHeight)
+		return first
+	}
+
+	/** Moves the scrollbar whose first piece is at [first] under [parentHash] (see [scrollbar]); the caller lays the parent out again. */
+	@JvmStatic
+	fun placeScrollbar(parentHash: Int, first: Int, y: Int, height: Int, thumbY: Int, thumbHeight: Int) {
+		val pieces: ArrayList<Component> = ArrayList()
+		for (k in 0 until SCROLLBAR_PIECES) {
+			pieces.add(childOf(parentHash, first + k) ?: return)
+		}
+		layoutScrollbar(pieces, y, height, thumbY, thumbHeight)
+	}
+
+	/** The track's height between the arrows of a scrollbar [height] tall. */
+	@JvmStatic
+	fun scrollTrack(height: Int): Int = height - 2 * SCROLL_ARROW
+
+	/**
+	 * Where a dragged thumb puts the scroll, 0 to [most]: the pointer [pointerY] below the top of a
+	 * scrollbar [height] tall, held [grab] below the top of a thumb [thumbHeight] tall.
+	 */
+	@JvmStatic
+	fun scrollFromThumb(pointerY: Int, grab: Int, height: Int, thumbHeight: Int, most: Int): Int {
+		val room: Int = scrollTrack(height) - thumbHeight
+		if (room <= 0 || most <= 0) {
+			return 0
+		}
+		val thumbY: Int = (pointerY - SCROLL_ARROW - grab).coerceIn(0, room)
+		return (thumbY * most + room / 2) / room
+	}
+
+	private fun layoutScrollbar(pieces: List<Component>, y: Int, height: Int, thumbY: Int, thumbHeight: Int) {
+		val top: Int = y + SCROLL_ARROW
+		val thumb: Int = top + thumbY
+		val middle: Int = maxOf(0, thumbHeight - 2 * SCROLL_THUMB_CAP)
+		pieces[0].basePositionY = top
+		pieces[0].baseHeight = scrollTrack(height)
+		pieces[1].basePositionY = thumb
+		pieces[2].basePositionY = thumb + SCROLL_THUMB_CAP
+		pieces[2].baseHeight = middle
+		pieces[3].basePositionY = thumb + SCROLL_THUMB_CAP + middle
+		pieces[4].basePositionY = y
+		pieces[5].basePositionY = y
+		pieces[6].basePositionY = y + height - SCROLL_ARROW
+		pieces[7].basePositionY = y + height - SCROLL_ARROW
+		pieces[8].basePositionY = thumb
+		pieces[8].baseHeight = thumbHeight
 	}
 
 	/** Sets a button's three sprites: hover, else selected, else normal (what script 3929 does). */
