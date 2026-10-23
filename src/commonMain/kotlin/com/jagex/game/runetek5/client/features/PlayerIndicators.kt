@@ -89,6 +89,9 @@ object PlayerIndicators : Plugin {
 	/** For the smoke test: the names the last frame drew. */
 	@JvmField var drawnLastFrame: Int = 0
 
+	/** For the smoke test: where (in the game view) the last name drawn above a head went, -1 for none. */
+	@JvmField var lastAboveHeadY: Int = -1
+
 	/** The clan chat's ranks by name, read again each game tick. */
 	private val ranks: HashMap<String, Int> = HashMap()
 
@@ -308,6 +311,7 @@ object PlayerIndicators : Plugin {
 				if (top >= 0) {
 					y = view.y + top - ABOVE_GAP
 				}
+				lastAboveHeadY = y - view.y
 			}
 		}
 		val rank: Int = if (relation == FRIENDS_CHAT && clanMenuIcons) rank(client, player.name()) else -1
@@ -384,7 +388,7 @@ object PlayerIndicators : Plugin {
 
 	private const val CYCLES_PER_TICK: Int = 30
 	private const val ABOVE_RAISE: Int = 40
-	private const val ABOVE_GAP: Int = 2
+	private const val ABOVE_GAP: Int = 4
 	private const val RIGHT_GAP: Int = 4
 	private const val ICON_GAP: Int = 2
 	private const val TILE_FILL_ALPHA: Int = 50
