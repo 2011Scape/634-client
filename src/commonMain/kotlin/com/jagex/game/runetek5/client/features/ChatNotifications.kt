@@ -30,6 +30,9 @@ object ChatNotifications : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("chatnotification", "Chat Notifications", "1", PluginApi.VERSION, "Highlights your name and chosen words in the chat, and notifies you of them, trades, duels and private messages.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	const val TRADE_REQUEST: Int = 100
 	const val DUEL_REQUEST: Int = 101
 	const val BROADCAST: Int = 115
@@ -57,7 +60,7 @@ object ChatNotifications : Plugin {
 
 	private var context: PluginContext? = null
 
-	private val chatListener: EventListener<ChatMessage> = EventListener { event -> context?.client()?.let { chat(it, event) } }
+	private val chatListener: EventListener<ChatMessage> = EventListener { event -> if (enabled) context?.client()?.let { chat(it, event) } }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
@@ -76,6 +79,7 @@ object ChatNotifications : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's ChatNotificationsConfig, in its order: the Highlight lists section first
+		s.toggle("enabled", "Chat Notifications", true)
 		s.text("highlightWordsString", "Highlight words (comma separated)", "", MAX_TEXT)
 		s.text("highlightRegexString", "Highlight regex (one per line or ;)", "", MAX_TEXT)
 		s.toggle("highlightOwnName", "Highlight own name", true)
@@ -97,6 +101,7 @@ object ChatNotifications : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		highlightWordsString = config.get("highlightWordsString", "")
 		highlightRegexString = config.get("highlightRegexString", "")
 		highlightOwnName = config.getBoolean("highlightOwnName", true)
