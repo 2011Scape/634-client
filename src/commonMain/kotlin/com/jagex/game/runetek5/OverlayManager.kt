@@ -29,6 +29,8 @@ import com.jagex.game.runetek5.graphics.sprite.NativeSprite
 import com.jagex.game.runetek5.graphics.sprite.SpriteType
 import com.jagex.game.runetek5.graphics.sprite.StaticMedia
 import com.jagex.game.runetek5.interaction.chat.ChatBox
+import com.jagex.game.runetek5.plugin.PluginRuntime
+import com.jagex.game.runetek5.plugin.api.Actor
 import com.jagex.game.runetek5.rendering.Renderers
 import com.jagex.game.runetek5.scene.Scene
 import com.jagex.game.runetek5.statics.OutPlayerIndexCount
@@ -106,7 +108,8 @@ object OverlayManager {
 					}
 				}
 			}
-			if (pathingEntity!!.worldPriority >= 0 && (SceneDrawer.timesSceneRendered == pathingEntity.drawCycle || pathingEntity.level == PlayerUpdate.localPlayer!!.level)) {
+			// Not part of the original client: a model a plugin hid still has its overheads, unless a filter (API 32) hides those too
+			if ((pathingEntity!!.worldPriority >= 0 || pathingEntity.pluginHidden) && (SceneDrawer.timesSceneRendered == pathingEntity.drawCycle || pathingEntity.level == PlayerUpdate.localPlayer!!.level) && PluginRuntime.drawActor(pathingEntity as Actor, true)) {
 				OverlayManager.projectEntityToScreen(pathingEntity.getOverheadHeight(), clipWidth shr 1, height shr 1, pathingEntity)
 				if (OverlayManager.projectedScreenPosition[0] >= 0) {
 					if (pathingEntity.hintDetails.text != null && (playerCount <= i || ChatBox.publicFilter == 0 || ChatBox.publicFilter == 3 || ChatBox.publicFilter == 1 && FriendOrSelfCheck.isFriendOrSelf((pathingEntity as PlayerEntity).displayName)) && OverlayManager.overheadTextCount < OverlayManager.MAX_OVERHEAD_TEXTS) {

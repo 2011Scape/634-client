@@ -22,6 +22,12 @@ interface PluginContext {
 	 */
 	fun addOverlay(overlay: Overlay)
 
+	/** Asks [filter] whether each actor is drawn; every filter must agree. Taken back when the plugin stops. Since API 32. */
+	fun addActorFilter(filter: ActorFilter)
+
+	/** Asks [filter] whether each projectile is drawn; every filter must agree. Taken back when the plugin stops. Since API 32. */
+	fun addProjectileFilter(filter: ProjectileFilter)
+
 	fun removeOverlay(overlay: Overlay)
 
 	/**

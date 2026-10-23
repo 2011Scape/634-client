@@ -1,5 +1,7 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.plugin.api.ActorFilter
+import com.jagex.game.runetek5.plugin.api.ProjectileFilter
 import com.jagex.game.runetek5.plugin.api.events.LocChanged
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecordEntry
 import com.jagex.game.runetek5.plugin.api.events.KeyInput
@@ -425,6 +427,56 @@ object PluginRuntime {
 		}
 	}
 
+	/** The plugins' actor and projectile filters (API 32), and whose. */
+	private val actorFilters: ArrayList<ActorFilter> = ArrayList()
+	private val actorFilterOwners: ArrayList<PluginRegistration> = ArrayList()
+	private val projectileFilters: ArrayList<ProjectileFilter> = ArrayList()
+	private val projectileFilterOwners: ArrayList<PluginRegistration> = ArrayList()
+
+	@JvmStatic
+	fun addActorFilter(registration: PluginRegistration, filter: ActorFilter) {
+		actorFilters.add(filter)
+		actorFilterOwners.add(registration)
+	}
+
+	@JvmStatic
+	fun addProjectileFilter(registration: PluginRegistration, filter: ProjectileFilter) {
+		projectileFilters.add(filter)
+		projectileFilterOwners.add(registration)
+	}
+
+	/** Whether every plugin lets [actor] be drawn: its model, or with [drawingUI] its overheads and the like. */
+	@JvmStatic
+	fun drawActor(actor: Actor, drawingUI: Boolean): Boolean {
+		for (i in actorFilters.indices) {
+			try {
+				if (!actorFilters[i].shouldDraw(actor, drawingUI)) {
+					return false
+				}
+			} catch (error: Throwable) {
+				fail(actorFilterOwners[i], error)
+				return true
+			}
+		}
+		return true
+	}
+
+	/** Whether every plugin lets the projectile with spot animation [graphicId] be drawn. */
+	@JvmStatic
+	fun drawProjectile(graphicId: Int): Boolean {
+		for (i in projectileFilters.indices) {
+			try {
+				if (!projectileFilters[i].shouldDraw(graphicId)) {
+					return false
+				}
+			} catch (error: Throwable) {
+				fail(projectileFilterOwners[i], error)
+				return true
+			}
+		}
+		return true
+	}
+
 	private fun stopPlugin(registration: PluginRegistration) {
 		val context: PluginContextImpl? = registration.context
 		if (context != null && registration.plugin != null) {
@@ -461,6 +513,18 @@ object PluginRuntime {
 		scheduledTasks.removeAll { it.owner === registration }
 		OverlayLayout.removeAll(registration)
 		InfoBoxes.removeAll(registration)
+		for (i in actorFilters.indices.reversed()) {
+			if (actorFilterOwners[i] === registration) {
+				actorFilters.removeAt(i)
+				actorFilterOwners.removeAt(i)
+			}
+		}
+		for (i in projectileFilters.indices.reversed()) {
+			if (projectileFilterOwners[i] === registration) {
+				projectileFilters.removeAt(i)
+				projectileFilterOwners.removeAt(i)
+			}
+		}
 		for (i in 0 until overlayCount) {
 			if (overlayOwners[i] === registration) {
 				overlays[i] = null
