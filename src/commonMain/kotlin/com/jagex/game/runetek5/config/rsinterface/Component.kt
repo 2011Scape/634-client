@@ -94,6 +94,14 @@ class Component : Widget {
 		this.hidden = hidden
 	}
 
+	override fun dragDeadTime(): Int {
+		return this.dragDeadTime
+	}
+
+	override fun setDragDeadTime(cycles: Int) {
+		this.dragDeadTime = cycles
+	}
+
 	override fun id(): Int {
 		return this.idHash
 	}

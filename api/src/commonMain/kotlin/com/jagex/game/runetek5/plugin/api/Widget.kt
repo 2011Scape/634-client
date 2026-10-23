@@ -48,6 +48,16 @@ interface Widget {
 	 */
 	fun setHidden(hidden: Boolean)
 
+	/**
+	 * How many client cycles (20 ms each) the mouse must be held on the component before it can be
+	 * dragged, RuneLite's drag dead time: the game's from the cache or its scripts until a plugin sets
+	 * it. Since API 18.
+	 */
+	fun dragDeadTime(): Int
+
+	/** Sets [dragDeadTime] on this client: RuneLite's setDragDeadTime, Anti-Drag's. Since API 18. */
+	fun setDragDeadTime(cycles: Int)
+
 	/** The item the component shows (an inventory slot, a shop's stock), or -1. */
 	fun itemId(): Int
 
