@@ -42,6 +42,9 @@ object ItemCharges : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("itemcharges", "Item Charges", "1", PluginApi.VERSION, "Shows the charges left on jewellery, potions, watering cans and other items with charges.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	/** RuneLite's ItemChargeType, the ones 634 has. */
 	const val TELEPORT: Int = 0
 	const val POTION: Int = 1
@@ -116,9 +119,9 @@ object ItemCharges : Plugin {
 	private var context: PluginContext? = null
 
 	/** RuneLite's ItemChargeOverlay, over the interfaces. */
-	private val frameListener: EventListener<FrameDraw> = EventListener { event -> context?.client()?.let { drawCharges(event.graphics, it) } }
+	private val frameListener: EventListener<FrameDraw> = EventListener { event -> if (enabled) context?.client()?.let { drawCharges(event.graphics, it) } }
 
-	private val chatListener: EventListener<ChatMessage> = EventListener { event -> context?.client()?.let { chat(it, event) } }
+	private val chatListener: EventListener<ChatMessage> = EventListener { event -> if (enabled) context?.client()?.let { chat(it, event) } }
 
 	private val containerListener: EventListener<ItemContainerChanged> = EventListener { event ->
 		if (event.containerId == WORN) {
@@ -145,6 +148,7 @@ object ItemCharges : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's ItemChargeConfig, in its order, but the settings for what is not on Void
+		s.toggle("enabled", "Item Charges", true)
 		s.colour("veryLowWarningColor", "Very low warning", RED, false)
 		s.colour("lowWarningColor", "Low warning", YELLOW, false)
 		s.number("veryLowWarning", "Very low warning", 1, 0, 1000, 1)
@@ -178,6 +182,7 @@ object ItemCharges : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		veryLowWarningColor = config.getColour("veryLowWarningColor", RED)
 		lowWarningColor = config.getColour("lowWarningColor", YELLOW)
 		veryLowWarning = config.getInt("veryLowWarning", 1)
@@ -324,7 +329,7 @@ object ItemCharges : Plugin {
 	@JvmStatic
 	fun updateInfoboxes(client: ClientApi) {
 		val worn: ItemContainer? = client.itemContainer(WORN)
-		if (!showInfoboxes || worn == null) {
+		if (!enabled || !showInfoboxes || worn == null) {
 			removeInfoboxes()
 			return
 		}

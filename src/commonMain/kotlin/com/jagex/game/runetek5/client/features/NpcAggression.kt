@@ -39,6 +39,9 @@ object NpcAggression : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("npcUnaggroArea", "NPC Aggression Timer", "1", PluginApi.VERSION, "Times how long until monsters stop being aggressive in the area you stay in, and shows the area.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = false
+
 	/** Void's Tolerance: 10 minutes, a square 10 tiles each way. */
 	const val TOLERANCE_MILLIS: Long = 600_000L
 	const val RADIUS: Int = 10
@@ -79,8 +82,9 @@ object NpcAggression : Plugin {
 	private var context: PluginContext? = null
 
 	/** RuneLite's NpcAggroAreaOverlay, under the interfaces. */
-	private val overlay: Overlay = Overlay { g, view -> context?.client()?.let { drawArea(g, view, it) } }
+	private val overlay: Overlay = Overlay { g, view -> if (enabled) context?.client()?.let { drawArea(g, view, it) } }
 
+	// the square is followed while off too, so switching on shows the time Void is counting
 	private val tickListener: EventListener<GameTick> = EventListener { _ -> context?.client()?.let { tick(it) } }
 
 	private val stateListener: EventListener<GameStateChanged> = EventListener { event ->
@@ -107,6 +111,7 @@ object NpcAggression : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's NpcAggroAreaConfig, in its order
+		s.toggle("enabled", "NPC Aggression Timer", false)
 		s.toggle("npcUnaggroAlwaysActive", "Always active", false)
 		s.text("npcUnaggroNames", "NPC names (comma separated, * wildcards)", "", MAX_TEXT)
 		s.toggle("npcUnaggroShowTimer", "Show timer", true)
@@ -132,6 +137,7 @@ object NpcAggression : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", false)
 		npcUnaggroAlwaysActive = config.getBoolean("npcUnaggroAlwaysActive", false)
 		npcUnaggroNames = config.get("npcUnaggroNames", "")
 		npcUnaggroShowTimer = config.getBoolean("npcUnaggroShowTimer", true)
@@ -166,7 +172,7 @@ object NpcAggression : Plugin {
 		} else if (!inArea(x, y, player.level())) {
 			newArea(x, y, player.level(), true)
 		}
-		active = (npcUnaggroAlwaysActive || monsterNear(client)) && CombatLevel.wildernessLevel(x, y) == 0
+		active = enabled && (npcUnaggroAlwaysActive || monsterNear(client)) && CombatLevel.wildernessLevel(x, y) == 0
 		if (active && remainingMillis() == 0L && !notified) {
 			notified = true
 			if (notifyExpire) {
