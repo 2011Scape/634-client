@@ -11,6 +11,7 @@ import com.jagex.game.runetek5.client.features.ChatFilter
 import com.jagex.game.runetek5.client.features.ChatHistory
 import com.jagex.game.runetek5.client.features.ChatNotifications
 import com.jagex.game.runetek5.client.features.CombatLevel
+import com.jagex.game.runetek5.client.features.Cooking
 import com.jagex.game.runetek5.client.features.CustomCursor
 import com.jagex.game.runetek5.client.features.DeathIndicator
 import com.jagex.game.runetek5.client.features.DiscordPresence
@@ -116,6 +117,7 @@ object BuiltinPlugins {
 			builtIn(NpcAggression.DESCRIPTOR, NpcAggression),
 			builtIn(Hunter.DESCRIPTOR, Hunter),
 			builtIn(Implings.DESCRIPTOR, Implings),
+			builtIn(Cooking.DESCRIPTOR, Cooking),
 		)
 	}
 
