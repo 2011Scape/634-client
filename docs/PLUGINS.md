@@ -673,7 +673,7 @@ game's name box asks who), and on a member's row **Kick** and **Make leader**; `
 `::party leader <name>`, `::party leave` and `::party decline` do the same by hand. A party holds eight;
 when the leader leaves, the next member leads. Out of a party, the panel shows "Right-click to invite". The panel lists the members, the leader with a crown, each with two labelled bars,
 HP and Prayer with their values (on one line with **Compact panel**); hovering a member shows their
-special attack and run energy too, and their tile. Their dots show on the minimap and the world map. Holding the
+special attack and run energy too, and where they are (Lumbridge, Edgeville, ...). Their dots show on the minimap and the world map. Holding the
 **Ping hotkey** (Ctrl) adds Ping to a tile's menu: the tile lights up for everyone in the pinger's colour,
 with a sound. A member's location is hidden while they are in the Wilderness or another PvP area
 (marked "Wilderness" in red); their stats and pings are not. The server sends it all in client variables

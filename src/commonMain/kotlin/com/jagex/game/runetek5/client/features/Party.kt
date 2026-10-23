@@ -526,10 +526,14 @@ object Party : Plugin {
 		else -> 0
 	}
 
+	/** The named place at world tile ([x], [y]), as the Discord presence names it (Lumbridge, Edgeville...), or null. */
+	@JvmStatic
+	fun areaName(x: Int, y: Int): String? = DiscordGameEvents.fromRegion((x shr 6 shl 8) or (y shr 6))?.name
+
 	/** The hover tooltip: every stat in full, and where they are. */
 	@JvmStatic
 	fun tooltip(member: Member): String {
-		val where: String = if (member.x < 0) "<col=ff3030>Location hidden (Wilderness)</col>" else "Tile " + member.x + ", " + member.y + (if (member.level > 0) ", floor " + member.level else "")
+		val where: String = if (member.x < 0) "<col=ff3030>Location hidden (Wilderness)</col>" else "Location: " + (areaName(member.x, member.y) ?: "unknown area")
 		return "<col=ffffff>" + member.name + "</col></br>" +
 			"<col=ff3030>Hitpoints</col> " + member.hp + "/" + member.hpMax + "</br>" +
 			"<col=30c8e0>Prayer</col> " + member.prayer + "/" + member.prayerMax + "</br>" +

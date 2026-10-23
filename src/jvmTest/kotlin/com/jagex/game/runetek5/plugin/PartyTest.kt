@@ -58,6 +58,24 @@ class PartyTest {
 	}
 
 	@Test
+	fun aTileIsNamedByItsArea() {
+		assertEquals("Lumbridge", Party.areaName(3222, 3218))
+		assertEquals("Edgeville", Party.areaName(3094, 3491))
+		assertEquals("Tutorial Island", Party.areaName(3094, 3107))
+		assertNull(Party.areaName(0, 0))
+	}
+
+	@Test
+	fun theTooltipNamesWhereTheyAre() {
+		val there = Party.Member(1, "Bob", 50, 99, 40, 70, 75, 82, 3222, 3218, 0, false)
+		assertTrue(Party.tooltip(there).contains("Location: Lumbridge"))
+		val hidden = Party.Member(1, "Bob", 50, 99, 40, 70, 75, 82, -1, -1, 0, true)
+		assertTrue(Party.tooltip(hidden).contains("Location hidden (Wilderness)"))
+		val nowhere = Party.Member(1, "Bob", 50, 99, 40, 70, 75, 82, 1, 1, 0, false)
+		assertTrue(Party.tooltip(nowhere).contains("unknown area"))
+	}
+
+	@Test
 	fun namesDecodeAsTheGameShowsThem() {
 		val (hi, lo) = base37("bob the cat")
 		assertEquals("Bob The Cat", Party.name(hi, lo))
