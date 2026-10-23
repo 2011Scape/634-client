@@ -375,6 +375,11 @@ object SmokeTest {
 
 	private var playerIndicatorsFrame: Int = -1
 
+	/** client.test.specialCounter: a Bandos godsword special's hit counted by Special Attack Counter, its infobox and the drop over the player's head. */
+	private val SPECIAL_COUNTER: Boolean = "true" == lang.getProperty("client.test.specialCounter")
+
+	private var specialCounterFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1299,6 +1304,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 1073741824L
+		}
+		if (SPECIAL_COUNTER && (checksDone and 2147483648L) == 0L) {
+			if (!specialCounterDone()) {
+				return
+			}
+			checksDone = checksDone or 2147483648L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3962,6 +3973,30 @@ object SmokeTest {
 			return true
 		}
 		println("SMOKE player indicators: own name drawn at y " + nameY + ", above the health bar and chat line (their top " + top + "), rank icons " + icons)
+		return true
+	}
+
+	/** Special Attack Counter given a godsword special's hit of 450: the infobox counts it, the drop rises. Frame: frame-specialcounter.png. */
+	private fun specialCounterDone(): Boolean {
+		if (specialCounterFrame == -1) {
+			SpecialCounter.enabled = true
+			SpecialCounter.specialAttackHit(ClientApiImpl, 1, 450)
+			specialCounterFrame = frames
+			return false
+		}
+		if (frames - specialCounterFrame < MARKER_FRAMES / 2) {
+			return false
+		}
+		saveFrame("build/smoke/frame-specialcounter.png")
+		val count: Int = SpecialCounter.counters[1]?.count ?: -1
+		val energy: Int = ClientApiImpl.varp(SpecialCounter.SPECIAL_VARP)
+		SpecialCounter.removeCounters()
+		SpecialCounter.drops.clear()
+		if (count != 450 || energy < 0 || energy > 1000) {
+			fail("Special Attack Counter: counted " + count + " (not 450), energy " + energy)
+			return true
+		}
+		println("SMOKE special counter: Bandos Godsword 450 counted and dropped, special energy " + energy)
 		return true
 	}
 
