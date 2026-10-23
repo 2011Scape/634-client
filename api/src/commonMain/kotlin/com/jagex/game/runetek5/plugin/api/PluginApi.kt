@@ -54,8 +54,9 @@ package com.jagex.game.runetek5.plugin.api
  * - 21: the mouse cursor ([ClientApi.setCursor], [ClientApi.resetCursor]) and items' icons as pictures ([ClientApi.itemImage]).
  * - 22: locations the server changes ([com.jagex.game.runetek5.plugin.api.events.Events.LOC_CHANGED]).
  * - 23: the cache's sprites as pictures ([ClientApi.spriteImage]).
+ * - 24: the interfaces' sprites replaced ([ClientApi.overrideSprite]).
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 23
+	const val VERSION: Int = 24
 }

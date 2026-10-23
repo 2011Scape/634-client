@@ -77,9 +77,6 @@
         <error line="1" column="1" source="standard:no-unused-imports" />
         <error line="10" column="1" source="standard:no-unused-imports" />
     </file>
-    <file name="src/commonMain/kotlin/ItemSpriteBatchRender.kt">
-        <error line="18" column="1" source="standard:no-unused-imports" />
-    </file>
     <file name="src/commonMain/kotlin/JavaDefaultSurface.kt">
         <error line="5" column="1" source="standard:no-unused-imports" />
         <error line="11" column="1" source="standard:no-unused-imports" />
@@ -566,7 +563,7 @@
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/config/rsinterface/Component.kt">
         <error line="16" column="1" source="standard:no-unused-imports" />
         <error line="52" column="1" source="standard:no-unused-imports" />
-        <error line="852" column="1" source="standard:no-consecutive-blank-lines" />
+        <error line="853" column="1" source="standard:no-consecutive-blank-lines" />
     </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/config/varc/VarcTypeList.kt">
         <error line="15" column="1" source="standard:no-unused-imports" />

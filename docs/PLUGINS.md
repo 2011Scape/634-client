@@ -14,8 +14,8 @@ anti drag (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltip
 (`KeyRemapping`), the custom cursor (`CustomCursor`), the item stats (`ItemStats`), the woodcutting
 (`Woodcutting`), the mining (`Mining`), the report button (`ReportButton`), the player indicators
 (`PlayerIndicators`), the special attack counter (`SpecialCounter`), the regeneration meter
-(`RegenMeter`) and the run energy (`RunEnergy`) are thirty-five, built in, so the client's own code
-shows the way.
+(`RegenMeter`), the run energy (`RunEnergy`) and the poison (`Poison`) are thirty-six, built in, so the
+client's own code shows the way.
 
 ## Contents
 
@@ -489,6 +489,13 @@ Void's: running costs 67 plus 67 times your weight over 64 kg of the 10,000 a ti
 help), and the energy comes back each tick you are not running by an amount your Agility sets, more
 resting and more again by a musician. RuneLite's Ring of endurance message, the graceful outfit and
 stamina potions are OSRS-only.
+
+**Poison** is RuneLite's. While you are poisoned, **Show infoboxes** puts up an infobox counting down to
+the next hit, and its tooltip (and the life points orb's, with the mouse over it) gives the damage, the
+time to it and the time until the poison wears off; **Change HP orb icon** turns the orb's heart green
+while poisoned and yellow while diseased (RuneLite's own hearts, put in place of the game's sprite).
+Void's poison hits every 18 seconds for its current strength, which falls by 2 each time, and wears off
+instead of hitting once it would fall to 10 or less. Venom is OSRS-only.
 
 ## Writing a plugin
 
