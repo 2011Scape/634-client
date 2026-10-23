@@ -59,6 +59,8 @@ import com.jagex.game.runetek5.plugin.PluginRegistration
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.entity.NPCEntity
 import com.jagex.game.runetek5.plugin.PluginRuntime
+import com.jagex.game.runetek5.network.packet.StockMarketOffer
+import com.jagex.game.runetek5.buffer.Packet
 import com.jagex.game.runetek5.client.input.mouse.CursorManager
 import com.jagex.game.runetek5.plugin.PluginCursor
 import com.jagex.game.runetek5.client.input.keyboard.CanvasKeyRecorder
@@ -494,6 +496,15 @@ object SmokeTest {
 	private var metronomeStart: Long = -1L
 
 	private var metronomeTicks: Int = 0
+
+	/** client.test.grandExchange: offer slot 5 sent twice by hand (a buy of 10 rune bars, then 5 of them bought), Grand Exchange's chat line and its offers panel, then the slot put back. */
+	private val GRAND_EXCHANGE: Boolean = "true" == lang.getProperty("client.test.grandExchange")
+
+	private var grandExchangeFrame: Int = -1
+
+	private var grandExchangeSlot: StockMarketOffer? = null
+
+	private var grandExchangePanelWas: Boolean = false
 
 	/** client.test.deathIndicator: Void's death and gravestone lines (written through the client's chat path, nothing really happening), the hint arrow (API 29) and infobox, then the world map opened and the grave marked on it. */
 	private val DEATH_INDICATOR: Boolean = "true" == lang.getProperty("client.test.deathIndicator")
@@ -1732,6 +1743,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 144115188075855872L
+		}
+		if (GRAND_EXCHANGE && (checksDone and 576460752303423488L) == 0L) {
+			if (!grandExchangeDone()) {
+				return
+			}
+			checksDone = checksDone or 576460752303423488L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5585,6 +5602,52 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** Offer slot 5 as the server would send it: a buy of 10 rune bars at 1,500 each, [done] of them bought. */
+	private fun grandExchangeOffer(done: Int): StockMarketOffer {
+		val b: ByteArray = ByteArray(19)
+		b[0] = 2
+		val item: Int = 2363
+		b[1] = (item shr 8).toByte()
+		b[2] = item.toByte()
+		val ints: IntArray = intArrayOf(1500, 10, done, done * 1500)
+		for (i in ints.indices) {
+			for (k in 0 until 4) {
+				b[3 + i * 4 + k] = (ints[i] shr (24 - 8 * k)).toByte()
+			}
+		}
+		return StockMarketOffer(Packet(b))
+	}
+
+	/** Grand Exchange: slot 5 placed then part bought, its chat line told and the panel drawn; the slot put back after. Frame: frame-grandexchange.png. */
+	private fun grandExchangeDone(): Boolean {
+		if (grandExchangeFrame == -1) {
+			grandExchangeSlot = StockMarketOffer.GRAND_EXCHANGE_SLOTS[5]
+			grandExchangePanelWas = GrandExchange.showPanel
+			GrandExchange.lastMessage = null
+			StockMarketOffer.GRAND_EXCHANGE_SLOTS[5] = grandExchangeOffer(0)
+			PluginRuntime.grandExchangeOfferChanged(5)
+			StockMarketOffer.GRAND_EXCHANGE_SLOTS[5] = grandExchangeOffer(5)
+			PluginRuntime.grandExchangeOfferChanged(5)
+			GrandExchange.showPanel = true
+			grandExchangeFrame = frames
+			return false
+		}
+		if (frames - grandExchangeFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-grandexchange.png")
+		val told: String? = GrandExchange.lastMessage
+		StockMarketOffer.GRAND_EXCHANGE_SLOTS[5] = grandExchangeSlot
+		PluginRuntime.grandExchangeOfferChanged(5)
+		GrandExchange.showPanel = grandExchangePanelWas
+		if (told == null || !told.startsWith("Grand Exchange: Bought 5 / 10 x ")) {
+			fail("Grand Exchange: told " + told)
+			return true
+		}
+		println("SMOKE grand exchange: told \"" + told + "\", panel drawn")
+		return true
 	}
 
 	/** Screenshot on a level-up line: the PNG saved under Levels, the report button's date seen in the frame. Frame (the screenshot): frame-screenshot.png. */

@@ -66,9 +66,11 @@ package com.jagex.game.runetek5.plugin.api
  * - 33: screenshots ([ClientApi.captureFrame], [ClientApi.saveImage], [ClientApi.copyImage]).
  * - 32: actor and projectile filters ([PluginContext.addActorFilter], [PluginContext.addProjectileFilter]) and [ClientApi.isIgnored].
  * - 34: animation smoothing ([PluginContext.setAnimationFilter]).
+ * - 35: Grand Exchange offers ([com.jagex.game.runetek5.plugin.api.events.Events.GRAND_EXCHANGE_OFFER_CHANGED],
+ *   [ClientApi.grandExchangeOffer]).
  * - 31: the drag ([ClientApi.isDraggingWidget], [ClientApi.draggedWidget], [ClientApi.draggedOnWidget], [ClientApi.itemPressedDuration]) and [Graphics.itemIconAlpha].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 34
+	const val VERSION: Int = 35
 }
