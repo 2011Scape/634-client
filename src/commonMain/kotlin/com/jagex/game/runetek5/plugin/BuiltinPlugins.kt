@@ -13,6 +13,7 @@ import com.jagex.game.runetek5.client.features.GroundItems
 import com.jagex.game.runetek5.client.features.GroundTiles
 import com.jagex.game.runetek5.client.features.IdleNotifier
 import com.jagex.game.runetek5.client.features.InventoryValue
+import com.jagex.game.runetek5.client.features.ItemStats
 import com.jagex.game.runetek5.client.features.KeyRemapping
 import com.jagex.game.runetek5.client.features.LootTracker
 import com.jagex.game.runetek5.client.features.MenuEntrySwapper
@@ -70,6 +71,7 @@ object BuiltinPlugins {
 			builtIn(MouseTooltips.DESCRIPTOR, MouseTooltips),
 			builtIn(KeyRemapping.DESCRIPTOR, KeyRemapping),
 			builtIn(CustomCursor.DESCRIPTOR, CustomCursor),
+			builtIn(ItemStats.DESCRIPTOR, ItemStats),
 		)
 	}
 

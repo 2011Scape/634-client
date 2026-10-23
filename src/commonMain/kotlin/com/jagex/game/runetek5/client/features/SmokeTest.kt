@@ -341,6 +341,13 @@ object SmokeTest {
 
 	private var cursorIconPixels: Int = 0
 
+	/** client.test.itemStats: Item Stats' tooltips for a shark, a super strength and a rune scimitar, each shown in turn. */
+	private val ITEM_STATS: Boolean = "true" == lang.getProperty("client.test.itemStats")
+
+	private var itemStatsStep: Int = 0
+
+	private var itemStatsFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1235,6 +1242,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 33554432
+		}
+		if (ITEM_STATS && (checksDone and 67108864) == 0) {
+			if (!itemStatsDone()) {
+				return
+			}
+			checksDone = checksDone or 67108864
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3730,6 +3743,32 @@ object SmokeTest {
 				return true
 			}
 		}
+		return false
+	}
+
+	private fun itemStatsDone(): Boolean {
+		val items: IntArray = intArrayOf(385, 157, 1333)
+		val names: Array<String> = arrayOf("shark", "superstrength", "runescimitar")
+		if (itemStatsFrame != -1 && frames - itemStatsFrame < MARKER_FRAMES) {
+			return false
+		}
+		if (itemStatsStep > 0) {
+			val shown: List<String> = ArrayList(ItemStats.shown)
+			saveFrame("build/smoke/frame-itemstats-" + names[itemStatsStep - 1] + ".png")
+			if (shown.isEmpty()) {
+				ItemStats.testItem = -1
+				fail("Item Stats showed nothing for item " + items[itemStatsStep - 1])
+				return true
+			}
+			println("SMOKE item stats " + items[itemStatsStep - 1] + ": " + shown.joinToString(" | ").replace("</br>", " / "))
+		}
+		if (itemStatsStep == items.size) {
+			ItemStats.testItem = -1
+			return true
+		}
+		ItemStats.enabled = true
+		ItemStats.testItem = items[itemStatsStep++]
+		itemStatsFrame = frames
 		return false
 	}
 
