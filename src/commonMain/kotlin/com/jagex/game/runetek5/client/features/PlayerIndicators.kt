@@ -303,6 +303,11 @@ object PlayerIndicators : Plugin {
 				}
 				x = view.x + point[0]
 				y = view.y + point[1]
+				// above the health bar, the head icons and the chat line, where the client drew those
+				val top: Int = player.overheadTop()
+				if (top >= 0) {
+					y = view.y + top - ABOVE_GAP
+				}
 			}
 		}
 		val rank: Int = if (relation == FRIENDS_CHAT && clanMenuIcons) rank(client, player.name()) else -1
@@ -379,6 +384,7 @@ object PlayerIndicators : Plugin {
 
 	private const val CYCLES_PER_TICK: Int = 30
 	private const val ABOVE_RAISE: Int = 40
+	private const val ABOVE_GAP: Int = 2
 	private const val RIGHT_GAP: Int = 4
 	private const val ICON_GAP: Int = 2
 	private const val TILE_FILL_ALPHA: Int = 50
