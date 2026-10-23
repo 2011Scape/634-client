@@ -4590,9 +4590,12 @@ object SmokeTest {
 		ItemContainer.RECENTLY_USED_ITEM_CONTAINERS[client.recentlyUsedItemContainersCursorPos++ and 0x1F] = BACKPACK
 	}
 
-	/** Clicks the backpack's tab stone (the base window's component whose first option is Inventory). */
+	/** Clicks the backpack's tab stone (the base window's component whose first option is Inventory) unless the backpack is open. */
 	private fun openInventoryTab() {
-		openTab("Inventory")
+		// a tab stone clicked while its tab is open closes the side panel
+		if (ClientApiImpl.widget(149, 0)?.isDrawnThisFrame() != true) {
+			openTab("Inventory")
+		}
 	}
 
 	/** Clicks component [componentId] of loaded interface [interfaceId] with its first option; false when it is not loaded. */
