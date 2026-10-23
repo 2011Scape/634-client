@@ -62,8 +62,9 @@ package com.jagex.game.runetek5.plugin.api
  *   [ClientApi.clipboard]), and menu entries on texts without options (chat lines).
  * - 28: the server's tick ([com.jagex.game.runetek5.plugin.api.events.Events.SERVER_TICK]).
  * - 29: the world map ([ClientApi.worldMapArea], [ClientApi.projectWorldMap]) and the hint arrow ([ClientApi.setHintArrow]).
+ * - 30: item outlines and fills ([ClientApi.itemOutline], [ClientApi.itemFill]).
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 29
+	const val VERSION: Int = 30
 }

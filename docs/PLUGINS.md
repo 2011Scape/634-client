@@ -20,8 +20,8 @@ agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), th
 the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual levels
 (`VirtualLevels`), the metronome (`Metronome`), the death indicator (`DeathIndicator`), the NPC
 aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implings`), the cooking
-(`Cooking`), the smelting (`Smelting`) and the prayer (`Prayer`) are fifty-three, built in, so the
-client's own code shows the way.
+(`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`) and the inventory tags (`InventoryTags`)
+are fifty-four, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -631,6 +631,12 @@ bonus, or the orb's number can show that time; and an infobox can show each acti
 (overheads too if you like). The time follows Void's drain: each tick the active prayers' drain goes
 into a counter, and a point goes each time it passes 60. Void's drain does not read the worn prayer
 bonus, so the bonus does not lengthen the time here; the tooltip still shows it.
+
+**Inventory Tags** is RuneLite's. Shift and right-click an item in the backpack or the worn equipment
+for an **Inventory tag** submenu: a colour already used, **Pick** for any colour, or **Reset**. Every
+item of that kind is then marked in its colour wherever items are shown (the backpack, the bank, the
+deposit box, the equipment): an outline round its shape, a line under it, and/or its shape filled at
+**Fill opacity**.
 
 ## Writing a plugin
 

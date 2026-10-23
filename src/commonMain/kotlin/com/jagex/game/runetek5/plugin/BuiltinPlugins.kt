@@ -22,6 +22,7 @@ import com.jagex.game.runetek5.client.features.GroundTiles
 import com.jagex.game.runetek5.client.features.Hunter
 import com.jagex.game.runetek5.client.features.IdleNotifier
 import com.jagex.game.runetek5.client.features.Implings
+import com.jagex.game.runetek5.client.features.InventoryTags
 import com.jagex.game.runetek5.client.features.InventoryValue
 import com.jagex.game.runetek5.client.features.ItemCharges
 import com.jagex.game.runetek5.client.features.ItemIdentification
@@ -122,6 +123,7 @@ object BuiltinPlugins {
 			builtIn(Cooking.DESCRIPTOR, Cooking),
 			builtIn(Smelting.DESCRIPTOR, Smelting),
 			builtIn(Prayer.DESCRIPTOR, Prayer),
+			builtIn(InventoryTags.DESCRIPTOR, InventoryTags),
 		)
 	}
 

@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.plugin
 
 import ItemSpriteBatchRender
+import com.jagex.game.runetek5.config.objtype.ObjNumMode
 import com.jagex.game.runetek5.config.varc.VarcTypeList
 import com.jagex.game.runetek5.config.Resource
 import com.jagex.game.runetek5.js5.Js5ResourceProvider
@@ -839,6 +840,51 @@ object ClientApiImpl : ClientApi {
 		return PluginImage(ITEM_ICON_WIDTH, ITEM_ICON_HEIGHT, pixels)
 	}
 
+	override fun itemOutline(itemId: Int, quantity: Int, argb: Int): Image? = itemShape(itemId, quantity, argb, true)
+
+	override fun itemFill(itemId: Int, quantity: Int, argb: Int): Image? = itemShape(itemId, quantity, argb, false)
+
+	/** The outlines and fills made, by item, quantity, colour and kind: each is a whole icon to work out. */
+	private val itemShapes: HashMap<String, PluginImage> = HashMap()
+
+	private fun itemShape(itemId: Int, quantity: Int, argb: Int, outline: Boolean): Image? {
+		val key: String = itemId.toString() + ":" + quantity + ":" + argb + ":" + outline
+		itemShapes[key]?.let { return it }
+		val pixels: IntArray = ItemSpriteBatchRender.itemPixels(itemId, quantity, ObjNumMode.SHOWCOUNT_NEVER) ?: return null
+		val shape: IntArray = if (outline) outlinePixels(pixels, ITEM_ICON_WIDTH, ITEM_ICON_HEIGHT, argb) else fillPixels(pixels, argb)
+		if (itemShapes.size >= MAX_ITEM_SHAPES) {
+			itemShapes.clear()
+		}
+		val image = PluginImage(ITEM_ICON_WIDTH, ITEM_ICON_HEIGHT, shape)
+		itemShapes[key] = image
+		return image
+	}
+
+	/** RuneLite's ImageUtil.outlineImage, without corners: each clear pixel beside one of the shape's, in [argb]. */
+	@JvmStatic
+	fun outlinePixels(pixels: IntArray, width: Int, height: Int, argb: Int): IntArray {
+		val out = IntArray(pixels.size)
+		for (y in 0 until height) {
+			for (x in 0 until width) {
+				if (pixels[y * width + x] ushr 24 != 0) {
+					continue
+				}
+				val beside: Boolean = (x > 0 && pixels[y * width + x - 1] ushr 24 != 0) ||
+					(x < width - 1 && pixels[y * width + x + 1] ushr 24 != 0) ||
+					(y > 0 && pixels[(y - 1) * width + x] ushr 24 != 0) ||
+					(y < height - 1 && pixels[(y + 1) * width + x] ushr 24 != 0)
+				if (beside) {
+					out[y * width + x] = argb
+				}
+			}
+		}
+		return out
+	}
+
+	/** RuneLite's ImageUtil.fillImage: the shape's pixels in [argb]. */
+	@JvmStatic
+	fun fillPixels(pixels: IntArray, argb: Int): IntArray = IntArray(pixels.size) { if (pixels[it] ushr 24 != 0) argb else 0 }
+
 	override fun spriteImage(spriteId: Int): Image? {
 		val sprites: Js5ResourceProvider = Resource.SPRITES ?: return null
 		if (spriteId < 0 || !sprites.isFileReady(spriteId, 0)) {
@@ -966,6 +1012,7 @@ object ClientApiImpl : ClientApi {
 	/** The size of an item's icon. */
 	private const val ITEM_ICON_WIDTH: Int = 36
 	private const val ITEM_ICON_HEIGHT: Int = 32
+	private const val MAX_ITEM_SHAPES: Int = 512
 
 	override fun setVarcString(id: Int, value: String?) {
 		val varcs: Array<String?> = VarcTypeList.VARC_STRING ?: return

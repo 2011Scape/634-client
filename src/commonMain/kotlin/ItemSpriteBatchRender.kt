@@ -27,10 +27,10 @@ object ItemSpriteBatchRender {
 	/**
 	 * Not part of the original client: item [objId]'s icon as ARGB pixels (36 by 32), drawn as the batch
 	 * draws one (on the software toolkit), for a plugin (ClientApi.itemImage); null while its model is not
-	 * loaded yet.
+	 * loaded yet. [numMode] is the ObjNumMode for the stack's number (none for an outline's shape).
 	 */
 	@JvmStatic
-	fun itemPixels(objId: Int, amount: Int): IntArray? {
+	fun itemPixels(objId: Int, amount: Int, numMode: Int = ObjNumMode.SHOWCOUNT_IFNOT1): IntArray? {
 		val toolkit: Toolkit = ClientState.activeToolkit ?: return null
 		val renderer: Toolkit
 		val font: AbstractFontRenderer?
@@ -61,7 +61,7 @@ object ItemSpriteBatchRender {
 				type = TypeLists.OBJ!!.list(stackId)
 			}
 		}
-		return type.getSpritePixels(amount, false, 3153952, toolkit, renderer, font, null, ObjNumMode.SHOWCOUNT_IFNOT1, 1)
+		return type.getSpritePixels(amount, false, 3153952, toolkit, renderer, font, null, numMode, 1)
 	}
 
 	@OriginalMember(owner = "client!hk", name = "a", descriptor = "(Lclient!ha;I)V")
