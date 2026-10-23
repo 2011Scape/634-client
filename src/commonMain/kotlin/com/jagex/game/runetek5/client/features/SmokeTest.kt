@@ -484,6 +484,13 @@ object SmokeTest {
 
 	private var virtualLevelsShown: Int = -1
 
+	/** client.test.metronome: the server's ticks (API 28's ServerTick) counted over three seconds, and Metronome playing on them. */
+	private val METRONOME: Boolean = "true" == lang.getProperty("client.test.metronome")
+
+	private var metronomeStart: Long = -1L
+
+	private var metronomeTicks: Int = 0
+
 	private var chatFilterWasEnabled: Boolean = false
 
 	private var itemIdentificationWasEnabled: Boolean = false
@@ -1504,6 +1511,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 17592186044416L
+		}
+		if (METRONOME && (checksDone and 35184372088832L) == 0L) {
+			if (!metronomeDone()) {
+				return
+			}
+			checksDone = checksDone or 35184372088832L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4765,6 +4778,30 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** Metronome on for three seconds: about five server ticks, a sound played. */
+	private fun metronomeDone(): Boolean {
+		if (metronomeStart == -1L) {
+			Metronome.enabled = true
+			Metronome.lastSound = -1
+			metronomeTicks = PluginRuntime.serverTicks()
+			metronomeStart = lang.currentTimeMillis()
+			return false
+		}
+		val elapsed: Long = lang.currentTimeMillis() - metronomeStart
+		if (elapsed < 3000L) {
+			return false
+		}
+		val ticks: Int = PluginRuntime.serverTicks() - metronomeTicks
+		val sound: Int = Metronome.lastSound
+		Metronome.enabled = false
+		if (ticks < 4 || ticks > 6 || sound < 0) {
+			fail("Metronome: " + ticks + " server ticks in " + elapsed + " ms, last sound " + sound)
+			return true
+		}
+		println("SMOKE metronome: " + ticks + " server ticks in " + elapsed + " ms, sound " + sound + " played")
+		return true
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {

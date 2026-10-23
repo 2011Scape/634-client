@@ -60,8 +60,9 @@ package com.jagex.game.runetek5.plugin.api
  *   ([ClientApi.chatLine], [ClientApi.removeChatLine]).
  * - 27: chat lines stored by a plugin ([ClientApi.addChatLine]), the clipboard ([ClientApi.setClipboard],
  *   [ClientApi.clipboard]), and menu entries on texts without options (chat lines).
+ * - 28: the server's tick ([com.jagex.game.runetek5.plugin.api.events.Events.SERVER_TICK]).
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 27
+	const val VERSION: Int = 28
 }

@@ -17,8 +17,8 @@ tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brot
 (`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`), the fishing (`Fishing`), the
 agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), the item identification
 (`ItemIdentification`), the chat notifications (`ChatNotifications`), the chat filter (`ChatFilter`),
-the chat history (`ChatHistory`), the combat level (`CombatLevel`) and the virtual levels
-(`VirtualLevels`) are forty-five, built in, so the client's own code shows the way.
+the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual levels (`VirtualLevels`)
+and the metronome (`Metronome`) are forty-six, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -573,6 +573,11 @@ Summary is OSRS's.
 goes on counting levels, up to 126 at 200 million: the Stats tab shows them as the skill's level, and
 its total adds them up with **Virtual total level** on. The plugin writes over the tab's own numbers
 while the tab is drawn and puts the game's back once switched off.
+
+**Metronome** is RuneLite's, off until switched on. Every **Tick count** server ticks (the server's 600
+ms, taken from its player update) a sound plays, the tick and the tock taking turns, each at its own
+volume (muted to high). The sounds are 634's own short ones, a plop and a knock, as RuneLite's Grand
+Exchange plops are OSRS's.
 
 ## Writing a plugin
 

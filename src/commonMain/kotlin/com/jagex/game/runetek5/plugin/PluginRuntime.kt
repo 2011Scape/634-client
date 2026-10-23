@@ -58,6 +58,7 @@ import com.jagex.game.runetek5.plugin.api.events.MouseClicked
 import com.jagex.game.runetek5.plugin.api.events.MouseWheel
 import com.jagex.game.runetek5.plugin.api.events.OverheadTextChanged
 import com.jagex.game.runetek5.plugin.api.events.ProjectileSpawned
+import com.jagex.game.runetek5.plugin.api.events.ServerTick
 import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import com.jagex.game.runetek5.plugin.api.events.SpotAnimSpawned
 import com.jagex.game.runetek5.plugin.api.events.StatChanged
@@ -1071,6 +1072,22 @@ object PluginRuntime {
 	}
 
 	private val locChangedEvent: LocChanged = LocChanged()
+
+	/** The player update was read: the plugins' ServerTick, once each server tick. */
+	@JvmStatic
+	fun serverTick() {
+		serverTickEvent.tick++
+		if (!started || !bus.hasListeners(Events.SERVER_TICK)) {
+			return
+		}
+		bus.post(Events.SERVER_TICK, serverTickEvent)
+	}
+
+	private val serverTickEvent: ServerTick = ServerTick()
+
+	/** The server ticks counted so far, for the smoke test. */
+	@JvmStatic
+	fun serverTicks(): Int = serverTickEvent.tick
 
 	/** The server changed the location on scene tile ([x], [y]) of [level] in [layer] from [oldId] to [newId] (-1 for none). */
 	@JvmStatic

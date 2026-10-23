@@ -25,6 +25,7 @@ import com.jagex.game.runetek5.client.features.ItemStats
 import com.jagex.game.runetek5.client.features.KeyRemapping
 import com.jagex.game.runetek5.client.features.LootTracker
 import com.jagex.game.runetek5.client.features.MenuEntrySwapper
+import com.jagex.game.runetek5.client.features.Metronome
 import com.jagex.game.runetek5.client.features.Mining
 import com.jagex.game.runetek5.client.features.MouseTooltips
 import com.jagex.game.runetek5.client.features.NpcIndicators
@@ -106,6 +107,7 @@ object BuiltinPlugins {
 			builtIn(ChatHistory.DESCRIPTOR, ChatHistory),
 			builtIn(CombatLevel.DESCRIPTOR, CombatLevel),
 			builtIn(VirtualLevels.DESCRIPTOR, VirtualLevels),
+			builtIn(Metronome.DESCRIPTOR, Metronome),
 		)
 	}
 
