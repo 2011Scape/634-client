@@ -529,6 +529,10 @@ object SmokeTest {
 
 	private var smeltingFrame: Int = -1
 
+	/** The world map (755) and its close button. */
+	private const val WORLD_MAP: Int = 755
+	private const val WORLD_MAP_CLOSE: Int = 44
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -4502,6 +4506,13 @@ object SmokeTest {
 		openTab("Inventory")
 	}
 
+	/** Clicks component [componentId] of loaded interface [interfaceId] with its first option; false when it is not loaded. */
+	private fun clickComponent(interfaceId: Int, componentId: Int): Boolean {
+		val c: Component = Interface.peekComponents(interfaceId)?.getOrNull(componentId) ?: return false
+		InterfaceOptionInteract.ifOptionInteract(-1, c.options?.getOrNull(0) ?: "", 1, c.idHash)
+		return true
+	}
+
 	/** Clicks the tab stone whose first option is one of [options]; false when the base window has none. */
 	private fun openTab(vararg options: String): Boolean {
 		val root: Array<Component?> = Interface.interfaces!![ClientState.BASE_WINDOW_ID] ?: return false
@@ -4888,10 +4899,15 @@ object SmokeTest {
 				if (!DeathIndicator.mapMarked && deathIndicatorFailure == null) {
 					deathIndicatorFailure = "Death Indicator: the world map was not marked"
 				}
-				closeModals()
+				// the map's close button (755:44): the server puts the game frame back
+				clickComponent(WORLD_MAP, WORLD_MAP_CLOSE)
+				deathIndicatorFrame = frames
 				deathIndicatorStep = 3
 			}
 			else -> {
+				if (api.worldMapArea(IntArray(4)) && frames - deathIndicatorFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
 				DeathIndicator.clear(api)
 				deathIndicatorFailure?.let {
 					fail(it)
