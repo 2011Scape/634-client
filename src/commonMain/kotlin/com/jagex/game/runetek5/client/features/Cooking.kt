@@ -38,6 +38,9 @@ object Cooking : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("cooking", "Cooking", "1", PluginApi.VERSION, "Counts what you cook and burn this session, and an hour.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	/** Void's cooking animations: on a range and on a fire. */
 	@JvmField
 	val COOKING_ANIMATIONS: IntArray = intArrayOf(896, 897)
@@ -79,6 +82,9 @@ object Cooking : Plugin {
 		}
 
 		override fun render(g: Graphics, view: Viewport): Size? {
+			if (!enabled) {
+				return null
+			}
 			panelDrawn = false
 			val client: ClientApi = context?.client() ?: return null
 			val current: Session = session ?: return null
@@ -97,9 +103,9 @@ object Cooking : Plugin {
 		}
 	}
 
-	private val tickListener: EventListener<GameTick> = EventListener { _ -> tick() }
+	private val tickListener: EventListener<GameTick> = EventListener { _ -> if (enabled) tick() }
 
-	private val chatListener: EventListener<ChatMessage> = EventListener { event -> chat(event) }
+	private val chatListener: EventListener<ChatMessage> = EventListener { event -> if (enabled) chat(event) }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
@@ -116,6 +122,7 @@ object Cooking : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's CookingConfig, but the wine fermenting timer (Void does not ferment wine)
+		s.toggle("enabled", "Cooking", true)
 		s.number("statTimeout", "Reset stats (minutes)", 5, 1, 60, 1)
 		readSettings(context.config())
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
@@ -132,6 +139,7 @@ object Cooking : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		statTimeout = config.getInt("statTimeout", 5)
 	}
 

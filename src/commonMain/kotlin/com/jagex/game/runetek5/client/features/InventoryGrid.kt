@@ -30,6 +30,9 @@ object InventoryGrid : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("inventorygrid", "Inventory Grid", "1", PluginApi.VERSION, "Shows a grid over the backpack while you drag an item, and where it would go.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = false
+
 	/** The backpack's item grid (149:0). */
 	const val BACKPACK_INTERFACE: Int = 149
 	const val BACKPACK_GRID: Int = 0
@@ -54,7 +57,7 @@ object InventoryGrid : Plugin {
 
 	private var context: PluginContext? = null
 
-	private val frameListener: EventListener<FrameDraw> = EventListener { event -> context?.client()?.let { draw(event.graphics, it) } }
+	private val frameListener: EventListener<FrameDraw> = EventListener { event -> if (enabled) context?.client()?.let { draw(event.graphics, it) } }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
@@ -73,6 +76,7 @@ object InventoryGrid : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's InventoryGridConfig, in its order
+		s.toggle("enabled", "Inventory Grid", false)
 		s.toggle("showItem", "Show item", true)
 		s.toggle("showGrid", "Show grid", true)
 		s.toggle("showHighlight", "Highlight background", true)
@@ -91,6 +95,7 @@ object InventoryGrid : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", false)
 		showItem = config.getBoolean("showItem", true)
 		showGrid = config.getBoolean("showGrid", true)
 		showHighlight = config.getBoolean("showHighlight", true)
