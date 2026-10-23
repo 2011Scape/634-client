@@ -40,6 +40,9 @@ object Slayer : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("slayer", "Slayer", "1", PluginApi.VERSION, "Shows your slayer task and kills left, highlights its monsters and tells you when to finish one with its item.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	const val COUNT_VARP: Int = 394
 	const val TASK_VARP: Int = 395
 
@@ -107,10 +110,10 @@ object Slayer : Plugin {
 	private val point: IntArray = IntArray(2)
 
 	/** RuneLite's target highlights (NpcOverlayService) and TargetWeaknessOverlay, under the interfaces. */
-	private val overlay: Overlay = Overlay { g, view -> context?.client()?.let { drawTargets(g, view, it) } }
+	private val overlay: Overlay = Overlay { g, view -> if (enabled) context?.client()?.let { drawTargets(g, view, it) } }
 
 	/** RuneLite's SlayerOverlay: the count on the slayer items, over the interfaces. */
-	private val frameListener: EventListener<FrameDraw> = EventListener { event -> context?.client()?.let { drawItemCounts(event.graphics, it) } }
+	private val frameListener: EventListener<FrameDraw> = EventListener { event -> if (enabled) context?.client()?.let { drawItemCounts(event.graphics, it) } }
 
 	private val varpListener: EventListener<VarpChanged> = EventListener { event ->
 		if (event.id == COUNT_VARP || event.id == TASK_VARP) {
@@ -121,6 +124,7 @@ object Slayer : Plugin {
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
 			context?.config()?.let { readSettings(it) }
+			context?.client()?.let { if (it.gameState() === GameState.LOGGED_IN) update(it) }
 		}
 	}
 
@@ -147,6 +151,7 @@ object Slayer : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's SlayerConfig, in its order, but the superior foe notification and the !task command
+		s.toggle("enabled", "Slayer", true)
 		s.toggle("infobox", "Task infobox", true)
 		s.toggle("itemoverlay", "Count on items", true)
 		s.number("statTimeout", "Infobox expiry (minutes)", 5, 1, 60, 1)
@@ -176,6 +181,7 @@ object Slayer : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		infobox = config.getBoolean("infobox", true)
 		itemoverlay = config.getBoolean("itemoverlay", true)
 		statTimeout = config.getInt("statTimeout", 5)
@@ -203,7 +209,8 @@ object Slayer : Plugin {
 		task = now
 		amount = if (now == null) 0 else count
 		val box: TaskCounter? = counter
-		if (now == null) {
+		// the task is followed while off too (NPC Aggression Timer asks for it); only its infobox goes
+		if (now == null || !enabled) {
 			box?.let { context?.removeInfoBox(it) }
 			counter = null
 		} else if (box == null) {
