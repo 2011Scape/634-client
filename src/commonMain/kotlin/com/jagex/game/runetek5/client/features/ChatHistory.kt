@@ -38,6 +38,9 @@ object ChatHistory : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("chathistory", "Chat History", "1", PluginApi.VERSION, "Keeps your chat across logins, and adds Copy to clipboard to chat lines and Clear history to the chat tabs.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	/** The chat box (137) and its typing line, which is no chat line. */
 	const val CHATBOX: Int = 137
 	const val CHATBOX_INPUT: Int = 55
@@ -84,19 +87,24 @@ object ChatHistory : Plugin {
 	private var copyAction: Int = -1
 	private var clearAction: Int = -1
 
-	private val chatListener: EventListener<ChatMessage> = EventListener { event -> context?.client()?.let { chat(it, event) } }
+	private val chatListener: EventListener<ChatMessage> = EventListener { event -> if (enabled) context?.client()?.let { chat(it, event) } }
 
 	private val stateListener: EventListener<GameStateChanged> = EventListener { event ->
 		if (event.state === GameState.LOGGED_IN && event.previous !== GameState.LOGGED_IN) {
-			restorePending = retainChatHistory && history.isNotEmpty()
+			restorePending = enabled && retainChatHistory && history.isNotEmpty()
 		}
 	}
 
-	private val menuListener: EventListener<MenuEntryAdded> = EventListener { event -> context?.client()?.let { menuEntryAdded(it, event) } }
+	private val menuListener: EventListener<MenuEntryAdded> = EventListener { event -> if (enabled) context?.client()?.let { menuEntryAdded(it, event) } }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
 			context?.config()?.let { readSettings(it) }
+			if (!enabled) {
+				// RuneLite's shutDown: what was kept goes
+				history.clear()
+				restorePending = false
+			}
 		}
 	}
 
@@ -115,6 +123,7 @@ object ChatHistory : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's ChatHistoryConfig, in its order, but PM target cycling (no target to change on 634)
+		s.toggle("enabled", "Chat History", true)
 		s.toggle("retainChatHistory", "Retain chat history", true)
 		s.toggle("copyToClipboard", "Copy to clipboard", true)
 		s.toggle("clearHistory", "Clear history option for all tabs", true)
@@ -136,6 +145,7 @@ object ChatHistory : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		retainChatHistory = config.getBoolean("retainChatHistory", true)
 		copyToClipboard = config.getBoolean("copyToClipboard", true)
 		clearHistory = config.getBoolean("clearHistory", true)

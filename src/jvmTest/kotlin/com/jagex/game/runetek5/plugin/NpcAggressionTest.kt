@@ -62,7 +62,7 @@ class NpcAggressionTest {
 		NpcAggression.npcUnaggroShowTimer = false
 		NpcAggression.notifyExpire = true
 		NpcAggression.npcUnaggroNames = "co*"
-		NpcAggression.readSettings(config(mapOf("npcUnaggroNames" to "co*", "notifyExpire" to "true", "npcUnaggroShowTimer" to "false")))
+		NpcAggression.readSettings(config(mapOf("enabled" to "true", "npcUnaggroNames" to "co*", "notifyExpire" to "true", "npcUnaggroShowTimer" to "false")))
 	}
 
 	/** A plugin config holding [values], the rest at their defaults. */

@@ -38,6 +38,9 @@ object EntityHider : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("entityhider", "Entity Hider", "1", PluginApi.VERSION, "Hides players, NPCs, pets, attackers, projectiles and the like, and their overheads.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = false
+
 	/** Void's follower details: the follower's chathead, its npc. */
 	const val FOLLOWER_VARP: Int = 1174
 
@@ -65,9 +68,9 @@ object EntityHider : Plugin {
 
 	private var context: PluginContext? = null
 
-	private val actorFilter: ActorFilter = ActorFilter { actor, drawingUI -> context?.client()?.let { shouldDraw(it, actor, drawingUI) } ?: true }
+	private val actorFilter: ActorFilter = ActorFilter { actor, drawingUI -> !enabled || context?.client()?.let { shouldDraw(it, actor, drawingUI) } ?: true }
 
-	private val projectileFilter: ProjectileFilter = ProjectileFilter { _ -> !hideProjectiles }
+	private val projectileFilter: ProjectileFilter = ProjectileFilter { _ -> !enabled || !hideProjectiles }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
@@ -86,6 +89,7 @@ object EntityHider : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's EntityHiderConfig, in its order, but OSRS's party members, clans and thralls
+		s.toggle("enabled", "Entity Hider", false)
 		s.toggle("hidePlayers", "Hide others", false)
 		s.toggle("hidePlayers2D", "Hide others 2D", false)
 		s.toggle("hideFriends", "Hide friends", false)
@@ -113,6 +117,7 @@ object EntityHider : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", false)
 		hideOthers = config.getBoolean("hidePlayers", false)
 		hideOthers2D = config.getBoolean("hidePlayers2D", false)
 		hideFriends = config.getBoolean("hideFriends", false)

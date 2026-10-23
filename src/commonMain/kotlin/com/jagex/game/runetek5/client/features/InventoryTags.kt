@@ -36,6 +36,9 @@ object InventoryTags : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("inventorytags", "Inventory Tags", "1", PluginApi.VERSION, "Marks the items you tag with a colour, by outline, underline or fill.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = false
+
 	/** The settings key of item [id]'s tag, RuneLite's. */
 	const val TAG_PREFIX: String = "tag_"
 
@@ -68,9 +71,9 @@ object InventoryTags : Plugin {
 	/** The item the submenu was opened for. */
 	private var menuItem: Int = -1
 
-	private val frameListener: EventListener<FrameDraw> = EventListener { event -> context?.client()?.let { draw(event.graphics, it) } }
+	private val frameListener: EventListener<FrameDraw> = EventListener { event -> if (enabled) context?.client()?.let { draw(event.graphics, it) } }
 
-	private val menuListener: EventListener<MenuEntryAdded> = EventListener { event -> context?.client()?.let { menuEntryAdded(it, event) } }
+	private val menuListener: EventListener<MenuEntryAdded> = EventListener { event -> if (enabled) context?.client()?.let { menuEntryAdded(it, event) } }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
@@ -89,6 +92,7 @@ object InventoryTags : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's InventoryTagsConfig, in its order
+		s.toggle("enabled", "Inventory Tags", false)
 		s.toggle("showTagOutline", "Outline", true)
 		s.toggle("tagUnderline", "Underline", false)
 		s.toggle("tagFill", "Fill", false)
@@ -112,6 +116,7 @@ object InventoryTags : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", false)
 		showTagOutline = config.getBoolean("showTagOutline", true)
 		tagUnderline = config.getBoolean("tagUnderline", false)
 		tagFill = config.getBoolean("tagFill", false)

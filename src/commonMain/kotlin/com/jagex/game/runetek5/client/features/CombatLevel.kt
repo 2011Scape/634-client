@@ -38,6 +38,9 @@ object CombatLevel : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("combatlevel", "Combat Level", "1", PluginApi.VERSION, "Shows your combat level to three places, the levels to the next one, and the Wilderness attack range.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	/** The combat tab's "Combat Lvl: N" (884:1). */
 	const val COMBAT_TAB: Int = 884
 	const val COMBAT_LEVEL_TEXT: Int = 1
@@ -55,13 +58,16 @@ object CombatLevel : Plugin {
 	private var context: PluginContext? = null
 
 	/** RuneLite's CombatLevelOverlay: the levels to the next with the mouse over the combat level. */
-	private val overlay: Overlay = Overlay { _, _ -> context?.client()?.let { tooltip(it) } }
+	private val overlay: Overlay = Overlay { _, _ -> if (enabled) context?.client()?.let { tooltip(it) } }
 
-	private val tickListener: EventListener<GameTick> = EventListener { _ -> context?.client()?.let { update(it) } }
+	private val tickListener: EventListener<GameTick> = EventListener { _ -> if (enabled) context?.client()?.let { update(it) } }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
 			context?.config()?.let { readSettings(it) }
+			if (!enabled) {
+				context?.client()?.let { off(it) }
+			}
 		}
 	}
 
@@ -76,6 +82,7 @@ object CombatLevel : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's CombatLevelConfig, in its order
+		s.toggle("enabled", "Combat Level", true)
 		s.toggle("showLevelsUntil", "Calculate next level", true)
 		s.toggle("showPreciseCombatLevel", "Show precise combat level", true)
 		s.toggle("wildernessAttackLevelRange", "Show level range in wilderness", true)
@@ -87,12 +94,13 @@ object CombatLevel : Plugin {
 	}
 
 	override fun stop() {
-		context?.client()?.let { restore(it) }
+		context?.client()?.let { off(it) }
 		context = null
 	}
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		showLevelsUntil = config.getBoolean("showLevelsUntil", true)
 		showPreciseCombatLevel = config.getBoolean("showPreciseCombatLevel", true)
 		wildernessAttackLevelRange = config.getBoolean("wildernessAttackLevelRange", true)
@@ -197,6 +205,14 @@ object CombatLevel : Plugin {
 			if (widget.text() != text) {
 				widget.setText(text)
 			}
+		}
+	}
+
+	/** Switched off or stopped: the game's own number back and the Wilderness texts empty again. */
+	private fun off(client: ClientApi) {
+		restore(client)
+		for (component in intArrayOf(WILDERNESS_FIXED_TEXT, WILDERNESS_RESIZABLE_TEXT)) {
+			client.widget(WILDERNESS, component)?.setText("")
 		}
 	}
 
