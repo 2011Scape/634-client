@@ -3,19 +3,19 @@
 How to add to the client without changing it: a plugin is a jar in a folder, written against a
 small, stable API, that reads the game, draws on it, adds menu entries and commands, and keeps its
 own settings. The XP drops (`XpDrops`), the idle notifier (`IdleNotifier`), the menu swapper
-(`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name plates (`NamePlates`), the ground
-tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Discord presence (`DiscordPresence`),
-the ground items (`GroundItems`), the loot tracker (`LootTracker`), the object markers
-(`ObjectIndicators`), the XP tracker (`XpTracker`), the opponent information (`OpponentInfo`), the
-boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the status bars (`StatusBars`), the
-timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the
-Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`), the
-anti drag (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`), the key remapping
+(`MenuEntrySwapper`), the inventory value (`InventoryValue`), the ground tiles (`GroundTiles`), the npc
+indicators (`NpcIndicators`), the Discord presence (`DiscordPresence`), the ground items
+(`GroundItems`), the loot tracker (`LootTracker`), the object markers (`ObjectIndicators`), the XP
+tracker (`XpTracker`), the opponent information (`OpponentInfo`), the boosts information (`Boosts`), the
+bank organizer (`BankOrganizer`), the status bars (`StatusBars`), the timers (`TimersAndBuffs`), the
+tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brothers
+(`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`), the anti drag
+(`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`), the key remapping
 (`KeyRemapping`), the custom cursor (`CustomCursor`), the item stats (`ItemStats`), the woodcutting
 (`Woodcutting`), the mining (`Mining`), the report button (`ReportButton`), the player indicators
 (`PlayerIndicators`), the special attack counter (`SpecialCounter`), the regeneration meter
 (`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`), the fishing (`Fishing`) and the
-agility (`Agility`) are thirty-eight, built in, so the client's own code shows the way.
+agility (`Agility`) are thirty-seven, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -121,7 +121,7 @@ stack trace is in the client's log (the launcher keeps it in `~/.void/logs`).
 
 The built-in plugins listed at the top come with the client, on the same API as the ones from the
 plugins folder, each with its switch in the Plugins window and most with a `::` command of their own
-(`::xpdrops`, `::idle`, `::nameplates`, `::grounditems`, `::xp` and so on); and **Overlays**, which has
+(`::xpdrops`, `::idle`, `::grounditems`, `::xp` and so on); and **Overlays**, which has
 no switch: the settings of every plugin's panels, below.
 
 **Moving the panels.** Every panel a plugin puts on the game view (the opponent's health, the XP
@@ -456,14 +456,13 @@ where you are, the game ticks since you logged in, or how long the mouse and key
 plugin is off. In the browser London's time is the local one (the page knows no other zones).
 
 **Player Indicators** is RuneLite's, off until switched on. Players are coloured by what they are to
-you, yourself, a friend, a member of your friends chat, your team (a team cape) or anyone else, each
-with its own **Highlight** setting (Disabled, Enabled, or PvP: only players who can be attacked where
-they stand) and colour: their names over them (**Name position**: above the head, the centre or the
-right of the model), a tile under them, their names on the minimap, and their right-click entries, with
-the friends chat rank's icon (the game's own) before a member's name. 634's Clan Chat is what RuneLite
-calls the friends chat; the clan system OSRS added in 2021 does not exist here, so the clan member
-settings find no one, and RuneLite's party is not here. Name plates is the client's own, simpler
-colouring; both can be on.
+you, yourself, a friend, a member of your clan chat, your team (a team cape) or anyone else, each with
+its own **Highlight** setting (Disabled, Enabled, or PvP: only players who can be attacked where they
+stand) and colour: their names over them (**Name position**: above the head, the centre or the right of
+the model), a tile under them, their names on the minimap, and their right-click entries, with the clan
+chat rank's icon (the game's own) before a member's name. 634 has one such channel, its Clan Chat, which
+OSRS later renamed the friends chat, so RuneLite's friends chat settings appear under 634's name; the
+clans OSRS added in 2021 and RuneLite's party are not here.
 
 **Special Attack Counter** is RuneLite's. When your special attack energy drops with a counted weapon
 worn, your next hitsplat on the npc you fight is the special's: an infobox per weapon counts its hits
