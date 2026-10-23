@@ -25,20 +25,20 @@ import kotlin.jvm.JvmStatic
 
 /**
  * Not part of the original client: RuneLite's Player Indicators. Players are coloured by what they are to
- * you (yourself, a friend, a member of your friends chat, your team, anyone else): their names over them,
- * a tile under them, their names on the minimap and their right-click entries, with the friends chat
- * rank's icon (the game's own rank sprites, ClientApi.spriteImage) before a member's name.
+ * you (yourself, a friend, a member of your clan chat, your team, anyone else): their names over them, a
+ * tile under them, their names on the minimap and their right-click entries, with the clan chat rank's
+ * icon (the game's own rank sprites, ClientApi.spriteImage) before a member's name.
  *
- * 634's "Clan Chat" is what RuneLite calls the friends chat. The clan system OSRS added in 2021 does not
- * exist on 634, so the clan member settings are kept but find no one, and RuneLite's party has no
- * server here. A highlight set to PvP colours only players who can be attacked where they stand. Name
- * plates (NamePlates) is the client's own, simpler colouring; the two can both be on. A built-in plugin
- * (BuiltinPlugins, docs/PLUGINS.md).
+ * 634 has one chat channel of this kind, its Clan Chat, which OSRS later renamed the friends chat: the
+ * plugin's friends chat settings (RuneLite's keys) are labelled as 634 names it. The clans OSRS added in
+ * 2021 (RuneLite's clan member settings) and RuneLite's party do not exist here. A highlight set to PvP
+ * colours only players who can be attacked where they stand. A built-in plugin (BuiltinPlugins,
+ * docs/PLUGINS.md).
  */
 object PlayerIndicators : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("playerindicators", "Player Indicators", "1", PluginApi.VERSION, "Colours friends, friends chat members, team mates and others by name, tile, minimap and menu.", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("playerindicators", "Player Indicators", "1", PluginApi.VERSION, "Colours friends, clan chat members, team mates and others by name, tile, minimap and menu.", "Pixel")
 
 	/** RuneLite's HighlightSetting. */
 	@JvmField
@@ -63,10 +63,9 @@ object PlayerIndicators : Plugin {
 	const val FRIEND: Int = 1
 	const val FRIENDS_CHAT: Int = 2
 	const val TEAM: Int = 3
-	const val CLAN: Int = 4
-	const val OTHER: Int = 5
+	const val OTHER: Int = 4
 
-	/** The friends chat rank sprites (NameVisitor ranks 0 friend .. 7 owner): smiley, one to three chevrons, bronze, silver and gold stars, key. */
+	/** The clan chat rank sprites (NameVisitor ranks 0 friend .. 7 owner): smiley, one to three chevrons, bronze, silver and gold stars, key. */
 	@JvmField
 	val RANK_SPRITES: IntArray = intArrayOf(1004, 1011, 1010, 1005, 1009, 1008, 1007, 1006)
 
@@ -78,20 +77,19 @@ object PlayerIndicators : Plugin {
 	@JvmField var enabled: Boolean = false
 
 	/** Highlight settings by what the player is (SELF .. OTHER), and their colours. */
-	@JvmField val highlight: IntArray = intArrayOf(DISABLED, ENABLED, ENABLED, ENABLED, ENABLED, DISABLED)
-	@JvmField val colours: IntArray = intArrayOf(OWN, FRIEND_COLOUR, FRIENDS_CHAT_COLOUR, TEAM_COLOUR, CLAN_COLOUR, OTHER_COLOUR)
+	@JvmField val highlight: IntArray = intArrayOf(DISABLED, ENABLED, ENABLED, ENABLED, DISABLED)
+	@JvmField val colours: IntArray = intArrayOf(OWN, FRIEND_COLOUR, FRIENDS_CHAT_COLOUR, TEAM_COLOUR, OTHER_COLOUR)
 
 	@JvmField var drawPlayerTiles: Boolean = false
 	@JvmField var playerNamePosition: Int = ABOVE_HEAD
 	@JvmField var drawMinimapNames: Boolean = false
 	@JvmField var colorPlayerMenu: Boolean = true
 	@JvmField var clanMenuIcons: Boolean = true
-	@JvmField var clanchatMenuIcons: Boolean = true
 
 	/** For the smoke test: the names the last frame drew. */
 	@JvmField var drawnLastFrame: Int = 0
 
-	/** The friends chat's ranks by name, read again each game tick. */
+	/** The clan chat's ranks by name, read again each game tick. */
 	private val ranks: HashMap<String, Int> = HashMap()
 
 	private var ranksTick: Int = -1
@@ -131,25 +129,23 @@ object PlayerIndicators : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		s.toggle("enabled", "Player Indicators", false)
-		// RuneLite's PlayerIndicatorsConfig, in its order: the Highlight options section first
+		// RuneLite's PlayerIndicatorsConfig, in its order: the Highlight options section first. 634's Clan Chat is
+		// RuneLite's friends chat (its keys), and OSRS's 2021 clans have no settings here
 		s.choice("highlightSelf", "Highlight own player", HIGHLIGHT_SETTINGS[DISABLED], HIGHLIGHT_SETTINGS)
 		s.colour("ownNameColor", "Own player", OWN, false)
 		s.choice("highlightFriends", "Highlight friends", HIGHLIGHT_SETTINGS[ENABLED], HIGHLIGHT_SETTINGS)
 		s.colour("friendNameColor", "Friend", FRIEND_COLOUR, false)
-		s.choice("highlightFriendsChat", "Highlight friends chat members", HIGHLIGHT_SETTINGS[ENABLED], HIGHLIGHT_SETTINGS)
-		s.colour("clanMemberColor", "Friends chat", FRIENDS_CHAT_COLOUR, false)
+		s.choice("highlightFriendsChat", "Highlight clan chat members", HIGHLIGHT_SETTINGS[ENABLED], HIGHLIGHT_SETTINGS)
+		s.colour("clanMemberColor", "Clan chat", FRIENDS_CHAT_COLOUR, false)
 		s.choice("highlightTeamMembers", "Highlight team members", HIGHLIGHT_SETTINGS[ENABLED], HIGHLIGHT_SETTINGS)
 		s.colour("teamMemberColor", "Team member", TEAM_COLOUR, false)
-		s.choice("highlightClanMembers", "Highlight clan members", HIGHLIGHT_SETTINGS[ENABLED], HIGHLIGHT_SETTINGS)
-		s.colour("clanChatMemberColor", "Clan member", CLAN_COLOUR, false)
 		s.choice("highlightOthers", "Highlight others", HIGHLIGHT_SETTINGS[DISABLED], HIGHLIGHT_SETTINGS)
 		s.colour("nonClanMemberColor", "Others", OTHER_COLOUR, false)
 		s.toggle("drawPlayerTiles", "Draw tiles under players", false)
 		s.choice("playerNamePosition", "Name position", NAME_POSITIONS[ABOVE_HEAD], NAME_POSITIONS)
 		s.toggle("drawMinimapNames", "Draw names on minimap", false)
 		s.toggle("colorPlayerMenu", "Colorize player menu", true)
-		s.toggle("clanMenuIcons", "Show friends chat ranks", true)
-		s.toggle("clanchatMenuIcons", "Show clan chat ranks", true)
+		s.toggle("clanMenuIcons", "Show clan chat ranks", true)
 		readSettings(context.config())
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
 		context.events().subscribe(Events.FRAME_DRAW, frameListener)
@@ -175,8 +171,6 @@ object PlayerIndicators : Plugin {
 		colours[FRIENDS_CHAT] = config.getColour("clanMemberColor", FRIENDS_CHAT_COLOUR)
 		highlight[TEAM] = choice(config, "highlightTeamMembers", HIGHLIGHT_SETTINGS, ENABLED)
 		colours[TEAM] = config.getColour("teamMemberColor", TEAM_COLOUR)
-		highlight[CLAN] = choice(config, "highlightClanMembers", HIGHLIGHT_SETTINGS, ENABLED)
-		colours[CLAN] = config.getColour("clanChatMemberColor", CLAN_COLOUR)
 		highlight[OTHER] = choice(config, "highlightOthers", HIGHLIGHT_SETTINGS, DISABLED)
 		colours[OTHER] = config.getColour("nonClanMemberColor", OTHER_COLOUR)
 		drawPlayerTiles = config.getBoolean("drawPlayerTiles", false)
@@ -184,7 +178,6 @@ object PlayerIndicators : Plugin {
 		drawMinimapNames = config.getBoolean("drawMinimapNames", false)
 		colorPlayerMenu = config.getBoolean("colorPlayerMenu", true)
 		clanMenuIcons = config.getBoolean("clanMenuIcons", true)
-		clanchatMenuIcons = config.getBoolean("clanchatMenuIcons", true)
 	}
 
 	private fun choice(config: PluginConfig, key: String, options: Array<String>, default: Int): Int {
@@ -200,7 +193,7 @@ object PlayerIndicators : Plugin {
 
 	/**
 	 * RuneLite's PlayerIndicatorsService.forEachPlayer: what [player] is to you, the first of yourself,
-	 * friend, friends chat, team, clan and others whose highlight is on, or NONE.
+	 * friend, clan chat, team and others whose highlight is on, or NONE.
 	 */
 	@JvmStatic
 	fun relation(client: ClientApi, player: Player): Int {
@@ -216,13 +209,12 @@ object PlayerIndicators : Plugin {
 			friend && applies(highlight[FRIEND], player) -> FRIEND
 			inChat && applies(highlight[FRIENDS_CHAT], player) -> FRIENDS_CHAT
 			team > 0 && team == ownTeam && applies(highlight[TEAM], player) -> TEAM
-			// no OSRS clans on 634: highlightClanMembers has no one to find
 			!friend && !inChat && applies(highlight[OTHER], player) -> OTHER
 			else -> NONE
 		}
 	}
 
-	/** [name]'s friends chat rank (0 friend .. 7 owner), -1 when not ranked or not in the chat. */
+	/** [name]'s clan chat rank (0 friend .. 7 owner), -1 when not ranked or not in the chat. */
 	@JvmStatic
 	fun rank(client: ClientApi, name: String?): Int {
 		if (name == null) {
@@ -396,6 +388,5 @@ object PlayerIndicators : Plugin {
 	private const val FRIEND_COLOUR: Int = 0xFF00C853.toInt()
 	private const val FRIENDS_CHAT_COLOUR: Int = 0xFFAA00FF.toInt()
 	private const val TEAM_COLOUR: Int = 0xFF136EF7.toInt()
-	private const val CLAN_COLOUR: Int = 0xFF240FAB.toInt()
 	private const val OTHER_COLOUR: Int = 0xFFFF0000.toInt()
 }
