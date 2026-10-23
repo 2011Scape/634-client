@@ -549,6 +549,8 @@ object SmokeTest {
 
 	private var inventoryTagsSlot: Int = -1
 
+	private var inventoryTagsWasEnabled: Boolean = false
+
 	private var implingsWasEnabled: Boolean = false
 
 	private var npcAggressionWasEnabled: Boolean = false
@@ -5202,6 +5204,9 @@ object SmokeTest {
 				fakeBackpackItem(inventoryTagsSlot, GLORY_4)
 				// in the plugin's map only: setTag would save it to the player's settings
 				InventoryTags.tags[GLORY_4] = 0xFFFF0000.toInt()
+				// off by default: on for the step, as the player had it after
+				inventoryTagsWasEnabled = InventoryTags.enabled
+				InventoryTags.enabled = true
 				InventoryTags.tagFill = true
 				InventoryTags.tagUnderline = true
 				inventoryTagsFrame = frames
@@ -5225,6 +5230,7 @@ object SmokeTest {
 				fakeBackpackItem(inventoryTagsSlot, -1)
 				InventoryTags.tags.remove(GLORY_4)
 				InventoryTags.tagFill = false
+				InventoryTags.enabled = inventoryTagsWasEnabled
 				InventoryTags.tagUnderline = false
 				if (drawn == 0 || !outlined) {
 					fail("Inventory Tags: " + drawn + " items marked, outline made " + outlined)
