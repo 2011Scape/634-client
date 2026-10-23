@@ -10,7 +10,6 @@ import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.plugin.api.OverlayMenuEntry
 import com.jagex.game.runetek5.plugin.api.PanelComponent
 import com.jagex.game.runetek5.plugin.api.PanelOverlay
-import com.jagex.game.runetek5.plugin.api.Player
 import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.PluginApi
 import com.jagex.game.runetek5.plugin.api.PluginConfig
@@ -25,6 +24,7 @@ import com.jagex.game.runetek5.plugin.api.events.EventListener
 import com.jagex.game.runetek5.plugin.api.events.Events
 import com.jagex.game.runetek5.plugin.api.events.FrameDraw
 import com.jagex.game.runetek5.plugin.api.events.GameTick
+import com.jagex.game.runetek5.plugin.api.events.MenuBuilt
 import com.jagex.game.runetek5.plugin.api.events.MenuEntryAdded
 import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import com.jagex.game.runetek5.plugin.api.events.ViewportDraw
@@ -56,8 +56,10 @@ object Party : Plugin {
 	const val INVITE_HI: Int = PING_SEQ + 1
 	const val INVITE_LO: Int = INVITE_HI + 1
 
-	/** The line the server sends with an invite. */
-	const val INVITE_TEXT: String = "invites you to their party"
+	/** The line the server sends with an invite, in the request colour as a duel challenge's. */
+	const val INVITE_TEXT: String = "wishes to join you in a party"
+
+	const val ACCEPT_OPTION: String = "Accept party invite"
 
 	/** How long a ping shows: 3 s of client cycles. */
 	const val PING_CYCLES: Int = 150
@@ -70,11 +72,7 @@ object Party : Plugin {
 	@JvmField var sounds: Boolean = true
 	@JvmField var recolorNames: Boolean = true
 	@JvmField var pingHotkey: Int = KeyCode.CONTROL
-	@JvmField var statusOverlayHealth: Boolean = true
-	@JvmField var statusOverlayPrayer: Boolean = true
-	@JvmField var statusOverlayStamina: Boolean = true
-	@JvmField var statusOverlaySpec: Boolean = true
-	@JvmField var statusOverlayRenderSelf: Boolean = true
+	@JvmField var compactPanel: Boolean = false
 	@JvmField var showOnMap: Boolean = true
 
 	/** One member as the server shows them. A hidden tile (PvP) has [x] -1. */
@@ -142,7 +140,6 @@ object Party : Plugin {
 		val client: ClientApi = context?.client() ?: return@EventListener
 		val g: Graphics = event.graphics
 		if (enabled && state.inParty()) {
-			drawStatus(g, client)
 			drawPing(g, client)
 		}
 	}
@@ -165,7 +162,21 @@ object Party : Plugin {
 			client.addMenuEntry("Ping", pingAction)
 		} else if (event.target === MenuTarget.WIDGET && state.invite != null && acceptAction >= 0 && isInviteLine(client, event.widgetId, event.slot)) {
 			client.addMenuEntry("Decline party invite", declineAction)
-			client.addMenuEntry("Accept party invite", acceptAction)
+			client.addMenuEntry(ACCEPT_OPTION, acceptAction)
+		}
+	}
+
+	/** An invite's line takes the left click as a duel challenge's does: Accept party invite becomes the top row. */
+	private val menuBuiltListener: EventListener<MenuBuilt> = EventListener { _ ->
+		val client: ClientApi = context?.client() ?: return@EventListener
+		if (!enabled || state.invite == null) {
+			return@EventListener
+		}
+		for (i in 0 until client.menuEntryCount()) {
+			if (client.menuEntry(i)?.option() == ACCEPT_OPTION) {
+				client.promoteMenuEntry(i)
+				return@EventListener
+			}
 		}
 	}
 
@@ -195,17 +206,14 @@ object Party : Plugin {
 	override fun start(context: PluginContext) {
 		this.context = context
 		val s: SettingsSchema = context.settings()
-		// RuneLite's PartyConfig, in its order, but the self colour (names are coloured by their hash) and Discord
+		// RuneLite's PartyConfig, in its order, but the self colour (names are coloured by their hash), Discord and the
+		// status over members' heads (the game's own health bars show there)
 		s.toggle("enabled", "Party", false)
 		s.toggle("pings", "Pings", true)
 		s.toggle("sounds", "Sound on ping", true)
 		s.toggle("recolorNames", "Recolor names", true)
 		s.keybind("pingHotkey", "Ping hotkey", KeyCode.CONTROL)
-		s.toggle("statusOverlayHealth", "Show health", true)
-		s.toggle("statusOverlayPrayer", "Show prayer", true)
-		s.toggle("statusOverlayStamina", "Show run energy", true)
-		s.toggle("statusOverlaySpec", "Show spec energy", true)
-		s.toggle("statusOverlayRenderSelf", "Show on self", true)
+		s.toggle("compactPanel", "Compact panel (two stats a line)", false)
 		s.toggle("showOnMap", "Show members on the maps", true)
 		readSettings(context.config())
 		pingAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, _ -> ping(sceneX, sceneY) })
@@ -216,6 +224,7 @@ object Party : Plugin {
 		context.events().subscribe(Events.VIEWPORT_DRAW, viewportListener)
 		context.events().subscribe(Events.FRAME_DRAW, frameListener)
 		context.events().subscribe(Events.MENU_ENTRY_ADDED, menuListener)
+		context.events().subscribe(Events.MENU_BUILT, menuBuiltListener)
 		context.addOverlay(panel)
 	}
 
@@ -230,11 +239,7 @@ object Party : Plugin {
 		sounds = config.getBoolean("sounds", true)
 		recolorNames = config.getBoolean("recolorNames", true)
 		pingHotkey = config.getInt("pingHotkey", KeyCode.CONTROL)
-		statusOverlayHealth = config.getBoolean("statusOverlayHealth", true)
-		statusOverlayPrayer = config.getBoolean("statusOverlayPrayer", true)
-		statusOverlayStamina = config.getBoolean("statusOverlayStamina", true)
-		statusOverlaySpec = config.getBoolean("statusOverlaySpec", true)
-		statusOverlayRenderSelf = config.getBoolean("statusOverlayRenderSelf", true)
+		compactPanel = config.getBoolean("compactPanel", false)
 		showOnMap = config.getBoolean("showOnMap", true)
 	}
 
@@ -386,87 +391,103 @@ object Party : Plugin {
 		return ClientFeatures.plainText(line.text() ?: return false).contains(INVITE_TEXT)
 	}
 
+	/**
+	 * The panel: the party's size, then each member's name (a crown for the leader, a red Wilderness tag while their
+	 * location is hidden) and their four stats, each as a bar with the stat's name and value on it; two to a line when
+	 * compact. Hovering a member shows them in full.
+	 */
 	private fun drawPanel(g: Graphics, overlay: PanelOverlay): Size? {
 		val current: State = state
 		if (!enabled || !g.fontReady() || (!current.inParty() && current.invite == null)) {
 			return null
 		}
+		val client: ClientApi? = context?.client()
 		val line: Int = g.fontHeight()
 		val width: Int = if (overlay.preferredWidth > 0) overlay.preferredWidth else PANEL_WIDTH
-		val rows: Int = current.members.size
-		val height: Int = BORDER + line + (if (current.invite != null) line else 0) + rows * (line + BAR_HEIGHT * 2 + GAP * 2) + BORDER
+		val statLines: Int = if (compactPanel) 2 else 4
+		val memberHeight: Int = line + statLines * STAT_LINE + GAP
+		val height: Int = BORDER + line + (if (current.invite != null) line else 0) + current.members.size * memberHeight + BORDER
 		PanelComponent.background(g, 0, 0, width, height, overlay.backgroundColour)
-		var y: Int = BORDER + line - 2
-		g.text(BORDER, y, if (current.inParty()) "Party (" + rows + "/" + MAX_MEMBERS + ")" else "Party", TITLE, BLACK)
+		var y: Int = BORDER
+		g.text(BORDER, y + line - 2, if (current.inParty()) "Party (" + current.members.size + "/" + MAX_MEMBERS + ")" else "Party", TITLE, BLACK)
+		y += line
 		current.invite?.let {
+			g.text(BORDER, y + line - 2, "Invite from " + it, INVITE, BLACK)
 			y += line
-			g.text(BORDER, y, "Invite from " + it, INVITE, BLACK)
 		}
-		val barWidth: Int = (width - BORDER * 2 - GAP) / 2
+		val mouseX: Int = (client?.mouseX() ?: -1) - overlay.boundsX
+		val mouseY: Int = (client?.mouseY() ?: -1) - overlay.boundsY
 		for (member in current.members) {
-			y += line
-			val label: String = member.name + (if (member.slot == current.leader) " *" else "") + (if (member.inPvp) " (PvP)" else "")
-			g.text(BORDER, y, label, colour(member.name), BLACK)
-			val barY: Int = y + GAP
-			bar(g, BORDER, barY, barWidth, member.hp, member.hpMax, HP)
-			bar(g, BORDER + barWidth + GAP, barY, barWidth, member.prayer, member.prayerMax, PRAYER)
-			bar(g, BORDER, barY + BAR_HEIGHT + GAP, barWidth, member.spec, 100, SPEC)
-			bar(g, BORDER + barWidth + GAP, barY + BAR_HEIGHT + GAP, barWidth, member.run, 100, RUN)
-			y += BAR_HEIGHT * 2 + GAP * 2
+			drawMember(g, member, member.slot == current.leader, y, width, line)
+			if (client != null && mouseX in 0 until width && mouseY in y until y + memberHeight) {
+				client.addTooltip(tooltip(member))
+			}
+			y += memberHeight
 		}
 		return size.set(width, height)
 	}
 
-	private fun bar(g: Graphics, x: Int, y: Int, width: Int, value: Int, max: Int, colour: Int) {
-		g.fillRect(x, y, width, BAR_HEIGHT, BAR_BACK)
+	private fun drawMember(g: Graphics, member: Member, leader: Boolean, top: Int, width: Int, line: Int) {
+		var x: Int = BORDER
+		if (leader) {
+			crown(g, x, top + 2)
+			x += CROWN + 2
+		}
+		g.text(x, top + line - 2, member.name, colour(member.name), BLACK)
+		if (member.inPvp) {
+			g.textRight(width - BORDER, top + line - 2, "Wilderness", PVP, BLACK)
+		}
+		val y: Int = top + line
+		if (compactPanel) {
+			val half: Int = (width - BORDER * 2 - GAP) / 2
+			stat(g, BORDER, y, half, member.hp, member.hpMax, HP, "HP " + member.hp)
+			stat(g, BORDER + half + GAP, y, half, member.prayer, member.prayerMax, PRAYER, "Pray " + member.prayer)
+			stat(g, BORDER, y + STAT_LINE, half, member.spec, 100, SPEC, "Spec " + member.spec + "%")
+			stat(g, BORDER + half + GAP, y + STAT_LINE, half, member.run, 100, RUN, "Run " + member.run + "%")
+		} else {
+			val full: Int = width - BORDER * 2
+			stat(g, BORDER, y, full, member.hp, member.hpMax, HP, "HP " + member.hp + "/" + member.hpMax)
+			stat(g, BORDER, y + STAT_LINE, full, member.prayer, member.prayerMax, PRAYER, "Prayer " + member.prayer + "/" + member.prayerMax)
+			stat(g, BORDER, y + STAT_LINE * 2, full, member.spec, 100, SPEC, "Spec " + member.spec + "%")
+			stat(g, BORDER, y + STAT_LINE * 3, full, member.run, 100, RUN, "Run " + member.run + "%")
+		}
+	}
+
+	/** One stat: its bar, with its name and value written over it ("HP 45/99", "Spec 75%"). */
+	private fun stat(g: Graphics, x: Int, y: Int, width: Int, value: Int, max: Int, colour: Int, label: String) {
+		g.fillRect(x, y + 2, width, STAT_BAR, BAR_BACK)
 		if (max > 0) {
-			g.fillRect(x, y, (width * value.coerceIn(0, max) / max), BAR_HEIGHT, colour)
+			g.fillRect(x, y + 2, width * value.coerceIn(0, max) / max, STAT_BAR, colour)
+		}
+		g.textCentered(x + width / 2, y + STAT_LINE - 3, label, WHITE, BLACK)
+	}
+
+	/** A small gold crown: a band with three points. */
+	private fun crown(g: Graphics, x: Int, y: Int) {
+		xs[0] = x
+		ys[0] = y + CROWN
+		xs[1] = x + CROWN
+		ys[1] = y + CROWN
+		xs[2] = x + CROWN
+		ys[2] = y + 3
+		xs[3] = x
+		ys[3] = y + 3
+		g.fillPolygon(xs, ys, 4, GOLD)
+		g.polygon(xs, ys, 4, BLACK)
+		for (i in 0..2) {
+			g.fillRect(x + i * (CROWN - 2) / 2, y, 2, 3, GOLD)
 		}
 	}
 
-	/** RuneLite's PartyStatusOverlay: the chosen bars over each member on screen. */
-	private fun drawStatus(g: Graphics, client: ClientApi) {
-		for (member in state.members) {
-			drawMemberStatus(g, client, member)
-		}
-	}
-
-	private fun drawMemberStatus(g: Graphics, client: ClientApi, member: Member) {
-		val isSelf: Boolean = member.slot == state.local
-		if (isSelf && !statusOverlayRenderSelf) {
-			return
-		}
-		val player: Player = (if (isSelf) client.localPlayer() else findPlayer(client, member.name)) ?: return
-		if (!player.isDrawnThisFrame() || !client.projectActor(player, player.overheadHeight() + STATUS_RAISE, point)) {
-			return
-		}
-		var y: Int = point[1]
-		val x: Int = point[0] - STATUS_WIDTH / 2
-		if (statusOverlayHealth) {
-			bar(g, x, y, STATUS_WIDTH, member.hp, member.hpMax, HP)
-			y -= BAR_HEIGHT + 1
-		}
-		if (statusOverlayPrayer) {
-			bar(g, x, y, STATUS_WIDTH, member.prayer, member.prayerMax, PRAYER)
-			y -= BAR_HEIGHT + 1
-		}
-		if (statusOverlaySpec) {
-			bar(g, x, y, STATUS_WIDTH, member.spec, 100, SPEC)
-			y -= BAR_HEIGHT + 1
-		}
-		if (statusOverlayStamina) {
-			bar(g, x, y, STATUS_WIDTH, member.run, 100, RUN)
-		}
-	}
-
-	private fun findPlayer(client: ClientApi, name: String): Player? {
-		for (i in 0 until client.playerCount()) {
-			val player: Player = client.player(i) ?: continue
-			if (player.name()?.equals(name, ignoreCase = true) == true) {
-				return player
-			}
-		}
-		return null
+	/** The hover tooltip: every stat in full, and where they are. */
+	@JvmStatic
+	fun tooltip(member: Member): String {
+		val where: String = if (member.x < 0) "<col=ff3030>Location hidden (Wilderness)</col>" else "Tile " + member.x + ", " + member.y + (if (member.level > 0) ", floor " + member.level else "")
+		return "<col=ffffff>" + member.name + "</col></br>" +
+			"<col=ff3030>Hitpoints</col> " + member.hp + "/" + member.hpMax + "</br>" +
+			"<col=30c8e0>Prayer</col> " + member.prayer + "/" + member.prayerMax + "</br>" +
+			"<col=40d040>Special attack</col> " + member.spec + "%</br>" +
+			"<col=e0b020>Run energy</col> " + member.run + "%</br>" + where
 	}
 
 	/** RuneLite's PartyPingOverlay: the pinged tile in the pinger's colour while it lasts. */
@@ -516,12 +537,12 @@ object Party : Plugin {
 	}
 
 	private const val BASE37: String = "_abcdefghijklmnopqrstuvwxyz0123456789"
-	private const val PANEL_WIDTH: Int = 129
 	private const val BORDER: Int = 4
 	private const val GAP: Int = 2
-	private const val BAR_HEIGHT: Int = 4
-	private const val STATUS_WIDTH: Int = 30
-	private const val STATUS_RAISE: Int = 20
+	private const val PANEL_WIDTH: Int = 150
+	private const val STAT_LINE: Int = 13
+	private const val STAT_BAR: Int = 10
+	private const val CROWN: Int = 9
 	private const val DOT: Int = 3
 	private const val WHITE: Int = -0x1
 	private const val BLACK: Int = 0xFF000000.toInt()
@@ -529,7 +550,9 @@ object Party : Plugin {
 	private const val INVITE: Int = 0xFF00FF00.toInt()
 	private const val BAR_BACK: Int = 0xC0000000.toInt()
 	private const val HP: Int = 0xFFD01010.toInt()
-	private const val PRAYER: Int = 0xFF30A0E0.toInt()
-	private const val SPEC: Int = 0xFF30C030.toInt()
-	private const val RUN: Int = 0xFFE0B020.toInt()
+	private const val PRAYER: Int = 0xFF20A8C0.toInt()
+	private const val SPEC: Int = 0xFF30A030.toInt()
+	private const val RUN: Int = 0xFFC89018.toInt()
+	private const val GOLD: Int = 0xFFFFD700.toInt()
+	private const val PVP: Int = 0xFFFF3030.toInt()
 }

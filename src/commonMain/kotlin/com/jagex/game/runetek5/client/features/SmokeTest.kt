@@ -5593,9 +5593,23 @@ object SmokeTest {
 						ClientCommandProcessor.sendCheat("party invite " + PARTY.substring(5), false, false)
 					}
 				} else if (state.invite != null) {
-					ClientCommandProcessor.sendCheat("party accept", false, false)
-					partyFrame = frames
-					partyStep = 2
+					// accepted the player's way: the invite's chat line, left click (its top row once the menu is built)
+					val line: Component? = inviteLine()
+					if (line != null) {
+						MiniMenuReset.resetEntries()
+						MiniMenuBuilder.interfaceComponentHovered(0, 0, line)
+						MiniMenuInputTick.processMenuInput()
+						val top: MiniMenuEntry? = MiniMenu.entryList.sentinel.previous as MiniMenuEntry?
+						println("SMOKE party: the invite line's left click is \"" + top?.opBase + "\"")
+						if (top?.opBase != Party.ACCEPT_OPTION) {
+							MiniMenuReset.resetEntries()
+							return partyFail("the invite line's left click is " + top?.opBase)
+						}
+						MiniMenuActionExecutor.processMenuClick(top, 0, 0)
+						MiniMenuReset.resetEntries()
+						partyFrame = frames
+						partyStep = 2
+					}
 				}
 				if (partyStep == 1 && waited > PARTY_WAIT) {
 					return partyFail(if (lead) "no one joined" else "no invite came")
@@ -5617,6 +5631,21 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** The chat box's line (or line group) that holds the party invite. */
+	private fun inviteLine(): Component? {
+		val components: Array<Component?> = Interface.peekComponents(ChatHistory.CHATBOX) ?: return null
+		for (component in components) {
+			val children: Array<Component?> = component?.slotChildren ?: arrayOf(component)
+			for (child in children) {
+				val text: String? = child?.text()
+				if (text != null && ClientFeatures.plainText(text).contains(Party.INVITE_TEXT)) {
+					return child
+				}
+			}
+		}
+		return null
 	}
 
 	private fun partyFail(why: String): Boolean {
