@@ -1,3 +1,4 @@
+import com.jagex.game.runetek5.plugin.PluginCursor
 import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.plugin.OverlayLayout
 import com.jagex.game.runetek5.client.input.camera.Camera
@@ -995,6 +996,7 @@ class client : GameShell() {
 			Console.renderConsole(ClientState.activeToolkit)
 		}
 		PluginRuntime.drawFrame(GameShell.screenCanvasWidth, GameShell.screenCanvasHeight) // Not part of the original client: the plugins' FrameDraw, over everything.
+		PluginCursor.drawSoftware() // Not part of the original client: a plugin's cursor the platform cannot show in colour, drawn at the mouse.
 		if (GameShell.signLink!!.microsoftJava && MainLogicManager.isLoginLobbyOrGameScreen(ClientState.mainLogicStep) && InterfaceManager.interfaceDebugMode == 0 && WindowMode.getWindowMode() === WindowModeType.FIXED && !drawBackground) {
 			var flipCount: Int = 0
 			var componentIndex: Int = 0
