@@ -20,8 +20,8 @@ agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), th
 the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual levels
 (`VirtualLevels`), the metronome (`Metronome`), the death indicator (`DeathIndicator`), the NPC
 aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implings`), the cooking
-(`Cooking`) and the smelting (`Smelting`) are fifty-two, built in, so the client's own code shows the
-way.
+(`Cooking`), the smelting (`Smelting`) and the prayer (`Prayer`) are fifty-three, built in, so the
+client's own code shows the way.
 
 ## Contents
 
@@ -623,6 +623,14 @@ cannonballs you made this session and an hour, and goes after **Reset stats** mi
 any; its right-click menu has **Reset**. It counts Void's lines: "You retrieve a bar of …" for each bar
 (and the Varrock armour's second bar), "You remove the cannonballs from the mould." for four
 cannonballs.
+
+**Prayer** is RuneLite's. While you pray, a flick helper sweeps across the prayer orb (and/or a prayer
+bar over your head) in time with the server's ticks; the orb glows when a prayer potion in your backpack
+would restore without waste; hovering the orb tells how long your prayer points last and your prayer
+bonus, or the orb's number can show that time; and an infobox can show each active prayer or curse
+(overheads too if you like). The time follows Void's drain: each tick the active prayers' drain goes
+into a counter, and a point goes each time it passes 60. Void's drain does not read the worn prayer
+bonus, so the bonus does not lengthen the time here; the tooltip still shows it.
 
 ## Writing a plugin
 

@@ -529,6 +529,17 @@ object SmokeTest {
 
 	private var smeltingFrame: Int = -1
 
+	/** client.test.prayer: Protect from Melee turned on in the client's own varp 1395 (the server not told), Prayer's flick helper on the orb and bar, the prayer bar, the overhead's infobox and the orb's time left. */
+	private val PRAYER: Boolean = "true" == lang.getProperty("client.test.prayer")
+
+	private var prayerStep: Int = 0
+
+	private var prayerFrame: Int = -1
+
+	private var prayerOldVarp: Int = 0
+
+	private const val PROTECT_FROM_MELEE_BIT: Int = 14
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1587,6 +1598,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 2251799813685248L
+		}
+		if (PRAYER && (checksDone and 4503599627370496L) == 0L) {
+			if (!prayerDone()) {
+				return
+			}
+			checksDone = checksDone or 4503599627370496L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5052,6 +5069,57 @@ object SmokeTest {
 		}
 		println("SMOKE smelting: 2 bars and 4 cannonballs counted from Void's lines, the panel drawn")
 		return true
+	}
+
+	/** Prayer with Protect from Melee on: the orb and bar flick helper, the bar, the infobox and "0:03" on the orb. Frame: frame-prayer.png. */
+	private fun prayerDone(): Boolean {
+		val vars: PlayerVarDomain = PlayerVarDomain.playerVarProvider ?: return false
+		when (prayerStep) {
+			0 -> {
+				prayerOldVarp = ClientApiImpl.varp(Prayer.PRAYERS_VARP)
+				// setVarValueInt's names are swapped: the value comes first, then the varp
+				vars.setVarValueInt(1 shl PROTECT_FROM_MELEE_BIT, Prayer.PRAYERS_VARP)
+				Prayer.prayerFlickLocation = Prayer.FLICK_BOTH
+				Prayer.showPrayerBar = true
+				Prayer.prayerIndicator = true
+				Prayer.prayerIndicatorOverheads = true
+				Prayer.replaceOrbText = true
+				prayerFrame = frames
+				prayerStep = 1
+			}
+			1 -> {
+				val text: String? = ClientApiImpl.widget(Prayer.PRAYER_ORB, Prayer.ORB_TEXT)?.text()
+				if ((Prayer.infoboxes.isEmpty() || text != "0:03") && frames - prayerFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				prayerFrame = frames
+				prayerStep = 2
+			}
+			else -> {
+				if (frames - prayerFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-prayer.png")
+				val text: String? = ClientApiImpl.widget(Prayer.PRAYER_ORB, Prayer.ORB_TEXT)?.text()
+				val infoboxes: Int = Prayer.infoboxes.size
+				val flick: Boolean = Prayer.flickDrawn
+				val bar: Boolean = Prayer.barDrawn
+				Prayer.prayerFlickLocation = Prayer.FLICK_ORB
+				Prayer.showPrayerBar = false
+				Prayer.prayerIndicator = false
+				Prayer.prayerIndicatorOverheads = false
+				Prayer.replaceOrbText = false
+				vars.setVarValueInt(prayerOldVarp, Prayer.PRAYERS_VARP)
+				Prayer.tick(ClientApiImpl)
+				if (text != "0:03" || infoboxes != 1 || !flick || !bar) {
+					fail("Prayer: orb text \"" + text + "\", " + infoboxes + " infoboxes, flick " + flick + ", bar " + bar)
+					return true
+				}
+				println("SMOKE prayer: Protect from Melee on, the orb says 0:03 for 1 point, its infobox, the flick helper and the prayer bar drawn")
+				return true
+			}
+		}
+		return false
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {
