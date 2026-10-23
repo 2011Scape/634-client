@@ -387,6 +387,15 @@ object SmokeTest {
 
 	private var regenMeterShown: Int = -1
 
+	/** client.test.runEnergy: Run Energy's run time left on the run orb (750:5), then the energy back once off, and its tooltip's text. */
+	private val RUN_ENERGY: Boolean = "true" == lang.getProperty("client.test.runEnergy")
+
+	private var runEnergyStep: Int = 0
+
+	private var runEnergyFrame: Int = -1
+
+	private var runEnergyText: String = ""
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1323,6 +1332,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 4294967296L
+		}
+		if (RUN_ENERGY && (checksDone and 8589934592L) == 0L) {
+			if (!runEnergyDone()) {
+				return
+			}
+			checksDone = checksDone or 8589934592L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4031,6 +4046,38 @@ object SmokeTest {
 		val orb = ClientApiImpl.widget(RegenMeter.HEALTH_ORB, RegenMeter.HEALTH_ORB_CIRCLE)
 		println("SMOKE regen meter: the life points ring drawn at " + percent + " round the orb at " + orb?.screenX() + "," + orb?.screenY() + " " + orb?.width() + "x" + orb?.height())
 		return true
+	}
+
+	/** Run Energy with "Replace orb text" on: the orb reads the seconds left, then its energy again once off. Frame: frame-runenergy.png. */
+	private fun runEnergyDone(): Boolean {
+		val api = ClientApiImpl
+		if (runEnergyFrame != -1 && frames - runEnergyFrame < MARKER_FRAMES) {
+			return false
+		}
+		runEnergyFrame = frames
+		val shown: String = api.widget(RunEnergy.RUN_ORB, RunEnergy.RUN_ORB_TEXT)?.text() ?: ""
+		when (runEnergyStep++) {
+			0 -> RunEnergy.replaceOrbText = true
+			1 -> {
+				saveFrame("build/smoke/frame-runenergy.png")
+				runEnergyText = shown
+				RunEnergy.replaceOrbText = false
+				RunEnergy.resetOrbText(api)
+				if (!Regex("[0-9]+s").matches(shown)) {
+					fail("Run Energy: the orb reads \"" + shown + "\" with the run time on")
+					return true
+				}
+			}
+			else -> {
+				if (shown != api.runEnergy().toString()) {
+					fail("Run Energy: the orb reads \"" + shown + "\" once off, not " + api.runEnergy())
+					return true
+				}
+				println("SMOKE run energy: the orb read \"" + runEnergyText + "\", then \"" + shown + "\"; tooltip \"" + RunEnergy.tooltipText(api) + "\"")
+				return true
+			}
+		}
+		return false
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {
