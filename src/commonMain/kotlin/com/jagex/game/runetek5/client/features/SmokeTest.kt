@@ -348,6 +348,14 @@ object SmokeTest {
 
 	private var itemStatsFrame: Int = -1
 
+	/**
+	 * client.test.woodcutting: Woodcutting with a tree beside the player felled as the server would tell it (a
+	 * normal tree's LocChanged to its stump) and three logs said in the chat: the pie and the session's panel.
+	 */
+	private val WOODCUTTING: Boolean = "true" == lang.getProperty("client.test.woodcutting")
+
+	private var woodcuttingFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1248,6 +1256,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 67108864
+		}
+		if (WOODCUTTING && (checksDone and 134217728) == 0) {
+			if (!woodcuttingDone(player)) {
+				return
+			}
+			checksDone = checksDone or 134217728
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3770,6 +3784,35 @@ object SmokeTest {
 		ItemStats.testItem = items[itemStatsStep++]
 		itemStatsFrame = frames
 		return false
+	}
+
+	private fun woodcuttingDone(player: PlayerEntity): Boolean {
+		val api = ClientApiImpl
+		if (woodcuttingFrame == -1) {
+			Woodcutting.enabled = true
+			// a normal tree (1276) two tiles east of the player becomes its stump (1342)
+			PluginRuntime.locChanged(player.movementBaseX[0] + 2, player.movementBaseY[0], api.localPlayer()?.level() ?: 0, 2, 1276, 1342, 10, 0)
+			for (i in 0 until 3) {
+				Woodcutting.chat(api, com.jagex.game.runetek5.plugin.api.events.ChatMessage(ChatType.GAME_FILTERED, "", "You get some logs.", null))
+			}
+			woodcuttingFrame = frames
+			return false
+		}
+		if (frames - woodcuttingFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-woodcutting.png")
+		val respawns: Int = Woodcutting.respawns.size
+		val logs: Int = Woodcutting.session?.logsCut ?: 0
+		Woodcutting.enabled = false
+		Woodcutting.session = null
+		Woodcutting.respawns.clear()
+		if (respawns != 1 || logs != 3) {
+			fail("Woodcutting: " + respawns + " respawn pies (not 1) and " + logs + " logs (not 3)")
+			return true
+		}
+		println("SMOKE woodcutting: a felled tree's pie and 3 logs in the session panel")
+		return true
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {

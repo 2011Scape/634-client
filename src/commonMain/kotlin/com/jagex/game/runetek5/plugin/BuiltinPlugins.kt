@@ -26,6 +26,7 @@ import com.jagex.game.runetek5.client.features.OverlaySettings
 import com.jagex.game.runetek5.client.features.StatusBars
 import com.jagex.game.runetek5.client.features.TileIndicators
 import com.jagex.game.runetek5.client.features.TimersAndBuffs
+import com.jagex.game.runetek5.client.features.Woodcutting
 import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.client.features.XpGlobes
 import com.jagex.game.runetek5.client.features.XpTracker
@@ -72,6 +73,7 @@ object BuiltinPlugins {
 			builtIn(KeyRemapping.DESCRIPTOR, KeyRemapping),
 			builtIn(CustomCursor.DESCRIPTOR, CustomCursor),
 			builtIn(ItemStats.DESCRIPTOR, ItemStats),
+			builtIn(Woodcutting.DESCRIPTOR, Woodcutting),
 		)
 	}
 

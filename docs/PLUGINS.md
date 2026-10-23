@@ -11,8 +11,8 @@ boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the status 
 timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the
 Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`), the
 anti drag (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`), the key remapping
-(`KeyRemapping`), the custom cursor (`CustomCursor`) and the item stats (`ItemStats`) are twenty-eight,
-built in, so the client's own code shows the way.
+(`KeyRemapping`), the custom cursor (`CustomCursor`), the item stats (`ItemStats`) and the woodcutting
+(`Woodcutting`) are twenty-nine, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -54,7 +54,7 @@ the game for you.
   held before it drags; rewrite a chat line or an overhead line before it shows, and add pictures of its
   own to the chat icons (`<img=N>`); set a component's text and the client variables (the chat box's
   typed line); remap the player's own keys before the client reads them (`KeyInput`); and set the
-  mouse cursor, from a picture or an item's icon.
+  mouse cursor, from a picture or an item's icon; and hear when the server changes a location (`LocChanged`).
 - Add: entries to the right-click menu of a tile, npc, player, ground item, location or interface
   component (an inventory slot included), with an action of its own, and entries that open a
   submenu of its own beside the menu; console commands (`::name`); lines in the chat box and the
@@ -429,6 +429,14 @@ weapon and shield), and any item its weight. The numbers are the Void server's: 
 (a range shows its least and most), potions boost, restore and drain as the server does, and the slots,
 two-handedness and weights are its own (the 634 cache has none of them). Not here from RuneLite: its
 Grand Exchange item panel, which builds interface components the plugin API cannot.
+
+**Woodcutting** is RuneLite's, off until switched on. A panel at the top left counts the logs you cut
+this session and the logs an hour, and says whether you are chopping; it goes after **Reset stats**
+minutes without chopping (Shift and right-click it to Reset). A bird's nest falling gives a
+notification, and a felled tree's stump shows a pie of the time until it grows back. The time is Void's
+estimate (its logs' base time, scaled as the server scales it at normal player counts; normal trees grow
+back in 50 to 100 ticks at random, shown as 100), so the pie is close rather than exact, and goes when
+the tree is back. Not here from RuneLite: Forestry, redwoods, bark and clue nests (all OSRS-only).
 
 ## Writing a plugin
 
