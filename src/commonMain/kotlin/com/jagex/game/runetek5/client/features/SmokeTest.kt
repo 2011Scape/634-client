@@ -32,6 +32,7 @@ import com.jagex.game.runetek5.config.rsinterface.ComponentType
 import com.jagex.game.runetek5.config.rsinterface.Component
 import com.jagex.game.runetek5.config.rsinterface.Interface
 import com.jagex.game.runetek5.config.rsinterface.SubInterface
+import com.jagex.game.runetek5.config.sequence.SeqType
 import com.jagex.game.runetek5.client.window.WindowModeType
 import com.jagex.game.runetek5.graphics.Toolkit
 import com.jagex.game.runetek5.core.constants.MainLogicStep
@@ -589,6 +590,19 @@ object SmokeTest {
 	private var entityHiderFrame: Int = -1
 
 	private var entityHiderNpcs: Int = 0
+
+	/** client.test.animationSmoothing: Animation Smoothing switched on (API 34), the scene's sequences blended through its filter, then off. */
+	private val ANIMATION_SMOOTHING: Boolean = "true" == lang.getProperty("client.test.animationSmoothing")
+
+	private var animationSmoothingStep: Int = 0
+
+	private var animationSmoothingFrame: Int = -1
+
+	private var animationSmoothingCount: Int = 0
+
+	private var animationSmoothingOffCount: Int = 0
+
+	private var animationSmoothingWasEnabled: Boolean = false
 
 	/**
 	 * client.test.screenshot: Void's level-up line written through the chat path (no level gained), Screenshot taking
@@ -1706,6 +1720,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 72057594037927936L
+		}
+		if (ANIMATION_SMOOTHING && (checksDone and 288230376151711744L) == 0L) {
+			if (!animationSmoothingDone()) {
+				return
+			}
+			checksDone = checksDone or 288230376151711744L
 		}
 		if (SCREENSHOT && (checksDone and 144115188075855872L) == 0L) {
 			if (!screenshotDone()) {
@@ -5513,6 +5533,54 @@ object SmokeTest {
 					return true
 				}
 				println("SMOKE entity hider: the player and " + entityHiderNpcs + " NPCs hidden, then " + npcsDrawn + " NPCs and the player drawn again")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Animation Smoothing: on, the scene's sequences blended through its filter; off, none. Frame: frame-animationsmoothing.png. */
+	private fun animationSmoothingDone(): Boolean {
+		when (animationSmoothingStep) {
+			0 -> {
+				// off by default: on for the step, as the player had it after
+				animationSmoothingWasEnabled = AnimationSmoothing.enabled
+				AnimationSmoothing.enabled = true
+				AnimationSmoothing.refresh()
+				animationSmoothingCount = SeqType.pluginSmoothedCount
+				animationSmoothingFrame = frames
+				animationSmoothingStep = 1
+			}
+			1 -> {
+				if (frames - animationSmoothingFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-animationsmoothing.png")
+				animationSmoothingCount = SeqType.pluginSmoothedCount - animationSmoothingCount
+				AnimationSmoothing.enabled = false
+				AnimationSmoothing.refresh()
+				if (animationSmoothingCount == 0) {
+					AnimationSmoothing.enabled = animationSmoothingWasEnabled
+					AnimationSmoothing.refresh()
+					fail("Animation Smoothing: on, no sequence was blended through its filter")
+					return true
+				}
+				animationSmoothingOffCount = SeqType.pluginSmoothedCount
+				animationSmoothingFrame = frames
+				animationSmoothingStep = 2
+			}
+			else -> {
+				if (frames - animationSmoothingFrame < MARKER_FRAMES) {
+					return false
+				}
+				val blendedOff: Int = SeqType.pluginSmoothedCount - animationSmoothingOffCount
+				AnimationSmoothing.enabled = animationSmoothingWasEnabled
+				AnimationSmoothing.refresh()
+				if (blendedOff != 0) {
+					fail("Animation Smoothing: off, sequences still blended through its filter")
+					return true
+				}
+				println("SMOKE animation smoothing: " + animationSmoothingCount + " blended frames in " + MARKER_FRAMES + " frames on, none off")
 				return true
 			}
 		}

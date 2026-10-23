@@ -119,7 +119,7 @@ class ItemContainer : Node(), ApiItemContainer {
 				modifiesBillboard = animFrameset.modifiesBillboards(frame) or false
 				usesLighting = seqType.lights or false
 			}
-			if ((seqType.tweened || SeqType.forceTweening) && nextFrameId != -1 && seqType.frames!!.size > nextFrameId) {
+			if (seqType.smoothed() && nextFrameId != -1 && seqType.frames!!.size > nextFrameId) {
 				nextFrame = seqType.frames!![nextFrameId]
 				frameDuration = seqType.durations!![currentFrameId]
 				@Pc(177) val nextFrameSetId: Int = nextFrame ushr 16

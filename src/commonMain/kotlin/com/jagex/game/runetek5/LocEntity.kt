@@ -229,7 +229,7 @@ class LocEntity @OriginalMember(owner = "client!bv", name = "<init>", descriptor
 		this.progressAnimation(this.entity)
 		if (castShadow) {
 			@Pc(76) val shadowEnabled: Boolean = castShadow and this.hardShadow and (GamePreferences.uid!!.hardShadows!!.getValue() != 0)
-			castShadow = shadowEnabled and (locType.id != this.shadowLocId || this.sequence != null && GamePreferences.uid!!.hardShadows!!.getValue() >= 2 && (this.shadowFrame != this.currentFrame || (this.sequence!!.shadowTweened || SeqType.forceTweening) && this.currentFrame != this.nextFrame))
+			castShadow = shadowEnabled and (locType.id != this.shadowLocId || this.sequence != null && GamePreferences.uid!!.hardShadows!!.getValue() >= 2 && (this.shadowFrame != this.currentFrame || (this.sequence!!.shadowTweened || this.sequence!!.smoothed()) && this.currentFrame != this.nextFrame))
 		}
 		if (shadowOnly && !castShadow) {
 			this.lastLocId = locType.id

@@ -115,7 +115,7 @@ class PlayerAppearance {
 						modifiesAlpha = modifiesAlpha or PlayerAppearance.aClass2_Sub6_Sub9Array3[j]!!.modifiesAlpha(frame)
 						modifiesBillboard = modifiesBillboard or PlayerAppearance.aClass2_Sub6_Sub9Array3[j]!!.modifiesBillboards(frame)
 					}
-					if ((seqType3.tweened || SeqType.forceTweening) && nextFrameIndex != -1 && seqType3.frames!!.size > nextFrameIndex) {
+					if (seqType3.smoothed() && nextFrameIndex != -1 && seqType3.frames!!.size > nextFrameIndex) {
 						PlayerAppearance.frameDurations[j] = seqType3.durations!![currentFrameIndex]
 						PlayerAppearance.frameCycles[j] = sequences[j]!!.currentFrameDuration
 						@Pc(291) val nextPackedFrame: Int = seqType3.frames!![nextFrameIndex]
@@ -160,7 +160,7 @@ class PlayerAppearance {
 					modifiesAlpha = modifiesAlpha or animFrameset.modifiesAlpha(animFrame)
 					modifiesBillboard = modifiesBillboard or animFrameset.modifiesBillboards(animFrame)
 				}
-				if ((seqType2.tweened || SeqType.forceTweening) && animNextFrameIndex != -1 && seqType2.frames!!.size > animNextFrameIndex) {
+				if (seqType2.smoothed() && animNextFrameIndex != -1 && seqType2.frames!!.size > animNextFrameIndex) {
 					animNextFrame = seqType2.frames!![animNextFrameIndex]
 					animFrameLength = seqType2.durations!![animFrameIndex]
 					nextFramesetId = animNextFrame ushr 16
@@ -184,7 +184,7 @@ class PlayerAppearance {
 					modifiesAlpha = modifiesAlpha or animFrameset3.modifiesAlpha(moveFrame)
 					modifiesBillboard = modifiesBillboard or animFrameset3.modifiesBillboards(moveFrame)
 				}
-				if ((seqType.tweened || SeqType.forceTweening) && moveNextFrameIndex != -1 && seqType.frames!!.size > moveNextFrameIndex) {
+				if (seqType.smoothed() && moveNextFrameIndex != -1 && seqType.frames!!.size > moveNextFrameIndex) {
 					moveNextFrame = seqType.frames!![moveNextFrameIndex]
 					moveFrameLength = seqType.durations!![moveFrameIndex]
 					nextFramesetId = moveNextFrame ushr 16
@@ -463,7 +463,7 @@ class PlayerAppearance {
 				modifiesBillboard = animFrameset.modifiesBillboards(frame) or false
 				modifiesLights = seqType.lights or false
 			}
-			if ((seqType.tweened || SeqType.forceTweening) && nextFrameId != -1 && nextFrameId < seqType.frames!!.size) {
+			if (seqType.smoothed() && nextFrameId != -1 && nextFrameId < seqType.frames!!.size) {
 				val nextPackedFrame: Int = seqType.frames!![nextFrameId]
 				val nextFramesetId: Int = nextPackedFrame ushr 16
 				@Pc(134) val animFrameset2: FrameSet? = if (framesetId == nextFramesetId) animFrameset else seqTypeList.listFrameSet(nextFramesetId)
@@ -586,7 +586,7 @@ class PlayerAppearance {
 				modifiesBillboard = animFrameset.modifiesBillboards(frame) or false
 				modifiesLights = seqType.lights or false
 			}
-			if ((seqType.tweened || SeqType.forceTweening) && nextFrameId != -1 && nextFrameId < seqType.frames!!.size) {
+			if (seqType.smoothed() && nextFrameId != -1 && nextFrameId < seqType.frames!!.size) {
 				val nextPackedFrame: Int = seqType.frames!![nextFrameId]
 				@Pc(99) val nextFramesetId: Int = nextPackedFrame ushr 16
 				@Pc(103) val nextFrame: Int = nextPackedFrame and 0xFFFF

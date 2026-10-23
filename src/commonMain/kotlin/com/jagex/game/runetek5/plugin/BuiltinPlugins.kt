@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.client.features.Agility
+import com.jagex.game.runetek5.client.features.AnimationSmoothing
 import com.jagex.game.runetek5.client.features.AntiDrag
 import com.jagex.game.runetek5.client.features.AttackStyles
 import com.jagex.game.runetek5.client.features.BankOrganizer
@@ -131,6 +132,7 @@ object BuiltinPlugins {
 			builtIn(InventoryGrid.DESCRIPTOR, InventoryGrid),
 			builtIn(Examine.DESCRIPTOR, Examine),
 			builtIn(EntityHider.DESCRIPTOR, EntityHider),
+			builtIn(AnimationSmoothing.DESCRIPTOR, AnimationSmoothing),
 			builtIn(Screenshot.DESCRIPTOR, Screenshot),
 		)
 	}

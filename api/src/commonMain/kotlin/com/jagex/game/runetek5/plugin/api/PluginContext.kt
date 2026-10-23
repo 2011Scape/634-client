@@ -28,6 +28,12 @@ interface PluginContext {
 	/** Asks [filter] whether each projectile is drawn; every filter must agree. Taken back when the plugin stops. Since API 32. */
 	fun addProjectileFilter(filter: ProjectileFilter)
 
+	/**
+	 * Smooths the sequences [filter] says yes to; any plugin's yes is enough. Null takes the plugin's filter back,
+	 * as stopping does. Setting it again (even the same filter) makes the client ask again. Since API 34.
+	 */
+	fun setAnimationFilter(filter: AnimationFilter?)
+
 	fun removeOverlay(overlay: Overlay)
 
 	/**
