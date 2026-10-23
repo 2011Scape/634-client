@@ -602,25 +602,6 @@ object SmokeTest {
 
 	private var animationSmoothingOffCount: Int = 0
 
-	/**
-	 * client.test.party: the Party plugin with a second smoke client on a server with parties (Void's Party).
-	 * "lead:<name>[,<name>...]" invites them, waits for them all, reads their stats, pings a tile, checks the maps and
-	 * leaves (frames of the panel, and compact); "join" waits for the invite, accepts it and waits for the party to end.
-	 */
-	private val PARTY: String = lang.getProperty("client.test.party", "")
-
-	private var partyStep: Int = 0
-
-	private var partyFrame: Int = -1
-
-	private var partyWasEnabled: Boolean = false
-
-	private var partyCompactFrame: Int = -1
-
-	private var partyCompactWas: Boolean = false
-
-	private var partyBecameLeader: Boolean = false
-
 	private var animationSmoothingWasEnabled: Boolean = false
 
 	/**
@@ -701,10 +682,6 @@ object SmokeTest {
 	private var groundItemsSummary: String = ""
 
 	private const val MARKER_FRAMES: Int = 40
-
-	/** The party step's waits: for the other client, and between two invites. */
-	private const val PARTY_WAIT: Int = 6000
-	private const val PARTY_REINVITE: Int = 300
 
 	/** The backpack's item container, and an amulet of glory(4) for Item Charges. */
 	private const val BACKPACK: Int = 93
@@ -1749,12 +1726,6 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 288230376151711744L
-		}
-		if (PARTY.isNotEmpty() && (checksDone and 576460752303423488L) == 0L) {
-			if (!partyDone()) {
-				return
-			}
-			checksDone = checksDone or 576460752303423488L
 		}
 		if (SCREENSHOT && (checksDone and 144115188075855872L) == 0L) {
 			if (!screenshotDone()) {
@@ -5566,191 +5537,6 @@ object SmokeTest {
 			}
 		}
 		return false
-	}
-
-	/** The party with a second client: see [PARTY]. Frame: frame-party.png. */
-	private fun partyDone(): Boolean {
-		val lead: Boolean = PARTY.startsWith("lead:")
-		val state: Party.State = Party.state
-		val waited: Int = frames - partyFrame
-		when (partyStep) {
-			0 -> {
-				partyWasEnabled = Party.enabled
-				Party.enabled = true
-				partyFrame = frames
-				partyStep = 1
-				if (lead) {
-					partyInviteAll()
-				}
-			}
-			1 -> {
-				if (lead) {
-					if (state.members.size >= partyNames().size + 1) {
-						val other: Party.Member = state.members.first { it.slot != state.local }
-						if (other.hpMax <= 0) {
-							return partyFail("the member's hitpoints never came")
-						}
-						println("SMOKE party: " + other.name + " joined, hitpoints " + other.hp + "/" + other.hpMax + ", prayer " + other.prayer + "/" + other.prayerMax + ", tile " + other.x + "," + other.y)
-						val player: PlayerEntity = PlayerUpdate.localPlayer ?: return false
-						ClientCommandProcessor.sendCheat("ping " + player.movementBaseX[0].let { it + ClientApiImpl.sceneBaseX() } + " " + player.movementBaseY[0].let { it + ClientApiImpl.sceneBaseY() } + " " + ClientApiImpl.localPlayer()!!.level(), false, false)
-						partyFrame = frames
-						partyStep = 2
-					} else if (waited > 0 && waited % PARTY_REINVITE == 0) {
-						partyInviteAll()
-					}
-				} else if (state.invite != null) {
-					// accepted the player's way: the invite's chat line, left click (its top row once the menu is built)
-					val line: Component? = inviteLine()
-					if (line != null) {
-						MiniMenuReset.resetEntries()
-						MiniMenuBuilder.interfaceComponentHovered(0, 0, line)
-						MiniMenuInputTick.processMenuInput()
-						val top: MiniMenuEntry? = MiniMenu.entryList.sentinel.previous as MiniMenuEntry?
-						println("SMOKE party: the invite line's left click is \"" + top?.opBase + "\"")
-						if (top?.opBase != Party.ACCEPT_OPTION) {
-							MiniMenuReset.resetEntries()
-							return partyFail("the invite line's left click is " + top?.opBase)
-						}
-						MiniMenuActionExecutor.processMenuClick(top, 0, 0)
-						MiniMenuReset.resetEntries()
-						partyFrame = frames
-						partyStep = 2
-					}
-				}
-				if (partyStep == 1 && waited > PARTY_WAIT) {
-					return partyFail(if (lead) "no one joined" else "no invite came")
-				}
-			}
-			2 -> {
-				if (Party.pingShowing() && state.members.size >= 2) {
-					saveFrame("build/smoke/frame-party.png")
-					if (lead) {
-						val compact: Boolean = Party.compactPanel
-						Party.compactPanel = true
-						partyCompactFrame = frames
-						partyCompactWas = compact
-					}
-					println("SMOKE party: " + (if (lead) "led" else "joined") + " a party of " + state.members.map { it.name } + ", the ping shows, minimap dots " + Party.minimapDots)
-					if (lead && Party.minimapDots == 0) {
-						return partyFail("the member's dot is not on the minimap")
-					}
-					partyFrame = frames
-					partyStep = 3
-				} else if (waited > PARTY_WAIT) {
-					return partyFail("no ping seen, members " + state.members.map { it.name } + ", ping varcs " + ClientApiImpl.varcInt(Party.PING_SEQ) + "/" + ClientApiImpl.varcInt(Party.PING_TILE))
-				}
-			}
-			3 -> {
-				if (lead && partyCompactFrame >= 0) {
-					if (frames - partyCompactFrame < MARKER_FRAMES) {
-						return false
-					}
-					saveFrame("build/smoke/frame-party-compact.png")
-					Party.compactPanel = partyCompactWas
-					partyCompactFrame = -1
-					// the world map after the panel's frames, which it would cover
-					if (!openTab("World Map", "View World Map")) {
-						println("SMOKE party: no world map button found; the world map dot is not checked")
-						partyStep = 5
-						return false
-					}
-					partyFrame = frames
-					return false
-				}
-				if (!lead) {
-					// the joiner stays until the leader has checked the maps and left
-					if (state.inParty() && state.leader == state.local && !partyBecameLeader) {
-						partyBecameLeader = true
-						println("SMOKE party: this client became the party leader")
-					}
-					if (!state.inParty() || waited > PARTY_WAIT) {
-						Party.enabled = partyWasEnabled
-						return true
-					}
-					return false
-				}
-				if (Party.worldMapDots == 0 && waited < BANK_WAIT_FRAMES) {
-					return false
-				}
-				saveFrame("build/smoke/frame-party-worldmap.png")
-				println("SMOKE party: world map dots " + Party.worldMapDots + " under " + Party.worldMapLabels + " labels")
-				if (Party.worldMapDots == 0) {
-					return partyFail("the member's dot is not on the world map")
-				}
-				clickComponent(WORLD_MAP, WORLD_MAP_CLOSE)
-				partyFrame = frames
-				partyStep = 4
-			}
-			4 -> {
-				if (ClientApiImpl.worldMapArea(IntArray(4)) && waited < BANK_WAIT_FRAMES) {
-					return false
-				}
-				partyStep = 5
-			}
-			5 -> {
-				// the leader's tools on a member's row in the panel's menu: Kick, Make leader, Invite player...
-				val row: Int = state.members.indexOfFirst { it.slot != state.local }
-				Party.hoveredRowForTest = row
-				val entries = Party.panel.menuEntries()
-				Party.hoveredRowForTest = -1
-				val options: List<String> = entries.map { it.option }
-				println("SMOKE party: the panel's menu on " + state.members[row].name + "'s row: " + options)
-				if (!options.containsAll(listOf("Kick", "Make leader", "Invite player..."))) {
-					return partyFail("the leader's panel menu has " + options)
-				}
-				entries.first { it.option == "Make leader" }.action.run()
-				partyFrame = frames
-				partyStep = 6
-			}
-			6 -> {
-				if (state.leader == state.local && waited < BANK_WAIT_FRAMES) {
-					return false
-				}
-				if (state.leader == state.local) {
-					return partyFail("Make leader did not hand the party over")
-				}
-				println("SMOKE party: Make leader handed the party to " + state.members.first { it.slot == state.leader }.name)
-				partyStep = 7
-			}
-			else -> {
-				ClientCommandProcessor.sendCheat("party leave", false, false)
-				Party.enabled = partyWasEnabled
-				return true
-			}
-		}
-		return false
-	}
-
-	/** The names the leader invites: client.test.party=lead:<name>,<name>... */
-	private fun partyNames(): List<String> = PARTY.substring(5).split(',').map { it.trim() }.filter { it.isNotEmpty() }
-
-	private fun partyInviteAll() {
-		for (name in partyNames()) {
-			if (Party.state.members.none { it.name.equals(name.replace('_', ' '), ignoreCase = true) }) {
-				ClientCommandProcessor.sendCheat("party invite " + name, false, false)
-			}
-		}
-	}
-
-	/** The chat box's line (or line group) that holds the party invite. */
-	private fun inviteLine(): Component? {
-		val components: Array<Component?> = Interface.peekComponents(ChatHistory.CHATBOX) ?: return null
-		for (component in components) {
-			val children: Array<Component?> = component?.slotChildren ?: arrayOf(component)
-			for (child in children) {
-				val text: String? = child?.text()
-				if (text != null && ClientFeatures.plainText(text).contains(Party.INVITE_TEXT)) {
-					return child
-				}
-			}
-		}
-		return null
-	}
-
-	private fun partyFail(why: String): Boolean {
-		Party.enabled = partyWasEnabled
-		fail("Party: " + why)
-		return true
 	}
 
 	/** Animation Smoothing: on, the scene's sequences blended through its filter; off, none. Frame: frame-animationsmoothing.png. */

@@ -306,8 +306,6 @@ object DiscordGameEvents {
 		area("Legends' Guild", DiscordAreaType.REGIONS, 10804),
 		area("Lighthouse", DiscordAreaType.REGIONS, 10040),
 		area("Lumbridge Swamp", DiscordAreaType.REGIONS, 12593, 12849),
-		// Void's start: new players begin on Tutorial Island (3094, 3107)
-		area("Tutorial Island", DiscordAreaType.REGIONS, 12079, 12080, 12335, 12336),
 		area("Marim", DiscordAreaType.REGIONS, 11051),
 		area("McGrubor's Wood", DiscordAreaType.REGIONS, 10550),
 		area("Mime's Stage", DiscordAreaType.REGIONS, 8010),
