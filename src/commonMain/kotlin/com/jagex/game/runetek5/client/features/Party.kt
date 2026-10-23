@@ -128,6 +128,34 @@ object Party : Plugin {
 	private val ys: IntArray = IntArray(4)
 	private val size: Size = Size()
 
+	/** Where each member's row was drawn in the panel, by member order, and how tall a row is: for the menu. */
+	private val rowTops: ArrayList<Int> = ArrayList()
+	private var rowHeight: Int = 0
+
+	/** For the smoke test, which cannot move the mouse: the member row taken as hovered, -1 for the mouse's. */
+	@JvmField
+	var hoveredRowForTest: Int = -1
+
+	/** The member whose row the mouse is over, or null. */
+	private fun hoveredMember(overlay: PanelOverlay): Member? {
+		if (hoveredRowForTest >= 0) {
+			return state.members.getOrNull(hoveredRowForTest)
+		}
+		val client: ClientApi = context?.client() ?: return null
+		val x: Int = client.mouseX() - overlay.boundsX
+		val y: Int = client.mouseY() - overlay.boundsY
+		if (x < 0 || x >= overlay.boundsWidth) {
+			return null
+		}
+		val members: List<Member> = state.members
+		for (i in rowTops.indices) {
+			if (i < members.size && y >= rowTops[i] && y < rowTops[i] + rowHeight) {
+				return members[i]
+			}
+		}
+		return null
+	}
+
 	/** A stat line's height: the font's, and a pixel above and below. */
 	private var statLine: Int = 14
 
@@ -201,12 +229,26 @@ object Party : Plugin {
 		}
 
 		override fun menuEntries(): List<OverlayMenuEntry> {
+			val current: State = state
 			val entries: ArrayList<OverlayMenuEntry> = ArrayList()
-			if (state.invite != null) {
+			if (current.invite != null) {
 				entries.add(OverlayMenuEntry("Accept", "Party invite", Task { command("party accept") }))
 				entries.add(OverlayMenuEntry("Decline", "Party invite", Task { command("party decline") }))
 			}
-			if (state.inParty()) {
+			val leading: Boolean = current.inParty() && current.local == current.leader
+			// the leader's tools for the member under the mouse
+			val hovered: Member? = hoveredMember(this)
+			if (leading && hovered != null && hovered.slot != current.local) {
+				val target: String = "<col=" + (colour(hovered.slot) and 0xFFFFFF).toString(16) + ">" + hovered.name
+				val name: String = hovered.name.replace(' ', '_')
+				entries.add(OverlayMenuEntry("Kick", target, Task { command("party kick " + name) }))
+				entries.add(OverlayMenuEntry("Make leader", target, Task { command("party leader " + name) }))
+			}
+			if ((leading || !current.inParty()) && current.members.size < MAX_MEMBERS) {
+				// the server asks for the name in the game's own box
+				entries.add(OverlayMenuEntry("Invite player...", "Party", Task { command("party invite") }))
+			}
+			if (current.inParty()) {
 				entries.add(OverlayMenuEntry("Leave", "Party", Task { command("party leave") }))
 			}
 			entries.add(OverlayMenuEntry("Configure", "Party", Task { PluginManagerScreen.openSettings(DESCRIPTOR.id) }))
@@ -391,16 +433,17 @@ object Party : Plugin {
 	 */
 	private fun drawPanel(g: Graphics, overlay: PanelOverlay): Size? {
 		val current: State = state
-		if (!enabled || !g.fontReady() || (!current.inParty() && current.invite == null)) {
+		val client: ClientApi = context?.client() ?: return null
+		if (!enabled || !g.fontReady() || client.gameState() !== GameState.LOGGED_IN) {
 			return null
 		}
-		val client: ClientApi? = context?.client()
 		val line: Int = g.fontHeight()
 		val width: Int = if (overlay.preferredWidth > 0) overlay.preferredWidth else PANEL_WIDTH
 		val statLines: Int = if (compactPanel) 1 else 2
 		statLine = line + 2
 		val memberHeight: Int = line + statLines * statLine + GAP
-		val height: Int = BORDER + line + (if (current.invite != null) line else 0) + current.members.size * memberHeight + BORDER
+		val hint: Boolean = !current.inParty() && current.invite == null
+		val height: Int = BORDER + line + (if (current.invite != null || hint) line else 0) + current.members.size * memberHeight + BORDER
 		PanelComponent.background(g, 0, 0, width, height, overlay.backgroundColour)
 		var y: Int = BORDER
 		g.text(BORDER, y + line - 2, if (current.inParty()) "Party (" + current.members.size + "/" + MAX_MEMBERS + ")" else "Party", TITLE, BLACK)
@@ -409,15 +452,22 @@ object Party : Plugin {
 			g.text(BORDER, y + line - 2, "Invite from " + it, INVITE, BLACK)
 			y += line
 		}
-		val mouseX: Int = (client?.mouseX() ?: -1) - overlay.boundsX
-		val mouseY: Int = (client?.mouseY() ?: -1) - overlay.boundsY
+		if (hint) {
+			g.text(BORDER, y + line - 2, "Right-click to invite", HINT, BLACK)
+			y += line
+		}
+		val mouseX: Int = client.mouseX() - overlay.boundsX
+		val mouseY: Int = client.mouseY() - overlay.boundsY
+		rowTops.clear()
 		for (member in current.members) {
+			rowTops.add(y)
 			drawMember(g, member, member.slot == current.leader, y, width, line)
-			if (client != null && mouseX in 0 until width && mouseY in y until y + memberHeight) {
+			if (mouseX in 0 until width && mouseY in y until y + memberHeight) {
 				client.addTooltip(tooltip(member))
 			}
 			y += memberHeight
 		}
+		rowHeight = memberHeight
 		return size.set(width, height)
 	}
 
@@ -594,4 +644,5 @@ object Party : Plugin {
 		0xFFFFE14D.toInt(), 0xFFB388FF.toInt(), 0xFF2EC4B6.toInt(), 0xFFD8D8D8.toInt(),
 	)
 	private const val PVP: Int = 0xFFFF3030.toInt()
+	private const val HINT: Int = 0xFFB0A890.toInt()
 }

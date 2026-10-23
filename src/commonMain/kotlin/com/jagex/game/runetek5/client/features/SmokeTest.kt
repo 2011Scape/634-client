@@ -619,6 +619,8 @@ object SmokeTest {
 
 	private var partyCompactWas: Boolean = false
 
+	private var partyBecameLeader: Boolean = false
+
 	private var animationSmoothingWasEnabled: Boolean = false
 
 	/**
@@ -5657,6 +5659,10 @@ object SmokeTest {
 				}
 				if (!lead) {
 					// the joiner stays until the leader has checked the maps and left
+					if (state.inParty() && state.leader == state.local && !partyBecameLeader) {
+						partyBecameLeader = true
+						println("SMOKE party: this client became the party leader")
+					}
 					if (!state.inParty() || waited > PARTY_WAIT) {
 						Party.enabled = partyWasEnabled
 						return true
@@ -5680,6 +5686,31 @@ object SmokeTest {
 					return false
 				}
 				partyStep = 5
+			}
+			5 -> {
+				// the leader's tools on a member's row in the panel's menu: Kick, Make leader, Invite player...
+				val row: Int = state.members.indexOfFirst { it.slot != state.local }
+				Party.hoveredRowForTest = row
+				val entries = Party.panel.menuEntries()
+				Party.hoveredRowForTest = -1
+				val options: List<String> = entries.map { it.option }
+				println("SMOKE party: the panel's menu on " + state.members[row].name + "'s row: " + options)
+				if (!options.containsAll(listOf("Kick", "Make leader", "Invite player..."))) {
+					return partyFail("the leader's panel menu has " + options)
+				}
+				entries.first { it.option == "Make leader" }.action.run()
+				partyFrame = frames
+				partyStep = 6
+			}
+			6 -> {
+				if (state.leader == state.local && waited < BANK_WAIT_FRAMES) {
+					return false
+				}
+				if (state.leader == state.local) {
+					return partyFail("Make leader did not hand the party over")
+				}
+				println("SMOKE party: Make leader handed the party to " + state.members.first { it.slot == state.leader }.name)
+				partyStep = 7
 			}
 			else -> {
 				ClientCommandProcessor.sendCheat("party leave", false, false)

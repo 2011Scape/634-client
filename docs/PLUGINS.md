@@ -668,8 +668,10 @@ and keeps the cut-offs the cache marks, which OSRS's list mostly works around.
 no party server and no one sees anyone's address. `::party invite <name>` (from anywhere; `_` for a
 space) invites a player, whose chat box shows "<name> wishes to join you in a party." in purple, as a
 duel challenge: a left click on it accepts (right click: Decline), as do the panel's menu and `::party
-accept`. `::party leave`, `::party decline` and the leader's `::party kick <name>` do the rest, and a
-party holds eight. The panel lists the members, the leader with a crown, each with two labelled bars,
+accept`. The leader manages the party from the panel's right-click menu: **Invite player...** (the
+game's name box asks who), and on a member's row **Kick** and **Make leader**; `::party kick <name>`,
+`::party leader <name>`, `::party leave` and `::party decline` do the same by hand. A party holds eight;
+when the leader leaves, the next member leads. Out of a party, the panel shows "Right-click to invite". The panel lists the members, the leader with a crown, each with two labelled bars,
 HP and Prayer with their values (on one line with **Compact panel**); hovering a member shows their
 special attack and run energy too, and their tile. Their dots show on the minimap and the world map. Holding the
 **Ping hotkey** (Ctrl) adds Ping to a tile's menu: the tile lights up for everyone in the pinger's colour,
