@@ -799,12 +799,18 @@ object PluginRuntime {
 
 	@JvmStatic
 	fun chatMessage(type: Int, name: String?, message: String?, clan: String?): String? {
+		return chatMessageEvent(type, name, message, clan)?.message ?: message
+	}
+
+	/** The plugins' ChatMessage for a line about to be stored; null when no plugin listens. */
+	@JvmStatic
+	fun chatMessageEvent(type: Int, name: String?, message: String?, clan: String?): ChatMessage? {
 		if (!started || !bus.hasListeners(Events.CHAT_MESSAGE)) {
-			return message
+			return null
 		}
 		val event: ChatMessage = ChatMessage(type, name, message, clan)
 		bus.post(Events.CHAT_MESSAGE, event)
-		return event.message
+		return event
 	}
 
 	@JvmStatic
