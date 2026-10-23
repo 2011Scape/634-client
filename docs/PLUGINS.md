@@ -12,8 +12,9 @@ timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes
 Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`), the
 anti drag (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`), the key remapping
 (`KeyRemapping`), the custom cursor (`CustomCursor`), the item stats (`ItemStats`), the woodcutting
-(`Woodcutting`), the mining (`Mining`), the report button (`ReportButton`) and the player indicators
-(`PlayerIndicators`) are thirty-two, built in, so the client's own code shows the way.
+(`Woodcutting`), the mining (`Mining`), the report button (`ReportButton`), the player indicators
+(`PlayerIndicators`) and the special attack counter (`SpecialCounter`) are thirty-three, built in, so
+the client's own code shows the way.
 
 ## Contents
 
@@ -462,6 +463,15 @@ the friends chat rank's icon (the game's own) before a member's name. 634's Clan
 calls the friends chat; the clan system OSRS added in 2021 does not exist here, so the clan member
 settings find no one, and RuneLite's party is not here. Name plates is the client's own, simpler
 colouring; both can be on.
+
+**Special Attack Counter** is RuneLite's. When your special attack energy drops with a counted weapon
+worn, your next hitsplat on the npc you fight is the special's: an infobox per weapon counts its hits
+(Darklight) or its damage (the Bandos godsword, the Barrelchest anchor, the bone daggers, the Dorgeshuun
+crossbow and the Seercull), starting again on a new npc, and the hit rises over your head (**Spec
+drops**, misses too with **Spec drop misses**). A threshold for Darklight or the godsword turns the
+count green once reached and, with **Threshold notifications**, notifies you. The Dragon warhammer,
+Elder maul, Arclight, Emberlight, Dinh's bulwark and the other OSRS-only weapons are not here, nor the
+defence drain percentage that only they feed (its setting stays), nor RuneLite's party sharing.
 
 ## Writing a plugin
 
