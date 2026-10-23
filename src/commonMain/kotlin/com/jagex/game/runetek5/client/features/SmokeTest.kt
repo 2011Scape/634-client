@@ -410,6 +410,13 @@ object SmokeTest {
 
 	private var fishingFrame: Int = -1
 
+	/** client.test.agility: Agility at the Gnome Stronghold course (a teleport there and back): the obstacles' click boxes, and the lap panel after a lap bonus. */
+	private val AGILITY: Boolean = "true" == lang.getProperty("client.test.agility")
+
+	private var agilityStep: Int = 0
+
+	private var agilityFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1364,6 +1371,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 34359738368L
+		}
+		if (AGILITY && (checksDone and 68719476736L) == 0L) {
+			if (!agilityDone()) {
+				return
+			}
+			checksDone = checksDone or 68719476736L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4173,6 +4186,46 @@ object SmokeTest {
 				println("SMOKE fishing: " + drawn + " spots drawn at Catherby, the session panel after a catch")
 			}
 			else -> return frames - fishingFrame >= MARKER_FRAMES
+		}
+		return false
+	}
+
+	/** Agility at the Gnome Stronghold: its obstacles found and drawn, a lap counted from the bonus. Frame: frame-agility.png. */
+	private fun agilityDone(): Boolean {
+		when (agilityStep) {
+			0 -> {
+				sendCommand("tele 2474 3436")
+				agilityFrame = frames
+				agilityStep = 1
+			}
+			1 -> {
+				if (Agility.drawnLastFrame == 0 && frames - agilityFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				val xp: Int = ClientApiImpl.skillXp(com.jagex.game.runetek5.plugin.api.Skill.AGILITY)
+				Agility.statChanged(com.jagex.game.runetek5.plugin.api.events.StatChanged(com.jagex.game.runetek5.plugin.api.Skill.AGILITY, xp + 1, xp + 40, 1))
+				agilityFrame = frames
+				agilityStep = 2
+			}
+			2 -> {
+				if (frames - agilityFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-agility.png")
+				val found: Int = Agility.found.size
+				val drawn: Int = Agility.drawnLastFrame
+				val laps: Int = Agility.session?.totalLaps ?: 0
+				Agility.session = null
+				sendCommand("tele 3094 3107")
+				agilityFrame = frames
+				agilityStep = 3
+				if (found == 0 || drawn == 0 || laps != 1) {
+					fail("Agility: " + found + " obstacles found, " + drawn + " drawn, " + laps + " laps")
+					return true
+				}
+				println("SMOKE agility: " + found + " obstacles and shortcuts found at the Gnome Stronghold, " + drawn + " click boxes drawn, a lap counted")
+			}
+			else -> return frames - agilityFrame >= MARKER_FRAMES
 		}
 		return false
 	}

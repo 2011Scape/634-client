@@ -14,8 +14,8 @@ anti drag (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltip
 (`KeyRemapping`), the custom cursor (`CustomCursor`), the item stats (`ItemStats`), the woodcutting
 (`Woodcutting`), the mining (`Mining`), the report button (`ReportButton`), the player indicators
 (`PlayerIndicators`), the special attack counter (`SpecialCounter`), the regeneration meter
-(`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`) and the fishing (`Fishing`) are
-thirty-seven, built in, so the client's own code shows the way.
+(`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`), the fishing (`Fishing`) and the
+agility (`Agility`) are thirty-eight, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -504,6 +504,14 @@ whether you are fishing and how many fish you caught this session and an hour (t
 actions, or the catches the plugin counts itself when that is more), and goes after **Reset stats**
 minutes without a catch. Not here from RuneLite: minnows, aerial fishing and harpoonfish (OSRS-only),
 and the Fishing Trawler's timer and contribution (Void has no Trawler to read).
+
+**Agility** is RuneLite's. The obstacles of Void's courses (the Gnome Stronghold and Barbarian Outpost
+with their advanced laps, the Wilderness and Ape Atoll) and Void's agility shortcuts show their click
+boxes; a panel counts your laps, the laps to your goal (the next level) and the laps an hour, and goes
+after **Hide lap count** minutes without a lap. Void sends no lap message or count, so a lap is the
+course's lap bonus arriving as Agility experience, and a lap's experience is measured from one bonus to
+the next. Not on Void: marks of grace, the rooftop courses, portals, the Brimhaven Agility Arena, the
+Werewolf course's stick and traps, and the Hallowed Sepulchre, so their settings are not here.
 
 ## Writing a plugin
 

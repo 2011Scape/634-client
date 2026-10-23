@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.client.features.Agility
 import com.jagex.game.runetek5.client.features.AntiDrag
 import com.jagex.game.runetek5.client.features.AttackStyles
 import com.jagex.game.runetek5.client.features.BankOrganizer
@@ -90,6 +91,7 @@ object BuiltinPlugins {
 			builtIn(RunEnergy.DESCRIPTOR, RunEnergy),
 			builtIn(Poison.DESCRIPTOR, Poison),
 			builtIn(Fishing.DESCRIPTOR, Fishing),
+			builtIn(Agility.DESCRIPTOR, Agility),
 		)
 	}
 
