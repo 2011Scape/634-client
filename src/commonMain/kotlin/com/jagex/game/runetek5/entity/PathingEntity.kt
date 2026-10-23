@@ -65,6 +65,15 @@ abstract class PathingEntity : AbstractInteractiveEntity, Actor {
 		return this.getSize()
 	}
 
+	/** Not part of the original client: OverlayManager's top of what it drew over the head, and in which cycle. */
+	@JvmField
+	var overheadTop: Int = -1
+
+	@JvmField
+	var overheadTopCycle: Int = -1
+
+	override fun overheadTop(): Int = if (overheadTopCycle == ClientState.clientCycle) overheadTop else -1
+
 	override fun overheadHeight(): Int {
 		return this.getOverheadHeight()
 	}
