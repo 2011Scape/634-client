@@ -16,6 +16,7 @@ import com.jagex.game.runetek5.client.features.GroundTiles
 import com.jagex.game.runetek5.client.features.IdleNotifier
 import com.jagex.game.runetek5.client.features.InventoryValue
 import com.jagex.game.runetek5.client.features.ItemCharges
+import com.jagex.game.runetek5.client.features.ItemIdentification
 import com.jagex.game.runetek5.client.features.ItemStats
 import com.jagex.game.runetek5.client.features.KeyRemapping
 import com.jagex.game.runetek5.client.features.LootTracker
@@ -96,6 +97,7 @@ object BuiltinPlugins {
 			builtIn(Agility.DESCRIPTOR, Agility),
 			builtIn(Slayer.DESCRIPTOR, Slayer),
 			builtIn(ItemCharges.DESCRIPTOR, ItemCharges),
+			builtIn(ItemIdentification.DESCRIPTOR, ItemIdentification),
 		)
 	}
 
