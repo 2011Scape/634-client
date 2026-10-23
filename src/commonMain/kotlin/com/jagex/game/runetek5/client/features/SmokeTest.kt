@@ -3,6 +3,7 @@ package com.jagex.game.runetek5.client.features
 import InterfaceOptionInteract
 import com.jagex.game.runetek5.SceneDrawer
 import com.jagex.game.runetek5.core.constants.TileFlag
+import com.jagex.game.runetek5.plugin.maximumCursorColours
 import com.jagex.game.runetek5.scene.SettingsBits
 import com.jagex.game.runetek5.SceneVisibleTiles
 import memoryReport
@@ -3759,6 +3760,14 @@ object SmokeTest {
 				if (CustomCursor.shownStyle != 0 || !PluginCursor.isSet()) {
 					fail("Custom Cursor: style " + CustomCursor.shownStyle + " shown, a plugin cursor " + PluginCursor.isSet())
 					CustomCursor.enabled = false
+					return true
+				}
+				// where the platform's cursors have too few colours (X11), the client draws it: seen in the frame
+				saveFrame("build/smoke/frame-customcursor.png")
+				println("SMOKE custom cursor: " + maximumCursorColours() + " cursor colours, drawn by the client " + PluginCursor.isSoftware() + " (" + PluginCursor.softwareFrames + " frames, last at " + PluginCursor.softwareX + "," + PluginCursor.softwareY + ")")
+				if (maximumCursorColours() < 256 && (!PluginCursor.isSoftware() || PluginCursor.softwareFrames == 0)) {
+					CustomCursor.enabled = false
+					fail("Custom Cursor: " + maximumCursorColours() + " cursor colours, but the client did not draw the cursor")
 					return true
 				}
 				CustomCursor.cursorStyle = CustomCursor.EQUIPPED_WEAPON
