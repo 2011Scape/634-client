@@ -436,6 +436,17 @@ object SmokeTest {
 
 	private var itemChargesSlot: Int = -1
 
+	/** client.test.itemIdentification: a clean guam put in an empty backpack slot on this client only, labelled "G" by Item Identification with herbs on, then the slot emptied again. */
+	private val ITEM_IDENTIFICATION: Boolean = "true" == lang.getProperty("client.test.itemIdentification")
+
+	private var itemIdentificationStep: Int = 0
+
+	private var itemIdentificationFrame: Int = -1
+
+	private var itemIdentificationSlot: Int = -1
+
+	private var itemIdentificationWasEnabled: Boolean = false
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -492,6 +503,9 @@ object SmokeTest {
 	private const val BACKPACK: Int = 93
 
 	private const val GLORY_4: Int = 1712
+
+	/** A clean guam, for Item Identification. */
+	private const val CLEAN_GUAM: Int = 249
 
 	private const val COINS: Int = 995
 
@@ -1413,6 +1427,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 274877906944L
+		}
+		if (ITEM_IDENTIFICATION && (checksDone and 549755813888L) == 0L) {
+			if (!itemIdentificationDone()) {
+				return
+			}
+			checksDone = checksDone or 549755813888L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4394,6 +4414,65 @@ object SmokeTest {
 					return true
 				}
 				println("SMOKE item charges: the glory(4) in backpack slot " + itemChargesSlot + " shows its charges (" + drawn + " drawn)")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Item Identification on a clean guam in the backpack: its "G" drawn. Frame: frame-itemidentification.png. */
+	private fun itemIdentificationDone(): Boolean {
+		val herbs: Int = ItemIdentification.TYPES.indexOf("HERB")
+		when (itemIdentificationStep) {
+			0 -> {
+				val backpack = ClientApiImpl.itemContainer(BACKPACK) ?: return false
+				for (slot in 0 until backpack.size()) {
+					if (itemIdentificationSlot < 0 && backpack.itemId(slot) < 0) {
+						itemIdentificationSlot = slot
+					}
+				}
+				if (itemIdentificationSlot < 0) {
+					fail("Item Identification: no empty backpack slot")
+					return true
+				}
+				ItemIdentification.shown[herbs] = true
+				// off by default: on for the step, as the player had it after
+				itemIdentificationWasEnabled = ItemIdentification.enabled
+				ItemIdentification.enabled = true
+				openInventoryTab()
+				itemIdentificationFrame = frames
+				itemIdentificationStep = 1
+			}
+			1 -> {
+				if (frames - itemIdentificationFrame < MARKER_FRAMES) {
+					return false
+				}
+				fakeBackpackItem(itemIdentificationSlot, CLEAN_GUAM)
+				itemIdentificationFrame = frames
+				itemIdentificationStep = 2
+			}
+			2 -> {
+				if (ItemIdentification.drawnLastFrame == 0 && frames - itemIdentificationFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				itemIdentificationFrame = frames
+				itemIdentificationStep = 3
+			}
+			else -> {
+				if (frames - itemIdentificationFrame < 5) {
+					return false
+				}
+				saveFrame("build/smoke/frame-itemidentification.png")
+				val drawn: Int = ItemIdentification.drawnLastFrame
+				val label: String? = ItemIdentification.label(ClientApiImpl, CLEAN_GUAM)
+				fakeBackpackItem(itemIdentificationSlot, -1)
+				ItemIdentification.shown[herbs] = ItemIdentification.CATEGORY_DEFAULTS[herbs]
+				ItemIdentification.enabled = itemIdentificationWasEnabled
+				if (drawn == 0) {
+					fail("Item Identification: no label drawn on the guam in backpack slot " + itemIdentificationSlot)
+					return true
+				}
+				println("SMOKE item identification: the clean guam in backpack slot " + itemIdentificationSlot + " labelled \"" + label + "\" (" + drawn + " drawn)")
 				return true
 			}
 		}

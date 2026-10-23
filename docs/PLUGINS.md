@@ -15,8 +15,8 @@ tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brot
 (`Woodcutting`), the mining (`Mining`), the report button (`ReportButton`), the player indicators
 (`PlayerIndicators`), the special attack counter (`SpecialCounter`), the regeneration meter
 (`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`), the fishing (`Fishing`), the
-agility (`Agility`), the slayer (`Slayer`) and the item charges (`ItemCharges`) are thirty-nine, built
-in, so the client's own code shows the way.
+agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`) and the item identification
+(`ItemIdentification`) are forty, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -531,6 +531,13 @@ between sessions). The Ring of recoil shattering and the Binding necklace's end 
 here: the dodgy necklace, the ring of forging and the bracelet of clay (no charge messages on Void), and
 the OSRS-only amulets of chemistry and bounty, the bracelets of slaughter and expeditious, the abyssal
 bracelet, the Chronicle, blood essence and the explorer's ring's alchemy.
+
+**Item Identification** is RuneLite's. Seeds, herbs, logs, ores, bars, gems, potions, tablets, jewellery
+and the other kinds you switch on carry a short name (or, by **Identification type**, a longer one) at
+the bottom left of their slot wherever the interfaces show them, noted ones too; herb seeds and saplings
+are on by default, as in RuneLite. The names are RuneLite's, kept for the 304 of its 545 items whose
+OSRS id is the same item on 634; the OSRS-only kinds (coral, sap-treated logs, repair kits and the later
+items) find nothing here.
 
 ## Writing a plugin
 
