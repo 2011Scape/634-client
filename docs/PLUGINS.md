@@ -14,8 +14,9 @@ tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brot
 (`KeyRemapping`), the custom cursor (`CustomCursor`), the item stats (`ItemStats`), the woodcutting
 (`Woodcutting`), the mining (`Mining`), the report button (`ReportButton`), the player indicators
 (`PlayerIndicators`), the special attack counter (`SpecialCounter`), the regeneration meter
-(`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`), the fishing (`Fishing`) and the
-agility (`Agility`) are thirty-seven, built in, so the client's own code shows the way.
+(`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`), the fishing (`Fishing`), the
+agility (`Agility`) and the slayer (`Slayer`) are thirty-eight, built in, so the client's own code shows
+the way.
 
 ## Contents
 
@@ -511,6 +512,15 @@ after **Hide lap count** minutes without a lap. Void sends no lap message or cou
 course's lap bonus arriving as Agility experience, and a lap's experience is measured from one bonus to
 the next. Not on Void: marks of grace, the rooftop courses, portals, the Brimhaven Agility Arena, the
 Werewolf course's stick and traps, and the Hallowed Sepulchre, so their settings are not here.
+
+**Slayer** is RuneLite's. Your task and its kills left come from the server's slayer varps, as RuneLite
+now takes them: an infobox shows them (gone after **Infobox expiry** minutes without a kill), the
+enchanted gem and slayer helmets carry the count, and the task's monsters (the npcs of the task's Void
+category, the ones a kill counts for) are highlighted by hull, tile or outline (the outline of the npc's
+box: the client keeps no npc model outlines). **Show monster weakness** shows the finishing item over a
+monster low enough for it, by Void's rules: a gargoyle under 90 life points (rock hammer), a rockslug
+under 60 (salt), a zygomite under 80 (fungicide) and a lizard under a quarter (ice cooler). Superior
+foes are OSRS-only, and the `!task` chat command needs RuneLite's server.
 
 ## Writing a plugin
 

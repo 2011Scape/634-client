@@ -42,6 +42,14 @@ interface Widget {
 	fun isHidden(): Boolean
 
 	/**
+	 * Whether the interfaces drew this component in the frame being drawn (or the last one, before it is
+	 * drawn): false for one inside a hidden container or a closed tab, which [isHidden] does not say. For
+	 * drawing over interface items at FrameDraw, as RuneLite's WidgetItemOverlay draws only the items shown.
+	 * Since API 25.
+	 */
+	fun isDrawnThisFrame(): Boolean
+
+	/**
 	 * Hides the component (and what is inside it) or shows it again, on this client only, as RuneLite's
 	 * Widget.setHidden: the server and the interface's scripts may show it again, so a plugin that keeps
 	 * one hidden sets it each tick, and shows it again when it stops. Since API 17.

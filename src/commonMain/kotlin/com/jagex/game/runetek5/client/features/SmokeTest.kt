@@ -417,6 +417,15 @@ object SmokeTest {
 
 	private var agilityFrame: Int = -1
 
+	/** client.test.slayer: a cows task set with Void's ::var (slayer_target and slayer_count, put back after), Slayer's infobox and the cows of Lumbridge highlighted (a teleport there and back). */
+	private val SLAYER: Boolean = "true" == lang.getProperty("client.test.slayer")
+
+	private var slayerStep: Int = 0
+
+	private var slayerFrame: Int = -1
+
+	private var slayerFailure: String? = null
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1377,6 +1386,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 68719476736L
+		}
+		if (SLAYER && (checksDone and 137438953472L) == 0L) {
+			if (!slayerDone()) {
+				return
+			}
+			checksDone = checksDone or 137438953472L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4238,6 +4253,57 @@ object SmokeTest {
 				println("SMOKE agility: " + found + " obstacles and shortcuts found at the Gnome Stronghold, " + drawn + " click boxes drawn, a lap counted")
 			}
 			else -> return frames - agilityFrame >= MARKER_FRAMES
+		}
+		return false
+	}
+
+	/** Slayer with a cows task of 25: the infobox, and the cows of Lumbridge highlighted. Frame: frame-slayer.png. */
+	private fun slayerDone(): Boolean {
+		when (slayerStep) {
+			0 -> {
+				Slayer.highlightHull = true
+				Slayer.highlightTile = true
+				sendCommand("var slayer_target cows")
+				sendCommand("var slayer_count 25")
+				sendCommand("tele 3256 3266")
+				slayerFrame = frames
+				slayerStep = 1
+			}
+			1 -> {
+				if ((Slayer.task == null || Slayer.targetsDrawn == 0) && frames - slayerFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				slayerFrame = frames
+				slayerStep = 2
+			}
+			2 -> {
+				if (frames - slayerFrame < MARKER_FRAMES / 4) {
+					return false
+				}
+				saveFrame("build/smoke/frame-slayer.png")
+				val name: String? = Slayer.task?.name
+				val amount: Int = Slayer.amount
+				val drawn: Int = Slayer.targetsDrawn
+				Slayer.highlightHull = false
+				Slayer.highlightTile = false
+				sendCommand("var slayer_count 0")
+				sendCommand("var slayer_target nothing")
+				sendCommand("tele 3094 3107")
+				slayerFrame = frames
+				slayerStep = 3
+				// the account's task and place are put back before a failure ends the run
+				slayerFailure = if (name != "Cows" || amount != 25 || drawn == 0 || Slayer.counter == null) "Slayer: task " + name + " x" + amount + ", " + drawn + " cows highlighted, infobox " + (Slayer.counter != null) else null
+				if (slayerFailure == null) {
+					println("SMOKE slayer: task " + name + " x" + amount + " from the varps, " + drawn + " cows highlighted, the infobox up")
+				}
+			}
+			else -> {
+				if (frames - slayerFrame < MARKER_FRAMES || (Slayer.task != null && frames - slayerFrame < BANK_WAIT_FRAMES)) {
+					return false
+				}
+				slayerFailure?.let { fail(it) }
+				return true
+			}
 		}
 		return false
 	}

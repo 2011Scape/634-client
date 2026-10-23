@@ -91,6 +91,10 @@ class Component : Widget {
 		return this.hidden
 	}
 
+	override fun isDrawnThisFrame(): Boolean {
+		return this.lastRenderedCycle == InterfaceRenderer.lastRenderedCycle
+	}
+
 	override fun setHidden(hidden: Boolean) {
 		this.hidden = hidden
 	}
