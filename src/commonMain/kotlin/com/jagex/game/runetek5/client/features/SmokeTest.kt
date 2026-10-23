@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.client.features
 
+import client
 import InterfaceOptionInteract
 import com.jagex.game.runetek5.SceneDrawer
 import com.jagex.game.runetek5.core.constants.TileFlag
@@ -426,6 +427,15 @@ object SmokeTest {
 
 	private var slayerFailure: String? = null
 
+	/** client.test.itemCharges: an amulet of glory(4) put in an empty backpack slot on this client only (as UPDATE_INV_PARTIAL would), its charges drawn by Item Charges, then the slot emptied again. */
+	private val ITEM_CHARGES: Boolean = "true" == lang.getProperty("client.test.itemCharges")
+
+	private var itemChargesStep: Int = 0
+
+	private var itemChargesFrame: Int = -1
+
+	private var itemChargesSlot: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -477,6 +487,11 @@ object SmokeTest {
 	private var groundItemsSummary: String = ""
 
 	private const val MARKER_FRAMES: Int = 40
+
+	/** The backpack's item container, and an amulet of glory(4) for Item Charges. */
+	private const val BACKPACK: Int = 93
+
+	private const val GLORY_4: Int = 1712
 
 	private const val COINS: Int = 995
 
@@ -1392,6 +1407,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 137438953472L
+		}
+		if (ITEM_CHARGES && (checksDone and 274877906944L) == 0L) {
+			if (!itemChargesDone()) {
+				return
+			}
+			checksDone = checksDone or 274877906944L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4290,6 +4311,77 @@ object SmokeTest {
 					return false
 				}
 				slayerFailure?.let { fail(it) }
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Puts [itemId] in backpack [slot] on this client only, as the server's partial inventory update does; -1 empties it. */
+	private fun fakeBackpackItem(slot: Int, itemId: Int) {
+		ItemContainer.setItemInContainer(BACKPACK, false, slot, if (itemId < 0) 0 else 1, itemId)
+		ItemContainer.RECENTLY_USED_ITEM_CONTAINERS[client.recentlyUsedItemContainersCursorPos++ and 0x1F] = BACKPACK
+	}
+
+	/** Clicks the backpack's tab stone (the base window's component whose first option is Inventory). */
+	private fun openInventoryTab() {
+		val root: Array<Component?> = Interface.interfaces!![ClientState.BASE_WINDOW_ID] ?: return
+		for (c in root) {
+			if (c != null && c.options?.getOrNull(0) == "Inventory") {
+				InterfaceOptionInteract.ifOptionInteract(-1, "Inventory", 1, c.idHash)
+				return
+			}
+		}
+	}
+
+	/** Item Charges on a glory(4) in the backpack: the "4" drawn on it. Frame: frame-itemcharges.png. */
+	private fun itemChargesDone(): Boolean {
+		when (itemChargesStep) {
+			0 -> {
+				val backpack = ClientApiImpl.itemContainer(BACKPACK) ?: return false
+				for (slot in 0 until backpack.size()) {
+					if (itemChargesSlot < 0 && backpack.itemId(slot) < 0) {
+						itemChargesSlot = slot
+					}
+				}
+				if (itemChargesSlot < 0) {
+					fail("Item Charges: no empty backpack slot")
+					return true
+				}
+				openInventoryTab()
+				itemChargesFrame = frames
+				itemChargesStep = 1
+			}
+			1 -> {
+				// after the tab's own redraw and any inventory update the login sent
+				if (frames - itemChargesFrame < MARKER_FRAMES) {
+					return false
+				}
+				fakeBackpackItem(itemChargesSlot, GLORY_4)
+				itemChargesFrame = frames
+				itemChargesStep = 2
+			}
+			2 -> {
+				if (ItemCharges.drawnLastFrame == 0 && frames - itemChargesFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				itemChargesFrame = frames
+				itemChargesStep = 3
+			}
+			else -> {
+				if (frames - itemChargesFrame < 5) {
+					return false
+				}
+				saveFrame("build/smoke/frame-itemcharges.png")
+				val drawn: Int = ItemCharges.drawnLastFrame
+				fakeBackpackItem(itemChargesSlot, -1)
+				if (drawn == 0) {
+					val grid = ClientApiImpl.widget(149, 0)
+					val slot = grid?.child(itemChargesSlot)
+					fail("Item Charges: no charges drawn on the glory in backpack slot " + itemChargesSlot + " (grid drawn " + grid?.isDrawnThisFrame() + ", " + grid?.childCount() + " slots; the slot holds " + slot?.itemId() + ", drawn " + slot?.isDrawnThisFrame() + "; the container " + ClientApiImpl.itemContainer(BACKPACK)?.itemId(itemChargesSlot) + ")")
+					return true
+				}
+				println("SMOKE item charges: the glory(4) in backpack slot " + itemChargesSlot + " shows its charges (" + drawn + " drawn)")
 				return true
 			}
 		}
