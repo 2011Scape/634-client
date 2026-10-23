@@ -42,7 +42,6 @@ import com.jagex.game.runetek5.client.features.NpcIndicators
 import com.jagex.game.runetek5.client.features.ObjectIndicators
 import com.jagex.game.runetek5.client.features.OpponentInfo
 import com.jagex.game.runetek5.client.features.OverlaySettings
-import com.jagex.game.runetek5.client.features.Party
 import com.jagex.game.runetek5.client.features.PlayerIndicators
 import com.jagex.game.runetek5.client.features.Poison
 import com.jagex.game.runetek5.client.features.Prayer
@@ -134,7 +133,6 @@ object BuiltinPlugins {
 			builtIn(Examine.DESCRIPTOR, Examine),
 			builtIn(EntityHider.DESCRIPTOR, EntityHider),
 			builtIn(AnimationSmoothing.DESCRIPTOR, AnimationSmoothing),
-			builtIn(Party.DESCRIPTOR, Party),
 			builtIn(Screenshot.DESCRIPTOR, Screenshot),
 		)
 	}
