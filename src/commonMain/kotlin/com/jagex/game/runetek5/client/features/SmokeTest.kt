@@ -455,6 +455,11 @@ object SmokeTest {
 
 	private var chatFilterFrame: Int = -1
 
+	/** client.test.chatHistory: Chat History putting a kept public line back before the next chat line (as after a login; API 27's addChatLine), the clipboard round trip, and Clear history on the Public tab. */
+	private val CHAT_HISTORY: Boolean = "true" == lang.getProperty("client.test.chatHistory")
+
+	private var chatHistoryFrame: Int = -1
+
 	private var chatFilterWasEnabled: Boolean = false
 
 	private var itemIdentificationWasEnabled: Boolean = false
@@ -1457,6 +1462,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 2199023255552L
+		}
+		if (CHAT_HISTORY && (checksDone and 4398046511104L) == 0L) {
+			if (!chatHistoryDone()) {
+				return
+			}
+			checksDone = checksDone or 4398046511104L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4562,6 +4573,43 @@ object SmokeTest {
 			return true
 		}
 		println("SMOKE chat filter: the filtered line never stored, the repeat collapsed into \"" + newest + "\"")
+		return true
+	}
+
+	/** Chat History's restore, clipboard and tab clearing. Frame: frame-chathistory.png. */
+	private fun chatHistoryDone(): Boolean {
+		val api = ClientApiImpl
+		if (chatHistoryFrame == -1) {
+			ChatHistory.history.clear()
+			ChatHistory.history.addLast(ChatHistory.Kept(ChatType.PUBLIC, "Zezima", "kept from before", null))
+			ChatHistory.restorePending = true
+			ChatLineWriter.writeMessage(null, "Smoke test after login.", -1, null, null, ChatType.GAME, 0, null)
+			chatHistoryFrame = frames
+			return false
+		}
+		if (frames - chatHistoryFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-chathistory.png")
+		val restored: String? = api.chatLine(1)?.message()
+		// the clipboard set and read, then given back what it held
+		val held: String? = api.clipboard()
+		val copied: Boolean = api.setClipboard("smoke clipboard") && api.clipboard() == "smoke clipboard"
+		if (held != null) {
+			api.setClipboard(held)
+		}
+		ChatHistory.clearTab(api, 4)
+		var publicLeft: Int = 0
+		for (i in 0 until api.chatLineCount()) {
+			if (api.chatLine(i)?.type() == ChatType.PUBLIC) {
+				publicLeft++
+			}
+		}
+		if (restored != "kept from before" || publicLeft != 0) {
+			fail("Chat History: restored \"" + restored + "\", " + publicLeft + " public lines after Clear history")
+			return true
+		}
+		println("SMOKE chat history: \"" + restored + "\" put back before the next line, clipboard " + (if (copied) "set and read" else "not available") + ", the Public tab cleared")
 		return true
 	}
 

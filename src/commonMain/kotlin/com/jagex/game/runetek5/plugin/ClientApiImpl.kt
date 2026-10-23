@@ -17,6 +17,8 @@ import com.jagex.game.runetek5.cache.node.HashTableIterator
 import com.jagex.game.runetek5.cache.node.ObjStackEntry
 import com.jagex.game.runetek5.core.datastruct.key.DequeIterator
 import com.jagex.game.runetek5.client.ClientState
+import awt.datatransfer.STRING_FLAVOR
+import awt.datatransfer.StringSelection
 import com.jagex.game.runetek5.ChatLine
 import com.jagex.game.runetek5.interaction.chat.ChatBox
 import com.jagex.game.runetek5.client.menu.MiniMenu
@@ -876,6 +878,31 @@ object ClientApiImpl : ClientApi {
 			}
 		}
 		return false
+	}
+
+	override fun addChatLine(type: Int, name: String?, message: String, clan: String?) {
+		ChatLineWriter.storeLine(name, message, -1, name, clan, type, 0, name)
+	}
+
+	@Suppress("SwallowedException") // a clipboard another program holds just cannot take the text now
+	override fun setClipboard(text: String): Boolean {
+		val clipboard = Console.clipboard ?: return false
+		return try {
+			clipboard.setContents(StringSelection(text), null)
+			true
+		} catch (error: IllegalStateException) {
+			false
+		}
+	}
+
+	@Suppress("TooGenericExceptionCaught", "SwallowedException") // a clipboard that cannot be read holds nothing
+	override fun clipboard(): String? {
+		val clipboard = Console.clipboard ?: return null
+		return try {
+			clipboard.getContents(null)?.getTransferData(STRING_FLAVOR) as String?
+		} catch (error: Exception) {
+			null
+		}
 	}
 
 	override fun overrideSprite(spriteId: Int, image: Image?) {
