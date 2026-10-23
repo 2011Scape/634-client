@@ -11,8 +11,8 @@ boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the status 
 timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the
 Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`), the
 anti drag (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`), the key remapping
-(`KeyRemapping`) and the custom cursor (`CustomCursor`) are twenty-seven, built in, so the client's own
-code shows the way.
+(`KeyRemapping`), the custom cursor (`CustomCursor`) and the item stats (`ItemStats`) are twenty-eight,
+built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -419,6 +419,16 @@ on, that Enter unlocks or locks the chat instead.
 RuneLite's pictures (RS3 gold or silver, a dragon dagger, a poisoned one, a trout, a dragon scimitar),
 the icon of the weapon you wear, or a picture of your own: `cursor.png` in the `.634-client` folder. Not
 here from RuneLite: the browser build, which carries neither the pictures nor your file.
+
+**Item Stats** is RuneLite's. Hovering a food or a potion in the backpack, the worn equipment or (with
+**Show stats in bank**) the bank shows what it would do to each stat now: the change, with **Show
+theoretical** what it could do, and with **Show absolute** the level after, coloured by whether it is
+better, capped, unchanged or worse (five colours of your own); a potion that lasts shows its duration.
+Hovering equipment shows its bonuses against what you wear in its slot (a two-handed weapon against your
+weapon and shield), and any item its weight. The numbers are the Void server's: food restores lifepoints
+(a range shows its least and most), potions boost, restore and drain as the server does, and the slots,
+two-handedness and weights are its own (the 634 cache has none of them). Not here from RuneLite: its
+Grand Exchange item panel, which builds interface components the plugin API cannot.
 
 ## Writing a plugin
 
