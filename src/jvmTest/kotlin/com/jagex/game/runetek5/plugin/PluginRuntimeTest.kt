@@ -48,6 +48,8 @@ class PluginRuntimeTest {
 
 		override fun overheadHeight(): Int = 0
 
+		override fun overheadTop(): Int = -1
+
 		override fun healthRatio(): Int = 0
 
 		override fun isDrawnThisFrame(): Boolean = false
