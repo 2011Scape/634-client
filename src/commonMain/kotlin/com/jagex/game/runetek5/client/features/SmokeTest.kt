@@ -403,6 +403,13 @@ object SmokeTest {
 
 	private var poisonSeen: Int = -1
 
+	/** client.test.fishing: Fishing at Catherby's shore (a teleport there and back): the spots' tiles, icons and names, and the session panel after a catch said in the chat. */
+	private val FISHING: Boolean = "true" == lang.getProperty("client.test.fishing")
+
+	private var fishingStep: Int = 0
+
+	private var fishingFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1351,6 +1358,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 17179869184L
+		}
+		if (FISHING && (checksDone and 34359738368L) == 0L) {
+			if (!fishingDone()) {
+				return
+			}
+			checksDone = checksDone or 34359738368L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4134,6 +4147,46 @@ object SmokeTest {
 		}
 		println("SMOKE poison: poisoned for " + damage + ", the green heart on the orb and the infobox; " + Poison.createTooltip())
 		return true
+	}
+
+	/** Fishing by Catherby's spots: they are drawn, and a catch starts the session panel. Frame: frame-fishing.png. */
+	private fun fishingDone(): Boolean {
+		when (fishingStep) {
+			0 -> {
+				Fishing.showNames = true
+				sendCommand("tele 2846 3429")
+				fishingFrame = frames
+				fishingStep = 1
+			}
+			1 -> {
+				if (Fishing.drawnLastFrame == 0 && frames - fishingFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				Fishing.chat(com.jagex.game.runetek5.plugin.api.events.ChatMessage(com.jagex.game.runetek5.plugin.api.ChatType.GAME_FILTERED, "", "You catch some raw shrimps.", null))
+				fishingFrame = frames
+				fishingStep = 2
+			}
+			2 -> {
+				if (frames - fishingFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-fishing.png")
+				val drawn: Int = Fishing.drawnLastFrame
+				val caught: Int = Fishing.session?.caught ?: 0
+				Fishing.showNames = false
+				Fishing.session = null
+				sendCommand("tele 3094 3107")
+				fishingFrame = frames
+				fishingStep = 3
+				if (drawn == 0 || caught != 1) {
+					fail("Fishing: " + drawn + " spots drawn at Catherby, " + caught + " fish caught")
+					return true
+				}
+				println("SMOKE fishing: " + drawn + " spots drawn at Catherby, the session panel after a catch")
+			}
+			else -> return frames - fishingFrame >= MARKER_FRAMES
+		}
+		return false
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {

@@ -14,8 +14,8 @@ tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brot
 (`KeyRemapping`), the custom cursor (`CustomCursor`), the item stats (`ItemStats`), the woodcutting
 (`Woodcutting`), the mining (`Mining`), the report button (`ReportButton`), the player indicators
 (`PlayerIndicators`), the special attack counter (`SpecialCounter`), the regeneration meter
-(`RegenMeter`), the run energy (`RunEnergy`) and the poison (`Poison`) are thirty-five, built in, so the
-client's own code shows the way.
+(`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`) and the fishing (`Fishing`) are
+thirty-six, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -495,6 +495,14 @@ time to it and the time until the poison wears off; **Change HP orb icon** turns
 while poisoned and yellow while diseased (RuneLite's own hearts, put in place of the game's sprite).
 Void's poison hits every 18 seconds for its current strength, which falls by 2 each time, and wears off
 instead of hitting once it would fall to 10 or less. Venom is OSRS-only.
+
+**Fishing** is RuneLite's. Each fishing spot shows its tile, the icon of its best catch and, if you
+like, its name (what it gives, from Void's fishing spots table), with a dot on the minimap; **Display
+only currently fished fish** keeps to the kind of spot you are fishing. A panel at the top left says
+whether you are fishing and how many fish you caught this session and an hour (the XP Tracker's Fishing
+actions, or the catches the plugin counts itself when that is more), and goes after **Reset stats**
+minutes without a catch. Not here from RuneLite: minnows, aerial fishing and harpoonfish (OSRS-only),
+and the Fishing Trawler's timer and contribution (Void has no Trawler to read).
 
 ## Writing a plugin
 
