@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.client.input.keyboard
 
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.core.datastruct.key.Deque
 import com.jagex.game.runetek5.sign.SignLinkEnvironment
 import awt.event.FocusEvent
@@ -110,6 +111,12 @@ class CanvasKeyRecorder @OriginalMember(owner = "client!vfa", name = "<init>", d
 		this.keyRecordEntries.addLast(simpleKeyLog)
 	}
 
+	/** Not part of the original client: a key as the keyboard would give it, for the smoke test (pressed 0, released 1, typed 3). */
+	@Synchronized
+	fun inject(keyCode: Int, keyCharacter: Char, type: Int) {
+		this.addKeyRecordEntry(keyCode, keyCharacter, type)
+	}
+
 	@OriginalMember(owner = "client!vfa", name = "keyReleased", descriptor = "(Ljava/awt/event/KeyEvent;)V")
 	@Synchronized
 	override fun keyReleased(@OriginalArg(0) keyEvent: KeyEvent) {
@@ -152,7 +159,9 @@ class CanvasKeyRecorder @OriginalMember(owner = "client!vfa", name = "<init>", d
 		@Pc(19) var simpleKeyLog: KeyRecordEntry? = this.keyRecordEntries.removeFirst() as KeyRecordEntry?
 		while (simpleKeyLog != null) {
 			simpleKeyLog.modifierFlags = this.getModifierFlags()
-			if (simpleKeyLog.type == KeyLogConstants.TYPE_PRESSED) {
+			if (PluginRuntime.keyInput(simpleKeyLog)) {
+				// Not part of the original client: a plugin dropped the key (KeyInput); one it remapped goes on as the new key
+			} else if (simpleKeyLog.type == KeyLogConstants.TYPE_PRESSED) {
 				if (!this.keysHeld[simpleKeyLog.keyCode]) {
 					@Pc(39) val simpleKeyLog2: KeyRecordEntry = KeyRecordEntry()
 					simpleKeyLog2.keyCode = simpleKeyLog.keyCode

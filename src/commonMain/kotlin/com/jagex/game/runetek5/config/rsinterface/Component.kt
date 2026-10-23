@@ -102,6 +102,10 @@ class Component : Widget {
 		this.dragDeadTime = cycles
 	}
 
+	override fun setText(text: String?) {
+		this.text = text
+	}
+
 	override fun id(): Int {
 		return this.idHash
 	}

@@ -1590,6 +1590,10 @@ object PluginManagerScreen {
 	 * box waiting for its key takes it (Escape leaves the setting, Backspace clears it). While any box
 	 * has the keyboard, no key press reaches the server or the interfaces. True when the key was ours.
 	 */
+	/** Whether a box of the manager has the keyboard (a key being chosen, a number, text or search typed): no plugin remaps keys then. */
+	@JvmStatic
+	fun hasKeyboard(): Boolean = open && (capturing != null || pickEdit != 0 || searching || editing != null)
+
 	@JvmStatic
 	fun keyPressed(record: KeyRecord): Boolean {
 		if (!open) {

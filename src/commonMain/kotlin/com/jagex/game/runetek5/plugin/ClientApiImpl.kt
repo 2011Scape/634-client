@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.config.varc.VarcTypeList
 import com.jagex.game.runetek5.ChatLineWriter
 import com.jagex.game.runetek5.LocType
 import com.jagex.game.runetek5.MapRegion
@@ -801,6 +802,23 @@ object ClientApiImpl : ClientApi {
 
 	override fun addChatIcon(image: Image): Int {
 		return PluginChatIcons.add(image as? PluginImage ?: return -1)
+	}
+
+	override fun varcInt(id: Int): Int {
+		val varcs: IntArray = VarcTypeList.VARC_INT ?: return 0
+		return if (id >= 0 && id < varcs.size) varcs[id] else 0
+	}
+
+	override fun varcString(id: Int): String? {
+		val varcs: Array<String?> = VarcTypeList.VARC_STRING ?: return null
+		return if (id >= 0 && id < varcs.size) varcs[id] else null
+	}
+
+	override fun setVarcString(id: Int, value: String?) {
+		val varcs: Array<String?> = VarcTypeList.VARC_STRING ?: return
+		if (id >= 0 && id < varcs.size) {
+			varcs[id] = value
+		}
 	}
 
 	override fun addTooltip(text: String) {
