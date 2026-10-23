@@ -64,7 +64,8 @@ object XpTracker : Plugin {
 	/** The Stats tab and its skills' components (Void's skill.ifaces.toml, [stats] 320). */
 	const val STATS_TAB: Int = 320
 
-	private val STATS_COMPONENTS: IntArray = intArrayOf(
+	@JvmField
+	val STATS_COMPONENTS: IntArray = intArrayOf(
 		200, 28, 11, 193, 52, 76, 93, 68, 165, 101, 44, 172, 84, 179, 186, 36, 19, 60, 118, 126, 110, 142, 134, 150, 158,
 	)
 

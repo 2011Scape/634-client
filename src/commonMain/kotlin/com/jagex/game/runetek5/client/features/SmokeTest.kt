@@ -473,6 +473,17 @@ object SmokeTest {
 
 	private var combatLevelShown: Int = -1
 
+	/** client.test.virtualLevels: the Stats tab open and Attack given 14.4 million experience on this client only, Virtual Levels writing its level 100, then the experience given back. */
+	private val VIRTUAL_LEVELS: Boolean = "true" == lang.getProperty("client.test.virtualLevels")
+
+	private var virtualLevelsStep: Int = 0
+
+	private var virtualLevelsFrame: Int = -1
+
+	private var virtualLevelsXp: Int = 0
+
+	private var virtualLevelsShown: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1483,6 +1494,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 8796093022208L
+		}
+		if (VIRTUAL_LEVELS && (checksDone and 17592186044416L) == 0L) {
+			if (!virtualLevelsDone()) {
+				return
+			}
+			checksDone = checksDone or 17592186044416L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4395,13 +4412,20 @@ object SmokeTest {
 
 	/** Clicks the backpack's tab stone (the base window's component whose first option is Inventory). */
 	private fun openInventoryTab() {
-		val root: Array<Component?> = Interface.interfaces!![ClientState.BASE_WINDOW_ID] ?: return
+		openTab("Inventory")
+	}
+
+	/** Clicks the tab stone whose first option is one of [options]; false when the base window has none. */
+	private fun openTab(vararg options: String): Boolean {
+		val root: Array<Component?> = Interface.interfaces!![ClientState.BASE_WINDOW_ID] ?: return false
 		for (c in root) {
-			if (c != null && c.options?.getOrNull(0) == "Inventory") {
-				InterfaceOptionInteract.ifOptionInteract(-1, "Inventory", 1, c.idHash)
-				return
+			val option: String? = c?.options?.getOrNull(0)
+			if (c != null && option != null && option in options) {
+				InterfaceOptionInteract.ifOptionInteract(-1, option, 1, c.idHash)
+				return true
 			}
 		}
+		return false
 	}
 
 	/** Item Charges on a glory(4) in the backpack: the "4" drawn on it. Frame: frame-itemcharges.png. */
@@ -4662,6 +4686,57 @@ object SmokeTest {
 					return true
 				}
 				println("SMOKE combat level: " + combatLevelText)
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Virtual Levels' Attack at 100 in the Stats tab. Frame: frame-virtuallevels.png. */
+	private fun virtualLevelsDone(): Boolean {
+		val api = ClientApiImpl
+		when (virtualLevelsStep) {
+			0 -> {
+				if (!openTab("Stats", "Skills")) {
+					fail("Virtual Levels: no Stats tab stone")
+					return true
+				}
+				virtualLevelsFrame = frames
+				virtualLevelsStep = 1
+			}
+			1 -> {
+				if (frames - virtualLevelsFrame < MARKER_FRAMES) {
+					return false
+				}
+				virtualLevelsXp = client.statXp[0]
+				client.statXp[0] = 14_391_160
+				virtualLevelsFrame = frames
+				virtualLevelsStep = 2
+			}
+			else -> {
+				val base: String? = api.widget(VirtualLevels.STATS_TAB, XpTracker.STATS_COMPONENTS[0] - VirtualLevels.BASE_OFFSET)?.text()
+				if (base != "100" && frames - virtualLevelsFrame < MARKER_FRAMES * 2) {
+					virtualLevelsShown = -1
+					return false
+				}
+				// a few frames with the level up: the OpenGL toolkits' frame is read from the last one shown
+				if (virtualLevelsShown == -1) {
+					virtualLevelsShown = frames
+				}
+				if (base == "100" && frames - virtualLevelsShown < 5) {
+					return false
+				}
+				saveFrame("build/smoke/frame-virtuallevels.png")
+				val total: String? = api.widget(VirtualLevels.STATS_TAB, VirtualLevels.TOTAL)?.text()
+				client.statXp[0] = virtualLevelsXp
+				VirtualLevels.enabled = false
+				VirtualLevels.restore(api)
+				VirtualLevels.enabled = true
+				if (base != "100") {
+					fail("Virtual Levels: Attack's level reads \"" + base + "\"")
+					return true
+				}
+				println("SMOKE virtual levels: Attack at 14.4m experience reads " + base + ", \"" + total + "\"")
 				return true
 			}
 		}

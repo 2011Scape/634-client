@@ -17,8 +17,8 @@ tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brot
 (`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`), the fishing (`Fishing`), the
 agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), the item identification
 (`ItemIdentification`), the chat notifications (`ChatNotifications`), the chat filter (`ChatFilter`),
-the chat history (`ChatHistory`) and the combat level (`CombatLevel`) are forty-four, built in, so the
-client's own code shows the way.
+the chat history (`ChatHistory`), the combat level (`CombatLevel`) and the virtual levels
+(`VirtualLevels`) are forty-five, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -568,6 +568,11 @@ the combat levels you can fight are written beside the skull (634 shows only the
 Void's: its combat formula (Summoning counts on members' worlds), its wilderness levels and its attack
 range (your level, give or take the wilderness level plus 5 plus a tenth of it). RuneLite's Account
 Summary is OSRS's.
+
+**Virtual Levels** is RuneLite's. A skill's experience past its last level (99, or Dungeoneering's 120)
+goes on counting levels, up to 126 at 200 million: the Stats tab shows them as the skill's level, and
+its total adds them up with **Virtual total level** on. The plugin writes over the tab's own numbers
+while the tab is drawn and puts the game's back once switched off.
 
 ## Writing a plugin
 
