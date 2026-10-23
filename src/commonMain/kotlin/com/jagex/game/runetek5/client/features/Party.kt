@@ -430,8 +430,8 @@ object Party : Plugin {
 	private fun drawMember(g: Graphics, member: Member, leader: Boolean, top: Int, width: Int, line: Int) {
 		var x: Int = BORDER
 		if (leader) {
-			crown(g, x, top + 2)
-			x += CROWN + 2
+			crown(g, x - 1, top + 1)
+			x += CROWN
 		}
 		g.text(x, top + line - 2, member.name, colour(member.name), BLACK)
 		if (member.inPvp) {
@@ -458,21 +458,27 @@ object Party : Plugin {
 		g.textCentered(x + width / 2, y + STAT_LINE - 3, label, WHITE, BLACK)
 	}
 
-	/** A small gold crown: a band with three points. */
+	/** The leader's crown, drawn pixel by pixel from [CROWN_PIXELS]: three points with gold tips, a band with jewels. */
 	private fun crown(g: Graphics, x: Int, y: Int) {
-		xs[0] = x
-		ys[0] = y + CROWN
-		xs[1] = x + CROWN
-		ys[1] = y + CROWN
-		xs[2] = x + CROWN
-		ys[2] = y + 3
-		xs[3] = x
-		ys[3] = y + 3
-		g.fillPolygon(xs, ys, 4, GOLD)
-		g.polygon(xs, ys, 4, BLACK)
-		for (i in 0..2) {
-			g.fillRect(x + i * (CROWN - 2) / 2, y, 2, 3, GOLD)
+		for (row in CROWN_PIXELS.indices) {
+			val pixels: String = CROWN_PIXELS[row]
+			for (column in pixels.indices) {
+				val colour: Int = crownColour(pixels[column])
+				if (colour != 0) {
+					g.fillRect(x + column, y + row, 1, 1, colour)
+				}
+			}
 		}
+	}
+
+	private fun crownColour(c: Char): Int = when (c) {
+		'O' -> 0xFF281800.toInt()
+		'G' -> 0xFFEBB414.toInt()
+		'L' -> 0xFFFFE678.toInt()
+		'Y' -> 0xFFFFF5AA.toInt()
+		'R' -> 0xFFDC1E1E.toInt()
+		'B' -> 0xFF286EE6.toInt()
+		else -> 0
 	}
 
 	/** The hover tooltip: every stat in full, and where they are. */
@@ -538,7 +544,21 @@ object Party : Plugin {
 	private const val PANEL_WIDTH: Int = 150
 	private const val STAT_LINE: Int = 13
 	private const val STAT_BAR: Int = 10
-	private const val CROWN: Int = 9
+
+	/** The crown, 13 by 10: O outline, G gold, L and Y its lights, R and B jewels. */
+	private val CROWN_PIXELS: Array<String> = arrayOf(
+		"..O...O...O..",
+		".OYO.OYO.OYO.",
+		"..O..OGO..O..",
+		".OGO.OGO.OGO.",
+		".OGGOGGGOGGO.",
+		".OGGGGGGGGGO.",
+		".OGRGGBGGRGO.",
+		".OGGGGGGGGGO.",
+		".OLLLLLLLLLO.",
+		".OOOOOOOOOOO.",
+	)
+	private const val CROWN: Int = 13
 	private const val DOT: Int = 3
 	private const val WHITE: Int = -0x1
 	private const val BLACK: Int = 0xFF000000.toInt()
