@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.plugin.api.ActorFilter
+import com.jagex.game.runetek5.plugin.api.AnimationFilter
 import com.jagex.game.runetek5.plugin.api.ProjectileFilter
 import com.jagex.game.runetek5.plugin.api.events.LocChanged
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecordEntry
@@ -445,6 +446,50 @@ object PluginRuntime {
 		projectileFilterOwners.add(registration)
 	}
 
+	/** The plugins' animation filters (API 34), one each, and whose. */
+	private val animationFilters: ArrayList<AnimationFilter> = ArrayList()
+	private val animationFilterOwners: ArrayList<PluginRegistration> = ArrayList()
+
+	/** Rises whenever an animation filter is set or taken back: SeqType keeps its answer until it changes. */
+	@JvmField
+	var animationFilterGeneration: Int = 0
+
+	@JvmStatic
+	fun setAnimationFilter(registration: PluginRegistration, filter: AnimationFilter?) {
+		removeAnimationFilter(registration)
+		if (filter != null) {
+			animationFilters.add(filter)
+			animationFilterOwners.add(registration)
+		}
+		animationFilterGeneration++
+	}
+
+	private fun removeAnimationFilter(registration: PluginRegistration) {
+		for (i in animationFilters.indices.reversed()) {
+			if (animationFilterOwners[i] === registration) {
+				animationFilters.removeAt(i)
+				animationFilterOwners.removeAt(i)
+				animationFilterGeneration++
+			}
+		}
+	}
+
+	/** Whether any plugin smooths the sequence [sequenceId]. */
+	@JvmStatic
+	fun smoothAnimation(sequenceId: Int): Boolean {
+		for (i in animationFilters.indices) {
+			try {
+				if (animationFilters[i].shouldSmooth(sequenceId)) {
+					return true
+				}
+			} catch (error: Throwable) {
+				fail(animationFilterOwners[i], error)
+				return false
+			}
+		}
+		return false
+	}
+
 	/** Whether every plugin lets [actor] be drawn: its model, or with [drawingUI] its overheads and the like. */
 	@JvmStatic
 	fun drawActor(actor: Actor, drawingUI: Boolean): Boolean {
@@ -519,6 +564,7 @@ object PluginRuntime {
 				actorFilterOwners.removeAt(i)
 			}
 		}
+		removeAnimationFilter(registration)
 		for (i in projectileFilters.indices.reversed()) {
 			if (projectileFilterOwners[i] === registration) {
 				projectileFilters.removeAt(i)

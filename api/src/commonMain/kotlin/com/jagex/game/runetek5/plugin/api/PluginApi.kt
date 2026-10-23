@@ -65,9 +65,10 @@ package com.jagex.game.runetek5.plugin.api
  * - 30: item outlines and fills ([ClientApi.itemOutline], [ClientApi.itemFill]).
  * - 33: screenshots ([ClientApi.captureFrame], [ClientApi.saveImage], [ClientApi.copyImage]).
  * - 32: actor and projectile filters ([PluginContext.addActorFilter], [PluginContext.addProjectileFilter]) and [ClientApi.isIgnored].
+ * - 34: animation smoothing ([PluginContext.setAnimationFilter]).
  * - 31: the drag ([ClientApi.isDraggingWidget], [ClientApi.draggedWidget], [ClientApi.draggedOnWidget], [ClientApi.itemPressedDuration]) and [Graphics.itemIconAlpha].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 33
+	const val VERSION: Int = 34
 }

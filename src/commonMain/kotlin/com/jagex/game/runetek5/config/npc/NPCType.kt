@@ -664,7 +664,7 @@ class NPCType : NpcDefinition {
 						modifiesBillboard = modifiesBillboard or NPCType.aClass2_Sub6_Sub9Array1[i]!!.modifiesBillboards(frameId)
 						lights = lights or seqType3.lights
 					}
-					if ((seqType3.tweened || SeqType.forceTweening) && nextFrameIndex != -1 && nextFrameIndex < seqType3.frames!!.size) {
+					if (seqType3.smoothed() && nextFrameIndex != -1 && nextFrameIndex < seqType3.frames!!.size) {
 						NPCType.ANIM_FRAME_LENGTHS[i] = seqType3.durations!![currentFrameIndex]
 						NPCType.ANIM_FRAME_ELAPSED[i] = sequences[i]!!.currentFrameDuration
 						@Pc(207) val nextFrame: Int = seqType3.frames!![nextFrameIndex]
@@ -711,7 +711,7 @@ class NPCType : NpcDefinition {
 					modifiesBillboard = modifiesBillboard or animFrameset.modifiesBillboards(animFrame)
 					lights = lights or seqType2.lights
 				}
-				if ((seqType2.tweened || SeqType.forceTweening) && animNextFrameIndex != -1 && seqType2.frames!!.size > animNextFrameIndex) {
+				if (seqType2.smoothed() && animNextFrameIndex != -1 && seqType2.frames!!.size > animNextFrameIndex) {
 					animNextFrame = seqType2.frames!![animNextFrameIndex]
 					animFrameLength = seqType2.durations!![animFrameIndex]
 					nextFrameSetId = animNextFrame ushr 16
@@ -739,7 +739,7 @@ class NPCType : NpcDefinition {
 					modifiesBillboard = modifiesBillboard or animFrameset3.modifiesBillboards(moveFrame)
 					lights = lights or seqType.lights
 				}
-				if ((seqType.tweened || SeqType.forceTweening) && moveNextFrameIndex != -1 && seqType.frames!!.size > moveNextFrameIndex) {
+				if (seqType.smoothed() && moveNextFrameIndex != -1 && seqType.frames!!.size > moveNextFrameIndex) {
 					moveFrameLength = seqType.durations!![moveFrameIndex]
 					moveNextFrame = seqType.frames!![moveNextFrameIndex]
 					nextFrameSetId = moveNextFrame ushr 16

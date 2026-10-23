@@ -16,3 +16,14 @@ fun interface ActorFilter {
 fun interface ProjectileFilter {
 	fun shouldDraw(graphicId: Int): Boolean
 }
+
+/**
+ * Says whether the client smooths a sequence (RuneLite's animation interpolation filter):
+ * [PluginContext.setAnimationFilter]. A smoothed sequence is blended between its keyframes each client cycle
+ * instead of jumping from one to the next, for players, NPCs, objects and interface models alike. Sequences the
+ * cache already marks as blended stay blended. The answer is kept per sequence until a filter is set or cleared,
+ * so read the plugin's settings when they change and set the filter again. Since API 34.
+ */
+fun interface AnimationFilter {
+	fun shouldSmooth(sequenceId: Int): Boolean
+}

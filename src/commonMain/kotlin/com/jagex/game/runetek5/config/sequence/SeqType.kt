@@ -2,6 +2,7 @@ package com.jagex.game.runetek5.config.sequence
 
 import com.jagex.game.runetek5.buffer.Packet
 import com.jagex.game.runetek5.graphics.model.Model
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
@@ -110,7 +111,7 @@ class SeqType {
 		if (animFrameset2 == null) {
 			return 0
 		}
-		if ((this.tweened || SeqType.forceTweening) && nextFrameId != -1 && nextFrameId < this.frames!!.size) {
+		if (this.smoothed() && nextFrameId != -1 && nextFrameId < this.frames!!.size) {
 			nextFrame = this.frames!![nextFrameId]
 			animFrameset = this.seqtypelist!!.listFrameSet(nextFrame shr 16)
 			nextFrame = nextFrame and 0xFFFF
@@ -159,7 +160,7 @@ class SeqType {
 					}
 				}
 			}
-			if ((this.tweened || SeqType.forceTweening) && nextFrameId != -1 && nextFrameId < this.interfaceFrames!!.size) {
+			if (this.smoothed() && nextFrameId != -1 && nextFrameId < this.interfaceFrames!!.size) {
 				interfaceFrame = this.interfaceFrames!![nextFrameId]
 				if (interfaceFrame != 65535) {
 					animFrameset3 = this.seqtypelist!!.listFrameSet(interfaceFrame shr 16)
@@ -299,7 +300,7 @@ class SeqType {
 			return model!!.copy(copyType, functionMask, true)
 		}
 		@Pc(35) var animFrameset2: FrameSet? = null
-		if ((this.tweened || SeqType.forceTweening) && nextFrameId != -1 && nextFrameId < this.frames!!.size) {
+		if (this.smoothed() && nextFrameId != -1 && nextFrameId < this.frames!!.size) {
 			@Pc(57) val nextFrame: Int = this.frames!![nextFrameId]
 			animFrameset2 = this.seqtypelist!!.listFrameSet(nextFrame shr 16)
 			nextFrameId = nextFrame and 0xFFFF
@@ -356,7 +357,7 @@ class SeqType {
 			return model!!.copy(1.toByte(), functionMask, true)
 		}
 		@Pc(35) var animFrameset2: FrameSet? = null
-		if ((this.tweened || SeqType.forceTweening) && nextFrameId != -1 && this.frames!!.size > nextFrameId) {
+		if (this.smoothed() && nextFrameId != -1 && this.frames!!.size > nextFrameId) {
 			@Pc(53) val nextFrame: Int = this.frames!![nextFrameId]
 			animFrameset2 = this.seqtypelist!!.listFrameSet(nextFrame shr 16)
 			nextFrameId = nextFrame and 0xFFFF
@@ -373,7 +374,7 @@ class SeqType {
 					interfaceFrame = interfaceFrame and 0xFFFF
 				}
 			}
-			if ((this.tweened || SeqType.forceTweening) && nextFrameId != -1 && this.interfaceFrames!!.size > nextFrameId) {
+			if (this.smoothed() && nextFrameId != -1 && this.interfaceFrames!!.size > nextFrameId) {
 				nextInterfaceFrame = this.interfaceFrames!![nextFrameId]
 				if (nextInterfaceFrame != 65535) {
 					animFrameset4 = this.seqtypelist!!.listFrameSet(nextInterfaceFrame shr 16)
@@ -454,9 +455,32 @@ class SeqType {
 		}
 	}
 
+	/** Not part of the original client: the plugins' answer for this sequence (PluginRuntime.smoothAnimation), and when it was asked. */
+	private var pluginSmoothed: Boolean = false
+	private var pluginSmoothedGeneration: Int = -1
+
+	/** Whether the frames are blended: the cache says so, ::tween forces it, or (not part of the original client) a plugin asks for it. */
+	fun smoothed(): Boolean {
+		if (this.tweened || SeqType.forceTweening) {
+			return true
+		}
+		if (this.pluginSmoothedGeneration != PluginRuntime.animationFilterGeneration) {
+			this.pluginSmoothedGeneration = PluginRuntime.animationFilterGeneration
+			this.pluginSmoothed = PluginRuntime.smoothAnimation(this.id)
+		}
+		if (this.pluginSmoothed) {
+			SeqType.pluginSmoothedCount++
+		}
+		return this.pluginSmoothed
+	}
+
 	companion object {
 		@OriginalMember(owner = "client!hu", name = "g", descriptor = "Z")
 		@JvmField
 		var forceTweening: Boolean = false
+
+		/** Not part of the original client: how many times a plugin's smoothing was used (the smoke test's proof). */
+		@JvmField
+		var pluginSmoothedCount: Int = 0
 	}
 }

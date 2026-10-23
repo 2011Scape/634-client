@@ -2,6 +2,7 @@ package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.client.features.PluginManagerScreen
 import com.jagex.game.runetek5.plugin.api.ActorFilter
+import com.jagex.game.runetek5.plugin.api.AnimationFilter
 import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.ColourCallback
 import com.jagex.game.runetek5.plugin.api.CommandHandler
@@ -82,6 +83,12 @@ class PluginContextImpl(private val registration: PluginRegistration) : PluginCo
 	override fun addProjectileFilter(filter: ProjectileFilter) {
 		if (!closed) {
 			PluginRuntime.addProjectileFilter(registration, filter)
+		}
+	}
+
+	override fun setAnimationFilter(filter: AnimationFilter?) {
+		if (!closed) {
+			PluginRuntime.setAnimationFilter(registration, filter)
 		}
 	}
 

@@ -21,8 +21,8 @@ the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual 
 (`VirtualLevels`), the metronome (`Metronome`), the death indicator (`DeathIndicator`), the NPC
 aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implings`), the cooking
 (`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`), the inventory tags (`InventoryTags`), the
-inventory grid (`InventoryGrid`), the examine (`Examine`), the entity hider (`EntityHider`) and the
-screenshot (`Screenshot`) are fifty-eight, built in, so the client's own code shows the way.
+inventory grid (`InventoryGrid`), the examine (`Examine`), the entity hider (`EntityHider`), the
+animation smoothing (`AnimationSmoothing`) and the screenshot (`Screenshot`) are fifty-nine, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -64,7 +64,8 @@ the game for you.
   held before it drags; rewrite a chat line or an overhead line before it shows, and add pictures of its
   own to the chat icons (`<img=N>`); set a component's text and the client variables (the chat box's
   typed line); remap the player's own keys before the client reads them (`KeyInput`); and set the
-  mouse cursor, from a picture or an item's icon; and hear when the server changes a location (`LocChanged`).
+  mouse cursor, from a picture or an item's icon; smooth animations, blending them between their keyframes
+  (`setAnimationFilter`); and hear when the server changes a location (`LocChanged`).
 - Add: entries to the right-click menu of a tile, npc, player, ground item, location or interface
   component (an inventory slot included), with an action of its own, and entries that open a
   submenu of its own beside the menu; console commands (`::name`); lines in the chat box and the
@@ -654,6 +655,13 @@ familiars, whoever is attacking you, projectiles, dying NPCs and the random even
 (the Sandwich Lady, Giles, the frog herald, the Mysterious Old Man). The "2D" settings hide overhead
 text, hitsplats and health bars apart from the models. OSRS's party members, clans and thralls are not
 in 634.
+
+**Animation Smoothing** is RuneLite's. Players', NPCs', objects' and interface models' animations are
+blended between their keyframes every client cycle instead of jumping from one to the next (the cache
+blends only some of them; `::tween` blends them all until it is typed again). It is off at first. An
+animation that looks wrong blended can be left out by its id in **Animations not smoothed**. RuneLite's
+own list of those is of OSRS animations; 634's blending already turns a rotation the short way round
+and keeps the cut-offs the cache marks, which OSRS's list mostly works around.
 
 **Screenshot** is RuneLite's. A hotkey (or `::screenshot`) takes a screenshot of the game, and so do
 your level-ups, quest completions and Barrows chests, your deaths, the players you kill and a kick from
