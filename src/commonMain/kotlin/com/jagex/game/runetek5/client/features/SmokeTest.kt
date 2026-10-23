@@ -54,6 +54,8 @@ import com.jagex.game.runetek5.plugin.PluginRegistration
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.entity.NPCEntity
 import com.jagex.game.runetek5.plugin.PluginRuntime
+import com.jagex.game.runetek5.client.input.keyboard.CanvasKeyRecorder
+import com.jagex.game.runetek5.client.input.keyboard.KeyRecorder
 import com.jagex.game.runetek5.ChatLineWriter
 import com.jagex.game.runetek5.interaction.chat.ChatBox
 import com.jagex.game.runetek5.plugin.api.ChatType
@@ -315,6 +317,18 @@ object SmokeTest {
 	private val EMOJIS: Boolean = "true" == lang.getProperty("client.test.emojis")
 
 	private var emojisFrame: Int = -1
+
+	/**
+	 * client.test.keyRemapping: Key Remapping with keys given as the keyboard would: the chat locked, D held turns
+	 * into Right (the camera turns) and its character is dropped, Enter unlocks, typed letters go into the line, Escape drops it and locks.
+	 */
+	private val KEY_REMAPPING: Boolean = "true" == lang.getProperty("client.test.keyRemapping")
+
+	private var keyRemapStep: Int = 0
+
+	private var keyRemapFrame: Int = -1
+
+	private var keyRemapYaw: Int = 0
 
 	private var bankFrame: Int = -1
 
@@ -1198,6 +1212,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 8388608
+		}
+		if (KEY_REMAPPING && (checksDone and 16777216) == 0) {
+			if (!keyRemappingDone()) {
+				return
+			}
+			checksDone = checksDone or 16777216
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3591,6 +3611,74 @@ object SmokeTest {
 			return true
 		}
 		println("SMOKE emojis: chat \"" + line + "\", overhead \"" + overhead + "\"")
+		return true
+	}
+
+	private fun keyRemappingDone(): Boolean {
+		val api = ClientApiImpl
+		val keys = KeyRecorder.keyRecorder as CanvasKeyRecorder
+		if (frames - keyRemapFrame < MARKER_FRAMES && keyRemapFrame != -1) {
+			return false
+		}
+		val line: String = api.widget(KeyRemapping.CHATBOX, KeyRemapping.CHATBOX_INPUT)?.text() ?: ""
+		keyRemapFrame = frames
+		when (keyRemapStep) {
+			0 -> KeyRemapping.enabled = true
+			1 -> {
+				if (!line.endsWith(KeyRemapping.PRESS_ENTER_TO_CHAT)) {
+					return keyRemapFailed("the chat line reads \"" + line + "\", not locked")
+				}
+				keyRemapYaw = api.cameraYaw()
+				keys.inject(KeyRemapping.D, '\u0000', 0)
+				keys.inject(-1, 'd', 3)
+			}
+			2 -> {
+				val held: Boolean = api.isKeyHeld(KeyRemapping.RIGHT)
+				val typed: String? = api.varcString(KeyRemapping.CHAT_INPUT_VARC)
+				keys.inject(KeyRemapping.D, '\u0000', 1)
+				if (!held || api.isKeyHeld(KeyRemapping.D) || !typed.isNullOrEmpty() || api.cameraYaw() == keyRemapYaw) {
+					return keyRemapFailed("D held: Right held " + held + ", D held " + api.isKeyHeld(KeyRemapping.D) + ", chat \"" + typed + "\", yaw " + keyRemapYaw + " to " + api.cameraYaw())
+				}
+				saveFrame("build/smoke/frame-keyremapping.png")
+			}
+			3 -> {
+				if (api.isKeyHeld(KeyRemapping.RIGHT)) {
+					return keyRemapFailed("Right still held after D was let go")
+				}
+				keys.inject(KeyRemapping.ENTER, '\u0000', 0)
+				keys.inject(KeyRemapping.ENTER, '\u0000', 1)
+			}
+			4 -> {
+				keys.inject(-1, 'h', 3)
+				keys.inject(-1, 'i', 3)
+			}
+			5 -> {
+				val typed: String? = api.varcString(KeyRemapping.CHAT_INPUT_VARC)
+				if (!KeyRemapping.typing || typed != "hi") {
+					return keyRemapFailed("after Enter, typing " + KeyRemapping.typing + " and the line \"" + typed + "\", not \"hi\"; shown \"" + line + "\", dialogue " + KeyRemapping.dialogOpen)
+				}
+				keys.inject(KeyRemapping.ESCAPE, '\u0000', 0)
+				keys.inject(KeyRemapping.ESCAPE, '\u0000', 1)
+			}
+			else -> {
+				val typed: String? = api.varcString(KeyRemapping.CHAT_INPUT_VARC)
+				KeyRemapping.enabled = false
+				KeyRemapping.unlockChat(api)
+				if (KeyRemapping.typing || !typed.isNullOrEmpty() || !line.endsWith(KeyRemapping.PRESS_ENTER_TO_CHAT)) {
+					return keyRemapFailed("after Escape, typing " + KeyRemapping.typing + ", the line \"" + typed + "\", shown \"" + line + "\"")
+				}
+				println("SMOKE key remapping: chat locked, D held as Right (the camera turned from yaw " + keyRemapYaw + ") with its character dropped, Enter unlocked, \"hi\" typed, Escape dropped it and locked")
+				return true
+			}
+		}
+		keyRemapStep++
+		return false
+	}
+
+	private fun keyRemapFailed(why: String): Boolean {
+		fail("Key Remapping: " + why)
+		KeyRemapping.enabled = false
+		KeyRemapping.unlockChat(ClientApiImpl)
 		return true
 	}
 

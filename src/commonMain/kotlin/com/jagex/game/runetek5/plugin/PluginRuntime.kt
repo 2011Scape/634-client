@@ -1,5 +1,7 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.client.input.keyboard.KeyRecordEntry
+import com.jagex.game.runetek5.plugin.api.events.KeyInput
 import com.jagex.game.runetek5.ChatLineWriter
 import com.jagex.game.runetek5.SceneDrawer
 import com.jagex.game.runetek5.cache.node.ObjStack
@@ -10,6 +12,7 @@ import com.jagex.game.runetek5.config.rsinterface.Component
 import com.jagex.game.runetek5.core.datastruct.key.DequeIterator
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.input.console.Console
+import com.jagex.game.runetek5.client.features.PluginManagerScreen
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecord
 import com.jagex.game.runetek5.client.input.mouse.MouseRecord
 import com.jagex.game.runetek5.Cursor
@@ -863,6 +866,42 @@ object PluginRuntime {
 		bus.post(Events.KEY_TYPED, keyTypedEvent)
 		return keyTypedEvent.consumed
 	}
+
+	private val keyInputEvent: KeyInput = KeyInput()
+
+	/**
+	 * A key as the keyboard gave it, before the client reads it ([Events.KEY_INPUT]): what the listeners
+	 * left is written back into [entry] (a press or release's code, a character); true when one dropped it.
+	 */
+	@JvmStatic
+	fun keyInput(entry: KeyRecordEntry): Boolean {
+		// not while the developer console or a plugin manager box has the keyboard: what is typed there is the player's
+		if (!started || !bus.hasListeners(Events.KEY_INPUT) || Console.isOpen() || PluginManagerScreen.hasKeyboard()) {
+			return false
+		}
+		val type: Int = entry.type
+		if (type != KeyInput.PRESSED && type != KeyInput.RELEASED && type != KeyInput.TYPED) {
+			return false
+		}
+		keyInputEvent.type = type
+		keyInputEvent.keyCode = entry.keyCode
+		keyInputEvent.keyChar = entry.keyCharacter
+		keyInputEvent.modifiers = entry.modifierFlags
+		keyInputEvent.consumed = false
+		bus.post(Events.KEY_INPUT, keyInputEvent)
+		if (keyInputEvent.consumed) {
+			return true
+		}
+		if (type == KeyInput.TYPED) {
+			entry.keyCharacter = keyInputEvent.keyChar
+		} else if (keyInputEvent.keyCode in 1 until MAX_KEY_CODE) {
+			entry.keyCode = keyInputEvent.keyCode
+		}
+		return false
+	}
+
+	/** The key codes the client holds (CanvasKeyRecorder.keysHeld). */
+	private const val MAX_KEY_CODE: Int = 112
 
 	@JvmStatic
 	fun keyReleased(record: KeyRecord) {

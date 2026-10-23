@@ -10,8 +10,8 @@ the ground items (`GroundItems`), the loot tracker (`LootTracker`), the object m
 boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the status bars (`StatusBars`), the
 timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the
 Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`), the
-anti drag (`AntiDrag`), the emojis (`Emojis`) and the mouse tooltips (`MouseTooltips`) are twenty-five,
-built in, so the client's own code shows the way.
+anti drag (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`) and the key
+remapping (`KeyRemapping`) are twenty-six, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -51,7 +51,8 @@ the game for you.
   components), infoboxes in the shared infobox panel, and tooltips by the mouse; and hide a component
   of an interface on this client (to draw its own in its place), or change how long an item must be
   held before it drags; rewrite a chat line or an overhead line before it shows, and add pictures of its
-  own to the chat icons (`<img=N>`).
+  own to the chat icons (`<img=N>`); set a component's text and the client variables (the chat box's
+  typed line); and remap the player's own keys before the client reads them (`KeyInput`).
 - Add: entries to the right-click menu of a tile, npc, player, ground item, location or interface
   component (an inventory slot included), with an action of its own, and entries that open a
   submenu of its own beside the menu; console commands (`::name`); lines in the chat box and the
@@ -403,6 +404,14 @@ top entry ("Attack Goblin (level: 2)"), follows the mouse as a tooltip; Walk her
 are left out, and **Interface tooltips**, **Chatbox tooltips** and **Disable spellbook tooltips** decide
 the interfaces' entries. Not here from RuneLite: its check for the game's own tooltip (634 draws its
 interface tooltips with scripts, so both can show at once).
+
+**Key Remapping** is RuneLite's, off until switched on. The chat reads "Press Enter to Chat..." and
+takes no typing until Enter (or `/` or `:`) is pressed, so keys are free: W, A, S and D (or keys of your
+choosing) turn the camera as the arrow keys do, and with **Remap F-keys** 1 to 0, - and = stand for F1
+to F12, and a key of your choosing for Escape; a key can stand for Space in a dialogue (to continue) and
+for Control. Enter sends the line and locks the chat again, as do Escape (which also drops what was
+typed) and Backspace on an empty line. In 634, Enter on an empty line opens Quick Chat; with the plugin
+on, that Enter unlocks or locks the chat instead.
 
 ## Writing a plugin
 

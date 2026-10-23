@@ -58,6 +58,12 @@ interface Widget {
 	/** Sets [dragDeadTime] on this client: RuneLite's setDragDeadTime, Anti-Drag's. Since API 18. */
 	fun setDragDeadTime(cycles: Int)
 
+	/**
+	 * Sets the component's text on this client (RuneLite's setText); the interface's scripts may set it
+	 * again, so a plugin that keeps its own sets it each tick. Since API 20.
+	 */
+	fun setText(text: String?)
+
 	/** The item the component shows (an inventory slot, a shop's stock), or -1. */
 	fun itemId(): Int
 

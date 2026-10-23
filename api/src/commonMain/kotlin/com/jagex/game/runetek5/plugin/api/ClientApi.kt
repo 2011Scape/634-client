@@ -368,6 +368,15 @@ interface ClientApi {
 	 */
 	fun addChatIcon(image: Image): Int
 
+	/** Client variable [id] (a varc, the interfaces' own), as a number; 0 for one not set. Since API 20. */
+	fun varcInt(id: Int): Int
+
+	/** Client variable [id] as text (the chat box's typed line is one); null for one not set. Since API 20. */
+	fun varcString(id: Int): String?
+
+	/** Sets text client variable [id] on this client, as the interfaces' scripts do. Since API 20. */
+	fun setVarcString(id: Int, value: String?)
+
 	/**
 	 * Shows [text] in a tooltip box by the mouse this frame, over everything, as RuneLite's TooltipManager:
 	 * call it while drawing, each frame it is to show. `</br>` breaks a line and `<col=rrggbb>` colours

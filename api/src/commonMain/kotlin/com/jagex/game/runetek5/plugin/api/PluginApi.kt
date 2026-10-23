@@ -49,8 +49,10 @@ package com.jagex.game.runetek5.plugin.api
  * - 18: [Widget.dragDeadTime] and [Widget.setDragDeadTime].
  * - 19: chat lines a listener rewrites (ChatMessage.message), [Actor.setOverheadText], [ClientApi.createImage]
  *   and chat icons ([ClientApi.addChatIcon]).
+ * - 20: keys remapped or dropped before the client reads them ([com.jagex.game.runetek5.plugin.api.events.Events.KEY_INPUT]),
+ *   [Widget.setText], and the client variables ([ClientApi.varcInt], [ClientApi.varcString], [ClientApi.setVarcString]).
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 19
+	const val VERSION: Int = 20
 }
