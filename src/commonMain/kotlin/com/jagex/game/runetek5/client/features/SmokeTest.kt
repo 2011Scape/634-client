@@ -589,6 +589,8 @@ object SmokeTest {
 
 	private var entityHiderNpcs: Int = 0
 
+	private var entityHiderWasEnabled: Boolean = false
+
 	private var inventoryTagsWasEnabled: Boolean = false
 
 	private var implingsWasEnabled: Boolean = false
@@ -5438,6 +5440,9 @@ object SmokeTest {
 					}
 					return false
 				}
+				// off by default: on for the step, as the player had it after
+				entityHiderWasEnabled = EntityHider.enabled
+				EntityHider.enabled = true
 				EntityHider.hideLocalPlayer = true
 				EntityHider.hideNPCs = true
 				entityHiderFrame = frames
@@ -5452,6 +5457,7 @@ object SmokeTest {
 				val npcsDrawn: Int = (0 until api.npcCount()).count { api.npc(it)?.isDrawnThisFrame() == true }
 				EntityHider.hideLocalPlayer = false
 				EntityHider.hideNPCs = false
+				EntityHider.enabled = entityHiderWasEnabled
 				if (playerDrawn || npcsDrawn > 0) {
 					fail("Entity Hider: hidden, the player drawn " + playerDrawn + ", " + npcsDrawn + " NPCs drawn")
 					return true
