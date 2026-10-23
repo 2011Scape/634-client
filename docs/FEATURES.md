@@ -1,7 +1,7 @@
 # Building a feature
 
 How to add something new to the client. The features built so far (experience drops, ground tiles,
-name plates, the idle notifier, the inventory value, the menu swapper) are all built-in plugins now
+the idle notifier, the inventory value, the menu swapper) are all built-in plugins now
 (`BuiltinPlugins`, [PLUGINS.md](PLUGINS.md)): one class each on the plugin API, with no hooks in the
 original code, a page in the plugin manager, and the same code a third party could ship. First ask
 whether the plugin API has what the feature needs; what follows is for the case it does not, and
