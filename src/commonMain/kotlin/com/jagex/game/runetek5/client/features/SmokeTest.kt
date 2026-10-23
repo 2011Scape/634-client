@@ -460,6 +460,19 @@ object SmokeTest {
 
 	private var chatHistoryFrame: Int = -1
 
+	/** client.test.combatLevel: Combat Level's precise level on the combat tab (884:1), then in the Wilderness (a teleport there and back) the attack range by its skull (381). */
+	private val COMBAT_LEVEL: Boolean = "true" == lang.getProperty("client.test.combatLevel")
+
+	private var combatLevelStep: Int = 0
+
+	private var combatLevelFrame: Int = -1
+
+	private var combatLevelText: String = ""
+
+	private var combatLevelFailure: String? = null
+
+	private var combatLevelShown: Int = -1
+
 	private var chatFilterWasEnabled: Boolean = false
 
 	private var itemIdentificationWasEnabled: Boolean = false
@@ -1468,6 +1481,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 4398046511104L
+		}
+		if (COMBAT_LEVEL && (checksDone and 8796093022208L) == 0L) {
+			if (!combatLevelDone()) {
+				return
+			}
+			checksDone = checksDone or 8796093022208L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4611,6 +4630,66 @@ object SmokeTest {
 		}
 		println("SMOKE chat history: \"" + restored + "\" put back before the next line, clipboard " + (if (copied) "set and read" else "not available") + ", the Public tab cleared")
 		return true
+	}
+
+	/** Combat Level's combat tab text, and the Wilderness range at level 11. Frame: frame-combatlevel.png. */
+	private fun combatLevelDone(): Boolean {
+		val api = ClientApiImpl
+		when (combatLevelStep) {
+			0 -> {
+				combatLevelFrame = frames
+				combatLevelStep = 1
+			}
+			1 -> {
+				if (frames - combatLevelFrame < MARKER_FRAMES) {
+					return false
+				}
+				val l = CombatLevel.levels(api)
+				combatLevelText = api.widget(CombatLevel.COMBAT_TAB, CombatLevel.COMBAT_LEVEL_TEXT)?.text() ?: ""
+				if (combatLevelText != "Combat Lvl: " + CombatLevel.format(CombatLevel.precise(l.values, l.members))) {
+					combatLevelFailure = "Combat Level: the combat tab reads \"" + combatLevelText + "\""
+				}
+				sendCommand("tele 3100 3600")
+				combatLevelFrame = frames
+				combatLevelStep = 2
+			}
+			2 -> {
+				// the skull's text once the Wilderness overlay is open and drawn, a few frames on
+				val skull = api.widget(CombatLevel.WILDERNESS, CombatLevel.WILDERNESS_RESIZABLE_TEXT)
+				val shown: String = skull?.text() ?: ""
+				val drawn: Boolean = skull != null && skull.isDrawnThisFrame() && shown.startsWith("Level: 11")
+				if (!drawn && frames - combatLevelFrame < BANK_WAIT_FRAMES) {
+					combatLevelShown = -1
+					return false
+				}
+				if (combatLevelShown == -1) {
+					combatLevelShown = frames
+				}
+				if (drawn && frames - combatLevelShown < MARKER_FRAMES / 4) {
+					return false
+				}
+				saveFrame("build/smoke/frame-combatlevel.png")
+				if (!drawn && combatLevelFailure == null) {
+					combatLevelFailure = "Combat Level: the Wilderness text reads \"" + shown + "\""
+				}
+				combatLevelText += "; " + shown.replace("<br>", " ")
+				sendCommand("tele 3094 3107")
+				combatLevelFrame = frames
+				combatLevelStep = 3
+			}
+			else -> {
+				if (frames - combatLevelFrame < MARKER_FRAMES) {
+					return false
+				}
+				combatLevelFailure?.let {
+					fail(it)
+					return true
+				}
+				println("SMOKE combat level: " + combatLevelText)
+				return true
+			}
+		}
+		return false
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {

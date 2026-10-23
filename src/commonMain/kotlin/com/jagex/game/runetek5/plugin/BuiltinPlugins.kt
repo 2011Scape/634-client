@@ -10,6 +10,7 @@ import com.jagex.game.runetek5.client.features.Cannon
 import com.jagex.game.runetek5.client.features.ChatFilter
 import com.jagex.game.runetek5.client.features.ChatHistory
 import com.jagex.game.runetek5.client.features.ChatNotifications
+import com.jagex.game.runetek5.client.features.CombatLevel
 import com.jagex.game.runetek5.client.features.CustomCursor
 import com.jagex.game.runetek5.client.features.DiscordPresence
 import com.jagex.game.runetek5.client.features.Emojis
@@ -102,6 +103,7 @@ object BuiltinPlugins {
 			builtIn(ChatNotifications.DESCRIPTOR, ChatNotifications),
 			builtIn(ChatFilter.DESCRIPTOR, ChatFilter),
 			builtIn(ChatHistory.DESCRIPTOR, ChatHistory),
+			builtIn(CombatLevel.DESCRIPTOR, CombatLevel),
 		)
 	}
 

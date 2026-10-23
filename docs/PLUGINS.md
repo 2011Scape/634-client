@@ -16,8 +16,9 @@ tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brot
 (`PlayerIndicators`), the special attack counter (`SpecialCounter`), the regeneration meter
 (`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`), the fishing (`Fishing`), the
 agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), the item identification
-(`ItemIdentification`), the chat notifications (`ChatNotifications`), the chat filter (`ChatFilter`) and
-the chat history (`ChatHistory`) are forty-three, built in, so the client's own code shows the way.
+(`ItemIdentification`), the chat notifications (`ChatNotifications`), the chat filter (`ChatFilter`),
+the chat history (`ChatHistory`) and the combat level (`CombatLevel`) are forty-four, built in, so the
+client's own code shows the way.
 
 ## Contents
 
@@ -559,6 +560,14 @@ put back when you log in again (the client empties the chat box at each login), 
 right-click menu has **Copy to clipboard**, and each chat tab's has **Clear history**, which takes that
 tab's lines out. 634 sends a private message to the name its prompt's script was given and keeps it
 nowhere a plugin could change it, so RuneLite's PM target cycling is not here.
+
+**Combat Level** is RuneLite's. The combat tab's "Combat Lvl" shows your level to three places, with the
+mouse over it a tooltip gives the levels of Attack or Strength, Defence or Constitution, Ranged, Magic,
+Prayer and (on members' worlds) Summoning that take you to the next, and in the Wilderness its level and
+the combat levels you can fight are written beside the skull (634 shows only the skull). The numbers are
+Void's: its combat formula (Summoning counts on members' worlds), its wilderness levels and its attack
+range (your level, give or take the wilderness level plus 5 plus a tenth of it). RuneLite's Account
+Summary is OSRS's.
 
 ## Writing a plugin
 
