@@ -65,7 +65,11 @@ class ItemIdentificationTest {
 
 	@Test
 	fun theDefaultsAreRuneLites() {
-		assertEquals(31, ItemIdentification.TYPES.size)
+		// RuneLite's 31, but the four with nothing in 634
+		assertEquals(27, ItemIdentification.TYPES.size)
+		assertEquals(-1, ItemIdentification.TYPES.indexOf("CORAL_FRAG"))
+		assertEquals(ItemIdentification.TYPES.size, ItemIdentification.CATEGORY_KEYS.size)
+		assertEquals(ItemIdentification.TYPES.size, ItemIdentification.CATEGORY_LABELS.size)
 		assertEquals(true, ItemIdentification.CATEGORY_DEFAULTS[ItemIdentification.TYPES.indexOf("SAPLING")])
 		assertEquals(false, ItemIdentification.CATEGORY_DEFAULTS[herbs])
 	}
