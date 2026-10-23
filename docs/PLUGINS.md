@@ -15,8 +15,9 @@ tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brot
 (`Woodcutting`), the mining (`Mining`), the report button (`ReportButton`), the player indicators
 (`PlayerIndicators`), the special attack counter (`SpecialCounter`), the regeneration meter
 (`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`), the fishing (`Fishing`), the
-agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`) and the item identification
-(`ItemIdentification`) are forty, built in, so the client's own code shows the way.
+agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), the item identification
+(`ItemIdentification`) and the chat notifications (`ChatNotifications`) are forty-one, built in, so the
+client's own code shows the way.
 
 ## Contents
 
@@ -538,6 +539,11 @@ the bottom left of their slot wherever the interfaces show them, noted ones too;
 are on by default, as in RuneLite. The names are RuneLite's, kept for the 304 of its 545 items whose
 OSRS id is the same item on 634; the OSRS-only kinds (coral, sap-treated logs, repair kits and the later
 items) find nothing here.
+
+**Chat Notifications** is RuneLite's. The words and patterns you list, and your own name (underlined
+too), are highlighted in red in other players' and the game's chat lines; your name, a highlight, a
+trade or duel request and a private message can each notify you. Void sends no broadcasts, so that
+notification finds nothing, and OSRS's newer clan chats do not exist here.
 
 ## Writing a plugin
 

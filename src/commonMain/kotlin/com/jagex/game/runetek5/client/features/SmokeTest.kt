@@ -445,6 +445,11 @@ object SmokeTest {
 
 	private var itemIdentificationSlot: Int = -1
 
+	/** client.test.chatNotifications: a public chat line naming the player, written through the client's own chat path, highlighted by Chat Notifications. */
+	private val CHAT_NOTIFICATIONS: Boolean = "true" == lang.getProperty("client.test.chatNotifications")
+
+	private var chatNotificationsFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1431,6 +1436,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 549755813888L
+		}
+		if (CHAT_NOTIFICATIONS && (checksDone and 1099511627776L) == 0L) {
+			if (!chatNotificationsDone()) {
+				return
+			}
+			checksDone = checksDone or 1099511627776L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4459,6 +4470,27 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** Chat Notifications on "hello <name>" from Zezima: the name highlighted and underlined in the stored line. Frame: frame-chatnotifications.png. */
+	private fun chatNotificationsDone(): Boolean {
+		if (chatNotificationsFrame == -1) {
+			ChatNotifications.highlightOwnName = true
+			ChatLineWriter.writeMessage("Zezima", "hello " + USER + "!", -1, "Zezima", null, ChatType.PUBLIC, 0, "Zezima")
+			chatNotificationsFrame = frames
+			return false
+		}
+		if (frames - chatNotificationsFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-chatnotifications.png")
+		val line: String = com.jagex.game.runetek5.interaction.chat.ChatBox.CHAT_LINES[0]?.message ?: ""
+		if (!line.contains("<u>")) {
+			fail("Chat Notifications: the line reads \"" + line + "\"")
+			return true
+		}
+		println("SMOKE chat notifications: \"" + line + "\"")
+		return true
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {

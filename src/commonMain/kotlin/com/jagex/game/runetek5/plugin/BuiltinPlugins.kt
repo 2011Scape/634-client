@@ -7,6 +7,7 @@ import com.jagex.game.runetek5.client.features.BankOrganizer
 import com.jagex.game.runetek5.client.features.BarrowsBrothers
 import com.jagex.game.runetek5.client.features.Boosts
 import com.jagex.game.runetek5.client.features.Cannon
+import com.jagex.game.runetek5.client.features.ChatNotifications
 import com.jagex.game.runetek5.client.features.CustomCursor
 import com.jagex.game.runetek5.client.features.DiscordPresence
 import com.jagex.game.runetek5.client.features.Emojis
@@ -96,6 +97,7 @@ object BuiltinPlugins {
 			builtIn(Slayer.DESCRIPTOR, Slayer),
 			builtIn(ItemCharges.DESCRIPTOR, ItemCharges),
 			builtIn(ItemIdentification.DESCRIPTOR, ItemIdentification),
+			builtIn(ChatNotifications.DESCRIPTOR, ChatNotifications),
 		)
 	}
 
