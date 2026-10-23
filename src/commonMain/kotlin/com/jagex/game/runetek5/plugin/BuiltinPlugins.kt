@@ -20,6 +20,7 @@ import com.jagex.game.runetek5.client.features.GroundItems
 import com.jagex.game.runetek5.client.features.GroundTiles
 import com.jagex.game.runetek5.client.features.Hunter
 import com.jagex.game.runetek5.client.features.IdleNotifier
+import com.jagex.game.runetek5.client.features.Implings
 import com.jagex.game.runetek5.client.features.InventoryValue
 import com.jagex.game.runetek5.client.features.ItemCharges
 import com.jagex.game.runetek5.client.features.ItemIdentification
@@ -114,6 +115,7 @@ object BuiltinPlugins {
 			builtIn(DeathIndicator.DESCRIPTOR, DeathIndicator),
 			builtIn(NpcAggression.DESCRIPTOR, NpcAggression),
 			builtIn(Hunter.DESCRIPTOR, Hunter),
+			builtIn(Implings.DESCRIPTOR, Implings),
 		)
 	}
 

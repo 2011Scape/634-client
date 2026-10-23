@@ -19,8 +19,8 @@ agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), th
 (`ItemIdentification`), the chat notifications (`ChatNotifications`), the chat filter (`ChatFilter`),
 the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual levels
 (`VirtualLevels`), the metronome (`Metronome`), the death indicator (`DeathIndicator`), the NPC
-aggression timer (`NpcAggression`) and the hunter (`Hunter`) are forty-nine, built in, so the client's
-own code shows the way.
+aggression timer (`NpcAggression`), the hunter (`Hunter`) and the implings (`Implings`) are fifty, built
+in, so the client's own code shows the way.
 
 ## Contents
 
@@ -602,6 +602,13 @@ sprung empty one, each in its colour. It follows Void's bird snares, box traps (
 deadfalls and net traps, whose locations change with their state; Void's pitfalls keep their state in
 variables and its rabbit snares are not set up yet, so neither is marked, and the maniacal monkey's and
 the crab traps are not on Void.
+
+**Implings** is RuneLite's. Each kind of impling can be highlighted (its outline and name in its colour)
+or announced ("Dragon impling is in the area") when it appears, its name shown on the minimap if you
+like; dragon and kingly implings are highlighted to begin with. In Puro-Puro, **Show spawn locations**
+marks the implings' spawn tiles with their kind. It has baby to dragon, as RuneLite, and 2011's pirate,
+spirit, zombie and kingly implings after them, by Void's ids in the open world and in Puro-Puro; OSRS's
+crystal and lucky implings are not in 634.
 
 ## Writing a plugin
 

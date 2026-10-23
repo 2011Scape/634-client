@@ -510,6 +510,17 @@ object SmokeTest {
 
 	private var hunterFrame: Int = -1
 
+	/** client.test.implings: a ::tele into Puro-Puro with every impling kind highlighted and the spawn tiles shown, both drawn, then back home. */
+	private val IMPLINGS: Boolean = "true" == lang.getProperty("client.test.implings")
+
+	private var implingsStep: Int = 0
+
+	private var implingsFrame: Int = -1
+
+	private var implingsFailure: String? = null
+
+	private var implingsWasEnabled: Boolean = false
+
 	private var npcAggressionWasEnabled: Boolean = false
 
 	/** The world map (755) and its close button. */
@@ -1560,6 +1571,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 281474976710656L
+		}
+		if (IMPLINGS && (checksDone and 562949953421312L) == 0L) {
+			if (!implingsDone(player)) {
+				return
+			}
+			checksDone = checksDone or 562949953421312L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4958,6 +4975,63 @@ object SmokeTest {
 		}
 		println("SMOKE hunter: the box trap laid beside the player marked with its pie")
 		return true
+	}
+
+	/** Implings in Puro-Puro: the highlights and spawn tiles, then home. Frame: frame-implings.png. */
+	private fun implingsDone(player: PlayerEntity): Boolean {
+		when (implingsStep) {
+			0 -> {
+				// off by default: on for the step, as the player had it after
+				implingsWasEnabled = Implings.enabled
+				Implings.enabled = true
+				Implings.modes.fill(Implings.HIGHLIGHT)
+				Implings.showspawn = true
+				sendCommand("tele 2592 4318 0")
+				implingsFrame = frames
+				implingsStep = 1
+			}
+			1 -> {
+				// the implings come a little after the area: wait for both, or give up
+				val inside: Boolean = player.movementBaseX[0] + MapRegion.sceneBaseX in 2560..2623 && player.movementBaseY[0] + MapRegion.sceneBaseY in 4288..4351
+				if (!(inside && Implings.spawnsDrawn > 0 && Implings.drawnLastFrame > 0) && frames - implingsFrame < BANK_WAIT_FRAMES * 2) {
+					return false
+				}
+				implingsFrame = frames
+				implingsStep = 2
+			}
+			2 -> {
+				if (frames - implingsFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-implings.png")
+				val spawns: Int = Implings.spawnsDrawn
+				val implings: Int = Implings.drawnLastFrame
+				if (spawns == 0 || implings == 0) {
+					implingsFailure = "Implings: " + spawns + " spawn tiles and " + implings + " implings drawn in Puro-Puro"
+				} else {
+					println("SMOKE implings: in Puro-Puro, " + spawns + " spawn tiles and " + implings + " implings drawn")
+				}
+				for (k in Implings.KINDS.indices) {
+					Implings.modes[k] = Implings.KINDS[k].defaultMode
+				}
+				Implings.showspawn = false
+				Implings.enabled = implingsWasEnabled
+				sendCommand("tele " + SCENE_HOME[0] + " " + SCENE_HOME[1] + " " + SCENE_HOME[2])
+				implingsFrame = frames
+				implingsStep = 3
+			}
+			else -> {
+				if (frames - implingsFrame < BANK_WAIT_FRAMES / 2) {
+					return false
+				}
+				implingsFailure?.let {
+					fail(it)
+					return true
+				}
+				return true
+			}
+		}
+		return false
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {
