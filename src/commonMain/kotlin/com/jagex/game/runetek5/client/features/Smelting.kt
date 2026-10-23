@@ -38,6 +38,9 @@ object Smelting : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("smelting", "Smelting", "1", PluginApi.VERSION, "Counts the bars and cannonballs you smelt this session, and an hour.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	/** Void's furnace animation, for bars and cannonballs. */
 	const val SMELTING_ANIMATION: Int = 899
 
@@ -77,6 +80,9 @@ object Smelting : Plugin {
 		}
 
 		override fun render(g: Graphics, view: Viewport): Size? {
+			if (!enabled) {
+				return null
+			}
 			panelDrawn = false
 			val client: ClientApi = context?.client() ?: return null
 			val current: Session = session ?: return null
@@ -101,9 +107,9 @@ object Smelting : Plugin {
 		}
 	}
 
-	private val tickListener: EventListener<GameTick> = EventListener { _ -> tick() }
+	private val tickListener: EventListener<GameTick> = EventListener { _ -> if (enabled) tick() }
 
-	private val chatListener: EventListener<ChatMessage> = EventListener { event -> chat(event) }
+	private val chatListener: EventListener<ChatMessage> = EventListener { event -> if (enabled) chat(event) }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
@@ -120,6 +126,7 @@ object Smelting : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's SmeltingConfig
+		s.toggle("enabled", "Smelting", true)
 		s.number("statTimeout", "Reset stats", 5, 1, 60, 1)
 		readSettings(context.config())
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
@@ -136,6 +143,7 @@ object Smelting : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		statTimeout = config.getInt("statTimeout", 5)
 	}
 
