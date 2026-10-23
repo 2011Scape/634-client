@@ -491,6 +491,19 @@ object SmokeTest {
 
 	private var metronomeTicks: Int = 0
 
+	/** client.test.deathIndicator: Void's death and gravestone lines (written through the client's chat path, nothing really happening), the hint arrow (API 29) and infobox, then the world map opened and the grave marked on it. */
+	private val DEATH_INDICATOR: Boolean = "true" == lang.getProperty("client.test.deathIndicator")
+
+	private var deathIndicatorStep: Int = 0
+
+	private var deathIndicatorFrame: Int = -1
+
+	private var deathIndicatorFailure: String? = null
+
+	/** The world map (755) and its close button. */
+	private const val WORLD_MAP: Int = 755
+	private const val WORLD_MAP_CLOSE: Int = 44
+
 	private var chatFilterWasEnabled: Boolean = false
 
 	private var itemIdentificationWasEnabled: Boolean = false
@@ -1517,6 +1530,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 35184372088832L
+		}
+		if (DEATH_INDICATOR && (checksDone and 70368744177664L) == 0L) {
+			if (!deathIndicatorDone()) {
+				return
+			}
+			checksDone = checksDone or 70368744177664L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4444,6 +4463,13 @@ object SmokeTest {
 		openTab("Inventory")
 	}
 
+	/** Clicks component [componentId] of loaded interface [interfaceId] with its first option; false when it is not loaded. */
+	private fun clickComponent(interfaceId: Int, componentId: Int): Boolean {
+		val c: Component = Interface.peekComponents(interfaceId)?.getOrNull(componentId) ?: return false
+		InterfaceOptionInteract.ifOptionInteract(-1, c.options?.getOrNull(0) ?: "", 1, c.idHash)
+		return true
+	}
+
 	/** Clicks the tab stone whose first option is one of [options]; false when the base window has none. */
 	private fun openTab(vararg options: String): Boolean {
 		val root: Array<Component?> = Interface.interfaces!![ClientState.BASE_WINDOW_ID] ?: return false
@@ -4802,6 +4828,61 @@ object SmokeTest {
 		}
 		println("SMOKE metronome: " + ticks + " server ticks in " + elapsed + " ms, sound " + sound + " played")
 		return true
+	}
+
+	/** Death Indicator after a pretend death here: the arrow, the infobox and the world map's mark. Frame: frame-deathindicator.png. */
+	private fun deathIndicatorDone(): Boolean {
+		val api = ClientApiImpl
+		when (deathIndicatorStep) {
+			0 -> {
+				ChatLineWriter.writeMessage(null, DeathIndicator.DEATH_MESSAGE, -1, null, null, ChatType.GAME, 0, null)
+				ChatLineWriter.writeMessage(null, "Your gravestone has appeared and will last 5 minutes before crumbling to dust. You", -1, null, null, ChatType.GAME, 0, null)
+				deathIndicatorFrame = frames
+				deathIndicatorStep = 1
+			}
+			1 -> {
+				if (frames - deathIndicatorFrame < MARKER_FRAMES) {
+					return false
+				}
+				val arrow: Boolean = com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate.HINT_ARROWS[7] != null
+				if (!DeathIndicator.hasDeath() || !arrow || DeathIndicator.infobox == null) {
+					deathIndicatorFailure = "Death Indicator: death " + DeathIndicator.hasDeath() + ", arrow " + arrow + ", infobox " + (DeathIndicator.infobox != null)
+				}
+				if (!openTab("World Map", "View World Map")) {
+					println("SMOKE death indicator: no world map button found; the map mark is not checked")
+					deathIndicatorStep = 3
+					return false
+				}
+				deathIndicatorFrame = frames
+				deathIndicatorStep = 2
+			}
+			2 -> {
+				if (!DeathIndicator.mapMarked && frames - deathIndicatorFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-deathindicator.png")
+				if (!DeathIndicator.mapMarked && deathIndicatorFailure == null) {
+					deathIndicatorFailure = "Death Indicator: the world map was not marked"
+				}
+				// the map's close button (755:44): the server puts the game frame back
+				clickComponent(WORLD_MAP, WORLD_MAP_CLOSE)
+				deathIndicatorFrame = frames
+				deathIndicatorStep = 3
+			}
+			else -> {
+				if (api.worldMapArea(IntArray(4)) && frames - deathIndicatorFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				DeathIndicator.clear(api)
+				deathIndicatorFailure?.let {
+					fail(it)
+					return true
+				}
+				println("SMOKE death indicator: the grave's arrow, infobox and world map mark after the death and gravestone lines")
+				return true
+			}
+		}
+		return false
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {
