@@ -36,6 +36,9 @@ object Poison : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("poison", "Poison", "1", PluginApi.VERSION, "Times your poison's next hit and its end, and turns the life points orb's heart green while poisoned.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	const val POISON_VARP: Int = 102
 	const val DISEASE_VARP: Int = 456
 
@@ -90,10 +93,13 @@ object Poison : Plugin {
 	private var context: PluginContext? = null
 
 	/** RuneLite's PoisonOverlay: the tooltip over the life points orb. */
-	private val overlay: Overlay = Overlay { _, _ -> context?.client()?.let { orbTooltip(it) } }
+	private val overlay: Overlay = Overlay { _, _ -> if (enabled) context?.client()?.let { orbTooltip(it) } }
 
 	private val varpListener: EventListener<VarpChanged> = EventListener { event ->
 		val client: ClientApi = context?.client() ?: return@EventListener
+		if (!enabled) {
+			return@EventListener
+		}
 		if (event.id == POISON_VARP) {
 			poisonChanged(client, event.value)
 		} else if (event.id == DISEASE_VARP) {
@@ -112,10 +118,10 @@ object Poison : Plugin {
 		if (event.pluginId == DESCRIPTOR.id) {
 			val client: ClientApi = context?.client() ?: return@EventListener
 			context?.config()?.let { readSettings(it) }
-			if (!showInfoboxes) {
+			if (!enabled || !showInfoboxes) {
 				removeInfobox()
 			}
-			if (changeHealthIcon) checkHealthIcon(client) else resetHealthIcon(client)
+			if (enabled && changeHealthIcon) checkHealthIcon(client) else resetHealthIcon(client)
 		}
 	}
 
@@ -133,6 +139,7 @@ object Poison : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's PoisonConfig, in its order
+		s.toggle("enabled", "Poison", true)
 		s.toggle("showInfoboxes", "Show infoboxes", false)
 		s.toggle("changeHealthIcon", "Change HP orb icon", true)
 		readSettings(context.config())
@@ -141,7 +148,7 @@ object Poison : Plugin {
 		context.events().subscribe(Events.GAME_STATE_CHANGED, stateListener)
 		context.addOverlay(overlay)
 		context.registerCommand("poisoninfo", toggle)
-		if (context.client().gameState() === GameState.LOGGED_IN) {
+		if (enabled && context.client().gameState() === GameState.LOGGED_IN) {
 			checkHealthIcon(context.client())
 		}
 	}
@@ -156,6 +163,7 @@ object Poison : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		showInfoboxes = config.getBoolean("showInfoboxes", false)
 		changeHealthIcon = config.getBoolean("changeHealthIcon", true)
 	}
