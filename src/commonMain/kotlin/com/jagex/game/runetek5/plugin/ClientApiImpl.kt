@@ -9,6 +9,7 @@ import com.jagex.game.runetek5.graphics.sprite.SpriteType
 import com.jagex.game.runetek5.ChatLineWriter
 import com.jagex.game.runetek5.LocType
 import com.jagex.game.runetek5.MapRegion
+import com.jagex.game.runetek5.graphics.hint.HintArrow
 import com.jagex.game.runetek5.NPCList
 import com.jagex.game.runetek5.OverlayManager
 import com.jagex.game.runetek5.cache.node.Node
@@ -904,6 +905,34 @@ object ClientApiImpl : ClientApi {
 			null
 		}
 	}
+
+	override fun worldMapArea(out: IntArray): Boolean = PluginWorldMap.area(out)
+
+	override fun projectWorldMap(worldX: Int, worldY: Int, out: IntArray): Boolean = PluginWorldMap.project(worldX, worldY, out)
+
+	override fun setHintArrow(worldX: Int, worldY: Int, level: Int) {
+		val arrow: HintArrow = HintArrow()
+		// a tile arrow (type 2), its point in scene units at the tile's centre, as the server's HINT_ARROW sets one
+		arrow.targetType = 2
+		arrow.arrowSprite = 0
+		arrow.plane = level
+		arrow.x = ((worldX - MapRegion.sceneBaseX) shl 9) + 256
+		arrow.y = ((worldY - MapRegion.sceneBaseY) shl 9) + 256
+		arrow.height = 0
+		// shown within 64 tiles: the arrow squares distance shl 9 as an Int
+		arrow.distance = HINT_DISTANCE
+		arrow.modelId = -1
+		PlayerUpdate.HINT_ARROWS[PLUGIN_HINT_ARROW] = arrow
+	}
+
+	override fun clearHintArrow() {
+		PlayerUpdate.HINT_ARROWS[PLUGIN_HINT_ARROW] = null
+	}
+
+	/** The plugins' hint arrow slot: the last of the eight, which servers leave to the first ones. */
+	private const val PLUGIN_HINT_ARROW: Int = 7
+
+	private const val HINT_DISTANCE: Int = 64
 
 	override fun overrideSprite(spriteId: Int, image: Image?) {
 		PluginSpriteOverrides.set(spriteId, image as? PluginImage)

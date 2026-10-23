@@ -18,6 +18,7 @@ import com.jagex.game.runetek5.tools.LocalizedText
 import com.jagex.game.runetek5.graphics.font.FontManager
 import com.jagex.game.runetek5.client.ClientState
 import kotlin.jvm.JvmStatic
+import com.jagex.game.runetek5.plugin.PluginWorldMap
 
 object WorldMapViewDraw {
 
@@ -51,6 +52,8 @@ object WorldMapViewDraw {
 		MapList.drawTiles(toolkit)
 		@Pc(210) val deque: Deque? = MapList.positionElements(toolkit)
 		WorldMapElementPass.renderInformation(deque, toolkit)
+		// Not part of the original client: where the map is, for the plugins (ClientApi.projectWorldMap).
+		PluginWorldMap.drawn(left, top, width, height, viewLeftTileX + WorldMap.mapSquareAbsX, viewTopTileY + WorldMap.mapSquareAbsY, WorldMap.mapZoom)
 		if (JSObjectManager.highlightFlashCycles > 0) {
 			ServerEnvironment.flashCycleCounter--
 			if (ServerEnvironment.flashCycleCounter == 0) {

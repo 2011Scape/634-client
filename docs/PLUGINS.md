@@ -17,8 +17,9 @@ tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brot
 (`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`), the fishing (`Fishing`), the
 agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), the item identification
 (`ItemIdentification`), the chat notifications (`ChatNotifications`), the chat filter (`ChatFilter`),
-the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual levels (`VirtualLevels`)
-and the metronome (`Metronome`) are forty-six, built in, so the client's own code shows the way.
+the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual levels
+(`VirtualLevels`), the metronome (`Metronome`) and the death indicator (`DeathIndicator`) are
+forty-seven, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -578,6 +579,14 @@ while the tab is drawn and puts the game's back once switched off.
 ms, taken from its player update) a sound plays, the tick and the tock taking turns, each at its own
 volume (muted to high). The sounds are 634's own short ones, a plop and a knock, as RuneLite's Grand
 Exchange plops are OSRS's.
+
+**Death Indicator** is RuneLite's (from before OSRS added its own grave marker). When you die and your
+gravestone appears, the game's hint arrow points at the tile you died on, an infobox counts down the
+gravestone's minutes (its tooltip says the world, its menu has **Clear**), and the world map marks the
+place; all go once you stand on the tile again or the gravestone crumbles, and they are kept over a
+logout. It reads Void's "Oh dear, you are dead!" and "Your gravestone has appeared and will last N
+minutes…"; a death in the Wilderness, where your items go to your killer, leaves no gravestone and no
+mark.
 
 ## Writing a plugin
 

@@ -12,6 +12,7 @@ import com.jagex.game.runetek5.client.features.ChatHistory
 import com.jagex.game.runetek5.client.features.ChatNotifications
 import com.jagex.game.runetek5.client.features.CombatLevel
 import com.jagex.game.runetek5.client.features.CustomCursor
+import com.jagex.game.runetek5.client.features.DeathIndicator
 import com.jagex.game.runetek5.client.features.DiscordPresence
 import com.jagex.game.runetek5.client.features.Emojis
 import com.jagex.game.runetek5.client.features.Fishing
@@ -108,6 +109,7 @@ object BuiltinPlugins {
 			builtIn(CombatLevel.DESCRIPTOR, CombatLevel),
 			builtIn(VirtualLevels.DESCRIPTOR, VirtualLevels),
 			builtIn(Metronome.DESCRIPTOR, Metronome),
+			builtIn(DeathIndicator.DESCRIPTOR, DeathIndicator),
 		)
 	}
 

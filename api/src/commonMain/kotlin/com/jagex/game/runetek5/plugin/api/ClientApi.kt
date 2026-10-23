@@ -144,6 +144,29 @@ interface ClientApi {
 	/** The system clipboard's text, null when it holds none or there is no clipboard. Since API 27. */
 	fun clipboard(): String?
 
+	/**
+	 * The world map's box on the screen (x, y, width, height) into [out] (four ints) while the map is
+	 * shown, as [minimapArea] gives the minimap's; false while it is not. For drawing on it at FrameDraw.
+	 * Since API 29.
+	 */
+	fun worldMapArea(out: IntArray): Boolean
+
+	/**
+	 * World tile ([worldX], [worldY])'s centre on the world map, in screen pixels, into [out] (two ints);
+	 * false while the map is not shown or the tile is off it. Since API 29.
+	 */
+	fun projectWorldMap(worldX: Int, worldY: Int, out: IntArray): Boolean
+
+	/**
+	 * Points the game's hint arrow (the yellow arrow over a tile, and its mark on the minimap) at world tile
+	 * ([worldX], [worldY]) of [level], as RuneLite's Client.setHintArrow; set it again when the scene moves.
+	 * Since API 29.
+	 */
+	fun setHintArrow(worldX: Int, worldY: Int, level: Int)
+
+	/** Takes away the hint arrow [setHintArrow] put up. Since API 29. */
+	fun clearHintArrow()
+
 	/** Writes a line to the developer console. */
 	fun consolePrint(text: String)
 
