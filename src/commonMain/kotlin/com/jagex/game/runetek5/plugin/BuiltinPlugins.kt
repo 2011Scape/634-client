@@ -9,6 +9,7 @@ import com.jagex.game.runetek5.client.features.Cannon
 import com.jagex.game.runetek5.client.features.CustomCursor
 import com.jagex.game.runetek5.client.features.DiscordPresence
 import com.jagex.game.runetek5.client.features.Emojis
+import com.jagex.game.runetek5.client.features.Fishing
 import com.jagex.game.runetek5.client.features.GroundItems
 import com.jagex.game.runetek5.client.features.GroundTiles
 import com.jagex.game.runetek5.client.features.IdleNotifier
@@ -88,6 +89,7 @@ object BuiltinPlugins {
 			builtIn(RegenMeter.DESCRIPTOR, RegenMeter),
 			builtIn(RunEnergy.DESCRIPTOR, RunEnergy),
 			builtIn(Poison.DESCRIPTOR, Poison),
+			builtIn(Fishing.DESCRIPTOR, Fishing),
 		)
 	}
 
