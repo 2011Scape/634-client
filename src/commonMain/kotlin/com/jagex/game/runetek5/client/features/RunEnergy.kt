@@ -37,6 +37,9 @@ object RunEnergy : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("runenergy", "Run Energy", "1", PluginApi.VERSION, "Shows how long your run energy lasts and how long it takes to come back, over the run orb.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	const val RUN_ORB: Int = 750
 	const val RUN_ORB_BUTTON: Int = 3
 	const val RUN_ORB_TEXT: Int = 5
@@ -56,14 +59,14 @@ object RunEnergy : Plugin {
 	private var context: PluginContext? = null
 
 	/** RuneLite's RunEnergyOverlay: the tooltip over the run orb, before the frame's tooltips are drawn. */
-	private val overlay: Overlay = Overlay { _, _ -> context?.client()?.let { tooltip(it) } }
+	private val overlay: Overlay = Overlay { _, _ -> if (enabled) context?.client()?.let { tooltip(it) } }
 
-	private val tickListener: EventListener<GameTick> = EventListener { _ -> context?.client()?.let { updateOrbText(it) } }
+	private val tickListener: EventListener<GameTick> = EventListener { _ -> if (enabled) context?.client()?.let { updateOrbText(it) } }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
 			context?.config()?.let { readSettings(it) }
-			context?.client()?.let { if (!replaceOrbText) resetOrbText(it) }
+			context?.client()?.let { if (!enabled || !replaceOrbText) resetOrbText(it) }
 		}
 	}
 
@@ -79,6 +82,7 @@ object RunEnergy : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's RunEnergyConfig, but the Ring of endurance message (OSRS-only)
+		s.toggle("enabled", "Run Energy", true)
 		s.toggle("replaceOrbText", "Replace orb text with run time left", false)
 		readSettings(context.config())
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
@@ -94,6 +98,7 @@ object RunEnergy : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		replaceOrbText = config.getBoolean("replaceOrbText", false)
 	}
 

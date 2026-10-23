@@ -39,6 +39,9 @@ object DeathIndicator : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("deathIndicator", "Death Indicator", "1", PluginApi.VERSION, "Points you back to your gravestone after a death, with its time left and a mark on the world map.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	const val DEATH_MESSAGE: String = "Oh dear, you are dead!"
 
 	/** Void's Gravestone: "Your gravestone has appeared and will last N minute(s) before crumbling to dust. You". */
@@ -80,16 +83,17 @@ object DeathIndicator : Plugin {
 	private val area: IntArray = IntArray(4)
 	private var context: PluginContext? = null
 
-	private val chatListener: EventListener<ChatMessage> = EventListener { event -> context?.client()?.let { chat(it, event) } }
+	private val chatListener: EventListener<ChatMessage> = EventListener { event -> if (enabled) context?.client()?.let { chat(it, event) } }
 
-	private val tickListener: EventListener<GameTick> = EventListener { _ -> context?.client()?.let { tick(it) } }
+	private val tickListener: EventListener<GameTick> = EventListener { _ -> if (enabled) context?.client()?.let { tick(it) } }
 
-	private val frameListener: EventListener<FrameDraw> = EventListener { event -> context?.client()?.let { drawWorldMap(event.graphics, it) } }
+	private val frameListener: EventListener<FrameDraw> = EventListener { event -> if (enabled) context?.client()?.let { drawWorldMap(event.graphics, it) } }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
 			context?.config()?.let { readSettings(it) }
-			context?.client()?.let { refresh(it) }
+			// switched off, the marks go; the death stays kept for when it is on again
+			context?.client()?.let { if (enabled) refresh(it) else removeMarks(it) }
 		}
 	}
 
@@ -99,6 +103,7 @@ object DeathIndicator : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's DeathIndicatorConfig, in its order
+		s.toggle("enabled", "Death Indicator", true)
 		s.toggle("deathHintArrow", "Death Hint Arrow", true)
 		s.toggle("deathInfoBox", "Death InfoBox", true)
 		s.toggle("deathOnWorldMap", "Mark on World Map", true)
@@ -117,6 +122,7 @@ object DeathIndicator : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		deathHintArrow = config.getBoolean("deathHintArrow", true)
 		deathInfoBox = config.getBoolean("deathInfoBox", true)
 		deathOnWorldMap = config.getBoolean("deathOnWorldMap", true)

@@ -39,6 +39,9 @@ object ChatFilter : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("chatfilter", "Chat Filter", "1", PluginApi.VERSION, "Censors or hides chat with the words, patterns or names you list, and collapses repeated lines.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = false
+
 	/** RuneLite's ChatFilterType. */
 	@JvmField
 	val FILTER_TYPES: Array<String> = arrayOf("Censor words", "Censor message", "Remove message")
@@ -83,9 +86,9 @@ object ChatFilter : Plugin {
 
 	private var context: PluginContext? = null
 
-	private val chatListener: EventListener<ChatMessage> = EventListener { event -> context?.client()?.let { chat(it, event) } }
+	private val chatListener: EventListener<ChatMessage> = EventListener { event -> if (enabled) context?.client()?.let { chat(it, event) } }
 
-	private val overheadListener: EventListener<OverheadTextChanged> = EventListener { event -> context?.client()?.let { overhead(it, event) } }
+	private val overheadListener: EventListener<OverheadTextChanged> = EventListener { event -> if (enabled) context?.client()?.let { overhead(it, event) } }
 
 	private val stateListener: EventListener<GameStateChanged> = EventListener { event ->
 		if (event.state === GameState.LOGIN_SCREEN || event.state === GameState.LOADING) {
@@ -110,6 +113,7 @@ object ChatFilter : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's ChatFilterConfig, in its order: the Filter lists section first. 634's Clan Chat is RuneLite's
+		s.toggle("enabled", "Chat Filter", false)
 		// friends chat; OSRS's 2021 clan chats have no setting here
 		s.text("filteredWords", "Filtered words (comma separated)", "", MAX_TEXT)
 		s.text("filteredRegex", "Filtered regex (one per line or ;)", "", MAX_TEXT)
@@ -137,6 +141,7 @@ object ChatFilter : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", false)
 		filteredWords = config.get("filteredWords", "")
 		filteredRegex = config.get("filteredRegex", "")
 		filteredNames = config.get("filteredNames", "")
