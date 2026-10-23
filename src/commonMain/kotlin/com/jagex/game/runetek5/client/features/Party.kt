@@ -106,6 +106,9 @@ object Party : Plugin {
 	@JvmField
 	var worldMapDots: Int = 0
 
+	@JvmField
+	var worldMapLabels: Int = 0
+
 	private var context: PluginContext? = null
 	private var lastPingSeq: Int = -1
 	private var pingPrimed: Boolean = false
@@ -355,32 +358,12 @@ object Party : Plugin {
 	@JvmStatic
 	fun pingShowing(): Boolean = pingX >= 0 && cycle - pingCycle < PING_CYCLES
 
-	/** The colour of a member's name, from the name (RuneLite's recolour by hash). */
+	/**
+	 * A member's colour, for their name, their dots and their pings: one of eight that stand apart, by party slot (a
+	 * name's hash, as RuneLite does it, gave names a letter apart nearly the same hue).
+	 */
 	@JvmStatic
-	fun colour(name: String): Int {
-		if (!recolorNames) {
-			return WHITE
-		}
-		val hash: Int = name.lowercase().hashCode()
-		val hue: Int = (hash and 0x7FFFFFFF) % 360
-		return hsv(hue)
-	}
-
-	private fun hsv(hue: Int): Int {
-		val h: Double = hue / 60.0
-		val c: Double = 0.85
-		val x: Double = c * (1 - kotlin.math.abs(h % 2 - 1))
-		val m: Double = 0.15
-		val (r, g, b) = when (h.toInt()) {
-			0 -> Triple(c, x, 0.0)
-			1 -> Triple(x, c, 0.0)
-			2 -> Triple(0.0, c, x)
-			3 -> Triple(0.0, x, c)
-			4 -> Triple(x, 0.0, c)
-			else -> Triple(c, 0.0, x)
-		}
-		return (0xFF shl 24) or (((r + m) * 255).toInt() shl 16) or (((g + m) * 255).toInt() shl 8) or ((b + m) * 255).toInt()
-	}
+	fun colour(slot: Int): Int = if (!recolorNames) WHITE else PALETTE[slot.coerceIn(0, PALETTE.size - 1)]
 
 	private fun command(text: String) {
 		ClientCommandProcessor.sendCheat(text, false, false)
@@ -444,7 +427,7 @@ object Party : Plugin {
 			crown(g, x - 1, top + 1)
 			x += CROWN
 		}
-		g.text(x, top + line - 2, member.name, colour(member.name), BLACK)
+		g.text(x, top + line - 2, member.name, colour(member.slot), BLACK)
 		if (member.inPvp) {
 			g.textRight(width - BORDER, top + line - 2, "Wilderness", PVP, BLACK)
 		}
@@ -512,8 +495,7 @@ object Party : Plugin {
 		if (!client.tilePolygon(pingX - client.sceneBaseX(), pingY - client.sceneBaseY(), pingLevel, 1, xs, ys)) {
 			return
 		}
-		val name: String = state.members.firstOrNull { it.slot == pingSlot }?.name ?: ""
-		val colour: Int = colour(name)
+		val colour: Int = colour(pingSlot)
 		val fade: Int = 255 - 255 * (cycle - pingCycle) / PING_CYCLES
 		g.fillPolygon(xs, ys, 4, (colour and 0xFFFFFF) or ((fade / 3) shl 24))
 		g.polygon(xs, ys, 4, (colour and 0xFFFFFF) or (fade shl 24))
@@ -533,7 +515,7 @@ object Party : Plugin {
 				continue
 			}
 			g.fillCircle(point[0], point[1], DOT, BLACK)
-			g.fillCircle(point[0], point[1], DOT - 1, colour(member.name))
+			g.fillCircle(point[0], point[1], DOT - 1, colour(member.slot))
 			dots++
 		}
 		g.unclip()
@@ -546,23 +528,39 @@ object Party : Plugin {
 			return
 		}
 		g.clip(area[0], area[1], area[2], area[3])
-		var dots = 0
+		// every member's dot; members whose dots touch share one label, "Name +2", so names never pile up
+		val labels: ArrayList<IntArray> = ArrayList()
+		val names: ArrayList<String> = ArrayList()
 		for (member in state.members) {
 			if (member.slot == state.local || member.x < 0 || !client.projectWorldMap(member.x, member.y, point)) {
 				continue
 			}
-			dots++
-			g.fillCircle(point[0], point[1], DOT + 1, colour(member.name))
-			if (g.fontReady()) {
-				g.textCentered(point[0], point[1] - DOT - 3, member.name, WHITE, BLACK)
+			g.fillCircle(point[0], point[1], DOT + 1, BLACK)
+			g.fillCircle(point[0], point[1], DOT, colour(member.slot))
+			val near: Int = labels.indexOfFirst { kotlin.math.abs(it[0] - point[0]) <= LABEL_NEAR && kotlin.math.abs(it[1] - point[1]) <= LABEL_NEAR }
+			if (near >= 0) {
+				labels[near][2]++
+			} else {
+				labels.add(intArrayOf(point[0], point[1], 0))
+				names.add(member.name)
+			}
+		}
+		if (g.fontReady()) {
+			for (i in labels.indices) {
+				val label: IntArray = labels[i]
+				g.textCentered(label[0], label[1] - DOT - 3, names[i] + (if (label[2] > 0) " +" + label[2] else ""), WHITE, BLACK)
 			}
 		}
 		g.unclip()
-		worldMapDots = dots
+		worldMapDots = labels.sumOf { it[2] + 1 }
+		worldMapLabels = labels.size
 	}
 
 	private const val BASE37: String = "_abcdefghijklmnopqrstuvwxyz0123456789"
 	private const val BORDER: Int = 4
+
+	/** World map dots this close (pixels) share a label. */
+	private const val LABEL_NEAR: Int = 12
 	private const val GAP: Int = 2
 	private const val PANEL_WIDTH: Int = 150
 
@@ -589,5 +587,11 @@ object Party : Plugin {
 	private const val HP: Int = 0xFFD01010.toInt()
 	private const val PRAYER: Int = 0xFF20A8C0.toInt()
 	private const val GOLD: Int = 0xFFFFD700.toInt()
+
+	/** The members' colours by slot: orange, sky blue, lime, pink, yellow, violet, teal, silver. */
+	private val PALETTE: IntArray = intArrayOf(
+		0xFFFF9F1C.toInt(), 0xFF4CC9F0.toInt(), 0xFF9EF01A.toInt(), 0xFFFF5DA2.toInt(),
+		0xFFFFE14D.toInt(), 0xFFB388FF.toInt(), 0xFF2EC4B6.toInt(), 0xFFD8D8D8.toInt(),
+	)
 	private const val PVP: Int = 0xFFFF3030.toInt()
 }

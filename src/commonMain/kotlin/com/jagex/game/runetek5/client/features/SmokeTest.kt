@@ -604,8 +604,8 @@ object SmokeTest {
 
 	/**
 	 * client.test.party: the Party plugin with a second smoke client on a server with parties (Void's Party).
-	 * "lead:<name>" invites <name>, waits for them, reads their stats, pings a tile and leaves; "join" waits for the
-	 * invite, accepts it and waits for the leader's ping.
+	 * "lead:<name>[,<name>...]" invites them, waits for them all, reads their stats, pings a tile, checks the maps and
+	 * leaves (frames of the panel, and compact); "join" waits for the invite, accepts it and waits for the party to end.
 	 */
 	private val PARTY: String = lang.getProperty("client.test.party", "")
 
@@ -614,6 +614,10 @@ object SmokeTest {
 	private var partyFrame: Int = -1
 
 	private var partyWasEnabled: Boolean = false
+
+	private var partyCompactFrame: Int = -1
+
+	private var partyCompactWas: Boolean = false
 
 	private var animationSmoothingWasEnabled: Boolean = false
 
@@ -697,7 +701,7 @@ object SmokeTest {
 	private const val MARKER_FRAMES: Int = 40
 
 	/** The party step's waits: for the other client, and between two invites. */
-	private const val PARTY_WAIT: Int = 3000
+	private const val PARTY_WAIT: Int = 6000
 	private const val PARTY_REINVITE: Int = 300
 
 	/** The backpack's item container, and an amulet of glory(4) for Item Charges. */
@@ -5574,12 +5578,12 @@ object SmokeTest {
 				partyFrame = frames
 				partyStep = 1
 				if (lead) {
-					ClientCommandProcessor.sendCheat("party invite " + PARTY.substring(5), false, false)
+					partyInviteAll()
 				}
 			}
 			1 -> {
 				if (lead) {
-					if (state.members.size >= 2) {
+					if (state.members.size >= partyNames().size + 1) {
 						val other: Party.Member = state.members.first { it.slot != state.local }
 						if (other.hpMax <= 0) {
 							return partyFail("the member's hitpoints never came")
@@ -5590,7 +5594,7 @@ object SmokeTest {
 						partyFrame = frames
 						partyStep = 2
 					} else if (waited > 0 && waited % PARTY_REINVITE == 0) {
-						ClientCommandProcessor.sendCheat("party invite " + PARTY.substring(5), false, false)
+						partyInviteAll()
 					}
 				} else if (state.invite != null) {
 					// accepted the player's way: the invite's chat line, left click (its top row once the menu is built)
@@ -5618,21 +5622,39 @@ object SmokeTest {
 			2 -> {
 				if (Party.pingShowing() && state.members.size >= 2) {
 					saveFrame("build/smoke/frame-party.png")
+					if (lead) {
+						val compact: Boolean = Party.compactPanel
+						Party.compactPanel = true
+						partyCompactFrame = frames
+						partyCompactWas = compact
+					}
 					println("SMOKE party: " + (if (lead) "led" else "joined") + " a party of " + state.members.map { it.name } + ", the ping shows, minimap dots " + Party.minimapDots)
 					if (lead && Party.minimapDots == 0) {
 						return partyFail("the member's dot is not on the minimap")
 					}
 					partyFrame = frames
 					partyStep = 3
-					if (lead && !openTab("World Map", "View World Map")) {
-						println("SMOKE party: no world map button found; the world map dot is not checked")
-						partyStep = 5
-					}
 				} else if (waited > PARTY_WAIT) {
 					return partyFail("no ping seen, members " + state.members.map { it.name } + ", ping varcs " + ClientApiImpl.varcInt(Party.PING_SEQ) + "/" + ClientApiImpl.varcInt(Party.PING_TILE))
 				}
 			}
 			3 -> {
+				if (lead && partyCompactFrame >= 0) {
+					if (frames - partyCompactFrame < MARKER_FRAMES) {
+						return false
+					}
+					saveFrame("build/smoke/frame-party-compact.png")
+					Party.compactPanel = partyCompactWas
+					partyCompactFrame = -1
+					// the world map after the panel's frames, which it would cover
+					if (!openTab("World Map", "View World Map")) {
+						println("SMOKE party: no world map button found; the world map dot is not checked")
+						partyStep = 5
+						return false
+					}
+					partyFrame = frames
+					return false
+				}
 				if (!lead) {
 					// the joiner stays until the leader has checked the maps and left
 					if (!state.inParty() || waited > PARTY_WAIT) {
@@ -5645,7 +5667,7 @@ object SmokeTest {
 					return false
 				}
 				saveFrame("build/smoke/frame-party-worldmap.png")
-				println("SMOKE party: world map dots " + Party.worldMapDots)
+				println("SMOKE party: world map dots " + Party.worldMapDots + " under " + Party.worldMapLabels + " labels")
 				if (Party.worldMapDots == 0) {
 					return partyFail("the member's dot is not on the world map")
 				}
@@ -5666,6 +5688,17 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** The names the leader invites: client.test.party=lead:<name>,<name>... */
+	private fun partyNames(): List<String> = PARTY.substring(5).split(',').map { it.trim() }.filter { it.isNotEmpty() }
+
+	private fun partyInviteAll() {
+		for (name in partyNames()) {
+			if (Party.state.members.none { it.name.equals(name.replace('_', ' '), ignoreCase = true) }) {
+				ClientCommandProcessor.sendCheat("party invite " + name, false, false)
+			}
+		}
 	}
 
 	/** The chat box's line (or line group) that holds the party invite. */
