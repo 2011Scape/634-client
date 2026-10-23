@@ -565,6 +565,8 @@ object SmokeTest {
 
 	private var inventoryGridSlot: Int = -1
 
+	private var inventoryGridWasEnabled: Boolean = false
+
 	/** The slot held as dragged, null for none: SmokeTest.tick holds it again each logic tick. */
 	private var inventoryGridHeld: Component? = null
 
@@ -5298,6 +5300,9 @@ object SmokeTest {
 					return false
 				}
 				fakeBackpackItem(inventoryGridSlot, GLORY_4)
+				// off by default: on for the step, as the player had it after (releaseDrag)
+				inventoryGridWasEnabled = InventoryGrid.enabled
+				InventoryGrid.enabled = true
 				inventoryGridFrame = frames
 				inventoryGridStep = 2
 			}
@@ -5347,6 +5352,7 @@ object SmokeTest {
 
 	/** Lets go of the held slot. */
 	private fun releaseDrag() {
+		InventoryGrid.enabled = inventoryGridWasEnabled
 		inventoryGridHeld = null
 		InterfaceDrag.component = null
 		InterfaceDrag.isDragging = false
