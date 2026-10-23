@@ -13,8 +13,9 @@ tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brot
 (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`), the key remapping
 (`KeyRemapping`), the custom cursor (`CustomCursor`), the item stats (`ItemStats`), the woodcutting
 (`Woodcutting`), the mining (`Mining`), the report button (`ReportButton`), the player indicators
-(`PlayerIndicators`), the special attack counter (`SpecialCounter`) and the regeneration meter
-(`RegenMeter`) are thirty-three, built in, so the client's own code shows the way.
+(`PlayerIndicators`), the special attack counter (`SpecialCounter`), the regeneration meter
+(`RegenMeter`) and the run energy (`RunEnergy`) are thirty-four, built in, so the client's own code
+shows the way.
 
 ## Contents
 
@@ -479,6 +480,14 @@ fall below the maximum (the prayers, resting and the regen bracelet heal more ea
 and the special energy gains a tenth every 30 seconds. Over the maximum the ring empties instead; **Show
 at full hitpoints** keeps it turning at full; **Hitpoint notification** notifies you that many seconds
 before a heal. The Lightbearer is OSRS-only.
+
+**Run Energy** is RuneLite's. With the mouse over the run orb, a tooltip gives your weight, how long
+your energy lasts running and how long it takes to get back to 100%; **Replace orb text with run time
+left** puts the seconds left on the orb itself (the tooltip then shows the energy). The numbers are
+Void's: running costs 67 plus 67 times your weight over 64 kg of the 10,000 a tick (Agility does not
+help), and the energy comes back each tick you are not running by an amount your Agility sets, more
+resting and more again by a musician. RuneLite's Ring of endurance message, the graceful outfit and
+stamina potions are OSRS-only.
 
 ## Writing a plugin
 
