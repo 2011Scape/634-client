@@ -460,6 +460,10 @@ object SmokeTest {
 
 	private var chatHistoryFrame: Int = -1
 
+	private var chatFilterWasEnabled: Boolean = false
+
+	private var itemIdentificationWasEnabled: Boolean = false
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -4455,6 +4459,9 @@ object SmokeTest {
 					return true
 				}
 				ItemIdentification.shown[herbs] = true
+				// off by default: on for the step, as the player had it after
+				itemIdentificationWasEnabled = ItemIdentification.enabled
+				ItemIdentification.enabled = true
 				openInventoryTab()
 				itemIdentificationFrame = frames
 				itemIdentificationStep = 1
@@ -4483,6 +4490,7 @@ object SmokeTest {
 				val label: String? = ItemIdentification.label(ClientApiImpl, CLEAN_GUAM)
 				fakeBackpackItem(itemIdentificationSlot, -1)
 				ItemIdentification.shown[herbs] = ItemIdentification.CATEGORY_DEFAULTS[herbs]
+				ItemIdentification.enabled = itemIdentificationWasEnabled
 				if (drawn == 0) {
 					fail("Item Identification: no label drawn on the guam in backpack slot " + itemIdentificationSlot)
 					return true
@@ -4519,6 +4527,9 @@ object SmokeTest {
 	private fun chatFilterDone(): Boolean {
 		val api = ClientApiImpl
 		if (chatFilterFrame == -1) {
+			// off by default: on for the step, as the player had it after
+			chatFilterWasEnabled = ChatFilter.enabled
+			ChatFilter.enabled = true
 			ChatFilter.filteredWords = "gold"
 			ChatFilter.filterType = ChatFilter.REMOVE_MESSAGE
 			ChatFilter.collapseGameChat = true
@@ -4544,6 +4555,7 @@ object SmokeTest {
 		ChatFilter.filterType = ChatFilter.CENSOR_WORDS
 		ChatFilter.collapseGameChat = false
 		ChatFilter.compile()
+		ChatFilter.enabled = chatFilterWasEnabled
 		if (newest != "Smoke test repeat. (2)" || previous == "Smoke test repeat.") {
 			fail("Chat Filter: the newest lines read \"" + newest + "\", \"" + previous + "\"")
 			return true
