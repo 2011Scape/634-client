@@ -35,6 +35,9 @@ object Implings : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("implings", "Implings", "1", PluginApi.VERSION, "Highlights or announces the implings you choose, and shows Puro-Puro's impling spawn tiles.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = false
+
 	/** RuneLite's ImplingMode. */
 	@JvmField
 	val MODES: Array<String> = arrayOf("None", "Highlight", "Notify")
@@ -91,12 +94,12 @@ object Implings : Plugin {
 	private var context: PluginContext? = null
 
 	/** RuneLite's NPC highlights and ImplingsOverlay, under the interfaces. */
-	private val overlay: Overlay = Overlay { g, view -> context?.client()?.let { draw(g, view, it) } }
+	private val overlay: Overlay = Overlay { g, view -> if (enabled) context?.client()?.let { draw(g, view, it) } }
 
 	/** The names on the minimap, over it. */
-	private val frameListener: EventListener<FrameDraw> = EventListener { event -> context?.client()?.let { drawMinimap(event.graphics, it) } }
+	private val frameListener: EventListener<FrameDraw> = EventListener { event -> if (enabled) context?.client()?.let { drawMinimap(event.graphics, it) } }
 
-	private val spawnListener: EventListener<Npc> = EventListener { npc -> context?.client()?.let { spawned(it, npc) } }
+	private val spawnListener: EventListener<Npc> = EventListener { npc -> if (enabled) context?.client()?.let { spawned(it, npc) } }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
@@ -128,6 +131,7 @@ object Implings : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's ImplingsConfig, in its order (the Impling type settings section), but OSRS's crystal and lucky
+		s.toggle("enabled", "Implings", false)
 		// implings and with 2011's pirate, spirit, zombie and kingly after dragon
 		for (k in KINDS.indices) {
 			val kind: Kind = KINDS[k]
@@ -151,6 +155,7 @@ object Implings : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", false)
 		for (k in KINDS.indices) {
 			val kind: Kind = KINDS[k]
 			val mode: Int = MODES.indexOf(config.get("show" + kind.key, MODES[kind.defaultMode]))
