@@ -1352,6 +1352,14 @@ class GlToolkit : Toolkit {
 		this.drawTarget!!.bindDraw()
 	}
 
+	// Not part of the original client: see Toolkit.beginOverlayFrame. The GL state can say depth test while
+	// this toolkit's cache says 2D mode, so the test is turned off whatever the cache says.
+	override fun beginOverlayFrame() {
+		OpenGL.glDisable(OpenGLConstants.GL_DEPTH_TEST)
+		this.depthTestEnabled = false
+		this.functionMask = 0
+	}
+
 	@OriginalMember(owner = "client!qo", name = "b", descriptor = "(IZ)V")
 	fun toggleZbuffer(@OriginalArg(1) zbuffer: Boolean) {
 		if (zbuffer == this.depthTestEnabled) {

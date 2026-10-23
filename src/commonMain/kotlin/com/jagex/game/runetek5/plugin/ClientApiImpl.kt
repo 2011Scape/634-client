@@ -1,10 +1,19 @@
 package com.jagex.game.runetek5.plugin
 
 import ItemSpriteBatchRender
+import com.jagex.game.runetek5.InterfaceDrag
+import com.jagex.game.runetek5.config.objtype.ObjNumMode
 import com.jagex.game.runetek5.config.varc.VarcTypeList
+import com.jagex.game.runetek5.config.Resource
+import com.jagex.game.runetek5.graphics.Toolkit
+import com.jagex.game.runetek5.graphics.ifcomponent.InterfaceRenderer
+import com.jagex.game.runetek5.js5.Js5ResourceProvider
+import com.jagex.game.runetek5.graphics.SpriteDataProvider
+import com.jagex.game.runetek5.graphics.sprite.SpriteType
 import com.jagex.game.runetek5.ChatLineWriter
 import com.jagex.game.runetek5.LocType
 import com.jagex.game.runetek5.MapRegion
+import com.jagex.game.runetek5.graphics.hint.HintArrow
 import com.jagex.game.runetek5.NPCList
 import com.jagex.game.runetek5.OverlayManager
 import com.jagex.game.runetek5.cache.node.Node
@@ -13,6 +22,12 @@ import com.jagex.game.runetek5.cache.node.HashTableIterator
 import com.jagex.game.runetek5.cache.node.ObjStackEntry
 import com.jagex.game.runetek5.core.datastruct.key.DequeIterator
 import com.jagex.game.runetek5.client.ClientState
+import awt.datatransfer.STRING_FLAVOR
+import awt.datatransfer.StringSelection
+import com.jagex.game.runetek5.ChatLine
+import com.jagex.game.runetek5.interaction.chat.ChatBox
+import com.jagex.game.runetek5.client.menu.MiniMenu
+import com.jagex.game.runetek5.plugin.api.ChatLineView
 import com.jagex.game.runetek5.client.GameShell
 import com.jagex.game.runetek5.client.input.console.Console
 import com.jagex.game.runetek5.config.TypeLists
@@ -735,6 +750,8 @@ object ClientApiImpl : ClientApi {
 		return FriendList.getFriendIndex(name) >= 0
 	}
 
+	override fun isIgnored(name: String?): Boolean = name != null && IgnoreList.isIgnored(name)
+
 	override fun isInFriendsChat(name: String?): Boolean {
 		if (name == null) {
 			return false
@@ -828,9 +845,216 @@ object ClientApiImpl : ClientApi {
 		return PluginImage(ITEM_ICON_WIDTH, ITEM_ICON_HEIGHT, pixels)
 	}
 
+	override fun itemOutline(itemId: Int, quantity: Int, argb: Int): Image? = itemShape(itemId, quantity, argb, true)
+
+	override fun captureFrame(): Image? {
+		val toolkit: Toolkit = ClientState.activeToolkit ?: return null
+		val size = IntArray(2)
+		toolkit.accumulateViewportDimensions(size)
+		if (size[0] <= 0 || size[1] <= 0) {
+			return null
+		}
+		val pixels: IntArray = toolkit.na(0, 0, size[0], size[1]) ?: return null
+		return PluginImage(size[0], size[1], pixels)
+	}
+
+	override fun saveImage(image: Image, folder: String, name: String): String? {
+		val picture: PluginImage = image as? PluginImage ?: return null
+		return saveImagePng(picture.width, picture.height, picture.pixels, safePath(folder), safeName(name))
+	}
+
+	override fun copyImage(image: Image): Boolean {
+		val picture: PluginImage = image as? PluginImage ?: return false
+		return copyImageToClipboard(picture.width, picture.height, picture.pixels)
+	}
+
+	/** A file name without what a file system forbids. */
+	@JvmStatic
+	fun safeName(name: String): String = name.replace(Regex("[\\\\/:*?\"<>|\\x00-\\x1F]"), "_").trim().trimStart('.').ifEmpty { "_" }
+
+	/** A folder path of safe names, '/' between. */
+	@JvmStatic
+	fun safePath(folder: String): String = folder.split('/').filter { it.isNotBlank() }.joinToString("/") { safeName(it) }
+
+	override fun isDraggingWidget(): Boolean = InterfaceDrag.component != null && InterfaceDrag.isDragging
+
+	override fun draggedWidget(): Widget? = InterfaceDrag.component
+
+	override fun draggedOnWidget(): Widget? = if (InterfaceDrag.component != null) InterfaceDrag.aClass24_13 else null
+
+	override fun itemPressedDuration(): Int = if (InterfaceDrag.component != null) InterfaceRenderer.dragTickCount else 0
+
+	override fun itemFill(itemId: Int, quantity: Int, argb: Int): Image? = itemShape(itemId, quantity, argb, false)
+
+	/** The outlines and fills made, by item, quantity, colour and kind: each is a whole icon to work out. */
+	private val itemShapes: HashMap<String, PluginImage> = HashMap()
+
+	private fun itemShape(itemId: Int, quantity: Int, argb: Int, outline: Boolean): Image? {
+		val key: String = itemId.toString() + ":" + quantity + ":" + argb + ":" + outline
+		itemShapes[key]?.let { return it }
+		val pixels: IntArray = ItemSpriteBatchRender.itemPixels(itemId, quantity, ObjNumMode.SHOWCOUNT_NEVER) ?: return null
+		val shape: IntArray = if (outline) outlinePixels(pixels, ITEM_ICON_WIDTH, ITEM_ICON_HEIGHT, argb) else fillPixels(pixels, argb)
+		if (itemShapes.size >= MAX_ITEM_SHAPES) {
+			itemShapes.clear()
+		}
+		val image = PluginImage(ITEM_ICON_WIDTH, ITEM_ICON_HEIGHT, shape)
+		itemShapes[key] = image
+		return image
+	}
+
+	/** RuneLite's ImageUtil.outlineImage, without corners: each clear pixel beside one of the shape's, in [argb]. */
+	@JvmStatic
+	fun outlinePixels(pixels: IntArray, width: Int, height: Int, argb: Int): IntArray {
+		val out = IntArray(pixels.size)
+		for (y in 0 until height) {
+			for (x in 0 until width) {
+				if (pixels[y * width + x] ushr 24 != 0) {
+					continue
+				}
+				val beside: Boolean = (x > 0 && pixels[y * width + x - 1] ushr 24 != 0) ||
+					(x < width - 1 && pixels[y * width + x + 1] ushr 24 != 0) ||
+					(y > 0 && pixels[(y - 1) * width + x] ushr 24 != 0) ||
+					(y < height - 1 && pixels[(y + 1) * width + x] ushr 24 != 0)
+				if (beside) {
+					out[y * width + x] = argb
+				}
+			}
+		}
+		return out
+	}
+
+	/** RuneLite's ImageUtil.fillImage: the shape's pixels in [argb]. */
+	@JvmStatic
+	fun fillPixels(pixels: IntArray, argb: Int): IntArray = IntArray(pixels.size) { if (pixels[it] ushr 24 != 0) argb else 0 }
+
+	override fun spriteImage(spriteId: Int): Image? {
+		val sprites: Js5ResourceProvider = Resource.SPRITES ?: return null
+		if (spriteId < 0 || !sprites.isFileReady(spriteId, 0)) {
+			return null
+		}
+		val type: SpriteType = SpriteDataProvider.listSingle(sprites, spriteId, 0) ?: return null
+		return spritePixels(type)
+	}
+
+	override fun chatLineCount(): Int {
+		var count: Int = 0
+		while (count < ChatBox.CHAT_LINES.size && ChatBox.CHAT_LINES[count] != null && count < ChatBox.NUM_CHAT_LINES) {
+			count++
+		}
+		return count
+	}
+
+	override fun chatLine(i: Int): ChatLineView? {
+		if (i < 0 || i >= chatLineCount()) {
+			return null
+		}
+		val line: ChatLine = ChatBox.CHAT_LINES[i] ?: return null
+		return PluginChatLine(line.identifier, line.type, line.name, line.message, line.clan)
+	}
+
+	override fun removeChatLine(id: Int): Boolean {
+		val count: Int = chatLineCount()
+		for (i in 0 until count) {
+			if (ChatBox.CHAT_LINES[i]?.identifier == id) {
+				for (j in i until ChatBox.CHAT_LINES.size - 1) {
+					ChatBox.CHAT_LINES[j] = ChatBox.CHAT_LINES[j + 1]
+				}
+				ChatBox.CHAT_LINES[ChatBox.CHAT_LINES.size - 1] = null
+				ChatBox.NUM_CHAT_LINES--
+				// the chat box redraws its lines when the latest message's tick changes
+				MiniMenu.lastChatMessageTick = ClientState.serverTick
+				return true
+			}
+		}
+		return false
+	}
+
+	override fun addChatLine(type: Int, name: String?, message: String, clan: String?) {
+		ChatLineWriter.storeLine(name, message, -1, name, clan, type, 0, name)
+	}
+
+	@Suppress("SwallowedException") // a clipboard another program holds just cannot take the text now
+	override fun setClipboard(text: String): Boolean {
+		val clipboard = Console.clipboard ?: return false
+		return try {
+			clipboard.setContents(StringSelection(text), null)
+			true
+		} catch (error: IllegalStateException) {
+			false
+		}
+	}
+
+	@Suppress("TooGenericExceptionCaught", "SwallowedException") // a clipboard that cannot be read holds nothing
+	override fun clipboard(): String? {
+		val clipboard = Console.clipboard ?: return null
+		return try {
+			clipboard.getContents(null)?.getTransferData(STRING_FLAVOR) as String?
+		} catch (error: Exception) {
+			null
+		}
+	}
+
+	override fun worldMapArea(out: IntArray): Boolean = PluginWorldMap.area(out)
+
+	override fun projectWorldMap(worldX: Int, worldY: Int, out: IntArray): Boolean = PluginWorldMap.project(worldX, worldY, out)
+
+	override fun setHintArrow(worldX: Int, worldY: Int, level: Int) {
+		val arrow: HintArrow = HintArrow()
+		// a tile arrow (type 2), its point in scene units at the tile's centre, as the server's HINT_ARROW sets one
+		arrow.targetType = 2
+		arrow.arrowSprite = 0
+		arrow.plane = level
+		arrow.x = ((worldX - MapRegion.sceneBaseX) shl 9) + 256
+		arrow.y = ((worldY - MapRegion.sceneBaseY) shl 9) + 256
+		arrow.height = 0
+		// shown within 64 tiles: the arrow squares distance shl 9 as an Int
+		arrow.distance = HINT_DISTANCE
+		arrow.modelId = -1
+		PlayerUpdate.HINT_ARROWS[PLUGIN_HINT_ARROW] = arrow
+	}
+
+	override fun clearHintArrow() {
+		PlayerUpdate.HINT_ARROWS[PLUGIN_HINT_ARROW] = null
+	}
+
+	/** The plugins' hint arrow slot: the last of the eight, which servers leave to the first ones. */
+	private const val PLUGIN_HINT_ARROW: Int = 7
+
+	private const val HINT_DISTANCE: Int = 64
+
+	override fun overrideSprite(spriteId: Int, image: Image?) {
+		PluginSpriteOverrides.set(spriteId, image as? PluginImage)
+	}
+
+	/** A cache sprite's whole canvas (its padding too, as the game draws it) in ARGB; palette index 0 is clear. */
+	@JvmStatic
+	fun spritePixels(type: SpriteType): PluginImage? {
+		val indexes: ByteArray = type.pixels ?: return null
+		val palette: IntArray = type.pallete ?: return null
+		val width: Int = type.minX + type.width + type.borderX
+		val height: Int = type.minY + type.height + type.borderY
+		if (width <= 0 || height <= 0) {
+			return null
+		}
+		val argb: IntArray = IntArray(width * height)
+		val alpha: ByteArray? = type.alpha
+		for (y in 0 until type.height) {
+			for (x in 0 until type.width) {
+				val at: Int = y * type.width + x
+				val index: Int = indexes[at].toInt() and 0xFF
+				val a: Int = if (alpha != null) alpha[at].toInt() and 0xFF else if (index == 0) 0 else 0xFF
+				if (a != 0 && index < palette.size) {
+					argb[(type.minY + y) * width + type.minX + x] = (a shl 24) or (palette[index] and 0xFFFFFF)
+				}
+			}
+		}
+		return PluginImage(width, height, argb)
+	}
+
 	/** The size of an item's icon. */
 	private const val ITEM_ICON_WIDTH: Int = 36
 	private const val ITEM_ICON_HEIGHT: Int = 32
+	private const val MAX_ITEM_SHAPES: Int = 512
 
 	override fun setVarcString(id: Int, value: String?) {
 		val varcs: Array<String?> = VarcTypeList.VARC_STRING ?: return

@@ -8,6 +8,8 @@ import com.jagex.game.runetek5.entity.PathingEntity
 import com.jagex.game.runetek5.entity.PlayerEntity
 import com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate
 import com.jagex.game.runetek5.graphics.hint.HintArrow
+import com.jagex.game.runetek5.plugin.PluginRuntime
+import com.jagex.game.runetek5.plugin.api.Actor
 import com.jagex.game.runetek5.preference.GamePreferences
 import com.jagex.game.runetek5.scene.Scene
 import com.jagex.game.runetek5.statics.OutPlayerIndexCount
@@ -123,6 +125,21 @@ object EntitySceneBuilder {
 					}
 				}
 			}
+		}
+		// Not part of the original client: the plugins' actor filters (API 32) take models out of the scene
+		for (i in 0 until playerCount) {
+			hideFiltered(PlayerUpdate.players[outPlayerIndices[i]]!!)
+		}
+		for (j in 0 until NPCList.NPC_UPDATE_INDEX) {
+			hideFiltered((NPCList.NPC_MAP.get(NPCList.NPC_UPDATE_INDICES[j].toLong()) as NPCEntityNode).npc!!)
+		}
+	}
+
+	/** Not part of the original client: an entity a plugin's filter hides is left out of the scene, and marked so its overheads are still asked for. */
+	private fun hideFiltered(entity: PathingEntity) {
+		entity.pluginHidden = entity.worldPriority >= 0 && !PluginRuntime.drawActor(entity as Actor, false)
+		if (entity.pluginHidden) {
+			entity.worldPriority = -1
 		}
 	}
 

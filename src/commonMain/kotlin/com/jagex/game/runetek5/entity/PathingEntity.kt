@@ -65,6 +65,15 @@ abstract class PathingEntity : AbstractInteractiveEntity, Actor {
 		return this.getSize()
 	}
 
+	/** Not part of the original client: OverlayManager's top of what it drew over the head, and in which cycle. */
+	@JvmField
+	var overheadTop: Int = -1
+
+	@JvmField
+	var overheadTopCycle: Int = -1
+
+	override fun overheadTop(): Int = if (overheadTopCycle == ClientState.clientCycle) overheadTop else -1
+
 	override fun overheadHeight(): Int {
 		return this.getOverheadHeight()
 	}
@@ -381,6 +390,10 @@ abstract class PathingEntity : AbstractInteractiveEntity, Actor {
 	@OriginalMember(owner = "client!kda", name = "yc", descriptor = "I")
 	@JvmField
 	var worldPriority: Int = 0
+
+	/** Not part of the original client: a plugin's filter (API 32) keeps the model out of the scene this frame; its overheads are asked for apart. */
+	@JvmField
+	var pluginHidden: Boolean = false
 
 	@OriginalMember(owner = "client!kda", name = "sc", descriptor = "B")
 	@JvmField

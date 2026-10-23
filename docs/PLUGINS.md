@@ -3,17 +3,26 @@
 How to add to the client without changing it: a plugin is a jar in a folder, written against a
 small, stable API, that reads the game, draws on it, adds menu entries and commands, and keeps its
 own settings. The XP drops (`XpDrops`), the idle notifier (`IdleNotifier`), the menu swapper
-(`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name plates (`NamePlates`), the ground
-tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Discord presence (`DiscordPresence`),
-the ground items (`GroundItems`), the loot tracker (`LootTracker`), the object markers
-(`ObjectIndicators`), the XP tracker (`XpTracker`), the opponent information (`OpponentInfo`), the
-boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the status bars (`StatusBars`), the
-timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the
-Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`), the
-anti drag (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`), the key remapping
+(`MenuEntrySwapper`), the inventory value (`InventoryValue`), the ground tiles (`GroundTiles`), the npc
+indicators (`NpcIndicators`), the Discord presence (`DiscordPresence`), the ground items
+(`GroundItems`), the loot tracker (`LootTracker`), the object markers (`ObjectIndicators`), the XP
+tracker (`XpTracker`), the opponent information (`OpponentInfo`), the boosts information (`Boosts`), the
+bank organizer (`BankOrganizer`), the status bars (`StatusBars`), the timers (`TimersAndBuffs`), the
+tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brothers
+(`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`), the anti drag
+(`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`), the key remapping
 (`KeyRemapping`), the custom cursor (`CustomCursor`), the item stats (`ItemStats`), the woodcutting
-(`Woodcutting`), the mining (`Mining`) and the report button (`ReportButton`) are thirty-one, built in,
-so the client's own code shows the way.
+(`Woodcutting`), the mining (`Mining`), the report button (`ReportButton`), the player indicators
+(`PlayerIndicators`), the special attack counter (`SpecialCounter`), the regeneration meter
+(`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`), the fishing (`Fishing`), the
+agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), the item identification
+(`ItemIdentification`), the chat notifications (`ChatNotifications`), the chat filter (`ChatFilter`),
+the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual levels
+(`VirtualLevels`), the metronome (`Metronome`), the death indicator (`DeathIndicator`), the NPC
+aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implings`), the cooking
+(`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`), the inventory tags (`InventoryTags`), the
+inventory grid (`InventoryGrid`), the examine (`Examine`), the entity hider (`EntityHider`) and the
+screenshot (`Screenshot`) are fifty-eight, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -117,10 +126,10 @@ stack trace is in the client's log (the launcher keeps it in `~/.void/logs`).
 
 ## The built-in plugins
 
-Fifteen plugins come with the client, on the same API as the ones from the plugins folder, each with
-its switch in the Plugins window: XP drops (`::xpdrops`), the idle notifier (`::idle`), the
-menu entry swapper (`::menuswapper`), the inventory value (`::invvalue`), name plates (`::nameplates`), the
-ground tiles, the npc indicators, the Discord presence (`::discord`), the ground items (`::grounditems`), the loot tracker (`::loot`), the object markers (`::objectmarkers`), the XP tracker (`::xp`), the opponent information (`::opponentinfo`) and the boosts information (`::boosts`); and **Overlays**, which has no switch: the settings of every plugin's panels, below.
+The built-in plugins listed at the top come with the client, on the same API as the ones from the
+plugins folder, each with its switch in the Plugins window and most with a `::` command of their own
+(`::xpdrops`, `::idle`, `::grounditems`, `::xp` and so on); and **Overlays**, which has
+no switch: the settings of every plugin's panels, below.
 
 **Moving the panels.** Every panel a plugin puts on the game view (the opponent's health, the XP
 tracker's boxes, the boosts, the inventory value, the infoboxes, a plugin of your own's) can be moved,
@@ -452,6 +461,207 @@ date, the time you have been logged in (the default), the time in UTC, at Jagex'
 where you are, the game ticks since you logged in, or how long the mouse and keyboard have been idle, in
 12- or 24-hour time; it still opens the report when clicked, and reads "Report Abuse" again once the
 plugin is off. In the browser London's time is the local one (the page knows no other zones).
+
+**Player Indicators** is RuneLite's, off until switched on. Players are coloured by what they are to
+you, yourself, a friend, a member of your clan chat, your team (a team cape) or anyone else, each with
+its own **Highlight** setting (Disabled, Enabled, or PvP: only players who can be attacked where they
+stand) and colour: their names over them (**Name position**: above the head, the centre or the right of
+the model), a tile under them, their names on the minimap, and their right-click entries, with the clan
+chat rank's icon (the game's own) before a member's name. 634 has one such channel, its Clan Chat, which
+OSRS later renamed the friends chat, so RuneLite's friends chat settings appear under 634's name; the
+clans OSRS added in 2021 and RuneLite's party are not here.
+
+**Special Attack Counter** is RuneLite's. When your special attack energy drops with a counted weapon
+worn, your next hitsplat on the npc you fight is the special's: an infobox per weapon counts its hits
+(Darklight) or its damage (the Bandos godsword, the Barrelchest anchor, the bone daggers, the Dorgeshuun
+crossbow and the Seercull), starting again on a new npc, and the hit rises over your head (**Spec
+drops**, misses too with **Spec drop misses**). A threshold for Darklight or the godsword turns the
+count green once reached and, with **Threshold notifications**, notifies you. The Dragon warhammer,
+Elder maul, Arclight, Emberlight, Dinh's bulwark and the other OSRS-only weapons are not here, nor the
+defence drain percentage that only they feed (its setting stays), nor RuneLite's party sharing.
+
+**Regeneration Meter** is RuneLite's. A ring round the life points orb fills up to your next heal, and
+the special attack bar on the combat tab fills along its foot to the next tenth of energy (634 has no
+special attack orb). The timers are Void's: the life points heal every 6 seconds from the moment they
+fall below the maximum (the prayers, resting and the regen bracelet heal more each time, not sooner),
+and the special energy gains a tenth every 30 seconds. Over the maximum the ring empties instead; **Show
+at full hitpoints** keeps it turning at full; **Hitpoint notification** notifies you that many seconds
+before a heal. The Lightbearer is OSRS-only.
+
+**Run Energy** is RuneLite's. With the mouse over the run orb, a tooltip gives your weight, how long
+your energy lasts running and how long it takes to get back to 100%; **Replace orb text with run time
+left** puts the seconds left on the orb itself (the tooltip then shows the energy). The numbers are
+Void's: running costs 67 plus 67 times your weight over 64 kg of the 10,000 a tick (Agility does not
+help), and the energy comes back each tick you are not running by an amount your Agility sets, more
+resting and more again by a musician. RuneLite's Ring of endurance message, the graceful outfit and
+stamina potions are OSRS-only.
+
+**Poison** is RuneLite's. While you are poisoned, **Show infoboxes** puts up an infobox counting down to
+the next hit, and its tooltip (and the life points orb's, with the mouse over it) gives the damage, the
+time to it and the time until the poison wears off; **Change HP orb icon** turns the orb's heart green
+while poisoned and yellow while diseased (RuneLite's own hearts, put in place of the game's sprite).
+Void's poison hits every 18 seconds for its current strength, which falls by 2 each time, and wears off
+instead of hitting once it would fall to 10 or less. Venom is OSRS-only.
+
+**Fishing** is RuneLite's. Each fishing spot shows its tile, the icon of its best catch and, if you
+like, its name (what it gives, from Void's fishing spots table), with a dot on the minimap; **Display
+only currently fished fish** keeps to the kind of spot you are fishing. A panel at the top left says
+whether you are fishing and how many fish you caught this session and an hour (the XP Tracker's Fishing
+actions, or the catches the plugin counts itself when that is more), and goes after **Reset stats**
+minutes without a catch. Not here from RuneLite: minnows, aerial fishing and harpoonfish (OSRS-only),
+and the Fishing Trawler's timer and contribution (Void has no Trawler to read).
+
+**Agility** is RuneLite's. The obstacles of Void's courses (the Gnome Stronghold and Barbarian Outpost
+with their advanced laps, the Wilderness and Ape Atoll) and Void's agility shortcuts show their click
+boxes; a panel counts your laps, the laps to your goal (the next level) and the laps an hour, and goes
+after **Hide lap count** minutes without a lap. Void sends no lap message or count, so a lap is the
+course's lap bonus arriving as Agility experience, and a lap's experience is measured from one bonus to
+the next. Not on Void: marks of grace, the rooftop courses, portals, the Brimhaven Agility Arena, the
+Werewolf course's stick and traps, and the Hallowed Sepulchre, so their settings are not here.
+
+**Slayer** is RuneLite's. Your task and its kills left come from the server's slayer varps, as RuneLite
+now takes them: an infobox shows them (gone after **Infobox expiry** minutes without a kill), the
+enchanted gem and slayer helmets carry the count, and the task's monsters (the npcs of the task's Void
+category, the ones a kill counts for) are highlighted by hull, tile or outline (the outline of the npc's
+box: the client keeps no npc model outlines). **Show monster weakness** shows the finishing item over a
+monster low enough for it, by Void's rules: a gargoyle under 90 life points (rock hammer), a rockslug
+under 60 (salt), a zygomite under 80 (fungicide) and a lizard under a quarter (ice cooler). Superior
+foes are OSRS-only, and the `!task` chat command needs RuneLite's server.
+
+**Item Charges** is RuneLite's. The charges left on the items shown (backpack, bank, equipment) are
+drawn on them, white or in the low and very low warning colours, and **Infoboxes** shows the worn ones:
+teleport jewellery, potion doses (off until switched on), imp-in-a-box, fungicide, watering cans,
+waterskins, ogre bellows, fruit baskets, vegetable sacks and Guthix rest, each read from the item's name
+as 634 counts them in it, and the Binding necklace, whose charges Void tells after each use (remembered
+between sessions). The Ring of recoil shattering and the Binding necklace's end can be notified. Not
+here: the dodgy necklace, the ring of forging and the bracelet of clay (no charge messages on Void), and
+the OSRS-only amulets of chemistry and bounty, the bracelets of slaughter and expeditious, the abyssal
+bracelet, the Chronicle, blood essence and the explorer's ring's alchemy.
+
+**Item Identification** is RuneLite's. Seeds, herbs, logs, ores, bars, gems, potions, tablets, jewellery
+and the other kinds you switch on carry a short name (or, by **Identification type**, a longer one) at
+the bottom left of their slot wherever the interfaces show them, noted ones too; herb seeds and saplings
+are on by default, as in RuneLite. The names are RuneLite's, kept for the 304 of its 545 items whose
+OSRS id is the same item on 634; the OSRS-only kinds (coral, sap-treated logs, repair kits and the later
+items) find nothing here.
+
+**Chat Notifications** is RuneLite's. The words and patterns you list, and your own name (underlined
+too), are highlighted in red in other players' and the game's chat lines; your name, a highlight, a
+trade or duel request and a private message can each notify you. Void sends no broadcasts, so that
+notification finds nothing, and OSRS's newer clan chats do not exist here.
+
+**Chat Filter** is RuneLite's. Messages with the words or patterns you list, or from the names you list,
+have the words starred, are replaced with "Hey, everyone, I just tried to say something very silly!", or
+are not shown at all (**Filter type**), in other players' public, private and clan chat lines and their
+overhead chat, and in the game's lines with **Filter game chat**; friends and clan chat members are left
+alone unless you ask. **Collapse game chat** and **Collapse player chat** fold a repeated line into the
+latest with its count, and **Repeat filter** drops public chat said more often than that. The filter
+works on lines as they come: a changed list does not touch the lines already shown. OSRS's newer clan
+chats do not exist here.
+
+**Chat History** is RuneLite's. Your public, private and clan chat lines are kept when you log out and
+put back when you log in again (the client empties the chat box at each login), a chat line's
+right-click menu has **Copy to clipboard**, and each chat tab's has **Clear history**, which takes that
+tab's lines out. 634 sends a private message to the name its prompt's script was given and keeps it
+nowhere a plugin could change it, so RuneLite's PM target cycling is not here.
+
+**Combat Level** is RuneLite's. The combat tab's "Combat Lvl" shows your level to three places, with the
+mouse over it a tooltip gives the levels of Attack or Strength, Defence or Constitution, Ranged, Magic,
+Prayer and (on members' worlds) Summoning that take you to the next, and in the Wilderness its level and
+the combat levels you can fight are written beside the skull (634 shows only the skull). The numbers are
+Void's: its combat formula (Summoning counts on members' worlds), its wilderness levels and its attack
+range (your level, give or take the wilderness level plus 5 plus a tenth of it). RuneLite's Account
+Summary is OSRS's.
+
+**Virtual Levels** is RuneLite's. A skill's experience past its last level (99, or Dungeoneering's 120)
+goes on counting levels, up to 126 at 200 million: the Stats tab shows them as the skill's level, and
+its total adds them up with **Virtual total level** on. The plugin writes over the tab's own numbers
+while the tab is drawn and puts the game's back once switched off.
+
+**Metronome** is RuneLite's, off until switched on. Every **Tick count** server ticks (the server's 600
+ms, taken from its player update) a sound plays, the tick and the tock taking turns, each at its own
+volume (muted to high). The sounds are 634's own short ones, a plop and a knock, as RuneLite's Grand
+Exchange plops are OSRS's.
+
+**Death Indicator** is RuneLite's (from before OSRS added its own grave marker). When you die and your
+gravestone appears, the game's hint arrow points at the tile you died on, an infobox counts down the
+gravestone's minutes (its tooltip says the world, its menu has **Clear**), and the world map marks the
+place; all go once you stand on the tile again or the gravestone crumbles, and they are kept over a
+logout. It reads Void's "Oh dear, you are dead!" and "Your gravestone has appeared and will last N
+minutes…"; a death in the Wilderness, where your items go to your killer, leaves no gravestone and no
+mark.
+
+**NPC Aggression Timer** is RuneLite's. Aggressive monsters stop attacking you once you have stayed in
+one area for 10 minutes: a timer counts down to it and **Show area lines** draws the area's edges on the
+ground (the aggressive colour while the clock runs, the other once it is up), with a notification when
+the time is up. It shows near the monsters you name (wildcards allowed), near your slayer task's, or
+always. Void's tolerance has one 21 by 21 square around where its clock started (not OSRS's two areas):
+stepping out of it starts a new square and the 10 minutes again. The Wilderness is left out.
+
+**Hunter** is RuneLite's. The traps you set are marked by state: an open trap with a pie of the minute
+until it falls over (Void's 100 ticks), a trap with something in it, one something is going into, and a
+sprung empty one, each in its colour. It follows Void's bird snares, box traps (and the magic box),
+deadfalls and net traps, whose locations change with their state; Void's pitfalls keep their state in
+variables and its rabbit snares are not set up yet, so neither is marked, and the maniacal monkey's and
+the crab traps are not on Void.
+
+**Implings** is RuneLite's. Each kind of impling can be highlighted (its outline and name in its colour)
+or announced ("Dragon impling is in the area") when it appears, its name shown on the minimap if you
+like; dragon and kingly implings are highlighted to begin with. In Puro-Puro, **Show spawn locations**
+marks the implings' spawn tiles with their kind. It has baby to dragon, as RuneLite, and 2011's pirate,
+spirit, zombie and kingly implings after them, by Void's ids in the open world and in Puro-Puro; OSRS's
+crystal and lucky implings are not in 634.
+
+**Cooking** is RuneLite's. A panel at the top left says whether you are cooking and how much you cooked
+this session (and an hour) and burnt (and what share), and goes after **Reset stats** minutes without
+cooking anything; its right-click menu has **Reset**. It counts Void's lines: "You accidentally burn the
+…" for a burn, and its recipes' own lines for a success ("You successfully cook a trout.", "You roast a
+lobster.", "You manage to cook a tuna."). Void does not ferment wine, so the fermenting timer is left
+out.
+
+**Smelting** is RuneLite's. A panel at the top left says whether you are smelting and how many bars and
+cannonballs you made this session and an hour, and goes after **Reset stats** minutes without making
+any; its right-click menu has **Reset**. It counts Void's lines: "You retrieve a bar of …" for each bar
+(and the Varrock armour's second bar), "You remove the cannonballs from the mould." for four
+cannonballs.
+
+**Prayer** is RuneLite's. While you pray, a flick helper sweeps across the prayer orb (and/or a prayer
+bar over your head) in time with the server's ticks; the orb glows when a prayer potion in your backpack
+would restore without waste; hovering the orb tells how long your prayer points last and your prayer
+bonus, or the orb's number can show that time; and an infobox can show each active prayer or curse
+(overheads too if you like). The time follows Void's drain: each tick the active prayers' drain goes
+into a counter, and a point goes each time it passes 60. Void's drain does not read the worn prayer
+bonus, so the bonus does not lengthen the time here; the tooltip still shows it.
+
+**Inventory Tags** is RuneLite's. Shift and right-click an item in the backpack or the worn equipment
+for an **Inventory tag** submenu: a colour already used, **Pick** for any colour, or **Reset**. Every
+item of that kind is then marked in its colour wherever items are shown (the backpack, the bank, the
+deposit box, the equipment): an outline round its shape, a line under it, and/or its shape filled at
+**Fill opacity**.
+
+**Inventory Grid** is RuneLite's. While you drag an item in the backpack, the backpack's 28 slots are
+shaded as a grid, the slot under the mouse is highlighted, and the item is shown see-through where it
+would land, with the item it would swap with shown where it came from. **Drag delay** waits that long
+after the press before showing anything.
+
+**Examine** is RuneLite's. Examining an item adds a line after its examine text with its price, the
+exchange's guide price and High Level Alchemy's, times the stack examined: "Price of 1,000 x Feather: GE
+average 3,000 (3 ea) HA value 1,000 (1 ea)". Coins and an item with neither price get no line.
+
+**Entity Hider** is RuneLite's. It hides other players (all of them, or your friends, your clan chat's
+members or the players you ignore, each by its own setting), yourself, NPCs, other players' pets and
+familiars, whoever is attacking you, projectiles, dying NPCs and the random event NPCs that come to you
+(the Sandwich Lady, Giles, the frog herald, the Mysterious Old Man). The "2D" settings hide overhead
+text, hitsplats and health bars apart from the models. OSRS's party members, clans and thralls are not
+in 634.
+
+**Screenshot** is RuneLite's. A hotkey (or `::screenshot`) takes a screenshot of the game, and so do
+your level-ups, quest completions and Barrows chests, your deaths, the players you kill and a kick from
+a clan chat, each by its setting. They are saved under the player's name and the kind (Levels, Quests,
+Barrows Rewards, Deaths, PvP Kills, Clan Chat Kicks) as "Attack(99) 2011-06-01_12-00-00.png": on the
+desktop in Pictures/634-client, in a browser as a download. It can say where it went, copy the picture
+to the clipboard, and show the date on the report button in it. OSRS's pets, clues, collection log,
+combat achievements and raids are not in 634, and image hosts are left out.
 
 ## Writing a plugin
 

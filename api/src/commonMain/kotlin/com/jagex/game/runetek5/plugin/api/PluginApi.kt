@@ -53,8 +53,21 @@ package com.jagex.game.runetek5.plugin.api
  *   [Widget.setText], and the client variables ([ClientApi.varcInt], [ClientApi.varcString], [ClientApi.setVarcString]).
  * - 21: the mouse cursor ([ClientApi.setCursor], [ClientApi.resetCursor]) and items' icons as pictures ([ClientApi.itemImage]).
  * - 22: locations the server changes ([com.jagex.game.runetek5.plugin.api.events.Events.LOC_CHANGED]).
+ * - 23: the cache's sprites as pictures ([ClientApi.spriteImage]) and the top of an actor's overheads ([Actor.overheadTop]).
+ * - 24: the interfaces' sprites replaced ([ClientApi.overrideSprite]).
+ * - 25: whether an interface component was drawn ([Widget.isDrawnThisFrame]).
+ * - 26: chat lines dropped ([com.jagex.game.runetek5.plugin.api.events.ChatMessage.consume]) and the chat box's lines
+ *   ([ClientApi.chatLine], [ClientApi.removeChatLine]).
+ * - 27: chat lines stored by a plugin ([ClientApi.addChatLine]), the clipboard ([ClientApi.setClipboard],
+ *   [ClientApi.clipboard]), and menu entries on texts without options (chat lines).
+ * - 28: the server's tick ([com.jagex.game.runetek5.plugin.api.events.Events.SERVER_TICK]).
+ * - 29: the world map ([ClientApi.worldMapArea], [ClientApi.projectWorldMap]) and the hint arrow ([ClientApi.setHintArrow]).
+ * - 30: item outlines and fills ([ClientApi.itemOutline], [ClientApi.itemFill]).
+ * - 33: screenshots ([ClientApi.captureFrame], [ClientApi.saveImage], [ClientApi.copyImage]).
+ * - 32: actor and projectile filters ([PluginContext.addActorFilter], [PluginContext.addProjectileFilter]) and [ClientApi.isIgnored].
+ * - 31: the drag ([ClientApi.isDraggingWidget], [ClientApi.draggedWidget], [ClientApi.draggedOnWidget], [ClientApi.itemPressedDuration]) and [Graphics.itemIconAlpha].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 22
+	const val VERSION: Int = 33
 }

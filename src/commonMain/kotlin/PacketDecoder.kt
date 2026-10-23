@@ -817,6 +817,7 @@ object PacketDecoder {
 										return false
 									} else if (ServerProt.PLAYER_UPDATE === BufferedConnectionContext.currentPacket) {
 										PlayerUpdate.decodePlayerUpdate(BufferedConnectionContext.receivedBuffer, BufferedConnectionContext.currentPacketSize)
+										PluginRuntime.serverTick() // Not part of the original client: the plugins' ServerTick, once a tick.
 										BufferedConnectionContext.currentPacket = null
 										return true
 									} else if (BufferedConnectionContext.currentPacket === ServerProt.IF_SETCOLOR) {

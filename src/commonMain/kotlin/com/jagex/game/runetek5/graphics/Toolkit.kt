@@ -455,6 +455,14 @@ abstract class Toolkit {
 	@OriginalMember(owner = "client!ha", name = "a", descriptor = "([IIIIIZ)Lclient!mi;")
 	abstract fun createNativeSprite(@OriginalArg(0) pixels: IntArray?, @OriginalArg(2) rowLength: Int, @OriginalArg(3) width: Int, @OriginalArg(4) height: Int, @OriginalArg(5) copyPixels: Boolean): NativeSprite?
 
+	/**
+	 * Not part of the original client: the plugins' drawing over the finished frame starts
+	 * (PluginRuntime.drawFrame). The OpenGL toolkits put their 2D state right again here: a depth test the
+	 * frame left on would hide the plugins' drawing wherever an interface was drawn.
+	 */
+	open fun beginOverlayFrame() {
+	}
+
 	/*
 	 * Not part of the original client: hooks for a toolkit that keeps the scene on the GPU (634HD).
 	 * The others ignore them.

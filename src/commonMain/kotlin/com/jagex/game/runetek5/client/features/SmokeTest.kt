@@ -1,8 +1,11 @@
 package com.jagex.game.runetek5.client.features
 
+import client
 import InterfaceOptionInteract
+import com.jagex.game.runetek5.InterfaceDrag
 import com.jagex.game.runetek5.SceneDrawer
 import com.jagex.game.runetek5.core.constants.TileFlag
+import com.jagex.game.runetek5.graphics.ifcomponent.InterfaceRenderer
 import com.jagex.game.runetek5.plugin.maximumCursorColours
 import com.jagex.game.runetek5.scene.SettingsBits
 import com.jagex.game.runetek5.SceneVisibleTiles
@@ -371,6 +374,249 @@ object SmokeTest {
 
 	private var reportTexts: String = ""
 
+	/** client.test.playerIndicators: Player Indicators on the player's own name, tile and minimap name, and the friends chat rank icons made from the cache's sprites (API 23). */
+	private val PLAYER_INDICATORS: Boolean = "true" == lang.getProperty("client.test.playerIndicators")
+
+	private var playerIndicatorsFrame: Int = -1
+
+	/** client.test.specialCounter: a Bandos godsword special's hit counted by Special Attack Counter, its infobox and the drop over the player's head. */
+	private val SPECIAL_COUNTER: Boolean = "true" == lang.getProperty("client.test.specialCounter")
+
+	private var specialCounterFrame: Int = -1
+
+	/** client.test.regenMeter: Regeneration Meter's ring round the life points orb, shown at full life points. */
+	private val REGEN_METER: Boolean = "true" == lang.getProperty("client.test.regenMeter")
+
+	private var regenMeterFrame: Int = -1
+
+	private var regenMeterShown: Int = -1
+
+	/** client.test.runEnergy: Run Energy's run time left on the run orb (750:5), then the energy back once off, and its tooltip's text. */
+	private val RUN_ENERGY: Boolean = "true" == lang.getProperty("client.test.runEnergy")
+
+	private var runEnergyStep: Int = 0
+
+	private var runEnergyFrame: Int = -1
+
+	private var runEnergyText: String = ""
+
+	/** client.test.poison: the player poisoned by Void's ::poison 14, Poison's infobox and the orb's green heart (API 24's sprite override). */
+	private val POISON: Boolean = "true" == lang.getProperty("client.test.poison")
+
+	private var poisonFrame: Int = -1
+
+	private var poisonSeen: Int = -1
+
+	/** client.test.fishing: Fishing at Catherby's shore (a teleport there and back): the spots' tiles, icons and names, and the session panel after a catch said in the chat. */
+	private val FISHING: Boolean = "true" == lang.getProperty("client.test.fishing")
+
+	private var fishingStep: Int = 0
+
+	private var fishingFrame: Int = -1
+
+	/** client.test.agility: Agility at the Gnome Stronghold course (a teleport there and back): the obstacles' click boxes, and the lap panel after a lap bonus. */
+	private val AGILITY: Boolean = "true" == lang.getProperty("client.test.agility")
+
+	private var agilityStep: Int = 0
+
+	private var agilityFrame: Int = -1
+
+	/** client.test.slayer: a cows task set with Void's ::var (slayer_target and slayer_count, put back after), Slayer's infobox and the cows of Lumbridge highlighted (a teleport there and back). */
+	private val SLAYER: Boolean = "true" == lang.getProperty("client.test.slayer")
+
+	private var slayerStep: Int = 0
+
+	private var slayerFrame: Int = -1
+
+	private var slayerFailure: String? = null
+
+	/** client.test.itemCharges: an amulet of glory(4) put in an empty backpack slot on this client only (as UPDATE_INV_PARTIAL would), its charges drawn by Item Charges, then the slot emptied again. */
+	private val ITEM_CHARGES: Boolean = "true" == lang.getProperty("client.test.itemCharges")
+
+	private var itemChargesStep: Int = 0
+
+	private var itemChargesFrame: Int = -1
+
+	private var itemChargesSlot: Int = -1
+
+	/** client.test.itemIdentification: a clean guam put in an empty backpack slot on this client only, labelled "G" by Item Identification with herbs on, then the slot emptied again. */
+	private val ITEM_IDENTIFICATION: Boolean = "true" == lang.getProperty("client.test.itemIdentification")
+
+	private var itemIdentificationStep: Int = 0
+
+	private var itemIdentificationFrame: Int = -1
+
+	private var itemIdentificationSlot: Int = -1
+
+	/** client.test.chatNotifications: a public chat line naming the player, written through the client's own chat path, highlighted by Chat Notifications. */
+	private val CHAT_NOTIFICATIONS: Boolean = "true" == lang.getProperty("client.test.chatNotifications")
+
+	private var chatNotificationsFrame: Int = -1
+
+	/** client.test.chatFilter: through the client's own chat path, a public line with a filtered word not stored (API 26's consume), and a repeated game line collapsed into one with its count (removeChatLine). */
+	private val CHAT_FILTER: Boolean = "true" == lang.getProperty("client.test.chatFilter")
+
+	private var chatFilterFrame: Int = -1
+
+	/** client.test.chatHistory: Chat History putting a kept public line back before the next chat line (as after a login; API 27's addChatLine), the clipboard round trip, and Clear history on the Public tab. */
+	private val CHAT_HISTORY: Boolean = "true" == lang.getProperty("client.test.chatHistory")
+
+	private var chatHistoryFrame: Int = -1
+
+	/** client.test.combatLevel: Combat Level's precise level on the combat tab (884:1), then in the Wilderness (a teleport there and back) the attack range by its skull (381). */
+	private val COMBAT_LEVEL: Boolean = "true" == lang.getProperty("client.test.combatLevel")
+
+	private var combatLevelStep: Int = 0
+
+	private var combatLevelFrame: Int = -1
+
+	private var combatLevelText: String = ""
+
+	private var combatLevelFailure: String? = null
+
+	private var combatLevelShown: Int = -1
+
+	/** client.test.virtualLevels: the Stats tab open and Attack given 14.4 million experience on this client only, Virtual Levels writing its level 100, then the experience given back. */
+	private val VIRTUAL_LEVELS: Boolean = "true" == lang.getProperty("client.test.virtualLevels")
+
+	private var virtualLevelsStep: Int = 0
+
+	private var virtualLevelsFrame: Int = -1
+
+	private var virtualLevelsXp: Int = 0
+
+	private var virtualLevelsShown: Int = -1
+
+	/** client.test.metronome: the server's ticks (API 28's ServerTick) counted over three seconds, and Metronome playing on them. */
+	private val METRONOME: Boolean = "true" == lang.getProperty("client.test.metronome")
+
+	private var metronomeStart: Long = -1L
+
+	private var metronomeTicks: Int = 0
+
+	/** client.test.deathIndicator: Void's death and gravestone lines (written through the client's chat path, nothing really happening), the hint arrow (API 29) and infobox, then the world map opened and the grave marked on it. */
+	private val DEATH_INDICATOR: Boolean = "true" == lang.getProperty("client.test.deathIndicator")
+
+	private var deathIndicatorStep: Int = 0
+
+	private var deathIndicatorFrame: Int = -1
+
+	private var deathIndicatorFailure: String? = null
+
+	/** client.test.npcAggression: the NPC Aggression Timer always active with its area lines: the timer infobox and the 21 by 21 square drawn round the player. */
+	private val NPC_AGGRESSION: Boolean = "true" == lang.getProperty("client.test.npcAggression")
+
+	private var npcAggressionFrame: Int = -1
+
+	/** client.test.hunter: a box trap set beside the player as the server would tell it (LOC_CHANGED through the runtime), Hunter's pie drawn on it. */
+	private val HUNTER: Boolean = "true" == lang.getProperty("client.test.hunter")
+
+	private var hunterFrame: Int = -1
+
+	/** client.test.implings: a ::tele into Puro-Puro with every impling kind highlighted and the spawn tiles shown, both drawn, then back home. */
+	private val IMPLINGS: Boolean = "true" == lang.getProperty("client.test.implings")
+
+	private var implingsStep: Int = 0
+
+	private var implingsFrame: Int = -1
+
+	private var implingsFailure: String? = null
+
+	/** client.test.cooking: Void's cooked and burnt lines (written through the client's chat path, nothing cooked), Cooking's panel counting them. */
+	private val COOKING: Boolean = "true" == lang.getProperty("client.test.cooking")
+
+	private var cookingFrame: Int = -1
+
+	/** client.test.smelting: Void's bar and cannonball lines (written through the client's chat path, nothing smelted), Smelting's panel counting them. */
+	private val SMELTING: Boolean = "true" == lang.getProperty("client.test.smelting")
+
+	private var smeltingFrame: Int = -1
+
+	/** client.test.prayer: Protect from Melee turned on in the client's own varp 1395 (the server not told), Prayer's flick helper on the orb and bar, the prayer bar, the overhead's infobox and the orb's time left. */
+	private val PRAYER: Boolean = "true" == lang.getProperty("client.test.prayer")
+
+	private var prayerStep: Int = 0
+
+	private var prayerFrame: Int = -1
+
+	private var prayerOldVarp: Int = 0
+
+	private const val PROTECT_FROM_MELEE_BIT: Int = 14
+
+	/** client.test.inventoryTags: a glory(4) put in an empty backpack slot (in the client only) and tagged red (not saved), Inventory Tags' outline, fill and underline drawn on it (API 30). */
+	private val INVENTORY_TAGS: Boolean = "true" == lang.getProperty("client.test.inventoryTags")
+
+	private var inventoryTagsStep: Int = 0
+
+	private var inventoryTagsFrame: Int = -1
+
+	private var inventoryTagsSlot: Int = -1
+
+	/**
+	 * client.test.inventoryGrid: a glory(4) in an empty backpack slot (client only) held as if dragged, Inventory Grid's
+	 * 28 slots shaded (API 31). The hold is set again at each logic tick, before the client's drag step, with a drag
+	 * parent no interface shows: so the client never finds it, never lets go and never drops (no move is sent, no
+	 * script runs).
+	 */
+	private val INVENTORY_GRID: Boolean = "true" == lang.getProperty("client.test.inventoryGrid")
+
+	private var inventoryGridStep: Int = 0
+
+	private var inventoryGridFrame: Int = -1
+
+	private var inventoryGridSlot: Int = -1
+
+	private var inventoryGridWasEnabled: Boolean = false
+
+	/** The slot held as dragged, null for none: SmokeTest.tick holds it again each logic tick. */
+	private var inventoryGridHeld: Component? = null
+
+	/** The drag parent no interface shows: the client finds a drag's parent by identity, and draws the dragged layer at its rectangle (the grid's). */
+	private val inventoryGridParent: Component = Component()
+
+	/** client.test.examine: a rune scimitar's examine as Void sends it (the click remembered as Examine's would be, the text written as an item examine line), the price line after it. */
+	private val EXAMINE: Boolean = "true" == lang.getProperty("client.test.examine")
+
+	private var examineFrame: Int = -1
+
+	private const val RUNE_SCIMITAR: Int = 1333
+
+	/** client.test.entityHider: Entity Hider hiding the player's own model and every NPC's (API 32), then showing them again. */
+	private val ENTITY_HIDER: Boolean = "true" == lang.getProperty("client.test.entityHider")
+
+	private var entityHiderStep: Int = 0
+
+	private var entityHiderFrame: Int = -1
+
+	private var entityHiderNpcs: Int = 0
+
+	/**
+	 * client.test.screenshot: Void's level-up line written through the chat path (no level gained), Screenshot taking
+	 * the frame with the date on the report button (API 33) and saving it; the PNG is checked, then deleted with the
+	 * folders it made if they are left empty.
+	 */
+	private val SCREENSHOT: Boolean = "true" == lang.getProperty("client.test.screenshot")
+
+	private var screenshotFrame: Int = -1
+
+	private var screenshotDate: Boolean = false
+
+	private var entityHiderWasEnabled: Boolean = false
+
+	private var inventoryTagsWasEnabled: Boolean = false
+
+	private var implingsWasEnabled: Boolean = false
+
+	private var npcAggressionWasEnabled: Boolean = false
+
+	/** The world map (755) and its close button. */
+	private const val WORLD_MAP: Int = 755
+	private const val WORLD_MAP_CLOSE: Int = 44
+
+	private var chatFilterWasEnabled: Boolean = false
+
+	private var itemIdentificationWasEnabled: Boolean = false
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -422,6 +668,14 @@ object SmokeTest {
 	private var groundItemsSummary: String = ""
 
 	private const val MARKER_FRAMES: Int = 40
+
+	/** The backpack's item container, and an amulet of glory(4) for Item Charges. */
+	private const val BACKPACK: Int = 93
+
+	private const val GLORY_4: Int = 1712
+
+	/** A clean guam, for Item Identification. */
+	private const val CLEAN_GUAM: Int = 249
 
 	private const val COINS: Int = 995
 
@@ -846,7 +1100,7 @@ object SmokeTest {
 	private var sceneSummary: String = ""
 
 	/** The checks done so far, one bit each in the order frame() runs them. */
-	private var checksDone: Int = 0
+	private var checksDone: Long = 0L
 
 	private var startToolkit: Int = -1
 
@@ -890,6 +1144,7 @@ object SmokeTest {
 		if (!ENABLED) {
 			return
 		}
+		holdDrag()
 		if (benchCount >= 0) {
 			benchTicks++
 		}
@@ -1110,185 +1365,353 @@ object SmokeTest {
 		}
 		// each check runs until it is done, once: a done check is not asked again (and so does not add its
 		// summary to the pass line on every later frame)
-		if (WINDOW_MODES && (checksDone and 1) == 0) {
+		if (WINDOW_MODES && (checksDone and 1L) == 0L) {
 			if (!windowModesDone()) {
 				return
 			}
-			checksDone = checksDone or 1
+			checksDone = checksDone or 1L
 		}
-		if (SUB_INTERFACES && (checksDone and 2) == 0) {
+		if (SUB_INTERFACES && (checksDone and 2L) == 0L) {
 			if (!subInterfacesDone()) {
 				return
 			}
-			checksDone = checksDone or 2
+			checksDone = checksDone or 2L
 		}
-		if (MENU_WALK && (checksDone and 4) == 0) {
+		if (MENU_WALK && (checksDone and 4L) == 0L) {
 			if (!menuWalkDone(player)) {
 				return
 			}
-			checksDone = checksDone or 4
+			checksDone = checksDone or 4L
 		}
-		if (MEDIA && (checksDone and 8) == 0) {
+		if (MEDIA && (checksDone and 8L) == 0L) {
 			if (!mediaDone(player)) {
 				return
 			}
-			checksDone = checksDone or 8
+			checksDone = checksDone or 8L
 		}
-		if (MARKERS && (checksDone and 16) == 0) {
+		if (MARKERS && (checksDone and 16L) == 0L) {
 			if (!markersDone(player)) {
 				return
 			}
-			checksDone = checksDone or 16
+			checksDone = checksDone or 16L
 		}
-		if (XP_DROPS && (checksDone and 32) == 0) {
+		if (XP_DROPS && (checksDone and 32L) == 0L) {
 			if (!xpDropsDone()) {
 				return
 			}
-			checksDone = checksDone or 32
+			checksDone = checksDone or 32L
 		}
-		if (RESPAWN && (checksDone and 64) == 0) {
+		if (RESPAWN && (checksDone and 64L) == 0L) {
 			if (!respawnDone()) {
 				return
 			}
-			checksDone = checksDone or 64
+			checksDone = checksDone or 64L
 		}
-		if (GROUND_ITEMS && (checksDone and 128) == 0) {
+		if (GROUND_ITEMS && (checksDone and 128L) == 0L) {
 			if (!groundItemsDone(player)) {
 				return
 			}
-			checksDone = checksDone or 128
+			checksDone = checksDone or 128L
 		}
-		if (LOOT_TRACKER && (checksDone and 256) == 0) {
+		if (LOOT_TRACKER && (checksDone and 256L) == 0L) {
 			if (!lootTrackerDone()) {
 				return
 			}
-			checksDone = checksDone or 256
+			checksDone = checksDone or 256L
 		}
-		if (OBJECT_MARKERS && (checksDone and 512) == 0) {
+		if (OBJECT_MARKERS && (checksDone and 512L) == 0L) {
 			if (!objectMarkersDone(player)) {
 				return
 			}
-			checksDone = checksDone or 512
+			checksDone = checksDone or 512L
 		}
-		if (XP_TRACKER && (checksDone and 1024) == 0) {
+		if (XP_TRACKER && (checksDone and 1024L) == 0L) {
 			if (!xpTrackerDone()) {
 				return
 			}
-			checksDone = checksDone or 1024
+			checksDone = checksDone or 1024L
 		}
-		if (OPPONENT_INFO && (checksDone and 2048) == 0) {
+		if (OPPONENT_INFO && (checksDone and 2048L) == 0L) {
 			if (!opponentInfoDone(player)) {
 				return
 			}
-			checksDone = checksDone or 2048
+			checksDone = checksDone or 2048L
 		}
-		if ((BOOSTS || OVERLAY_DRAG) && (checksDone and 4096) == 0) {
+		if ((BOOSTS || OVERLAY_DRAG) && (checksDone and 4096L) == 0L) {
 			if (!boostsDone()) {
 				return
 			}
-			checksDone = checksDone or 4096
+			checksDone = checksDone or 4096L
 		}
-		if (OVERLAY_DRAG && (checksDone and 8192) == 0) {
+		if (OVERLAY_DRAG && (checksDone and 8192L) == 0L) {
 			if (!overlayDragDone()) {
 				return
 			}
-			checksDone = checksDone or 8192
+			checksDone = checksDone or 8192L
 		}
-		if (BANK_ORGANIZER && (checksDone and 16384) == 0) {
+		if (BANK_ORGANIZER && (checksDone and 16384L) == 0L) {
 			if (!bankOrganizerDone()) {
 				return
 			}
-			checksDone = checksDone or 16384
+			checksDone = checksDone or 16384L
 		}
-		if (STATUS_BARS && (checksDone and 32768) == 0) {
+		if (STATUS_BARS && (checksDone and 32768L) == 0L) {
 			if (!statusBarsDone()) {
 				return
 			}
-			checksDone = checksDone or 32768
+			checksDone = checksDone or 32768L
 		}
-		if (TIMERS && (checksDone and 65536) == 0) {
+		if (TIMERS && (checksDone and 65536L) == 0L) {
 			if (!timersDone()) {
 				return
 			}
-			checksDone = checksDone or 65536
+			checksDone = checksDone or 65536L
 		}
-		if (TILE_INDICATORS && (checksDone and 131072) == 0) {
+		if (TILE_INDICATORS && (checksDone and 131072L) == 0L) {
 			if (!tileIndicatorsDone(player)) {
 				return
 			}
-			checksDone = checksDone or 131072
+			checksDone = checksDone or 131072L
 		}
-		if (XP_GLOBES && (checksDone and 262144) == 0) {
+		if (XP_GLOBES && (checksDone and 262144L) == 0L) {
 			if (!xpGlobesDone()) {
 				return
 			}
-			checksDone = checksDone or 262144
+			checksDone = checksDone or 262144L
 		}
-		if (BARROWS && (checksDone and 524288) == 0) {
+		if (BARROWS && (checksDone and 524288L) == 0L) {
 			if (!barrowsDone()) {
 				return
 			}
-			checksDone = checksDone or 524288
+			checksDone = checksDone or 524288L
 		}
-		if (ATTACK_STYLES && (checksDone and 1048576) == 0) {
+		if (ATTACK_STYLES && (checksDone and 1048576L) == 0L) {
 			if (!attackStylesDone()) {
 				return
 			}
-			checksDone = checksDone or 1048576
+			checksDone = checksDone or 1048576L
 		}
-		if (CANNON && (checksDone and 2097152) == 0) {
+		if (CANNON && (checksDone and 2097152L) == 0L) {
 			if (!cannonDone(player)) {
 				return
 			}
-			checksDone = checksDone or 2097152
+			checksDone = checksDone or 2097152L
 		}
-		if (ANTI_DRAG && (checksDone and 4194304) == 0) {
+		if (ANTI_DRAG && (checksDone and 4194304L) == 0L) {
 			if (!antiDragDone()) {
 				return
 			}
-			checksDone = checksDone or 4194304
+			checksDone = checksDone or 4194304L
 		}
-		if (EMOJIS && (checksDone and 8388608) == 0) {
+		if (EMOJIS && (checksDone and 8388608L) == 0L) {
 			if (!emojisDone(player)) {
 				return
 			}
-			checksDone = checksDone or 8388608
+			checksDone = checksDone or 8388608L
 		}
-		if (KEY_REMAPPING && (checksDone and 16777216) == 0) {
+		if (KEY_REMAPPING && (checksDone and 16777216L) == 0L) {
 			if (!keyRemappingDone()) {
 				return
 			}
-			checksDone = checksDone or 16777216
+			checksDone = checksDone or 16777216L
 		}
-		if (CUSTOM_CURSOR && (checksDone and 33554432) == 0) {
+		if (CUSTOM_CURSOR && (checksDone and 33554432L) == 0L) {
 			if (!customCursorDone()) {
 				return
 			}
-			checksDone = checksDone or 33554432
+			checksDone = checksDone or 33554432L
 		}
-		if (ITEM_STATS && (checksDone and 67108864) == 0) {
+		if (ITEM_STATS && (checksDone and 67108864L) == 0L) {
 			if (!itemStatsDone()) {
 				return
 			}
-			checksDone = checksDone or 67108864
+			checksDone = checksDone or 67108864L
 		}
-		if (WOODCUTTING && (checksDone and 134217728) == 0) {
+		if (WOODCUTTING && (checksDone and 134217728L) == 0L) {
 			if (!woodcuttingDone(player)) {
 				return
 			}
-			checksDone = checksDone or 134217728
+			checksDone = checksDone or 134217728L
 		}
-		if (MINING && (checksDone and 268435456) == 0) {
+		if (MINING && (checksDone and 268435456L) == 0L) {
 			if (!miningDone(player)) {
 				return
 			}
-			checksDone = checksDone or 268435456
+			checksDone = checksDone or 268435456L
 		}
-		if (REPORT_BUTTON && (checksDone and 536870912) == 0) {
+		if (REPORT_BUTTON && (checksDone and 536870912L) == 0L) {
 			if (!reportButtonDone()) {
 				return
 			}
-			checksDone = checksDone or 536870912
+			checksDone = checksDone or 536870912L
+		}
+		if (PLAYER_INDICATORS && (checksDone and 1073741824L) == 0L) {
+			if (!playerIndicatorsDone()) {
+				return
+			}
+			checksDone = checksDone or 1073741824L
+		}
+		if (SPECIAL_COUNTER && (checksDone and 2147483648L) == 0L) {
+			if (!specialCounterDone()) {
+				return
+			}
+			checksDone = checksDone or 2147483648L
+		}
+		if (REGEN_METER && (checksDone and 4294967296L) == 0L) {
+			if (!regenMeterDone()) {
+				return
+			}
+			checksDone = checksDone or 4294967296L
+		}
+		if (RUN_ENERGY && (checksDone and 8589934592L) == 0L) {
+			if (!runEnergyDone()) {
+				return
+			}
+			checksDone = checksDone or 8589934592L
+		}
+		if (POISON && (checksDone and 17179869184L) == 0L) {
+			if (!poisonDone()) {
+				return
+			}
+			checksDone = checksDone or 17179869184L
+		}
+		if (FISHING && (checksDone and 34359738368L) == 0L) {
+			if (!fishingDone()) {
+				return
+			}
+			checksDone = checksDone or 34359738368L
+		}
+		if (AGILITY && (checksDone and 68719476736L) == 0L) {
+			if (!agilityDone()) {
+				return
+			}
+			checksDone = checksDone or 68719476736L
+		}
+		if (SLAYER && (checksDone and 137438953472L) == 0L) {
+			if (!slayerDone()) {
+				return
+			}
+			checksDone = checksDone or 137438953472L
+		}
+		if (ITEM_CHARGES && (checksDone and 274877906944L) == 0L) {
+			if (!itemChargesDone()) {
+				return
+			}
+			checksDone = checksDone or 274877906944L
+		}
+		if (ITEM_IDENTIFICATION && (checksDone and 549755813888L) == 0L) {
+			if (!itemIdentificationDone()) {
+				return
+			}
+			checksDone = checksDone or 549755813888L
+		}
+		if (CHAT_NOTIFICATIONS && (checksDone and 1099511627776L) == 0L) {
+			if (!chatNotificationsDone()) {
+				return
+			}
+			checksDone = checksDone or 1099511627776L
+		}
+		if (CHAT_FILTER && (checksDone and 2199023255552L) == 0L) {
+			if (!chatFilterDone()) {
+				return
+			}
+			checksDone = checksDone or 2199023255552L
+		}
+		if (CHAT_HISTORY && (checksDone and 4398046511104L) == 0L) {
+			if (!chatHistoryDone()) {
+				return
+			}
+			checksDone = checksDone or 4398046511104L
+		}
+		if (COMBAT_LEVEL && (checksDone and 8796093022208L) == 0L) {
+			if (!combatLevelDone()) {
+				return
+			}
+			checksDone = checksDone or 8796093022208L
+		}
+		if (VIRTUAL_LEVELS && (checksDone and 17592186044416L) == 0L) {
+			if (!virtualLevelsDone()) {
+				return
+			}
+			checksDone = checksDone or 17592186044416L
+		}
+		if (METRONOME && (checksDone and 35184372088832L) == 0L) {
+			if (!metronomeDone()) {
+				return
+			}
+			checksDone = checksDone or 35184372088832L
+		}
+		if (DEATH_INDICATOR && (checksDone and 70368744177664L) == 0L) {
+			if (!deathIndicatorDone()) {
+				return
+			}
+			checksDone = checksDone or 70368744177664L
+		}
+		if (NPC_AGGRESSION && (checksDone and 140737488355328L) == 0L) {
+			if (!npcAggressionDone()) {
+				return
+			}
+			checksDone = checksDone or 140737488355328L
+		}
+		if (HUNTER && (checksDone and 281474976710656L) == 0L) {
+			if (!hunterDone(player)) {
+				return
+			}
+			checksDone = checksDone or 281474976710656L
+		}
+		if (IMPLINGS && (checksDone and 562949953421312L) == 0L) {
+			if (!implingsDone(player)) {
+				return
+			}
+			checksDone = checksDone or 562949953421312L
+		}
+		if (COOKING && (checksDone and 1125899906842624L) == 0L) {
+			if (!cookingDone()) {
+				return
+			}
+			checksDone = checksDone or 1125899906842624L
+		}
+		if (SMELTING && (checksDone and 2251799813685248L) == 0L) {
+			if (!smeltingDone()) {
+				return
+			}
+			checksDone = checksDone or 2251799813685248L
+		}
+		if (PRAYER && (checksDone and 4503599627370496L) == 0L) {
+			if (!prayerDone()) {
+				return
+			}
+			checksDone = checksDone or 4503599627370496L
+		}
+		if (INVENTORY_TAGS && (checksDone and 9007199254740992L) == 0L) {
+			if (!inventoryTagsDone()) {
+				return
+			}
+			checksDone = checksDone or 9007199254740992L
+		}
+		if (INVENTORY_GRID && (checksDone and 18014398509481984L) == 0L) {
+			if (!inventoryGridDone()) {
+				return
+			}
+			checksDone = checksDone or 18014398509481984L
+		}
+		if (EXAMINE && (checksDone and 36028797018963968L) == 0L) {
+			if (!examineDone()) {
+				return
+			}
+			checksDone = checksDone or 36028797018963968L
+		}
+		if (ENTITY_HIDER && (checksDone and 72057594037927936L) == 0L) {
+			if (!entityHiderDone(player)) {
+				return
+			}
+			checksDone = checksDone or 72057594037927936L
+		}
+		if (SCREENSHOT && (checksDone and 144115188075855872L) == 0L) {
+			if (!screenshotDone()) {
+				return
+			}
+			checksDone = checksDone or 144115188075855872L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3918,6 +4341,1226 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** Player Indicators with the own player highlighted: their name drawn, the rank icons added as chat icons. Frame: frame-playerindicators.png. */
+	/** Player Indicators' check: a health bar half full for 6 seconds. */
+	private const val HALF_HEALTH: Int = 128
+	private const val HEALTH_BAR_CYCLES: Int = 300
+
+	private fun playerIndicatorsDone(): Boolean {
+		if (playerIndicatorsFrame == -1) {
+			PlayerIndicators.enabled = true
+			PlayerIndicators.highlight[PlayerIndicators.SELF] = PlayerIndicators.ENABLED
+			PlayerIndicators.drawPlayerTiles = true
+			PlayerIndicators.drawMinimapNames = true
+			// a chat line and a health bar over the head (on this client only): the name goes above both
+			PlayerUpdate.localPlayer?.let {
+				it.setOverheadText("Indicator check")
+				it.healthRatio = HALF_HEALTH
+				it.healthBarEndCycle = ClientState.clientCycle + HEALTH_BAR_CYCLES
+			}
+			playerIndicatorsFrame = frames
+			return false
+		}
+		if (frames - playerIndicatorsFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-playerindicators.png")
+		val drawn: Int = PlayerIndicators.drawnLastFrame
+		val top: Int = PlayerUpdate.localPlayer?.overheadTop() ?: -1
+		val nameY: Int = PlayerIndicators.lastAboveHeadY
+		val icons: StringBuilder = StringBuilder()
+		for (rank in PlayerIndicators.RANK_SPRITES.indices) {
+			icons.append(PlayerIndicators.rankIcon(ClientApiImpl, rank))
+		}
+		PlayerIndicators.enabled = false
+		PlayerIndicators.highlight[PlayerIndicators.SELF] = PlayerIndicators.DISABLED
+		PlayerIndicators.drawPlayerTiles = false
+		PlayerIndicators.drawMinimapNames = false
+		if (drawn < 1 || icons.count { it == '<' } != PlayerIndicators.RANK_SPRITES.size || top < 0 || nameY >= top) {
+			fail("Player Indicators: " + drawn + " names drawn, rank icons \"" + icons + "\", the name at y " + nameY + " and the overheads' top at " + top)
+			return true
+		}
+		println("SMOKE player indicators: own name drawn at y " + nameY + ", above the health bar and chat line (their top " + top + "), rank icons " + icons)
+		return true
+	}
+
+	/** Special Attack Counter given a godsword special's hit of 450: the infobox counts it, the drop rises. Frame: frame-specialcounter.png. */
+	private fun specialCounterDone(): Boolean {
+		if (specialCounterFrame == -1) {
+			SpecialCounter.enabled = true
+			SpecialCounter.specialAttackHit(ClientApiImpl, 1, 450)
+			specialCounterFrame = frames
+			return false
+		}
+		if (frames - specialCounterFrame < MARKER_FRAMES / 2) {
+			return false
+		}
+		saveFrame("build/smoke/frame-specialcounter.png")
+		val count: Int = SpecialCounter.counters[1]?.count ?: -1
+		val energy: Int = ClientApiImpl.varp(SpecialCounter.SPECIAL_VARP)
+		SpecialCounter.removeCounters()
+		SpecialCounter.drops.clear()
+		if (count != 450 || energy < 0 || energy > 1000) {
+			fail("Special Attack Counter: counted " + count + " (not 450), energy " + energy)
+			return true
+		}
+		println("SMOKE special counter: Bandos Godsword 450 counted and dropped, special energy " + energy)
+		return true
+	}
+
+	/** Regeneration Meter with "Show at full hitpoints" on: the ring fills round the orb. Frame: frame-regenmeter.png. */
+	private fun regenMeterDone(): Boolean {
+		if (regenMeterFrame == -1) {
+			RegenMeter.showWhenNoChange = true
+			regenMeterFrame = frames
+			return false
+		}
+		val waited: Int = frames - regenMeterFrame
+		if (RegenMeter.hitpointsPercentage < 0.3 && waited < 600) {
+			regenMeterShown = -1
+			return false
+		}
+		// a few frames with the ring up: the OpenGL toolkits' frame is read from the last one shown
+		if (regenMeterShown == -1) {
+			regenMeterShown = frames
+		}
+		if (frames - regenMeterShown < 5) {
+			return false
+		}
+		saveFrame("build/smoke/frame-regenmeter.png")
+		val drawn: Int = RegenMeter.drawnLastFrame
+		val percent: Double = RegenMeter.hitpointsPercentage
+		RegenMeter.showWhenNoChange = false
+		if (drawn < 1 || percent <= 0.0) {
+			fail("Regeneration Meter: " + drawn + " rings drawn at " + percent)
+			return true
+		}
+		val orb = ClientApiImpl.widget(RegenMeter.HEALTH_ORB, RegenMeter.HEALTH_ORB_CIRCLE)
+		println("SMOKE regen meter: the life points ring drawn at " + percent + " round the orb at " + orb?.screenX() + "," + orb?.screenY() + " " + orb?.width() + "x" + orb?.height())
+		return true
+	}
+
+	/** Run Energy with "Replace orb text" on: the orb reads the seconds left, then its energy again once off. Frame: frame-runenergy.png. */
+	private fun runEnergyDone(): Boolean {
+		val api = ClientApiImpl
+		if (runEnergyFrame != -1 && frames - runEnergyFrame < MARKER_FRAMES) {
+			return false
+		}
+		runEnergyFrame = frames
+		val shown: String = api.widget(RunEnergy.RUN_ORB, RunEnergy.RUN_ORB_TEXT)?.text() ?: ""
+		when (runEnergyStep++) {
+			0 -> RunEnergy.replaceOrbText = true
+			1 -> {
+				saveFrame("build/smoke/frame-runenergy.png")
+				runEnergyText = shown
+				RunEnergy.replaceOrbText = false
+				RunEnergy.resetOrbText(api)
+				if (!Regex("[0-9]+s").matches(shown)) {
+					fail("Run Energy: the orb reads \"" + shown + "\" with the run time on")
+					return true
+				}
+			}
+			else -> {
+				if (shown != api.runEnergy().toString()) {
+					fail("Run Energy: the orb reads \"" + shown + "\" once off, not " + api.runEnergy())
+					return true
+				}
+				println("SMOKE run energy: the orb read \"" + runEnergyText + "\", then \"" + shown + "\"; tooltip \"" + RunEnergy.tooltipText(api) + "\"")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Poisoned for one hit of 14: the infobox, and the orb's heart drawn green. Frame: frame-poison.png. */
+	private fun poisonDone(): Boolean {
+		if (poisonFrame == -1) {
+			Poison.showInfoboxes = true
+			sendCommand("poison 14")
+			poisonFrame = frames
+			return false
+		}
+		val poisoned: Boolean = ClientApiImpl.varp(Poison.POISON_VARP) > 0
+		if (!poisoned && frames - poisonFrame < BANK_WAIT_FRAMES) {
+			return false
+		}
+		if (poisonSeen == -1) {
+			poisonSeen = frames
+		}
+		if (frames - poisonSeen < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-poison.png")
+		val heart: Int = Poison.heart
+		val box: Boolean = Poison.infobox != null
+		val damage: Int = Poison.lastDamage
+		Poison.showInfoboxes = false
+		if (!poisoned || heart != Poison.HEART_POISON || !box || damage != 14) {
+			fail("Poison: poisoned " + poisoned + ", heart " + heart + ", infobox " + box + ", next damage " + damage)
+			return true
+		}
+		println("SMOKE poison: poisoned for " + damage + ", the green heart on the orb and the infobox; " + Poison.createTooltip())
+		return true
+	}
+
+	/** Fishing by Catherby's spots: they are drawn, and a catch starts the session panel. Frame: frame-fishing.png. */
+	private fun fishingDone(): Boolean {
+		when (fishingStep) {
+			0 -> {
+				Fishing.showNames = true
+				sendCommand("tele 2846 3429")
+				fishingFrame = frames
+				fishingStep = 1
+			}
+			1 -> {
+				if (Fishing.drawnLastFrame == 0 && frames - fishingFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				Fishing.chat(com.jagex.game.runetek5.plugin.api.events.ChatMessage(com.jagex.game.runetek5.plugin.api.ChatType.GAME_FILTERED, "", "You catch some raw shrimps.", null))
+				fishingFrame = frames
+				fishingStep = 2
+			}
+			2 -> {
+				if (frames - fishingFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-fishing.png")
+				val drawn: Int = Fishing.drawnLastFrame
+				val caught: Int = Fishing.session?.caught ?: 0
+				Fishing.showNames = false
+				Fishing.session = null
+				sendCommand("tele 3094 3107")
+				fishingFrame = frames
+				fishingStep = 3
+				if (drawn == 0 || caught != 1) {
+					fail("Fishing: " + drawn + " spots drawn at Catherby, " + caught + " fish caught")
+					return true
+				}
+				println("SMOKE fishing: " + drawn + " spots drawn at Catherby, the session panel after a catch")
+			}
+			else -> return frames - fishingFrame >= MARKER_FRAMES
+		}
+		return false
+	}
+
+	/** Agility at the Gnome Stronghold: its obstacles found and drawn, a lap counted from the bonus. Frame: frame-agility.png. */
+	private fun agilityDone(): Boolean {
+		when (agilityStep) {
+			0 -> {
+				sendCommand("tele 2474 3436")
+				agilityFrame = frames
+				agilityStep = 1
+			}
+			1 -> {
+				if (Agility.drawnLastFrame == 0 && frames - agilityFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				val xp: Int = ClientApiImpl.skillXp(com.jagex.game.runetek5.plugin.api.Skill.AGILITY)
+				Agility.statChanged(com.jagex.game.runetek5.plugin.api.events.StatChanged(com.jagex.game.runetek5.plugin.api.Skill.AGILITY, xp + 1, xp + 40, 1))
+				agilityFrame = frames
+				agilityStep = 2
+			}
+			2 -> {
+				if (frames - agilityFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-agility.png")
+				val found: Int = Agility.found.size
+				val drawn: Int = Agility.drawnLastFrame
+				val laps: Int = Agility.session?.totalLaps ?: 0
+				Agility.session = null
+				sendCommand("tele 3094 3107")
+				agilityFrame = frames
+				agilityStep = 3
+				if (found == 0 || drawn == 0 || laps != 1) {
+					fail("Agility: " + found + " obstacles found, " + drawn + " drawn, " + laps + " laps")
+					return true
+				}
+				println("SMOKE agility: " + found + " obstacles and shortcuts found at the Gnome Stronghold, " + drawn + " click boxes drawn, a lap counted")
+			}
+			else -> return frames - agilityFrame >= MARKER_FRAMES
+		}
+		return false
+	}
+
+	/** Slayer with a cows task of 25: the infobox, and the cows of Lumbridge highlighted. Frame: frame-slayer.png. */
+	private fun slayerDone(): Boolean {
+		when (slayerStep) {
+			0 -> {
+				Slayer.highlightHull = true
+				Slayer.highlightTile = true
+				sendCommand("var slayer_target cows")
+				sendCommand("var slayer_count 25")
+				sendCommand("tele 3256 3266")
+				slayerFrame = frames
+				slayerStep = 1
+			}
+			1 -> {
+				if ((Slayer.task == null || Slayer.targetsDrawn == 0) && frames - slayerFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				slayerFrame = frames
+				slayerStep = 2
+			}
+			2 -> {
+				if (frames - slayerFrame < MARKER_FRAMES / 4) {
+					return false
+				}
+				saveFrame("build/smoke/frame-slayer.png")
+				val name: String? = Slayer.task?.name
+				val amount: Int = Slayer.amount
+				val drawn: Int = Slayer.targetsDrawn
+				Slayer.highlightHull = false
+				Slayer.highlightTile = false
+				sendCommand("var slayer_count 0")
+				sendCommand("var slayer_target nothing")
+				sendCommand("tele 3094 3107")
+				slayerFrame = frames
+				slayerStep = 3
+				// the account's task and place are put back before a failure ends the run
+				slayerFailure = if (name != "Cows" || amount != 25 || drawn == 0 || Slayer.counter == null) "Slayer: task " + name + " x" + amount + ", " + drawn + " cows highlighted, infobox " + (Slayer.counter != null) else null
+				if (slayerFailure == null) {
+					println("SMOKE slayer: task " + name + " x" + amount + " from the varps, " + drawn + " cows highlighted, the infobox up")
+				}
+			}
+			else -> {
+				if (frames - slayerFrame < MARKER_FRAMES || (Slayer.task != null && frames - slayerFrame < BANK_WAIT_FRAMES)) {
+					return false
+				}
+				slayerFailure?.let { fail(it) }
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Puts [itemId] in backpack [slot] on this client only, as the server's partial inventory update does; -1 empties it. */
+	private fun fakeBackpackItem(slot: Int, itemId: Int) {
+		ItemContainer.setItemInContainer(BACKPACK, false, slot, if (itemId < 0) 0 else 1, itemId)
+		ItemContainer.RECENTLY_USED_ITEM_CONTAINERS[client.recentlyUsedItemContainersCursorPos++ and 0x1F] = BACKPACK
+	}
+
+	/** Clicks the backpack's tab stone (the base window's component whose first option is Inventory) unless the backpack is open. */
+	private fun openInventoryTab() {
+		// a tab stone clicked while its tab is open closes the side panel
+		if (ClientApiImpl.widget(149, 0)?.isDrawnThisFrame() != true) {
+			openTab("Inventory")
+		}
+	}
+
+	/** Clicks component [componentId] of loaded interface [interfaceId] with its first option; false when it is not loaded. */
+	private fun clickComponent(interfaceId: Int, componentId: Int): Boolean {
+		val c: Component = Interface.peekComponents(interfaceId)?.getOrNull(componentId) ?: return false
+		InterfaceOptionInteract.ifOptionInteract(-1, c.options?.getOrNull(0) ?: "", 1, c.idHash)
+		return true
+	}
+
+	/** Clicks the tab stone whose first option is one of [options]; false when the base window has none. */
+	private fun openTab(vararg options: String): Boolean {
+		val root: Array<Component?> = Interface.interfaces!![ClientState.BASE_WINDOW_ID] ?: return false
+		for (c in root) {
+			val option: String? = c?.options?.getOrNull(0)
+			if (c != null && option != null && option in options) {
+				InterfaceOptionInteract.ifOptionInteract(-1, option, 1, c.idHash)
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Item Charges on a glory(4) in the backpack: the "4" drawn on it. Frame: frame-itemcharges.png. */
+	private fun itemChargesDone(): Boolean {
+		when (itemChargesStep) {
+			0 -> {
+				val backpack = ClientApiImpl.itemContainer(BACKPACK) ?: return false
+				for (slot in 0 until backpack.size()) {
+					if (itemChargesSlot < 0 && backpack.itemId(slot) < 0) {
+						itemChargesSlot = slot
+					}
+				}
+				if (itemChargesSlot < 0) {
+					fail("Item Charges: no empty backpack slot")
+					return true
+				}
+				openInventoryTab()
+				itemChargesFrame = frames
+				itemChargesStep = 1
+			}
+			1 -> {
+				// after the tab's own redraw and any inventory update the login sent
+				if (frames - itemChargesFrame < MARKER_FRAMES) {
+					return false
+				}
+				fakeBackpackItem(itemChargesSlot, GLORY_4)
+				itemChargesFrame = frames
+				itemChargesStep = 2
+			}
+			2 -> {
+				if (ItemCharges.drawnLastFrame == 0 && frames - itemChargesFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				itemChargesFrame = frames
+				itemChargesStep = 3
+			}
+			else -> {
+				if (frames - itemChargesFrame < 5) {
+					return false
+				}
+				saveFrame("build/smoke/frame-itemcharges.png")
+				val drawn: Int = ItemCharges.drawnLastFrame
+				fakeBackpackItem(itemChargesSlot, -1)
+				if (drawn == 0) {
+					val grid = ClientApiImpl.widget(149, 0)
+					val slot = grid?.child(itemChargesSlot)
+					fail("Item Charges: no charges drawn on the glory in backpack slot " + itemChargesSlot + " (grid drawn " + grid?.isDrawnThisFrame() + ", " + grid?.childCount() + " slots; the slot holds " + slot?.itemId() + ", drawn " + slot?.isDrawnThisFrame() + "; the container " + ClientApiImpl.itemContainer(BACKPACK)?.itemId(itemChargesSlot) + ")")
+					return true
+				}
+				println("SMOKE item charges: the glory(4) in backpack slot " + itemChargesSlot + " shows its charges (" + drawn + " drawn)")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Item Identification on a clean guam in the backpack: its "G" drawn. Frame: frame-itemidentification.png. */
+	private fun itemIdentificationDone(): Boolean {
+		val herbs: Int = ItemIdentification.TYPES.indexOf("HERB")
+		when (itemIdentificationStep) {
+			0 -> {
+				val backpack = ClientApiImpl.itemContainer(BACKPACK) ?: return false
+				for (slot in 0 until backpack.size()) {
+					if (itemIdentificationSlot < 0 && backpack.itemId(slot) < 0) {
+						itemIdentificationSlot = slot
+					}
+				}
+				if (itemIdentificationSlot < 0) {
+					fail("Item Identification: no empty backpack slot")
+					return true
+				}
+				ItemIdentification.shown[herbs] = true
+				// off by default: on for the step, as the player had it after
+				itemIdentificationWasEnabled = ItemIdentification.enabled
+				ItemIdentification.enabled = true
+				openInventoryTab()
+				itemIdentificationFrame = frames
+				itemIdentificationStep = 1
+			}
+			1 -> {
+				if (frames - itemIdentificationFrame < MARKER_FRAMES) {
+					return false
+				}
+				fakeBackpackItem(itemIdentificationSlot, CLEAN_GUAM)
+				itemIdentificationFrame = frames
+				itemIdentificationStep = 2
+			}
+			2 -> {
+				if (ItemIdentification.drawnLastFrame == 0 && frames - itemIdentificationFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				itemIdentificationFrame = frames
+				itemIdentificationStep = 3
+			}
+			else -> {
+				if (frames - itemIdentificationFrame < 5) {
+					return false
+				}
+				saveFrame("build/smoke/frame-itemidentification.png")
+				val drawn: Int = ItemIdentification.drawnLastFrame
+				val label: String? = ItemIdentification.label(ClientApiImpl, CLEAN_GUAM)
+				fakeBackpackItem(itemIdentificationSlot, -1)
+				ItemIdentification.shown[herbs] = ItemIdentification.CATEGORY_DEFAULTS[herbs]
+				ItemIdentification.enabled = itemIdentificationWasEnabled
+				if (drawn == 0) {
+					fail("Item Identification: no label drawn on the guam in backpack slot " + itemIdentificationSlot)
+					return true
+				}
+				println("SMOKE item identification: the clean guam in backpack slot " + itemIdentificationSlot + " labelled \"" + label + "\" (" + drawn + " drawn)")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Chat Notifications on "hello <name>" from Zezima: the name highlighted and underlined in the stored line. Frame: frame-chatnotifications.png. */
+	private fun chatNotificationsDone(): Boolean {
+		if (chatNotificationsFrame == -1) {
+			ChatNotifications.highlightOwnName = true
+			ChatLineWriter.writeMessage("Zezima", "hello " + USER + "!", -1, "Zezima", null, ChatType.PUBLIC, 0, "Zezima")
+			chatNotificationsFrame = frames
+			return false
+		}
+		if (frames - chatNotificationsFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-chatnotifications.png")
+		val line: String = com.jagex.game.runetek5.interaction.chat.ChatBox.CHAT_LINES[0]?.message ?: ""
+		if (!line.contains("<u>")) {
+			fail("Chat Notifications: the line reads \"" + line + "\"")
+			return true
+		}
+		println("SMOKE chat notifications: \"" + line + "\"")
+		return true
+	}
+
+	/** Chat Filter removing "buy gold" and collapsing a game line said twice. Frame: frame-chatfilter.png. */
+	private fun chatFilterDone(): Boolean {
+		val api = ClientApiImpl
+		if (chatFilterFrame == -1) {
+			// off by default: on for the step, as the player had it after
+			chatFilterWasEnabled = ChatFilter.enabled
+			ChatFilter.enabled = true
+			ChatFilter.filteredWords = "gold"
+			ChatFilter.filterType = ChatFilter.REMOVE_MESSAGE
+			ChatFilter.collapseGameChat = true
+			ChatFilter.compile()
+			val before: Int = api.chatLineCount()
+			ChatLineWriter.writeMessage("Spammer", "buy gold here", -1, "Spammer", null, ChatType.PUBLIC, 0, "Spammer")
+			if (api.chatLineCount() != before) {
+				fail("Chat Filter: the filtered line was stored")
+				return true
+			}
+			ChatLineWriter.writeMessage(null, "Smoke test repeat.", -1, null, null, ChatType.GAME, 0, null)
+			ChatLineWriter.writeMessage(null, "Smoke test repeat.", -1, null, null, ChatType.GAME, 0, null)
+			chatFilterFrame = frames
+			return false
+		}
+		if (frames - chatFilterFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-chatfilter.png")
+		val newest: String? = api.chatLine(0)?.message()
+		val previous: String? = api.chatLine(1)?.message()
+		ChatFilter.filteredWords = ""
+		ChatFilter.filterType = ChatFilter.CENSOR_WORDS
+		ChatFilter.collapseGameChat = false
+		ChatFilter.compile()
+		ChatFilter.enabled = chatFilterWasEnabled
+		if (newest != "Smoke test repeat. (2)" || previous == "Smoke test repeat.") {
+			fail("Chat Filter: the newest lines read \"" + newest + "\", \"" + previous + "\"")
+			return true
+		}
+		println("SMOKE chat filter: the filtered line never stored, the repeat collapsed into \"" + newest + "\"")
+		return true
+	}
+
+	/** Chat History's restore, clipboard and tab clearing. Frame: frame-chathistory.png. */
+	private fun chatHistoryDone(): Boolean {
+		val api = ClientApiImpl
+		if (chatHistoryFrame == -1) {
+			ChatHistory.history.clear()
+			ChatHistory.history.addLast(ChatHistory.Kept(ChatType.PUBLIC, "Zezima", "kept from before", null))
+			ChatHistory.restorePending = true
+			ChatLineWriter.writeMessage(null, "Smoke test after login.", -1, null, null, ChatType.GAME, 0, null)
+			chatHistoryFrame = frames
+			return false
+		}
+		if (frames - chatHistoryFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-chathistory.png")
+		val restored: String? = api.chatLine(1)?.message()
+		// the clipboard set and read, then given back what it held
+		val held: String? = api.clipboard()
+		val copied: Boolean = api.setClipboard("smoke clipboard") && api.clipboard() == "smoke clipboard"
+		if (held != null) {
+			api.setClipboard(held)
+		}
+		ChatHistory.clearTab(api, 4)
+		var publicLeft: Int = 0
+		for (i in 0 until api.chatLineCount()) {
+			if (api.chatLine(i)?.type() == ChatType.PUBLIC) {
+				publicLeft++
+			}
+		}
+		if (restored != "kept from before" || publicLeft != 0) {
+			fail("Chat History: restored \"" + restored + "\", " + publicLeft + " public lines after Clear history")
+			return true
+		}
+		println("SMOKE chat history: \"" + restored + "\" put back before the next line, clipboard " + (if (copied) "set and read" else "not available") + ", the Public tab cleared")
+		return true
+	}
+
+	/** Combat Level's combat tab text, and the Wilderness range at level 11. Frame: frame-combatlevel.png. */
+	private fun combatLevelDone(): Boolean {
+		val api = ClientApiImpl
+		when (combatLevelStep) {
+			0 -> {
+				combatLevelFrame = frames
+				combatLevelStep = 1
+			}
+			1 -> {
+				if (frames - combatLevelFrame < MARKER_FRAMES) {
+					return false
+				}
+				val l = CombatLevel.levels(api)
+				combatLevelText = api.widget(CombatLevel.COMBAT_TAB, CombatLevel.COMBAT_LEVEL_TEXT)?.text() ?: ""
+				if (combatLevelText != "Combat Lvl: " + CombatLevel.format(CombatLevel.precise(l.values, l.members))) {
+					combatLevelFailure = "Combat Level: the combat tab reads \"" + combatLevelText + "\""
+				}
+				sendCommand("tele 3100 3600")
+				combatLevelFrame = frames
+				combatLevelStep = 2
+			}
+			2 -> {
+				// the skull's text once the Wilderness overlay is open and drawn, a few frames on
+				val skull = api.widget(CombatLevel.WILDERNESS, CombatLevel.WILDERNESS_RESIZABLE_TEXT)
+				val shown: String = skull?.text() ?: ""
+				val drawn: Boolean = skull != null && skull.isDrawnThisFrame() && shown.startsWith("Level: 11")
+				if (!drawn && frames - combatLevelFrame < BANK_WAIT_FRAMES) {
+					combatLevelShown = -1
+					return false
+				}
+				if (combatLevelShown == -1) {
+					combatLevelShown = frames
+				}
+				if (drawn && frames - combatLevelShown < MARKER_FRAMES / 4) {
+					return false
+				}
+				saveFrame("build/smoke/frame-combatlevel.png")
+				if (!drawn && combatLevelFailure == null) {
+					combatLevelFailure = "Combat Level: the Wilderness text reads \"" + shown + "\""
+				}
+				combatLevelText += "; " + shown.replace("<br>", " ")
+				sendCommand("tele 3094 3107")
+				combatLevelFrame = frames
+				combatLevelStep = 3
+			}
+			else -> {
+				if (frames - combatLevelFrame < MARKER_FRAMES) {
+					return false
+				}
+				combatLevelFailure?.let {
+					fail(it)
+					return true
+				}
+				println("SMOKE combat level: " + combatLevelText)
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Virtual Levels' Attack at 100 in the Stats tab. Frame: frame-virtuallevels.png. */
+	private fun virtualLevelsDone(): Boolean {
+		val api = ClientApiImpl
+		when (virtualLevelsStep) {
+			0 -> {
+				if (!openTab("Stats", "Skills")) {
+					fail("Virtual Levels: no Stats tab stone")
+					return true
+				}
+				virtualLevelsFrame = frames
+				virtualLevelsStep = 1
+			}
+			1 -> {
+				if (frames - virtualLevelsFrame < MARKER_FRAMES) {
+					return false
+				}
+				virtualLevelsXp = client.statXp[0]
+				client.statXp[0] = 14_391_160
+				virtualLevelsFrame = frames
+				virtualLevelsStep = 2
+			}
+			else -> {
+				val base: String? = api.widget(VirtualLevels.STATS_TAB, XpTracker.STATS_COMPONENTS[0] - VirtualLevels.BASE_OFFSET)?.text()
+				if (base != "100" && frames - virtualLevelsFrame < MARKER_FRAMES * 2) {
+					virtualLevelsShown = -1
+					return false
+				}
+				// a few frames with the level up: the OpenGL toolkits' frame is read from the last one shown
+				if (virtualLevelsShown == -1) {
+					virtualLevelsShown = frames
+				}
+				if (base == "100" && frames - virtualLevelsShown < 5) {
+					return false
+				}
+				saveFrame("build/smoke/frame-virtuallevels.png")
+				val total: String? = api.widget(VirtualLevels.STATS_TAB, VirtualLevels.TOTAL)?.text()
+				client.statXp[0] = virtualLevelsXp
+				VirtualLevels.enabled = false
+				VirtualLevels.restore(api)
+				VirtualLevels.enabled = true
+				if (base != "100") {
+					fail("Virtual Levels: Attack's level reads \"" + base + "\"")
+					return true
+				}
+				println("SMOKE virtual levels: Attack at 14.4m experience reads " + base + ", \"" + total + "\"")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Metronome on for three seconds: about five server ticks, a sound played. */
+	private fun metronomeDone(): Boolean {
+		if (metronomeStart == -1L) {
+			Metronome.enabled = true
+			Metronome.lastSound = -1
+			metronomeTicks = PluginRuntime.serverTicks()
+			metronomeStart = lang.currentTimeMillis()
+			return false
+		}
+		val elapsed: Long = lang.currentTimeMillis() - metronomeStart
+		if (elapsed < 3000L) {
+			return false
+		}
+		val ticks: Int = PluginRuntime.serverTicks() - metronomeTicks
+		val sound: Int = Metronome.lastSound
+		Metronome.enabled = false
+		if (ticks < 4 || ticks > 6 || sound < 0) {
+			fail("Metronome: " + ticks + " server ticks in " + elapsed + " ms, last sound " + sound)
+			return true
+		}
+		println("SMOKE metronome: " + ticks + " server ticks in " + elapsed + " ms, sound " + sound + " played")
+		return true
+	}
+
+	/** Death Indicator after a pretend death here: the arrow, the infobox and the world map's mark. Frame: frame-deathindicator.png. */
+	private fun deathIndicatorDone(): Boolean {
+		val api = ClientApiImpl
+		when (deathIndicatorStep) {
+			0 -> {
+				ChatLineWriter.writeMessage(null, DeathIndicator.DEATH_MESSAGE, -1, null, null, ChatType.GAME, 0, null)
+				ChatLineWriter.writeMessage(null, "Your gravestone has appeared and will last 5 minutes before crumbling to dust. You", -1, null, null, ChatType.GAME, 0, null)
+				deathIndicatorFrame = frames
+				deathIndicatorStep = 1
+			}
+			1 -> {
+				if (frames - deathIndicatorFrame < MARKER_FRAMES) {
+					return false
+				}
+				val arrow: Boolean = com.jagex.game.runetek5.entity.pathingentity.player.PlayerUpdate.HINT_ARROWS[7] != null
+				if (!DeathIndicator.hasDeath() || !arrow || DeathIndicator.infobox == null) {
+					deathIndicatorFailure = "Death Indicator: death " + DeathIndicator.hasDeath() + ", arrow " + arrow + ", infobox " + (DeathIndicator.infobox != null)
+				}
+				if (!openTab("World Map", "View World Map")) {
+					println("SMOKE death indicator: no world map button found; the map mark is not checked")
+					deathIndicatorStep = 3
+					return false
+				}
+				deathIndicatorFrame = frames
+				deathIndicatorStep = 2
+			}
+			2 -> {
+				if (!DeathIndicator.mapMarked && frames - deathIndicatorFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-deathindicator.png")
+				if (!DeathIndicator.mapMarked && deathIndicatorFailure == null) {
+					deathIndicatorFailure = "Death Indicator: the world map was not marked"
+				}
+				// the map's close button (755:44): the server puts the game frame back
+				clickComponent(WORLD_MAP, WORLD_MAP_CLOSE)
+				deathIndicatorFrame = frames
+				deathIndicatorStep = 3
+			}
+			else -> {
+				if (api.worldMapArea(IntArray(4)) && frames - deathIndicatorFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				DeathIndicator.clear(api)
+				deathIndicatorFailure?.let {
+					fail(it)
+					return true
+				}
+				println("SMOKE death indicator: the grave's arrow, infobox and world map mark after the death and gravestone lines")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** NPC Aggression Timer's timer and square. Frame: frame-npcaggression.png. */
+	private fun npcAggressionDone(): Boolean {
+		if (npcAggressionFrame == -1) {
+			// off by default: on for the step, as the player had it after
+			npcAggressionWasEnabled = NpcAggression.enabled
+			NpcAggression.enabled = true
+			NpcAggression.npcUnaggroAlwaysActive = true
+			NpcAggression.npcUnaggroShowAreaLines = true
+			npcAggressionFrame = frames
+			return false
+		}
+		if (frames - npcAggressionFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-npcaggression.png")
+		val timer: Boolean = NpcAggression.timer != null
+		val lines: Int = NpcAggression.linesDrawn
+		val left: Long = NpcAggression.remainingMillis()
+		NpcAggression.npcUnaggroAlwaysActive = false
+		NpcAggression.npcUnaggroShowAreaLines = false
+		NpcAggression.enabled = npcAggressionWasEnabled
+		if (!timer || lines == 0) {
+			fail("NPC Aggression Timer: timer " + timer + ", " + lines + " edge pieces drawn")
+			return true
+		}
+		println("SMOKE npc aggression: the timer at " + left / 1000 + "s, " + lines + " edge pieces of the square drawn")
+		return true
+	}
+
+	/** Hunter on a box trap laid east of the player: its open pie. Frame: frame-hunter.png. */
+	private fun hunterDone(player: PlayerEntity): Boolean {
+		if (hunterFrame == -1) {
+			PluginRuntime.locChanged(player.movementBaseX[0] + 1, player.movementBaseY[0], player.level.toInt(), 2, -1, 19187, 10, 0)
+			hunterFrame = frames
+			return false
+		}
+		if (frames - hunterFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-hunter.png")
+		val traps: Int = Hunter.traps.size
+		val drawn: Int = Hunter.drawnLastFrame
+		Hunter.traps.clear()
+		if (traps != 1 || drawn != 1) {
+			fail("Hunter: " + traps + " traps, " + drawn + " drawn")
+			return true
+		}
+		println("SMOKE hunter: the box trap laid beside the player marked with its pie")
+		return true
+	}
+
+	/** Implings in Puro-Puro: the highlights and spawn tiles, then home. Frame: frame-implings.png. */
+	private fun implingsDone(player: PlayerEntity): Boolean {
+		when (implingsStep) {
+			0 -> {
+				// off by default: on for the step, as the player had it after
+				implingsWasEnabled = Implings.enabled
+				Implings.enabled = true
+				Implings.modes.fill(Implings.HIGHLIGHT)
+				Implings.showspawn = true
+				sendCommand("tele 2592 4318 0")
+				implingsFrame = frames
+				implingsStep = 1
+			}
+			1 -> {
+				// the implings come a little after the area: wait for both, or give up
+				val inside: Boolean = player.movementBaseX[0] + MapRegion.sceneBaseX in 2560..2623 && player.movementBaseY[0] + MapRegion.sceneBaseY in 4288..4351
+				if (!(inside && Implings.spawnsDrawn > 0 && Implings.drawnLastFrame > 0) && frames - implingsFrame < BANK_WAIT_FRAMES * 2) {
+					return false
+				}
+				implingsFrame = frames
+				implingsStep = 2
+			}
+			2 -> {
+				if (frames - implingsFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-implings.png")
+				val spawns: Int = Implings.spawnsDrawn
+				val implings: Int = Implings.drawnLastFrame
+				if (spawns == 0 || implings == 0) {
+					implingsFailure = "Implings: " + spawns + " spawn tiles and " + implings + " implings drawn in Puro-Puro"
+				} else {
+					println("SMOKE implings: in Puro-Puro, " + spawns + " spawn tiles and " + implings + " implings drawn")
+				}
+				for (k in Implings.KINDS.indices) {
+					Implings.modes[k] = Implings.KINDS[k].defaultMode
+				}
+				Implings.showspawn = false
+				Implings.enabled = implingsWasEnabled
+				sendCommand("tele " + SCENE_HOME[0] + " " + SCENE_HOME[1] + " " + SCENE_HOME[2])
+				implingsFrame = frames
+				implingsStep = 3
+			}
+			else -> {
+				if (frames - implingsFrame < BANK_WAIT_FRAMES / 2) {
+					return false
+				}
+				implingsFailure?.let {
+					fail(it)
+					return true
+				}
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Cooking's panel after two cooked lines and one burnt. Frame: frame-cooking.png. */
+	private fun cookingDone(): Boolean {
+		if (cookingFrame == -1) {
+			ChatLineWriter.writeMessage(null, "You successfully cook a trout.", -1, null, null, ChatType.GAME_FILTERED, 0, null)
+			ChatLineWriter.writeMessage(null, "You roast a lobster.", -1, null, null, ChatType.GAME_FILTERED, 0, null)
+			ChatLineWriter.writeMessage(null, "You accidentally burn the shark.", -1, null, null, ChatType.GAME_FILTERED, 0, null)
+			cookingFrame = frames
+			return false
+		}
+		if (frames - cookingFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-cooking.png")
+		val cooked: Int = Cooking.session?.cookAmount ?: 0
+		val burnt: Int = Cooking.session?.burnAmount ?: 0
+		val drawn: Boolean = Cooking.panelDrawn
+		Cooking.session = null
+		if (cooked != 2 || burnt != 1 || !drawn) {
+			fail("Cooking: " + cooked + " cooked, " + burnt + " burnt, panel drawn " + drawn)
+			return true
+		}
+		println("SMOKE cooking: 2 cooked and 1 burnt counted from Void's lines, the panel drawn")
+		return true
+	}
+
+	/** Smelting's panel after two bars and a mould of cannonballs. Frame: frame-smelting.png. */
+	private fun smeltingDone(): Boolean {
+		if (smeltingFrame == -1) {
+			ChatLineWriter.writeMessage(null, "You retrieve a bar of iron.", -1, null, null, ChatType.GAME, 0, null)
+			ChatLineWriter.writeMessage(null, "You retrieve a bar of iron.", -1, null, null, ChatType.GAME, 0, null)
+			ChatLineWriter.writeMessage(null, "You remove the cannonballs from the mould.", -1, null, null, ChatType.GAME_FILTERED, 0, null)
+			smeltingFrame = frames
+			return false
+		}
+		if (frames - smeltingFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-smelting.png")
+		val bars: Int = Smelting.session?.barsSmelted ?: 0
+		val balls: Int = Smelting.session?.cannonBallsSmelted ?: 0
+		val drawn: Boolean = Smelting.panelDrawn
+		Smelting.session = null
+		if (bars != 2 || balls != 4 || !drawn) {
+			fail("Smelting: " + bars + " bars, " + balls + " cannonballs, panel drawn " + drawn)
+			return true
+		}
+		println("SMOKE smelting: 2 bars and 4 cannonballs counted from Void's lines, the panel drawn")
+		return true
+	}
+
+	/** Prayer with Protect from Melee on: the orb and bar flick helper, the bar, the infobox and "0:03" on the orb. Frame: frame-prayer.png. */
+	private fun prayerDone(): Boolean {
+		val vars: PlayerVarDomain = PlayerVarDomain.playerVarProvider ?: return false
+		when (prayerStep) {
+			0 -> {
+				prayerOldVarp = ClientApiImpl.varp(Prayer.PRAYERS_VARP)
+				// setVarValueInt's names are swapped: the value comes first, then the varp
+				vars.setVarValueInt(1 shl PROTECT_FROM_MELEE_BIT, Prayer.PRAYERS_VARP)
+				Prayer.prayerFlickLocation = Prayer.FLICK_BOTH
+				Prayer.showPrayerBar = true
+				Prayer.prayerIndicator = true
+				Prayer.prayerIndicatorOverheads = true
+				Prayer.replaceOrbText = true
+				prayerFrame = frames
+				prayerStep = 1
+			}
+			1 -> {
+				val text: String? = ClientApiImpl.widget(Prayer.PRAYER_ORB, Prayer.ORB_TEXT)?.text()
+				if ((Prayer.infoboxes.isEmpty() || text != "0:03") && frames - prayerFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				prayerFrame = frames
+				prayerStep = 2
+			}
+			else -> {
+				if (frames - prayerFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-prayer.png")
+				val text: String? = ClientApiImpl.widget(Prayer.PRAYER_ORB, Prayer.ORB_TEXT)?.text()
+				val infoboxes: Int = Prayer.infoboxes.size
+				val flick: Boolean = Prayer.flickDrawn
+				val bar: Boolean = Prayer.barDrawn
+				Prayer.prayerFlickLocation = Prayer.FLICK_ORB
+				Prayer.showPrayerBar = false
+				Prayer.prayerIndicator = false
+				Prayer.prayerIndicatorOverheads = false
+				Prayer.replaceOrbText = false
+				vars.setVarValueInt(prayerOldVarp, Prayer.PRAYERS_VARP)
+				Prayer.tick(ClientApiImpl)
+				if (text != "0:03" || infoboxes != 1 || !flick || !bar) {
+					fail("Prayer: orb text \"" + text + "\", " + infoboxes + " infoboxes, flick " + flick + ", bar " + bar)
+					return true
+				}
+				println("SMOKE prayer: Protect from Melee on, the orb says 0:03 for 1 point, its infobox, the flick helper and the prayer bar drawn")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Inventory Tags on a tagged glory(4): outlined, filled and underlined. Frame: frame-inventorytags.png. */
+	private fun inventoryTagsDone(): Boolean {
+		when (inventoryTagsStep) {
+			0 -> {
+				val backpack = ClientApiImpl.itemContainer(BACKPACK) ?: return false
+				for (slot in 0 until backpack.size()) {
+					if (inventoryTagsSlot < 0 && backpack.itemId(slot) < 0) {
+						inventoryTagsSlot = slot
+					}
+				}
+				if (inventoryTagsSlot < 0) {
+					fail("Inventory Tags: no empty backpack slot")
+					return true
+				}
+				openInventoryTab()
+				inventoryTagsFrame = frames
+				inventoryTagsStep = 1
+			}
+			1 -> {
+				if (frames - inventoryTagsFrame < MARKER_FRAMES) {
+					return false
+				}
+				fakeBackpackItem(inventoryTagsSlot, GLORY_4)
+				// in the plugin's map only: setTag would save it to the player's settings
+				InventoryTags.tags[GLORY_4] = 0xFFFF0000.toInt()
+				// off by default: on for the step, as the player had it after
+				inventoryTagsWasEnabled = InventoryTags.enabled
+				InventoryTags.enabled = true
+				InventoryTags.tagFill = true
+				InventoryTags.tagUnderline = true
+				inventoryTagsFrame = frames
+				inventoryTagsStep = 2
+			}
+			2 -> {
+				// the outline and fill come once the glory's model is loaded
+				if (ClientApiImpl.itemOutline(GLORY_4, 1, -0x10000) == null && frames - inventoryTagsFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				inventoryTagsFrame = frames
+				inventoryTagsStep = 3
+			}
+			else -> {
+				if (frames - inventoryTagsFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-inventorytags.png")
+				val drawn: Int = InventoryTags.drawnLastFrame
+				val outlined: Boolean = ClientApiImpl.itemOutline(GLORY_4, 1, -0x10000) != null
+				fakeBackpackItem(inventoryTagsSlot, -1)
+				InventoryTags.tags.remove(GLORY_4)
+				InventoryTags.tagFill = false
+				InventoryTags.enabled = inventoryTagsWasEnabled
+				InventoryTags.tagUnderline = false
+				if (drawn == 0 || !outlined) {
+					fail("Inventory Tags: " + drawn + " items marked, outline made " + outlined)
+					return true
+				}
+				println("SMOKE inventory tags: the tagged glory(4) in backpack slot " + inventoryTagsSlot + " outlined, filled and underlined")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Inventory Grid while a backpack item is held as dragged: the grid. Frame: frame-inventorygrid.png. */
+	private fun inventoryGridDone(): Boolean {
+		when (inventoryGridStep) {
+			0 -> {
+				val backpack = ClientApiImpl.itemContainer(BACKPACK) ?: return false
+				for (slot in 0 until backpack.size()) {
+					if (inventoryGridSlot < 0 && backpack.itemId(slot) < 0) {
+						inventoryGridSlot = slot
+					}
+				}
+				if (inventoryGridSlot < 0) {
+					fail("Inventory Grid: no empty backpack slot")
+					return true
+				}
+				openInventoryTab()
+				inventoryGridFrame = frames
+				inventoryGridStep = 1
+			}
+			1 -> {
+				if (frames - inventoryGridFrame < MARKER_FRAMES) {
+					return false
+				}
+				fakeBackpackItem(inventoryGridSlot, GLORY_4)
+				// off by default: on for the step, as the player had it after (releaseDrag)
+				inventoryGridWasEnabled = InventoryGrid.enabled
+				InventoryGrid.enabled = true
+				inventoryGridFrame = frames
+				inventoryGridStep = 2
+			}
+			2 -> {
+				val grid: Component? = ClientApiImpl.widget(InventoryGrid.BACKPACK_INTERFACE, InventoryGrid.BACKPACK_GRID) as? Component
+				val slot: Component? = grid?.child(inventoryGridSlot) as? Component
+				// each frame: the mouse could come onto the backpack
+				if (grid != null && slot != null) {
+					val mx: Int = ClientApiImpl.mouseX()
+					val my: Int = ClientApiImpl.mouseY()
+					if (mx >= grid.screenX() && my >= grid.screenY() && mx < grid.screenX() + grid.width() && my < grid.screenY() + grid.height()) {
+						releaseDrag()
+						fakeBackpackItem(inventoryGridSlot, -1)
+						println("SMOKE inventory grid: not run, the mouse is over the backpack")
+						return true
+					}
+				}
+				inventoryGridHeld = slot
+				inventoryGridParent.cacheReference = grid?.cacheReference ?: 0
+				holdDrag()
+				if (InventoryGrid.slotsDrawn < InventoryGrid.SLOTS && frames - inventoryGridFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				inventoryGridFrame = frames
+				inventoryGridStep = 3
+			}
+			else -> {
+				holdDrag()
+				if (frames - inventoryGridFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-inventorygrid.png")
+				val shaded: Int = InventoryGrid.slotsDrawn
+				val dragged: Int = ClientApiImpl.draggedWidget()?.itemId() ?: -1
+				releaseDrag()
+				fakeBackpackItem(inventoryGridSlot, -1)
+				if (shaded != InventoryGrid.SLOTS || dragged != GLORY_4) {
+					fail("Inventory Grid: " + shaded + " slots shaded, the dragged widget holds " + dragged)
+					return true
+				}
+				println("SMOKE inventory grid: the glory(4) held as dragged, its id read from draggedWidget, all 28 slots shaded")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Lets go of the held slot. */
+	private fun releaseDrag() {
+		InventoryGrid.enabled = inventoryGridWasEnabled
+		inventoryGridHeld = null
+		InterfaceDrag.component = null
+		InterfaceDrag.isDragging = false
+		InterfaceDrag.aClass24_7 = null
+	}
+
+	/** Holds the slot as dragged until the next logic tick, with a parent the client never finds and no target. */
+	private fun holdDrag() {
+		val slot: Component = inventoryGridHeld ?: return
+		InterfaceDrag.component = slot
+		InterfaceDrag.isDragging = true
+		InterfaceDrag.aClass24_7 = inventoryGridParent
+		InterfaceDrag.aClass24_13 = null
+		InterfaceDrag.dragParentFound = false
+		InterfaceRenderer.dragTickCount = 0
+	}
+
+	/** Examine's price line after a rune scimitar's examine text. Frame: frame-examine.png. */
+	private fun examineDone(): Boolean {
+		val api = ClientApiImpl
+		if (examineFrame == -1) {
+			Examine.pendingItem = RUNE_SCIMITAR
+			Examine.pendingQuantity = 1
+			Examine.pendingAt = lang.currentTimeMillis()
+			ChatLineWriter.writeMessage(null, "A vicious, curved sword.", -1, null, null, Examine.ITEM_EXAMINE, 0, null)
+			examineFrame = frames
+			return false
+		}
+		val newest: String? = api.chatLine(0)?.message()
+		if ((newest == null || !newest.contains("Price of")) && frames - examineFrame < BANK_WAIT_FRAMES) {
+			return false
+		}
+		if (frames - examineFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-examine.png")
+		val before: String? = api.chatLine(1)?.message()
+		if (newest == null || !ClientFeatures.plainText(newest).startsWith("Price of Rune scimitar:") || before != "A vicious, curved sword.") {
+			fail("Examine: the newest line \"" + newest + "\", the one before \"" + before + "\"")
+			return true
+		}
+		println("SMOKE examine: \"" + ClientFeatures.plainText(newest) + "\" after the examine text")
+		return true
+	}
+
+	/** Entity Hider: the player and the NPCs hidden, then back. Frame: frame-entityhider.png. */
+	private fun entityHiderDone(player: PlayerEntity): Boolean {
+		val api = ClientApiImpl
+		when (entityHiderStep) {
+			0 -> {
+				entityHiderNpcs = (0 until api.npcCount()).count { api.npc(it)?.isDrawnThisFrame() == true }
+				if (entityHiderNpcs == 0 && frames - entityHiderFrame < BANK_WAIT_FRAMES) {
+					if (entityHiderFrame < 0) {
+						entityHiderFrame = frames
+					}
+					return false
+				}
+				// off by default: on for the step, as the player had it after
+				entityHiderWasEnabled = EntityHider.enabled
+				EntityHider.enabled = true
+				EntityHider.hideLocalPlayer = true
+				EntityHider.hideNPCs = true
+				entityHiderFrame = frames
+				entityHiderStep = 1
+			}
+			1 -> {
+				if (frames - entityHiderFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-entityhider.png")
+				val playerDrawn: Boolean = player.isDrawnThisFrame()
+				val npcsDrawn: Int = (0 until api.npcCount()).count { api.npc(it)?.isDrawnThisFrame() == true }
+				EntityHider.hideLocalPlayer = false
+				EntityHider.hideNPCs = false
+				EntityHider.enabled = entityHiderWasEnabled
+				if (playerDrawn || npcsDrawn > 0) {
+					fail("Entity Hider: hidden, the player drawn " + playerDrawn + ", " + npcsDrawn + " NPCs drawn")
+					return true
+				}
+				entityHiderFrame = frames
+				entityHiderStep = 2
+			}
+			else -> {
+				if (frames - entityHiderFrame < MARKER_FRAMES) {
+					return false
+				}
+				val npcsDrawn: Int = (0 until api.npcCount()).count { api.npc(it)?.isDrawnThisFrame() == true }
+				if (!player.isDrawnThisFrame() || npcsDrawn == 0) {
+					fail("Entity Hider: shown again, the player drawn " + player.isDrawnThisFrame() + ", " + npcsDrawn + " NPCs drawn")
+					return true
+				}
+				println("SMOKE entity hider: the player and " + entityHiderNpcs + " NPCs hidden, then " + npcsDrawn + " NPCs and the player drawn again")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Screenshot on a level-up line: the PNG saved under Levels, the report button's date seen in the frame. Frame (the screenshot): frame-screenshot.png. */
+	private fun screenshotDone(): Boolean {
+		if (screenshotFrame == -1) {
+			Screenshot.lastSaved = null
+			Screenshot.notifyWhenTaken = false
+			ChatLineWriter.writeMessage(null, "You've just advanced an Attack level! You have reached level 99.", -1, null, null, ChatType.GAME, 0, null)
+			screenshotFrame = frames
+			return false
+		}
+		val button: String? = ClientApiImpl.widget(ReportButton.INTERFACE, ReportButton.TEXT)?.text()
+		if (button != null && button.contains(", 20")) {
+			screenshotDate = true
+		}
+		val saved: String? = Screenshot.lastSaved
+		if (saved == null && frames - screenshotFrame < BANK_WAIT_FRAMES) {
+			return false
+		}
+		Screenshot.notifyWhenTaken = true
+		if (saved == null) {
+			fail("Screenshot: nothing saved after the level-up line")
+			return true
+		}
+		val file = File(saved)
+		val size: Long = file.length()
+		val name: String = file.getName()
+		// a copy to look at beside the other frames, then the player's Pictures as they were
+		readImage(file)?.let { writePng(it, File("build/smoke/frame-screenshot.png")) }
+		file.delete()
+		var folder: File? = file.getParentFile()
+		for (i in 0 until 3) {
+			val dir: File = folder ?: break
+			if (dir.listFiles()?.isEmpty() == true) {
+				dir.delete()
+			}
+			folder = dir.getParentFile()
+		}
+		if (size <= 0L || !name.startsWith("Attack(99) ") || !saved.contains("Levels") || !screenshotDate) {
+			fail("Screenshot: saved \"" + saved + "\", " + size + " bytes, the date on the report button " + screenshotDate)
+			return true
+		}
+		println("SMOKE screenshot: the level-up saved as " + name + " (" + size + " bytes) under Levels with the date on the report button, then deleted")
+		return true
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {

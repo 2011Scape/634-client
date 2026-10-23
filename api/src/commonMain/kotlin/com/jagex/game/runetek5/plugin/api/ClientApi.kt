@@ -118,6 +118,55 @@ interface ClientApi {
 	/** Writes a line to the chat box, as a game message. Dropped when not logged in. */
 	fun chatMessage(text: String)
 
+	/** How many lines the chat box holds (up to 100), newest first in [chatLine]. Since API 26. */
+	fun chatLineCount(): Int
+
+	/** Chat box line [i], 0 the newest; null past the last. Since API 26. */
+	fun chatLine(i: Int): ChatLineView?
+
+	/**
+	 * Takes the line [id] ([ChatLineView.id]) out of the chat box, the older ones moving up, and has the
+	 * chat box drawn again (RuneLite's MessageNode removal, as its chat filter collapses repeats). False
+	 * when no line has that id. Since API 26.
+	 */
+	fun removeChatLine(id: Int): Boolean
+
+	/**
+	 * Stores a line in the chat box as the server's would be, without a ChatMessage for it (RuneLite's
+	 * Client.addChatMessage as its chat history restores the lines before a login): [type] as
+	 * [ChatLineView.type], [name] the sender or null, [clan] a clan chat's name or null. Since API 27.
+	 */
+	fun addChatLine(type: Int, name: String?, message: String, clan: String?)
+
+	/** Puts [text] on the system clipboard; false when there is none to use. Since API 27. */
+	fun setClipboard(text: String): Boolean
+
+	/** The system clipboard's text, null when it holds none or there is no clipboard. Since API 27. */
+	fun clipboard(): String?
+
+	/**
+	 * The world map's box on the screen (x, y, width, height) into [out] (four ints) while the map is
+	 * shown, as [minimapArea] gives the minimap's; false while it is not. For drawing on it at FrameDraw.
+	 * Since API 29.
+	 */
+	fun worldMapArea(out: IntArray): Boolean
+
+	/**
+	 * World tile ([worldX], [worldY])'s centre on the world map, in screen pixels, into [out] (two ints);
+	 * false while the map is not shown or the tile is off it. Since API 29.
+	 */
+	fun projectWorldMap(worldX: Int, worldY: Int, out: IntArray): Boolean
+
+	/**
+	 * Points the game's hint arrow (the yellow arrow over a tile, and its mark on the minimap) at world tile
+	 * ([worldX], [worldY]) of [level], as RuneLite's Client.setHintArrow; set it again when the scene moves.
+	 * Since API 29.
+	 */
+	fun setHintArrow(worldX: Int, worldY: Int, level: Int)
+
+	/** Takes away the hint arrow [setHintArrow] put up. Since API 29. */
+	fun clearHintArrow()
+
 	/** Writes a line to the developer console. */
 	fun consolePrint(text: String)
 
@@ -253,6 +302,9 @@ interface ClientApi {
 
 	/** Whether [name] (a [Player.name], compared ignoring case) is on the friends list. */
 	fun isFriend(name: String?): Boolean
+
+	/** Whether [name] is on the player's ignore list. Since API 32. */
+	fun isIgnored(name: String?): Boolean
 
 	/** Whether [name] (a [Player.name], compared ignoring case) is in the player's friends chat. */
 	fun isInFriendsChat(name: String?): Boolean
@@ -391,6 +443,58 @@ interface ClientApi {
 	 * game shows a stack; null while its model is not loaded yet (ask again later). Since API 21.
 	 */
 	fun itemImage(itemId: Int, quantity: Int): Image?
+
+	/**
+	 * The outline of item [itemId]'s icon (RuneLite's ItemManager.getItemOutline): a picture the icon's size
+	 * with the pixels just around its shape in [argb] and the rest clear, to draw where the icon is. The stack's
+	 * number is not outlined. Null while the model is not loaded yet. Since API 30.
+	 */
+	fun itemOutline(itemId: Int, quantity: Int, argb: Int): Image?
+
+	/** Item [itemId]'s icon with every pixel of its shape in [argb], alpha and all (RuneLite's ImageUtil.fillImage); null while not loaded. Since API 30. */
+	fun itemFill(itemId: Int, quantity: Int, argb: Int): Image?
+
+	/**
+	 * The game's screen as a picture (RuneLite's screenshot): on the OpenGL toolkits the frame shown last, on
+	 * the software one the frame being drawn, with what was drawn on it so far. Null before the first frame.
+	 * Since API 33.
+	 */
+	fun captureFrame(): Image?
+
+	/**
+	 * Saves [image] as a PNG named [name] in [folder] (folders inside it with '/'): on the desktop in the
+	 * player's Pictures, under 634-client; in a browser as a download. Where it went, or null when it could
+	 * not be saved. Since API 33.
+	 */
+	fun saveImage(image: Image, folder: String, name: String): String?
+
+	/** Puts [image] on the system clipboard; false where that cannot be done. Since API 33. */
+	fun copyImage(image: Image): Boolean
+
+	/** Whether a component (such as a backpack item) is being dragged, past its dead zone (RuneLite's isDraggingWidget). Since API 31. */
+	fun isDraggingWidget(): Boolean
+
+	/** The component pressed for a drag, null for none (RuneLite's getDraggedWidget). Since API 31. */
+	fun draggedWidget(): Widget?
+
+	/** The component the dragged one is over, null for none (RuneLite's getDraggedOnWidget). Since API 31. */
+	fun draggedOnWidget(): Widget?
+
+	/** Client cycles (20 ms each) since the dragged component was pressed, 0 for none (RuneLite's getItemPressedDuration). Since API 31. */
+	fun itemPressedDuration(): Int
+
+	/**
+	 * Sprite [spriteId] of the cache (its first frame, the game's own icons and such) as a picture, for
+	 * [addChatIcon], [Graphics.image] and an [InfoBox] (RuneLite's SpriteManager.getSprite); null when the
+	 * cache has no such sprite or it is not loaded yet. Since API 23.
+	 */
+	fun spriteImage(spriteId: Int): Image?
+
+	/**
+	 * Draws [image] wherever an interface shows sprite [spriteId] of the cache, as RuneLite's sprite
+	 * overrides (Client.getSpriteOverrides); null gives the cache's own back. Since API 24.
+	 */
+	fun overrideSprite(spriteId: Int, image: Image?)
 
 	/**
 	 * Shows [text] in a tooltip box by the mouse this frame, over everything, as RuneLite's TooltipManager:

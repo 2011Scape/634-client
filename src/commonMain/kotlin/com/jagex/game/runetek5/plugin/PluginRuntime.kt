@@ -1,5 +1,7 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.plugin.api.ActorFilter
+import com.jagex.game.runetek5.plugin.api.ProjectileFilter
 import com.jagex.game.runetek5.plugin.api.events.LocChanged
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecordEntry
 import com.jagex.game.runetek5.plugin.api.events.KeyInput
@@ -10,6 +12,7 @@ import com.jagex.game.runetek5.cache.node.Node
 import com.jagex.game.runetek5.cache.node.ObjStackEntry
 import com.jagex.game.runetek5.config.iftype.SubInterfaceType
 import com.jagex.game.runetek5.config.rsinterface.Component
+import com.jagex.game.runetek5.config.rsinterface.ComponentType
 import com.jagex.game.runetek5.core.datastruct.key.DequeIterator
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.input.console.Console
@@ -57,6 +60,7 @@ import com.jagex.game.runetek5.plugin.api.events.MouseClicked
 import com.jagex.game.runetek5.plugin.api.events.MouseWheel
 import com.jagex.game.runetek5.plugin.api.events.OverheadTextChanged
 import com.jagex.game.runetek5.plugin.api.events.ProjectileSpawned
+import com.jagex.game.runetek5.plugin.api.events.ServerTick
 import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import com.jagex.game.runetek5.plugin.api.events.SpotAnimSpawned
 import com.jagex.game.runetek5.plugin.api.events.StatChanged
@@ -423,6 +427,56 @@ object PluginRuntime {
 		}
 	}
 
+	/** The plugins' actor and projectile filters (API 32), and whose. */
+	private val actorFilters: ArrayList<ActorFilter> = ArrayList()
+	private val actorFilterOwners: ArrayList<PluginRegistration> = ArrayList()
+	private val projectileFilters: ArrayList<ProjectileFilter> = ArrayList()
+	private val projectileFilterOwners: ArrayList<PluginRegistration> = ArrayList()
+
+	@JvmStatic
+	fun addActorFilter(registration: PluginRegistration, filter: ActorFilter) {
+		actorFilters.add(filter)
+		actorFilterOwners.add(registration)
+	}
+
+	@JvmStatic
+	fun addProjectileFilter(registration: PluginRegistration, filter: ProjectileFilter) {
+		projectileFilters.add(filter)
+		projectileFilterOwners.add(registration)
+	}
+
+	/** Whether every plugin lets [actor] be drawn: its model, or with [drawingUI] its overheads and the like. */
+	@JvmStatic
+	fun drawActor(actor: Actor, drawingUI: Boolean): Boolean {
+		for (i in actorFilters.indices) {
+			try {
+				if (!actorFilters[i].shouldDraw(actor, drawingUI)) {
+					return false
+				}
+			} catch (error: Throwable) {
+				fail(actorFilterOwners[i], error)
+				return true
+			}
+		}
+		return true
+	}
+
+	/** Whether every plugin lets the projectile with spot animation [graphicId] be drawn. */
+	@JvmStatic
+	fun drawProjectile(graphicId: Int): Boolean {
+		for (i in projectileFilters.indices) {
+			try {
+				if (!projectileFilters[i].shouldDraw(graphicId)) {
+					return false
+				}
+			} catch (error: Throwable) {
+				fail(projectileFilterOwners[i], error)
+				return true
+			}
+		}
+		return true
+	}
+
 	private fun stopPlugin(registration: PluginRegistration) {
 		val context: PluginContextImpl? = registration.context
 		if (context != null && registration.plugin != null) {
@@ -459,6 +513,18 @@ object PluginRuntime {
 		scheduledTasks.removeAll { it.owner === registration }
 		OverlayLayout.removeAll(registration)
 		InfoBoxes.removeAll(registration)
+		for (i in actorFilters.indices.reversed()) {
+			if (actorFilterOwners[i] === registration) {
+				actorFilters.removeAt(i)
+				actorFilterOwners.removeAt(i)
+			}
+		}
+		for (i in projectileFilters.indices.reversed()) {
+			if (projectileFilterOwners[i] === registration) {
+				projectileFilters.removeAt(i)
+				projectileFilterOwners.removeAt(i)
+			}
+		}
 		for (i in 0 until overlayCount) {
 			if (overlayOwners[i] === registration) {
 				overlays[i] = null
@@ -768,6 +834,7 @@ object PluginRuntime {
 		if (!started) {
 			return
 		}
+		ClientState.activeToolkit?.beginOverlayFrame()
 		// the tooltips over everything, the frame's interfaces included
 		Tooltips.draw(width, height)
 		if (!bus.hasListeners(Events.FRAME_DRAW)) {
@@ -798,12 +865,18 @@ object PluginRuntime {
 
 	@JvmStatic
 	fun chatMessage(type: Int, name: String?, message: String?, clan: String?): String? {
+		return chatMessageEvent(type, name, message, clan)?.message ?: message
+	}
+
+	/** The plugins' ChatMessage for a line about to be stored; null when no plugin listens. */
+	@JvmStatic
+	fun chatMessageEvent(type: Int, name: String?, message: String?, clan: String?): ChatMessage? {
 		if (!started || !bus.hasListeners(Events.CHAT_MESSAGE)) {
-			return message
+			return null
 		}
 		val event: ChatMessage = ChatMessage(type, name, message, clan)
 		bus.post(Events.CHAT_MESSAGE, event)
-		return event.message
+		return event
 	}
 
 	@JvmStatic
@@ -1064,6 +1137,22 @@ object PluginRuntime {
 
 	private val locChangedEvent: LocChanged = LocChanged()
 
+	/** The player update was read: the plugins' ServerTick, once each server tick. */
+	@JvmStatic
+	fun serverTick() {
+		serverTickEvent.tick++
+		if (!started || !bus.hasListeners(Events.SERVER_TICK)) {
+			return
+		}
+		bus.post(Events.SERVER_TICK, serverTickEvent)
+	}
+
+	private val serverTickEvent: ServerTick = ServerTick()
+
+	/** The server ticks counted so far, for the smoke test. */
+	@JvmStatic
+	fun serverTicks(): Int = serverTickEvent.tick
+
 	/** The server changed the location on scene tile ([x], [y]) of [level] in [layer] from [oldId] to [newId] (-1 for none). */
 	@JvmStatic
 	fun locChanged(x: Int, y: Int, level: Int, layer: Int, oldId: Int, newId: Int, shape: Int, rotation: Int) {
@@ -1141,8 +1230,8 @@ object PluginRuntime {
 		if (!started || component == null || !bus.hasListeners(Events.MENU_ENTRY_ADDED)) {
 			return
 		}
-		if (component.containerItemId == -1 && !hasOption(component)) {
-			return // a layer, a label or a picture under the mouse: no entries of the client's, none of the plugins' either
+		if (component.containerItemId == -1 && !hasOption(component) && !isText(component)) {
+			return // a layer or a picture under the mouse: no entries of the client's, none of the plugins' either
 		}
 		menuBuilding = true
 		menuKind = MenuTarget.WIDGET.kind
@@ -1225,6 +1314,12 @@ object PluginRuntime {
 			fail(owner, error)
 		}
 		return true
+	}
+
+	/** A text shown, which a plugin may give entries of its own (a chat line's "Copy to clipboard"). Since API 27. */
+	private fun isText(component: Component): Boolean {
+		val text: String? = component.text
+		return component.type === ComponentType.TEXT && text != null && text.isNotEmpty()
 	}
 
 	private fun hasOption(component: Component): Boolean {

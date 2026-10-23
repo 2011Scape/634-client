@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.client.features.PluginManagerScreen
+import com.jagex.game.runetek5.plugin.api.ActorFilter
 import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.ColourCallback
 import com.jagex.game.runetek5.plugin.api.CommandHandler
@@ -11,6 +12,7 @@ import com.jagex.game.runetek5.plugin.api.Overlay
 import com.jagex.game.runetek5.plugin.api.PluginConfig
 import com.jagex.game.runetek5.plugin.api.PluginContext
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
+import com.jagex.game.runetek5.plugin.api.ProjectileFilter
 import com.jagex.game.runetek5.plugin.api.SettingsSchema
 import com.jagex.game.runetek5.plugin.api.Task
 import com.jagex.game.runetek5.plugin.api.events.EventBus
@@ -69,6 +71,18 @@ class PluginContextImpl(private val registration: PluginRegistration) : PluginCo
 			return
 		}
 		PluginRuntime.addOverlay(registration, overlay)
+	}
+
+	override fun addActorFilter(filter: ActorFilter) {
+		if (!closed) {
+			PluginRuntime.addActorFilter(registration, filter)
+		}
+	}
+
+	override fun addProjectileFilter(filter: ProjectileFilter) {
+		if (!closed) {
+			PluginRuntime.addProjectileFilter(registration, filter)
+		}
 	}
 
 	override fun removeOverlay(overlay: Overlay) {

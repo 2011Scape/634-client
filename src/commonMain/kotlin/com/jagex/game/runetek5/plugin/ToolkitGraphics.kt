@@ -57,6 +57,8 @@ object ToolkitGraphics : Graphics {
 
 	private const val ICON_SHADOW: Int = 0xFF000000.toInt()
 
+	private const val OPAQUE: Int = 255
+
 	/** What [translate] added to every point, until [reset]. */
 	private var tx: Int = 0
 
@@ -236,7 +238,9 @@ object ToolkitGraphics : Graphics {
 		return sprite.scaleHeight()
 	}
 
-	override fun itemIcon(itemId: Int, quantity: Int, x: Int, y: Int): Boolean {
+	override fun itemIcon(itemId: Int, quantity: Int, x: Int, y: Int): Boolean = itemIconAlpha(itemId, quantity, x, y, OPAQUE)
+
+	override fun itemIconAlpha(itemId: Int, quantity: Int, x: Int, y: Int, alpha: Int): Boolean {
 		val toolkit: Toolkit = ClientState.activeToolkit ?: return false
 		val types: ObjTypeList = TypeLists.OBJ ?: return false
 		if (itemId < 0) {
@@ -257,7 +261,12 @@ object ToolkitGraphics : Graphics {
 			}
 			return false
 		}
-		icon.render(x + tx, y + ty)
+		if (alpha >= OPAQUE) {
+			icon.render(x + tx, y + ty)
+		} else if (alpha > 0) {
+			// as the interfaces draw a see-through sprite: the alpha in the tint's top byte
+			icon.render(x + tx, y + ty, 0, (alpha shl 24) or 0xFFFFFF, 1)
+		}
 		return true
 	}
 
