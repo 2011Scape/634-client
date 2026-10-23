@@ -1,9 +1,11 @@
 package com.jagex.game.runetek5.plugin
 
 import ItemSpriteBatchRender
+import com.jagex.game.runetek5.InterfaceDrag
 import com.jagex.game.runetek5.config.objtype.ObjNumMode
 import com.jagex.game.runetek5.config.varc.VarcTypeList
 import com.jagex.game.runetek5.config.Resource
+import com.jagex.game.runetek5.graphics.ifcomponent.InterfaceRenderer
 import com.jagex.game.runetek5.js5.Js5ResourceProvider
 import com.jagex.game.runetek5.graphics.SpriteDataProvider
 import com.jagex.game.runetek5.graphics.sprite.SpriteType
@@ -841,6 +843,14 @@ object ClientApiImpl : ClientApi {
 	}
 
 	override fun itemOutline(itemId: Int, quantity: Int, argb: Int): Image? = itemShape(itemId, quantity, argb, true)
+
+	override fun isDraggingWidget(): Boolean = InterfaceDrag.component != null && InterfaceDrag.isDragging
+
+	override fun draggedWidget(): Widget? = InterfaceDrag.component
+
+	override fun draggedOnWidget(): Widget? = if (InterfaceDrag.component != null) InterfaceDrag.aClass24_13 else null
+
+	override fun itemPressedDuration(): Int = if (InterfaceDrag.component != null) InterfaceRenderer.dragTickCount else 0
 
 	override fun itemFill(itemId: Int, quantity: Int, argb: Int): Image? = itemShape(itemId, quantity, argb, false)
 
