@@ -43,6 +43,9 @@ object Screenshot : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("screenshot", "Screenshot", "1", PluginApi.VERSION, "Takes screenshots on a hotkey and of level-ups, quests, Barrows chests, deaths, kills and clan chat kicks.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	@JvmField
 	val LEVEL_UP: Regex = Regex("You've just advanced an? ([A-Za-z]+) level! You have reached level (\\d+)\\.")
 
@@ -85,20 +88,20 @@ object Screenshot : Plugin {
 
 	private var context: PluginContext? = null
 
-	private val chatListener: EventListener<ChatMessage> = EventListener { event -> chat(event) }
+	private val chatListener: EventListener<ChatMessage> = EventListener { event -> if (enabled) chat(event) }
 
 	private val interfaceListener: EventListener<InterfaceChanged> = EventListener { event ->
-		if (event.interfaceId == QUEST_COMPLETE && screenshotRewards) {
+		if (enabled && event.interfaceId == QUEST_COMPLETE && screenshotRewards) {
 			request("Quests", "Quest")
 		}
 	}
 
-	private val tickListener: EventListener<GameTick> = EventListener { _ -> context?.client()?.let { tick(it) } }
+	private val tickListener: EventListener<GameTick> = EventListener { _ -> if (enabled) context?.client()?.let { tick(it) } }
 
-	private val frameListener: EventListener<FrameDraw> = EventListener { _ -> context?.client()?.let { frame(it) } }
+	private val frameListener: EventListener<FrameDraw> = EventListener { _ -> if (enabled) context?.client()?.let { frame(it) } }
 
 	private val keyListener: EventListener<KeyPressed> = EventListener { event ->
-		if (hotkey != 0 && event.keyCode == hotkey) {
+		if (enabled && hotkey != 0 && event.keyCode == hotkey) {
 			request("", "")
 		}
 	}
@@ -106,15 +109,26 @@ object Screenshot : Plugin {
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
 			context?.config()?.let { readSettings(it) }
+			if (!enabled) {
+				pendingFolder = null
+				context?.client()?.let { restoreReportButton(it) }
+			}
 		}
 	}
 
-	private val command: CommandHandler = CommandHandler { _, _ -> request("", "") }
+	private val command: CommandHandler = CommandHandler { _, _ ->
+		if (enabled) {
+			request("", "")
+		} else {
+			context?.client()?.consolePrint("Screenshot is switched off in the plugin manager.")
+		}
+	}
 
 	override fun start(context: PluginContext) {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's ScreenshotConfig, in its order, but the window frame, image hosts and OSRS-only events
+		s.toggle("enabled", "Screenshot", true)
 		s.toggle("displayDate", "Display date", true)
 		s.toggle("notifyWhenTaken", "Notify when taken", true)
 		s.toggle("copyToClipboard", "Copy to clipboard", false)
@@ -142,6 +156,7 @@ object Screenshot : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		displayDate = config.getBoolean("displayDate", true)
 		notifyWhenTaken = config.getBoolean("notifyWhenTaken", true)
 		copyToClipboard = config.getBoolean("copyToClipboard", false)
