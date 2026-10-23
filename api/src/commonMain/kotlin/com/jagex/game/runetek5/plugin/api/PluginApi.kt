@@ -55,8 +55,9 @@ package com.jagex.game.runetek5.plugin.api
  * - 22: locations the server changes ([com.jagex.game.runetek5.plugin.api.events.Events.LOC_CHANGED]).
  * - 23: the cache's sprites as pictures ([ClientApi.spriteImage]).
  * - 24: the interfaces' sprites replaced ([ClientApi.overrideSprite]).
+ * - 25: whether an interface component was drawn ([Widget.isDrawnThisFrame]).
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 24
+	const val VERSION: Int = 25
 }
