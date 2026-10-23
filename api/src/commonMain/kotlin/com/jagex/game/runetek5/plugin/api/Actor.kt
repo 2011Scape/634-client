@@ -21,6 +21,13 @@ interface Actor {
 	/** How high above the ground the point over the actor's head is, in scene units. */
 	fun overheadHeight(): Int
 
+	/**
+	 * Where, in the game view, the top of what the client drew over the actor's head this frame is: its health bar,
+	 * prayer and skull icons and its chat line. -1 when it drew nothing there (off screen, hidden). For a plugin
+	 * putting something above all that, as Player Indicators' names. Since API 23.
+	 */
+	fun overheadTop(): Int
+
 	/** The health bar's fill, 0 to 255, or 0 when no bar shows. */
 	fun healthRatio(): Int
 
