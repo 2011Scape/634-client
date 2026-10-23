@@ -12,8 +12,8 @@ timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes
 Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`), the
 anti drag (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`), the key remapping
 (`KeyRemapping`), the custom cursor (`CustomCursor`), the item stats (`ItemStats`), the woodcutting
-(`Woodcutting`), the mining (`Mining`) and the report button (`ReportButton`) are thirty-one, built in,
-so the client's own code shows the way.
+(`Woodcutting`), the mining (`Mining`), the report button (`ReportButton`) and the player indicators
+(`PlayerIndicators`) are thirty-two, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -117,10 +117,10 @@ stack trace is in the client's log (the launcher keeps it in `~/.void/logs`).
 
 ## The built-in plugins
 
-Fifteen plugins come with the client, on the same API as the ones from the plugins folder, each with
-its switch in the Plugins window: XP drops (`::xpdrops`), the idle notifier (`::idle`), the
-menu entry swapper (`::menuswapper`), the inventory value (`::invvalue`), name plates (`::nameplates`), the
-ground tiles, the npc indicators, the Discord presence (`::discord`), the ground items (`::grounditems`), the loot tracker (`::loot`), the object markers (`::objectmarkers`), the XP tracker (`::xp`), the opponent information (`::opponentinfo`) and the boosts information (`::boosts`); and **Overlays**, which has no switch: the settings of every plugin's panels, below.
+The built-in plugins listed at the top come with the client, on the same API as the ones from the
+plugins folder, each with its switch in the Plugins window and most with a `::` command of their own
+(`::xpdrops`, `::idle`, `::nameplates`, `::grounditems`, `::xp` and so on); and **Overlays**, which has
+no switch: the settings of every plugin's panels, below.
 
 **Moving the panels.** Every panel a plugin puts on the game view (the opponent's health, the XP
 tracker's boxes, the boosts, the inventory value, the infoboxes, a plugin of your own's) can be moved,
@@ -452,6 +452,16 @@ date, the time you have been logged in (the default), the time in UTC, at Jagex'
 where you are, the game ticks since you logged in, or how long the mouse and keyboard have been idle, in
 12- or 24-hour time; it still opens the report when clicked, and reads "Report Abuse" again once the
 plugin is off. In the browser London's time is the local one (the page knows no other zones).
+
+**Player Indicators** is RuneLite's, off until switched on. Players are coloured by what they are to
+you, yourself, a friend, a member of your friends chat, your team (a team cape) or anyone else, each
+with its own **Highlight** setting (Disabled, Enabled, or PvP: only players who can be attacked where
+they stand) and colour: their names over them (**Name position**: above the head, the centre or the
+right of the model), a tile under them, their names on the minimap, and their right-click entries, with
+the friends chat rank's icon (the game's own) before a member's name. 634's Clan Chat is what RuneLite
+calls the friends chat; the clan system OSRS added in 2021 does not exist here, so the clan member
+settings find no one, and RuneLite's party is not here. Name plates is the client's own, simpler
+colouring; both can be on.
 
 ## Writing a plugin
 

@@ -24,6 +24,7 @@ import com.jagex.game.runetek5.client.features.NpcIndicators
 import com.jagex.game.runetek5.client.features.ObjectIndicators
 import com.jagex.game.runetek5.client.features.OpponentInfo
 import com.jagex.game.runetek5.client.features.OverlaySettings
+import com.jagex.game.runetek5.client.features.PlayerIndicators
 import com.jagex.game.runetek5.client.features.ReportButton
 import com.jagex.game.runetek5.client.features.StatusBars
 import com.jagex.game.runetek5.client.features.TileIndicators
@@ -78,6 +79,7 @@ object BuiltinPlugins {
 			builtIn(Woodcutting.DESCRIPTOR, Woodcutting),
 			builtIn(Mining.DESCRIPTOR, Mining),
 			builtIn(ReportButton.DESCRIPTOR, ReportButton),
+			builtIn(PlayerIndicators.DESCRIPTOR, PlayerIndicators),
 		)
 	}
 

@@ -2,6 +2,10 @@ package com.jagex.game.runetek5.plugin
 
 import ItemSpriteBatchRender
 import com.jagex.game.runetek5.config.varc.VarcTypeList
+import com.jagex.game.runetek5.config.Resource
+import com.jagex.game.runetek5.js5.Js5ResourceProvider
+import com.jagex.game.runetek5.graphics.SpriteDataProvider
+import com.jagex.game.runetek5.graphics.sprite.SpriteType
 import com.jagex.game.runetek5.ChatLineWriter
 import com.jagex.game.runetek5.LocType
 import com.jagex.game.runetek5.MapRegion
@@ -826,6 +830,40 @@ object ClientApiImpl : ClientApi {
 	override fun itemImage(itemId: Int, quantity: Int): Image? {
 		val pixels: IntArray = ItemSpriteBatchRender.itemPixels(itemId, quantity) ?: return null
 		return PluginImage(ITEM_ICON_WIDTH, ITEM_ICON_HEIGHT, pixels)
+	}
+
+	override fun spriteImage(spriteId: Int): Image? {
+		val sprites: Js5ResourceProvider = Resource.SPRITES ?: return null
+		if (spriteId < 0 || !sprites.isFileReady(spriteId, 0)) {
+			return null
+		}
+		val type: SpriteType = SpriteDataProvider.listSingle(sprites, spriteId, 0) ?: return null
+		return spritePixels(type)
+	}
+
+	/** A cache sprite's whole canvas (its padding too, as the game draws it) in ARGB; palette index 0 is clear. */
+	@JvmStatic
+	fun spritePixels(type: SpriteType): PluginImage? {
+		val indexes: ByteArray = type.pixels ?: return null
+		val palette: IntArray = type.pallete ?: return null
+		val width: Int = type.minX + type.width + type.borderX
+		val height: Int = type.minY + type.height + type.borderY
+		if (width <= 0 || height <= 0) {
+			return null
+		}
+		val argb: IntArray = IntArray(width * height)
+		val alpha: ByteArray? = type.alpha
+		for (y in 0 until type.height) {
+			for (x in 0 until type.width) {
+				val at: Int = y * type.width + x
+				val index: Int = indexes[at].toInt() and 0xFF
+				val a: Int = if (alpha != null) alpha[at].toInt() and 0xFF else if (index == 0) 0 else 0xFF
+				if (a != 0 && index < palette.size) {
+					argb[(type.minY + y) * width + type.minX + x] = (a shl 24) or (palette[index] and 0xFFFFFF)
+				}
+			}
+		}
+		return PluginImage(width, height, argb)
 	}
 
 	/** The size of an item's icon. */
