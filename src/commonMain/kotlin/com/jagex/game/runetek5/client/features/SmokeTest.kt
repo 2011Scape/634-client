@@ -505,6 +505,8 @@ object SmokeTest {
 
 	private var npcAggressionFrame: Int = -1
 
+	private var npcAggressionWasEnabled: Boolean = false
+
 	/** The world map (755) and its close button. */
 	private const val WORLD_MAP: Int = 755
 	private const val WORLD_MAP_CLOSE: Int = 44
@@ -4887,6 +4889,9 @@ object SmokeTest {
 	/** NPC Aggression Timer's timer and square. Frame: frame-npcaggression.png. */
 	private fun npcAggressionDone(): Boolean {
 		if (npcAggressionFrame == -1) {
+			// off by default: on for the step, as the player had it after
+			npcAggressionWasEnabled = NpcAggression.enabled
+			NpcAggression.enabled = true
 			NpcAggression.npcUnaggroAlwaysActive = true
 			NpcAggression.npcUnaggroShowAreaLines = true
 			npcAggressionFrame = frames
@@ -4901,6 +4906,7 @@ object SmokeTest {
 		val left: Long = NpcAggression.remainingMillis()
 		NpcAggression.npcUnaggroAlwaysActive = false
 		NpcAggression.npcUnaggroShowAreaLines = false
+		NpcAggression.enabled = npcAggressionWasEnabled
 		if (!timer || lines == 0) {
 			fail("NPC Aggression Timer: timer " + timer + ", " + lines + " edge pieces drawn")
 			return true
