@@ -63,10 +63,11 @@ package com.jagex.game.runetek5.plugin.api
  * - 28: the server's tick ([com.jagex.game.runetek5.plugin.api.events.Events.SERVER_TICK]).
  * - 29: the world map ([ClientApi.worldMapArea], [ClientApi.projectWorldMap]) and the hint arrow ([ClientApi.setHintArrow]).
  * - 30: item outlines and fills ([ClientApi.itemOutline], [ClientApi.itemFill]).
+ * - 33: screenshots ([ClientApi.captureFrame], [ClientApi.saveImage], [ClientApi.copyImage]).
  * - 32: actor and projectile filters ([PluginContext.addActorFilter], [PluginContext.addProjectileFilter]) and [ClientApi.isIgnored].
  * - 31: the drag ([ClientApi.isDraggingWidget], [ClientApi.draggedWidget], [ClientApi.draggedOnWidget], [ClientApi.itemPressedDuration]) and [Graphics.itemIconAlpha].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 32
+	const val VERSION: Int = 33
 }

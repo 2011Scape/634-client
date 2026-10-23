@@ -589,6 +589,17 @@ object SmokeTest {
 
 	private var entityHiderNpcs: Int = 0
 
+	/**
+	 * client.test.screenshot: Void's level-up line written through the chat path (no level gained), Screenshot taking
+	 * the frame with the date on the report button (API 33) and saving it; the PNG is checked, then deleted with the
+	 * folders it made if they are left empty.
+	 */
+	private val SCREENSHOT: Boolean = "true" == lang.getProperty("client.test.screenshot")
+
+	private var screenshotFrame: Int = -1
+
+	private var screenshotDate: Boolean = false
+
 	private var entityHiderWasEnabled: Boolean = false
 
 	private var inventoryTagsWasEnabled: Boolean = false
@@ -1694,6 +1705,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 72057594037927936L
+		}
+		if (SCREENSHOT && (checksDone and 144115188075855872L) == 0L) {
+			if (!screenshotDone()) {
+				return
+			}
+			checksDone = checksDone or 144115188075855872L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5491,6 +5508,50 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** Screenshot on a level-up line: the PNG saved under Levels, the report button's date seen in the frame. Frame (the screenshot): frame-screenshot.png. */
+	private fun screenshotDone(): Boolean {
+		if (screenshotFrame == -1) {
+			Screenshot.lastSaved = null
+			Screenshot.notifyWhenTaken = false
+			ChatLineWriter.writeMessage(null, "You've just advanced an Attack level! You have reached level 99.", -1, null, null, ChatType.GAME, 0, null)
+			screenshotFrame = frames
+			return false
+		}
+		val button: String? = ClientApiImpl.widget(ReportButton.INTERFACE, ReportButton.TEXT)?.text()
+		if (button != null && button.contains(", 20")) {
+			screenshotDate = true
+		}
+		val saved: String? = Screenshot.lastSaved
+		if (saved == null && frames - screenshotFrame < BANK_WAIT_FRAMES) {
+			return false
+		}
+		Screenshot.notifyWhenTaken = true
+		if (saved == null) {
+			fail("Screenshot: nothing saved after the level-up line")
+			return true
+		}
+		val file = File(saved)
+		val size: Long = file.length()
+		val name: String = file.getName()
+		// a copy to look at beside the other frames, then the player's Pictures as they were
+		readImage(file)?.let { writePng(it, File("build/smoke/frame-screenshot.png")) }
+		file.delete()
+		var folder: File? = file.getParentFile()
+		for (i in 0 until 3) {
+			val dir: File = folder ?: break
+			if (dir.listFiles()?.isEmpty() == true) {
+				dir.delete()
+			}
+			folder = dir.getParentFile()
+		}
+		if (size <= 0L || !name.startsWith("Attack(99) ") || !saved.contains("Levels") || !screenshotDate) {
+			fail("Screenshot: saved \"" + saved + "\", " + size + " bytes, the date on the report button " + screenshotDate)
+			return true
+		}
+		println("SMOKE screenshot: the level-up saved as " + name + " (" + size + " bytes) under Levels with the date on the report button, then deleted")
+		return true
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {

@@ -5,6 +5,7 @@ import com.jagex.game.runetek5.InterfaceDrag
 import com.jagex.game.runetek5.config.objtype.ObjNumMode
 import com.jagex.game.runetek5.config.varc.VarcTypeList
 import com.jagex.game.runetek5.config.Resource
+import com.jagex.game.runetek5.graphics.Toolkit
 import com.jagex.game.runetek5.graphics.ifcomponent.InterfaceRenderer
 import com.jagex.game.runetek5.js5.Js5ResourceProvider
 import com.jagex.game.runetek5.graphics.SpriteDataProvider
@@ -845,6 +846,35 @@ object ClientApiImpl : ClientApi {
 	}
 
 	override fun itemOutline(itemId: Int, quantity: Int, argb: Int): Image? = itemShape(itemId, quantity, argb, true)
+
+	override fun captureFrame(): Image? {
+		val toolkit: Toolkit = ClientState.activeToolkit ?: return null
+		val size = IntArray(2)
+		toolkit.accumulateViewportDimensions(size)
+		if (size[0] <= 0 || size[1] <= 0) {
+			return null
+		}
+		val pixels: IntArray = toolkit.na(0, 0, size[0], size[1]) ?: return null
+		return PluginImage(size[0], size[1], pixels)
+	}
+
+	override fun saveImage(image: Image, folder: String, name: String): String? {
+		val picture: PluginImage = image as? PluginImage ?: return null
+		return saveImagePng(picture.width, picture.height, picture.pixels, safePath(folder), safeName(name))
+	}
+
+	override fun copyImage(image: Image): Boolean {
+		val picture: PluginImage = image as? PluginImage ?: return false
+		return copyImageToClipboard(picture.width, picture.height, picture.pixels)
+	}
+
+	/** A file name without what a file system forbids. */
+	@JvmStatic
+	fun safeName(name: String): String = name.replace(Regex("[\\\\/:*?\"<>|\\x00-\\x1F]"), "_").trim().trimStart('.').ifEmpty { "_" }
+
+	/** A folder path of safe names, '/' between. */
+	@JvmStatic
+	fun safePath(folder: String): String = folder.split('/').filter { it.isNotBlank() }.joinToString("/") { safeName(it) }
 
 	override fun isDraggingWidget(): Boolean = InterfaceDrag.component != null && InterfaceDrag.isDragging
 
