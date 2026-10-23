@@ -38,6 +38,9 @@ object Hunter : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("hunterplugin", "Hunter", "1", PluginApi.VERSION, "Marks your hunter traps by state, with a timer on each open one.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	/** RuneLite's HunterTrap.State. */
 	const val OPEN: Int = 0
 	const val FULL: Int = 1
@@ -79,11 +82,11 @@ object Hunter : Plugin {
 	private var context: PluginContext? = null
 
 	/** RuneLite's TrapOverlay, under the interfaces. */
-	private val overlay: Overlay = Overlay { g, view -> context?.client()?.let { draw(g, view, it) } }
+	private val overlay: Overlay = Overlay { g, view -> if (enabled) context?.client()?.let { draw(g, view, it) } }
 
-	private val locListener: EventListener<LocChanged> = EventListener { event -> context?.client()?.let { locChanged(it, event) } }
+	private val locListener: EventListener<LocChanged> = EventListener { event -> if (enabled) context?.client()?.let { locChanged(it, event) } }
 
-	private val tickListener: EventListener<GameTick> = EventListener { _ -> tick() }
+	private val tickListener: EventListener<GameTick> = EventListener { _ -> if (enabled) tick() }
 
 	private val stateListener: EventListener<GameStateChanged> = EventListener { event ->
 		if (event.state === GameState.LOGIN_SCREEN) {
@@ -94,6 +97,9 @@ object Hunter : Plugin {
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
 			context?.config()?.let { readSettings(it) }
+			if (!enabled) {
+				traps.clear()
+			}
 		}
 	}
 
@@ -106,6 +112,7 @@ object Hunter : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's HunterConfig, in its order, but the maniacal monkey's notification (not on Void)
+		s.toggle("enabled", "Hunter", true)
 		s.colour("hexColorOpenTrap", "Open trap", YELLOW, true)
 		s.colour("hexColorFullTrap", "Full trap", GREEN, true)
 		s.colour("hexColorEmptyTrap", "Empty trap", RED, true)
@@ -126,6 +133,7 @@ object Hunter : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		hexColorOpenTrap = config.getColour("hexColorOpenTrap", YELLOW)
 		hexColorFullTrap = config.getColour("hexColorFullTrap", GREEN)
 		hexColorEmptyTrap = config.getColour("hexColorEmptyTrap", RED)

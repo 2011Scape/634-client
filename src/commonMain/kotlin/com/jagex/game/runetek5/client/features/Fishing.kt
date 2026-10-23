@@ -46,6 +46,9 @@ object Fishing : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("fishing", "Fishing", "1", PluginApi.VERSION, "Marks fishing spots with their catch and counts the fish you catch this session and an hour.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	/** Void's fishing spots (its fishing_spots table): npc, the icon's item (the best catch), the catches. */
 	const val SPOTS: String = "309,335,Trout, Salmon, Rainbow fish, Pike;310,335,Trout, Salmon, Rainbow fish, Pike;311,335,Trout, Salmon, Rainbow fish, Pike;312,377,Lobster, Tuna, Swordfish;313,383,Shark, Mackerel, Cod, Bass;314,335,Trout, Salmon, Rainbow fish, Pike;315,335,Trout, Salmon, Rainbow fish, Pike;316,317,Shrimps, Anchovies, Sardine, Herring;317,335,Trout, Salmon, Rainbow fish, Pike;318,335,Trout, Salmon, Rainbow fish, Pike;319,317,Shrimps, Anchovies, Sardine, Herring;320,317,Shrimps, Anchovies, Sardine, Herring;321,377,Lobster, Tuna, Swordfish;322,383,Shark, Mackerel, Cod, Bass;323,317,Shrimps, Anchovies, Sardine, Herring;324,377,Lobster, Tuna, Swordfish;325,317,Shrimps, Anchovies, Sardine, Herring;326,317,Shrimps, Anchovies, Sardine, Herring;327,317,Shrimps, Anchovies, Sardine, Herring;328,335,Trout, Salmon, Rainbow fish, Pike;329,335,Trout, Salmon, Rainbow fish, Pike;330,317,Shrimps, Anchovies, Sardine, Herring;800,2148,Lava eel;927,335,Trout, Salmon, Rainbow fish, Pike;952,317,Shrimps;1174,317,Shrimps, Karambwanji;1176,3142,Karambwan;1177,3142,Karambwan;1189,335,Trout, Salmon, Rainbow fish, Pike;1190,335,Trout, Salmon, Rainbow fish, Pike;1236,3379,Slimy eel;1237,3379,Slimy eel;1238,3379,Slimy eel;1331,317,Shrimps, Anchovies, Sardine, Herring;1332,377,Lobster, Tuna, Swordfish;1333,383,Shark, Mackerel, Cod, Bass;1405,383,Shark, Mackerel, Cod, Bass;1406,383,Shark, Mackerel, Cod, Bass;2067,5004,Frog spawn, Slimy eel, Cave eel;2068,5004,Frog spawn, Slimy eel, Cave eel;2724,317,Shrimps, Anchovies, Sardine, Herring;2859,6715,Sluglings, Karamthulhu;3574,383,Shark, Mackerel, Cod, Bass;3575,383,Shark, Mackerel, Cod, Bass;3804,377,Lobster, Tuna, Swordfish;3848,359,Tuna, Swordfish, Monkfish;4908,317,Shrimps, Anchovies, Sardine, Herring;5470,377,Lobster, Tuna, Swordfish;5471,383,Shark, Mackerel, Cod, Bass;5748,5004,Frog spawn, Slimy eel, Cave eel;5749,5004,Frog spawn, Slimy eel, Cave eel;6267,13435,Crayfish;7044,383,Shark, Mackerel, Cod, Bass;7045,317,Shrimps, Anchovies, Sardine, Herring;7046,377,Lobster, Tuna, Swordfish;7636,3379,Slimy eel, Cave eel;7862,377,Lobster;7863,377,Lobster;8841,15264,Cavefish;8842,15270,Rocktail"
 
@@ -104,6 +107,9 @@ object Fishing : Plugin {
 		}
 
 		override fun render(g: Graphics, view: Viewport): Size? {
+			if (!enabled) {
+				return null
+			}
 			val client: ClientApi = context?.client() ?: return null
 			val current: Session = session ?: return null
 			if (!showFishingStats || client.gameState() !== GameState.LOGGED_IN) {
@@ -127,14 +133,14 @@ object Fishing : Plugin {
 
 	/** RuneLite's FishingSpotOverlay, under the interfaces. */
 	@JvmField
-	val spotOverlay: Overlay = Overlay { g, view -> context?.client()?.let { drawSpots(g, view, it) } }
+	val spotOverlay: Overlay = Overlay { g, view -> if (enabled) context?.client()?.let { drawSpots(g, view, it) } }
 
 	/** RuneLite's FishingSpotMinimapOverlay, over the minimap. */
-	private val frameListener: EventListener<FrameDraw> = EventListener { event -> context?.client()?.let { drawMinimap(event.graphics, it) } }
+	private val frameListener: EventListener<FrameDraw> = EventListener { event -> if (enabled) context?.client()?.let { drawMinimap(event.graphics, it) } }
 
-	private val tickListener: EventListener<GameTick> = EventListener { _ -> context?.client()?.let { tick(it) } }
+	private val tickListener: EventListener<GameTick> = EventListener { _ -> if (enabled) context?.client()?.let { tick(it) } }
 
-	private val chatListener: EventListener<ChatMessage> = EventListener { event -> chat(event) }
+	private val chatListener: EventListener<ChatMessage> = EventListener { event -> if (enabled) chat(event) }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
@@ -161,6 +167,7 @@ object Fishing : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's FishingConfig, in its order, but the OSRS-only minnow, aerial, harpoonfish and Trawler settings
+		s.toggle("enabled", "Fishing", true)
 		s.toggle("onlyCurrent", "Display only currently fished fish", false)
 		s.toggle("showTiles", "Display spot tiles", true)
 		s.toggle("showIcons", "Display spot icons", true)
@@ -186,6 +193,7 @@ object Fishing : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		onlyCurrent = config.getBoolean("onlyCurrent", false)
 		showTiles = config.getBoolean("showTiles", true)
 		showIcons = config.getBoolean("showIcons", true)

@@ -47,6 +47,9 @@ object Agility : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("agility", "Agility", "1", PluginApi.VERSION, "Shows the agility obstacles and shortcuts, and counts your laps, the laps to your goal and the laps an hour.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	/** Void's courses (RuneLite's Courses): the lap bonus as whole experience (both ways a tenth can round), and a lap's experience. */
 	class Course(@JvmField val name: String, @JvmField val bonuses: IntArray, @JvmField val lapXp: Double)
 
@@ -124,6 +127,9 @@ object Agility : Plugin {
 		}
 
 		override fun render(g: Graphics, view: Viewport): Size? {
+			if (!enabled) {
+				return null
+			}
 			val current: Session = session ?: return null
 			if (!showLapCount || current.lastLapCompleted == 0L) {
 				return null
@@ -145,12 +151,13 @@ object Agility : Plugin {
 
 	/** RuneLite's AgilityOverlay: the click boxes, under the interfaces. */
 	@JvmField
-	val overlay: Overlay = Overlay { g, view -> context?.client()?.let { draw(g, view, it) } }
+	val overlay: Overlay = Overlay { g, view -> if (enabled) context?.client()?.let { draw(g, view, it) } }
 
-	private val statListener: EventListener<StatChanged> = EventListener { event -> statChanged(event) }
+	private val statListener: EventListener<StatChanged> = EventListener { event -> if (enabled) statChanged(event) }
 
-	private val tickListener: EventListener<GameTick> = EventListener { _ -> context?.client()?.let { tick(it) } }
+	private val tickListener: EventListener<GameTick> = EventListener { _ -> if (enabled) context?.client()?.let { tick(it) } }
 
+	// the scene's courses are noted while off too, so switching on finds them
 	private val locListener: EventListener<LocChanged> = EventListener { event -> locChanged(event) }
 
 	private val stateListener: EventListener<GameStateChanged> = EventListener { event ->
@@ -177,6 +184,7 @@ object Agility : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's AgilityConfig, in its order, but the settings for what is not on Void
+		s.toggle("enabled", "Agility", true)
 		s.toggle("showClickboxes", "Show clickboxes", true)
 		s.toggle("showLapCount", "Show lap count", true)
 		s.number("lapTimeout", "Hide lap count (minutes)", 5, 1, 60, 1)
@@ -204,6 +212,7 @@ object Agility : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		showClickboxes = config.getBoolean("showClickboxes", true)
 		showLapCount = config.getBoolean("showLapCount", true)
 		lapTimeout = config.getInt("lapTimeout", 5)
