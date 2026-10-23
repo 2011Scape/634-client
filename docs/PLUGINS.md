@@ -19,8 +19,8 @@ agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), th
 (`ItemIdentification`), the chat notifications (`ChatNotifications`), the chat filter (`ChatFilter`),
 the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual levels
 (`VirtualLevels`), the metronome (`Metronome`), the death indicator (`DeathIndicator`), the NPC
-aggression timer (`NpcAggression`), the hunter (`Hunter`) and the implings (`Implings`) are fifty, built
-in, so the client's own code shows the way.
+aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implings`) and the cooking
+(`Cooking`) are fifty-one, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -609,6 +609,13 @@ like; dragon and kingly implings are highlighted to begin with. In Puro-Puro, **
 marks the implings' spawn tiles with their kind. It has baby to dragon, as RuneLite, and 2011's pirate,
 spirit, zombie and kingly implings after them, by Void's ids in the open world and in Puro-Puro; OSRS's
 crystal and lucky implings are not in 634.
+
+**Cooking** is RuneLite's. A panel at the top left says whether you are cooking and how much you cooked
+this session (and an hour) and burnt (and what share), and goes after **Reset stats** minutes without
+cooking anything; its right-click menu has **Reset**. It counts Void's lines: "You accidentally burn the
+…" for a burn, and its recipes' own lines for a success ("You successfully cook a trout.", "You roast a
+lobster.", "You manage to cook a tuna."). Void does not ferment wine, so the fermenting timer is left
+out.
 
 ## Writing a plugin
 

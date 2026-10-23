@@ -519,6 +519,11 @@ object SmokeTest {
 
 	private var implingsFailure: String? = null
 
+	/** client.test.cooking: Void's cooked and burnt lines (written through the client's chat path, nothing cooked), Cooking's panel counting them. */
+	private val COOKING: Boolean = "true" == lang.getProperty("client.test.cooking")
+
+	private var cookingFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1565,6 +1570,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 562949953421312L
+		}
+		if (COOKING && (checksDone and 1125899906842624L) == 0L) {
+			if (!cookingDone()) {
+				return
+			}
+			checksDone = checksDone or 1125899906842624L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4980,6 +4991,31 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** Cooking's panel after two cooked lines and one burnt. Frame: frame-cooking.png. */
+	private fun cookingDone(): Boolean {
+		if (cookingFrame == -1) {
+			ChatLineWriter.writeMessage(null, "You successfully cook a trout.", -1, null, null, ChatType.GAME_FILTERED, 0, null)
+			ChatLineWriter.writeMessage(null, "You roast a lobster.", -1, null, null, ChatType.GAME_FILTERED, 0, null)
+			ChatLineWriter.writeMessage(null, "You accidentally burn the shark.", -1, null, null, ChatType.GAME_FILTERED, 0, null)
+			cookingFrame = frames
+			return false
+		}
+		if (frames - cookingFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-cooking.png")
+		val cooked: Int = Cooking.session?.cookAmount ?: 0
+		val burnt: Int = Cooking.session?.burnAmount ?: 0
+		val drawn: Boolean = Cooking.panelDrawn
+		Cooking.session = null
+		if (cooked != 2 || burnt != 1 || !drawn) {
+			fail("Cooking: " + cooked + " cooked, " + burnt + " burnt, panel drawn " + drawn)
+			return true
+		}
+		println("SMOKE cooking: 2 cooked and 1 burnt counted from Void's lines, the panel drawn")
+		return true
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {
