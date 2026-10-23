@@ -49,6 +49,9 @@ object Prayer : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("prayer", "Prayer", "1", PluginApi.VERSION, "A prayer flick helper, the time your prayer points last, a dose indicator and infoboxes for active prayers.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	/** RuneLite's PrayerFlickLocation. */
 	@JvmField
 	val FLICK_LOCATIONS: Array<String> = arrayOf("None", "Prayer orb", "Prayer bar", "Both")
@@ -149,18 +152,18 @@ object Prayer : Plugin {
 
 	/** RuneLite's PrayerBarOverlay, under the interfaces, and the orb's tooltip. */
 	private val overlay: Overlay = Overlay { g, view ->
-		context?.client()?.let {
+		context?.client()?.takeIf { enabled }?.let {
 			drawBar(g, view, it)
 			tooltip(it)
 		}
 	}
 
 	/** RuneLite's PrayerFlickOverlay and PrayerDoseOverlay, over the orb. */
-	private val frameListener: EventListener<FrameDraw> = EventListener { event -> context?.client()?.let { drawOrb(event.graphics, it) } }
+	private val frameListener: EventListener<FrameDraw> = EventListener { event -> if (enabled) context?.client()?.let { drawOrb(event.graphics, it) } }
 
 	private val serverTickListener: EventListener<ServerTick> = EventListener { _ -> lastTick = clock() }
 
-	private val tickListener: EventListener<GameTick> = EventListener { _ -> context?.client()?.let { tick(it) } }
+	private val tickListener: EventListener<GameTick> = EventListener { _ -> if (enabled) context?.client()?.let { tick(it) } }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
@@ -168,7 +171,9 @@ object Prayer : Plugin {
 			context?.client()?.let {
 				removeInfoboxes()
 				resetOrbText(it)
-				tick(it)
+				if (enabled) {
+					tick(it)
+				}
 			}
 		}
 	}
@@ -184,6 +189,7 @@ object Prayer : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's PrayerConfig, in its order
+		s.toggle("enabled", "Prayer", true)
 		s.choice("prayerFlickLocation", "Pray flick location", FLICK_LOCATIONS[FLICK_ORB], FLICK_LOCATIONS)
 		s.toggle("prayerFlickAlwaysOn", "Never hide prayer flick helper", false)
 		s.toggle("prayerIndicator", "Boost indicator", false)
@@ -211,6 +217,7 @@ object Prayer : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		prayerFlickLocation = FLICK_LOCATIONS.indexOf(config.get("prayerFlickLocation", FLICK_LOCATIONS[FLICK_ORB])).takeIf { it >= 0 } ?: FLICK_ORB
 		prayerFlickAlwaysOn = config.getBoolean("prayerFlickAlwaysOn", false)
 		prayerIndicator = config.getBoolean("prayerIndicator", false)
