@@ -391,6 +391,10 @@ abstract class PathingEntity : AbstractInteractiveEntity, Actor {
 	@JvmField
 	var worldPriority: Int = 0
 
+	/** Not part of the original client: a plugin's filter (API 32) keeps the model out of the scene this frame; its overheads are asked for apart. */
+	@JvmField
+	var pluginHidden: Boolean = false
+
 	@OriginalMember(owner = "client!kda", name = "sc", descriptor = "B")
 	@JvmField
 	var opacity: Byte = 0

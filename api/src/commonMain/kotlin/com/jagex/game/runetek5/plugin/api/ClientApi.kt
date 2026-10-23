@@ -303,6 +303,9 @@ interface ClientApi {
 	/** Whether [name] (a [Player.name], compared ignoring case) is on the friends list. */
 	fun isFriend(name: String?): Boolean
 
+	/** Whether [name] is on the player's ignore list. Since API 32. */
+	fun isIgnored(name: String?): Boolean
+
 	/** Whether [name] (a [Player.name], compared ignoring case) is in the player's friends chat. */
 	fun isInFriendsChat(name: String?): Boolean
 

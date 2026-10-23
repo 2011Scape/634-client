@@ -8,6 +8,7 @@ import com.jagex.game.runetek5.graphics.model.Model
 import com.jagex.game.runetek5.graphics.Toolkit
 import com.jagex.game.runetek5.graphics.model.particle.EffectiveVertex
 import com.jagex.game.runetek5.graphics.model.particle.EmissiveTriangle
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
@@ -445,7 +446,10 @@ class ProjectileAnimation : AbstractInteractiveEntity {
 						}
 					}
 					projectileAnimation.tick(ClientState.animatingStep)
-					Scene.addInteractive(projectileAnimation, true)
+					// Not part of the original client: a plugin's projectile filter (API 32)
+					if (PluginRuntime.drawProjectile(projectileAnimation.id)) {
+						Scene.addInteractive(projectileAnimation, true)
+					}
 				}
 				projectileAnimationNode = ProjectileAnimation.aClass341_24.next() as ProjectileAnimationNode?
 			}

@@ -21,8 +21,8 @@ the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual 
 (`VirtualLevels`), the metronome (`Metronome`), the death indicator (`DeathIndicator`), the NPC
 aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implings`), the cooking
 (`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`), the inventory tags (`InventoryTags`), the
-inventory grid (`InventoryGrid`) and the examine (`Examine`) are fifty-six, built in, so the client's
-own code shows the way.
+inventory grid (`InventoryGrid`), the examine (`Examine`) and the entity hider (`EntityHider`) are
+fifty-seven, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -647,6 +647,13 @@ after the press before showing anything.
 **Examine** is RuneLite's. Examining an item adds a line after its examine text with its price, the
 exchange's guide price and High Level Alchemy's, times the stack examined: "Price of 1,000 x Feather: GE
 average 3,000 (3 ea) HA value 1,000 (1 ea)". Coins and an item with neither price get no line.
+
+**Entity Hider** is RuneLite's. It hides other players (all of them, or your friends, your clan chat's
+members or the players you ignore, each by its own setting), yourself, NPCs, other players' pets and
+familiars, whoever is attacking you, projectiles, dying NPCs and the random event NPCs that come to you
+(the Sandwich Lady, Giles, the frog herald, the Mysterious Old Man). The "2D" settings hide overhead
+text, hitsplats and health bars apart from the models. OSRS's party members, clans and thralls are not
+in 634.
 
 ## Writing a plugin
 

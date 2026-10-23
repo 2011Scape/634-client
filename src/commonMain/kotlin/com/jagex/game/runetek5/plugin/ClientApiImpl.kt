@@ -749,6 +749,8 @@ object ClientApiImpl : ClientApi {
 		return FriendList.getFriendIndex(name) >= 0
 	}
 
+	override fun isIgnored(name: String?): Boolean = name != null && IgnoreList.isIgnored(name)
+
 	override fun isInFriendsChat(name: String?): Boolean {
 		if (name == null) {
 			return false

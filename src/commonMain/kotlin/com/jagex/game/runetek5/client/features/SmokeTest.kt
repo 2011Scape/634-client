@@ -580,6 +580,17 @@ object SmokeTest {
 
 	private const val RUNE_SCIMITAR: Int = 1333
 
+	/** client.test.entityHider: Entity Hider hiding the player's own model and every NPC's (API 32), then showing them again. */
+	private val ENTITY_HIDER: Boolean = "true" == lang.getProperty("client.test.entityHider")
+
+	private var entityHiderStep: Int = 0
+
+	private var entityHiderFrame: Int = -1
+
+	private var entityHiderNpcs: Int = 0
+
+	private var entityHiderWasEnabled: Boolean = false
+
 	private var inventoryTagsWasEnabled: Boolean = false
 
 	private var implingsWasEnabled: Boolean = false
@@ -1677,6 +1688,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 36028797018963968L
+		}
+		if (ENTITY_HIDER && (checksDone and 72057594037927936L) == 0L) {
+			if (!entityHiderDone(player)) {
+				return
+			}
+			checksDone = checksDone or 72057594037927936L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5421,6 +5438,59 @@ object SmokeTest {
 		}
 		println("SMOKE examine: \"" + ClientFeatures.plainText(newest) + "\" after the examine text")
 		return true
+	}
+
+	/** Entity Hider: the player and the NPCs hidden, then back. Frame: frame-entityhider.png. */
+	private fun entityHiderDone(player: PlayerEntity): Boolean {
+		val api = ClientApiImpl
+		when (entityHiderStep) {
+			0 -> {
+				entityHiderNpcs = (0 until api.npcCount()).count { api.npc(it)?.isDrawnThisFrame() == true }
+				if (entityHiderNpcs == 0 && frames - entityHiderFrame < BANK_WAIT_FRAMES) {
+					if (entityHiderFrame < 0) {
+						entityHiderFrame = frames
+					}
+					return false
+				}
+				// off by default: on for the step, as the player had it after
+				entityHiderWasEnabled = EntityHider.enabled
+				EntityHider.enabled = true
+				EntityHider.hideLocalPlayer = true
+				EntityHider.hideNPCs = true
+				entityHiderFrame = frames
+				entityHiderStep = 1
+			}
+			1 -> {
+				if (frames - entityHiderFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-entityhider.png")
+				val playerDrawn: Boolean = player.isDrawnThisFrame()
+				val npcsDrawn: Int = (0 until api.npcCount()).count { api.npc(it)?.isDrawnThisFrame() == true }
+				EntityHider.hideLocalPlayer = false
+				EntityHider.hideNPCs = false
+				EntityHider.enabled = entityHiderWasEnabled
+				if (playerDrawn || npcsDrawn > 0) {
+					fail("Entity Hider: hidden, the player drawn " + playerDrawn + ", " + npcsDrawn + " NPCs drawn")
+					return true
+				}
+				entityHiderFrame = frames
+				entityHiderStep = 2
+			}
+			else -> {
+				if (frames - entityHiderFrame < MARKER_FRAMES) {
+					return false
+				}
+				val npcsDrawn: Int = (0 until api.npcCount()).count { api.npc(it)?.isDrawnThisFrame() == true }
+				if (!player.isDrawnThisFrame() || npcsDrawn == 0) {
+					fail("Entity Hider: shown again, the player drawn " + player.isDrawnThisFrame() + ", " + npcsDrawn + " NPCs drawn")
+					return true
+				}
+				println("SMOKE entity hider: the player and " + entityHiderNpcs + " NPCs hidden, then " + npcsDrawn + " NPCs and the player drawn again")
+				return true
+			}
+		}
+		return false
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {
