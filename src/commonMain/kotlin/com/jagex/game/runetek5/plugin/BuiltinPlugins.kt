@@ -47,6 +47,7 @@ import com.jagex.game.runetek5.client.features.Prayer
 import com.jagex.game.runetek5.client.features.RegenMeter
 import com.jagex.game.runetek5.client.features.ReportButton
 import com.jagex.game.runetek5.client.features.RunEnergy
+import com.jagex.game.runetek5.client.features.Screenshot
 import com.jagex.game.runetek5.client.features.Slayer
 import com.jagex.game.runetek5.client.features.Smelting
 import com.jagex.game.runetek5.client.features.SpecialCounter
@@ -130,6 +131,7 @@ object BuiltinPlugins {
 			builtIn(InventoryGrid.DESCRIPTOR, InventoryGrid),
 			builtIn(Examine.DESCRIPTOR, Examine),
 			builtIn(EntityHider.DESCRIPTOR, EntityHider),
+			builtIn(Screenshot.DESCRIPTOR, Screenshot),
 		)
 	}
 

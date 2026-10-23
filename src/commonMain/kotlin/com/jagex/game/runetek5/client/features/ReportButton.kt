@@ -145,6 +145,9 @@ object ReportButton : Plugin {
 		twentyFourHour = config.get("switchTimeFormat", FORMATS[0]) == FORMATS[1]
 	}
 
+	/** The text Screenshot puts on the button while it takes a picture (its "Display date"), null for none: this plugin's own waits. */
+	@JvmField var screenshotText: String? = null
+
 	/** Each client cycle: the mouse's moves noted for the idle time, and the button's text when it changes. */
 	@JvmStatic
 	fun tick(client: ClientApi) {
@@ -159,7 +162,7 @@ object ReportButton : Plugin {
 			return
 		}
 		val button: Widget = client.widget(INTERFACE, TEXT) ?: return
-		val text: String = text(client)
+		val text: String = screenshotText ?: text(client)
 		if (button.text() != text) {
 			button.setText(text)
 		}

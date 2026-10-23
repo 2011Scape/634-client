@@ -454,6 +454,23 @@ interface ClientApi {
 	/** Item [itemId]'s icon with every pixel of its shape in [argb], alpha and all (RuneLite's ImageUtil.fillImage); null while not loaded. Since API 30. */
 	fun itemFill(itemId: Int, quantity: Int, argb: Int): Image?
 
+	/**
+	 * The game's screen as a picture (RuneLite's screenshot): on the OpenGL toolkits the frame shown last, on
+	 * the software one the frame being drawn, with what was drawn on it so far. Null before the first frame.
+	 * Since API 33.
+	 */
+	fun captureFrame(): Image?
+
+	/**
+	 * Saves [image] as a PNG named [name] in [folder] (folders inside it with '/'): on the desktop in the
+	 * player's Pictures, under 634-client; in a browser as a download. Where it went, or null when it could
+	 * not be saved. Since API 33.
+	 */
+	fun saveImage(image: Image, folder: String, name: String): String?
+
+	/** Puts [image] on the system clipboard; false where that cannot be done. Since API 33. */
+	fun copyImage(image: Image): Boolean
+
 	/** Whether a component (such as a backpack item) is being dragged, past its dead zone (RuneLite's isDraggingWidget). Since API 31. */
 	fun isDraggingWidget(): Boolean
 

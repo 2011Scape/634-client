@@ -21,8 +21,8 @@ the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual 
 (`VirtualLevels`), the metronome (`Metronome`), the death indicator (`DeathIndicator`), the NPC
 aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implings`), the cooking
 (`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`), the inventory tags (`InventoryTags`), the
-inventory grid (`InventoryGrid`), the examine (`Examine`) and the entity hider (`EntityHider`) are
-fifty-seven, built in, so the client's own code shows the way.
+inventory grid (`InventoryGrid`), the examine (`Examine`), the entity hider (`EntityHider`) and the
+screenshot (`Screenshot`) are fifty-eight, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -654,6 +654,14 @@ familiars, whoever is attacking you, projectiles, dying NPCs and the random even
 (the Sandwich Lady, Giles, the frog herald, the Mysterious Old Man). The "2D" settings hide overhead
 text, hitsplats and health bars apart from the models. OSRS's party members, clans and thralls are not
 in 634.
+
+**Screenshot** is RuneLite's. A hotkey (or `::screenshot`) takes a screenshot of the game, and so do
+your level-ups, quest completions and Barrows chests, your deaths, the players you kill and a kick from
+a clan chat, each by its setting. They are saved under the player's name and the kind (Levels, Quests,
+Barrows Rewards, Deaths, PvP Kills, Clan Chat Kicks) as "Attack(99) 2011-06-01_12-00-00.png": on the
+desktop in Pictures/634-client, in a browser as a download. It can say where it went, copy the picture
+to the clipboard, and show the date on the report button in it. OSRS's pets, clues, collection log,
+combat achievements and raids are not in 634, and image hosts are left out.
 
 ## Writing a plugin
 
