@@ -19,8 +19,9 @@ agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), th
 (`ItemIdentification`), the chat notifications (`ChatNotifications`), the chat filter (`ChatFilter`),
 the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual levels
 (`VirtualLevels`), the metronome (`Metronome`), the death indicator (`DeathIndicator`), the NPC
-aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implings`) and the cooking
-(`Cooking`) are fifty-one, built in, so the client's own code shows the way.
+aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implings`), the cooking
+(`Cooking`) and the smelting (`Smelting`) are fifty-two, built in, so the client's own code shows the
+way.
 
 ## Contents
 
@@ -616,6 +617,12 @@ cooking anything; its right-click menu has **Reset**. It counts Void's lines: "Y
 …" for a burn, and its recipes' own lines for a success ("You successfully cook a trout.", "You roast a
 lobster.", "You manage to cook a tuna."). Void does not ferment wine, so the fermenting timer is left
 out.
+
+**Smelting** is RuneLite's. A panel at the top left says whether you are smelting and how many bars and
+cannonballs you made this session and an hour, and goes after **Reset stats** minutes without making
+any; its right-click menu has **Reset**. It counts Void's lines: "You retrieve a bar of …" for each bar
+(and the Varrock armour's second bar), "You remove the cannonballs from the mould." for four
+cannonballs.
 
 ## Writing a plugin
 

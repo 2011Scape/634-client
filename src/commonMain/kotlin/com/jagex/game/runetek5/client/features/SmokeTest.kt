@@ -524,6 +524,11 @@ object SmokeTest {
 
 	private var cookingFrame: Int = -1
 
+	/** client.test.smelting: Void's bar and cannonball lines (written through the client's chat path, nothing smelted), Smelting's panel counting them. */
+	private val SMELTING: Boolean = "true" == lang.getProperty("client.test.smelting")
+
+	private var smeltingFrame: Int = -1
+
 	private var implingsWasEnabled: Boolean = false
 
 	private var npcAggressionWasEnabled: Boolean = false
@@ -1588,6 +1593,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 1125899906842624L
+		}
+		if (SMELTING && (checksDone and 2251799813685248L) == 0L) {
+			if (!smeltingDone()) {
+				return
+			}
+			checksDone = checksDone or 2251799813685248L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5067,6 +5078,31 @@ object SmokeTest {
 			return true
 		}
 		println("SMOKE cooking: 2 cooked and 1 burnt counted from Void's lines, the panel drawn")
+		return true
+	}
+
+	/** Smelting's panel after two bars and a mould of cannonballs. Frame: frame-smelting.png. */
+	private fun smeltingDone(): Boolean {
+		if (smeltingFrame == -1) {
+			ChatLineWriter.writeMessage(null, "You retrieve a bar of iron.", -1, null, null, ChatType.GAME, 0, null)
+			ChatLineWriter.writeMessage(null, "You retrieve a bar of iron.", -1, null, null, ChatType.GAME, 0, null)
+			ChatLineWriter.writeMessage(null, "You remove the cannonballs from the mould.", -1, null, null, ChatType.GAME_FILTERED, 0, null)
+			smeltingFrame = frames
+			return false
+		}
+		if (frames - smeltingFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-smelting.png")
+		val bars: Int = Smelting.session?.barsSmelted ?: 0
+		val balls: Int = Smelting.session?.cannonBallsSmelted ?: 0
+		val drawn: Boolean = Smelting.panelDrawn
+		Smelting.session = null
+		if (bars != 2 || balls != 4 || !drawn) {
+			fail("Smelting: " + bars + " bars, " + balls + " cannonballs, panel drawn " + drawn)
+			return true
+		}
+		println("SMOKE smelting: 2 bars and 4 cannonballs counted from Void's lines, the panel drawn")
 		return true
 	}
 
