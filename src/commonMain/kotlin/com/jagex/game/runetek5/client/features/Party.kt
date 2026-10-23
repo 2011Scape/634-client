@@ -213,7 +213,7 @@ object Party : Plugin {
 		s.toggle("sounds", "Sound on ping", true)
 		s.toggle("recolorNames", "Recolor names", true)
 		s.keybind("pingHotkey", "Ping hotkey", KeyCode.CONTROL)
-		s.toggle("compactPanel", "Compact panel (two stats a line)", false)
+		s.toggle("compactPanel", "Compact panel (one line a member)", false)
 		s.toggle("showOnMap", "Show members on the maps", true)
 		readSettings(context.config())
 		pingAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, _ -> ping(sceneX, sceneY) })
@@ -393,7 +393,7 @@ object Party : Plugin {
 
 	/**
 	 * The panel: the party's size, then each member's name (a crown for the leader, a red Wilderness tag while their
-	 * location is hidden) and their four stats, each as a bar with the stat's name and value on it; two to a line when
+	 * location is hidden) and their hitpoints and prayer, each as a bar with its name and value on it; both on one line when
 	 * compact. Hovering a member shows them in full.
 	 */
 	private fun drawPanel(g: Graphics, overlay: PanelOverlay): Size? {
@@ -404,7 +404,7 @@ object Party : Plugin {
 		val client: ClientApi? = context?.client()
 		val line: Int = g.fontHeight()
 		val width: Int = if (overlay.preferredWidth > 0) overlay.preferredWidth else PANEL_WIDTH
-		val statLines: Int = if (compactPanel) 2 else 4
+		val statLines: Int = if (compactPanel) 1 else 2
 		val memberHeight: Int = line + statLines * STAT_LINE + GAP
 		val height: Int = BORDER + line + (if (current.invite != null) line else 0) + current.members.size * memberHeight + BORDER
 		PanelComponent.background(g, 0, 0, width, height, overlay.backgroundColour)
@@ -442,14 +442,10 @@ object Party : Plugin {
 			val half: Int = (width - BORDER * 2 - GAP) / 2
 			stat(g, BORDER, y, half, member.hp, member.hpMax, HP, "HP " + member.hp)
 			stat(g, BORDER + half + GAP, y, half, member.prayer, member.prayerMax, PRAYER, "Pray " + member.prayer)
-			stat(g, BORDER, y + STAT_LINE, half, member.spec, 100, SPEC, "Spec " + member.spec + "%")
-			stat(g, BORDER + half + GAP, y + STAT_LINE, half, member.run, 100, RUN, "Run " + member.run + "%")
 		} else {
 			val full: Int = width - BORDER * 2
 			stat(g, BORDER, y, full, member.hp, member.hpMax, HP, "HP " + member.hp + "/" + member.hpMax)
 			stat(g, BORDER, y + STAT_LINE, full, member.prayer, member.prayerMax, PRAYER, "Prayer " + member.prayer + "/" + member.prayerMax)
-			stat(g, BORDER, y + STAT_LINE * 2, full, member.spec, 100, SPEC, "Spec " + member.spec + "%")
-			stat(g, BORDER, y + STAT_LINE * 3, full, member.run, 100, RUN, "Run " + member.run + "%")
 		}
 	}
 
@@ -551,8 +547,6 @@ object Party : Plugin {
 	private const val BAR_BACK: Int = 0xC0000000.toInt()
 	private const val HP: Int = 0xFFD01010.toInt()
 	private const val PRAYER: Int = 0xFF20A8C0.toInt()
-	private const val SPEC: Int = 0xFF30A030.toInt()
-	private const val RUN: Int = 0xFFC89018.toInt()
 	private const val GOLD: Int = 0xFFFFD700.toInt()
 	private const val PVP: Int = 0xFFFF3030.toInt()
 }

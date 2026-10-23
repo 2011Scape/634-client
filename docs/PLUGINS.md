@@ -669,9 +669,9 @@ no party server and no one sees anyone's address. `::party invite <name>` (from 
 space) invites a player, whose chat box shows "<name> wishes to join you in a party." in purple, as a
 duel challenge: a left click on it accepts (right click: Decline), as do the panel's menu and `::party
 accept`. `::party leave`, `::party decline` and the leader's `::party kick <name>` do the rest, and a
-party holds eight. The panel lists the members, the leader with a crown, each with four labelled bars:
-HP, Prayer, Spec and Run with their values (two to a line with **Compact panel**); hovering a member
-shows it all in full, with their tile. Their dots show on the minimap and the world map. Holding the
+party holds eight. The panel lists the members, the leader with a crown, each with two labelled bars,
+HP and Prayer with their values (on one line with **Compact panel**); hovering a member shows their
+special attack and run energy too, and their tile. Their dots show on the minimap and the world map. Holding the
 **Ping hotkey** (Ctrl) adds Ping to a tile's menu: the tile lights up for everyone in the pinger's colour,
 with a sound. A member's location is hidden while they are in the Wilderness or another PvP area
 (marked "Wilderness" in red); their stats and pings are not. The server sends it all in client variables
