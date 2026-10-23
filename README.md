@@ -289,6 +289,8 @@ as a zip beside the jar.
   `source`, BSD 2-Clause licence), and as the reference for
   its flowing, unlit materials, its water (`utils/water.glsl`, its water types) and its fog
   (`utils/fog.glsl`, its ground fog and fogged sky).
+- [Twemoji](https://github.com/jdecked/twemoji) by Twitter and its contributors, for the Emojis
+  plugin's pictures (CC-BY 4.0, shrunk to 13 pixels in `src/jvmMain/resources/emojis/emojis.rgba`).
 
 ## Disclaimer
 

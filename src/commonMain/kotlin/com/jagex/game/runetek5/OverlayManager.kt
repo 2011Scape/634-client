@@ -747,7 +747,12 @@ object OverlayManager {
 				}
 				val textArgb: Int = colour or 0xFF000000.toInt()
 				if (OverlayManager.OVERHEAD_TEXT_EFFECTS[textIndex] == 0) {
-					MiniMenu.minimenuHeader!!.renderCentered(textX + clipLeft, textArgb, string3, -16777216, textY + clipTop)
+					if (string3 != null && string3.contains("<img=")) {
+						// Not part of the original client: a plugin's icons in the line (Emojis), drawn as the chat box draws them
+						MiniMenu.minimenuHeader!!.renderCenteredWithSprites(textX + clipLeft, textArgb, string3, -16777216, textY + clipTop, StaticMedia.chatIcons, StaticMedia.chatScaleHeights)
+					} else {
+						MiniMenu.minimenuHeader!!.renderCentered(textX + clipLeft, textArgb, string3, -16777216, textY + clipTop)
+					}
 					leftX -= textWidth shr 1
 					rightX -= textWidth shr 1
 				}

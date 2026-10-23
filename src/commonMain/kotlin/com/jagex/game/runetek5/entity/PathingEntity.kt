@@ -178,6 +178,10 @@ abstract class PathingEntity : AbstractInteractiveEntity, Actor {
 		return this.hintDetails.text
 	}
 
+	override fun setOverheadText(text: String?) {
+		this.hintDetails.text = text
+	}
+
 	override fun hitsplatSlots(): Int {
 		return PathingEntity.maximumHits
 	}

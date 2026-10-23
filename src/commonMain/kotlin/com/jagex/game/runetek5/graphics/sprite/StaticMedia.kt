@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.graphics.sprite
 
+import com.jagex.game.runetek5.plugin.PluginChatIcons
 import org.openrs2.deob.annotation.OriginalMember
 import com.jagex.game.runetek5.FriendChat
 import com.jagex.game.runetek5.client.menu.MiniMenu
@@ -151,6 +152,7 @@ object StaticMedia {
 		for (@Pc(329) v in 0 until indexedImages.size) {
 			StaticMedia.nameIconSprites!![v] = toolkit!!.generateSprite(indexedImages[v], true)
 		}
+		PluginChatIcons.loaded() // Not part of the original client: the plugins' chat icons after the game's.
 		StaticMedia.compassSprite = toolkit!!.generateSprite(SpriteDataProvider.listSingle(spriteResource, StaticMedia.compassGroupid, 0), true)
 		StaticMedia.otherLevelSprite = toolkit.generateSprite(SpriteDataProvider.listSingle(spriteResource, FriendChat.otherLevelGroupId, 0), true)
 		indexedImages = SpriteType.decodeGroup(spriteResource, StaticMedia.hintMapedgeGroupid)

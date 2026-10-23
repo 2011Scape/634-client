@@ -9,8 +9,9 @@ the ground items (`GroundItems`), the loot tracker (`LootTracker`), the object m
 (`ObjectIndicators`), the XP tracker (`XpTracker`), the opponent information (`OpponentInfo`), the
 boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the status bars (`StatusBars`), the
 timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the
-Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`) and the
-anti drag (`AntiDrag`) are twenty-three, built in, so the client's own code shows the way.
+Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`), the
+anti drag (`AntiDrag`) and the emojis (`Emojis`) are twenty-four, built in, so the client's own code
+shows the way.
 
 ## Contents
 
@@ -49,7 +50,8 @@ the game for you.
   of the game view and the player moves (RuneLite's overlays, with its panel, line and title
   components), infoboxes in the shared infobox panel, and tooltips by the mouse; and hide a component
   of an interface on this client (to draw its own in its place), or change how long an item must be
-  held before it drags.
+  held before it drags; rewrite a chat line or an overhead line before it shows, and add pictures of its
+  own to the chat icons (`<img=N>`).
 - Add: entries to the right-click menu of a tile, npc, player, ground item, location or interface
   component (an inventory slot included), with an action of its own, and entries that open a
   submenu of its own beside the menu; console commands (`::name`); lines in the chat box and the
@@ -389,6 +391,12 @@ backpack or the deposit box only starts to drag once the mouse has been held on 
 client cycles (30, a game tick's worth; the game's own is 5, or 10 in the bank's backpack): only while
 Shift is held with **On shift only**, else always but not while Control is held with **Disable on
 control pressed**. The game's delay comes back when the key is let go or the window loses focus.
+
+**Emojis** is RuneLite's, off until switched on. In public chat, private chat and the friends chat, and
+over players' heads, a word that is one of RuneLite's 67 emoticons (`:)`, `^_^`, `<3`, `:D` ...) is
+shown as the emoji, a Twemoji picture added to the chat icons. Only you see them: the line sent to the
+server is unchanged. Not here from RuneLite: its `:name:` shortcodes (they need its downloaded set of
+every emoji), and the browser build, which has no pictures for them.
 
 ## Writing a plugin
 

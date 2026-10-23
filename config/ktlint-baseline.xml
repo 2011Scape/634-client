@@ -620,7 +620,7 @@
         <error line="6" column="18" source="standard:no-empty-class-body" />
     </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/graphics/sprite/StaticMedia.kt">
-        <error line="15" column="1" source="standard:no-unused-imports" />
+        <error line="16" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/graphics/texture/water/KeyedReferenceFactory.kt">
         <error line="9" column="1" source="standard:no-unused-imports" />

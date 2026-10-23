@@ -54,6 +54,9 @@ import com.jagex.game.runetek5.plugin.PluginRegistration
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.entity.NPCEntity
 import com.jagex.game.runetek5.plugin.PluginRuntime
+import com.jagex.game.runetek5.ChatLineWriter
+import com.jagex.game.runetek5.interaction.chat.ChatBox
+import com.jagex.game.runetek5.plugin.api.ChatType
 import com.jagex.game.runetek5.cache.node.Node
 import com.jagex.game.runetek5.client.event.mouse.MouseLog
 import com.jagex.game.runetek5.plugin.api.OverlayPosition
@@ -307,6 +310,11 @@ object SmokeTest {
 	private var antiDragStep: Int = 0
 
 	private var antiDragFrame: Int = -1
+
+	/** client.test.emojis: Emojis on a public chat line and the player's overhead line, both written here as the packets would. */
+	private val EMOJIS: Boolean = "true" == lang.getProperty("client.test.emojis")
+
+	private var emojisFrame: Int = -1
 
 	private var bankFrame: Int = -1
 
@@ -1184,6 +1192,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 4194304
+		}
+		if (EMOJIS && (checksDone and 8388608) == 0) {
+			if (!emojisDone(player)) {
+				return
+			}
+			checksDone = checksDone or 8388608
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3552,6 +3566,31 @@ object SmokeTest {
 			return true
 		}
 		println("SMOKE anti drag: backpack slots " + AntiDrag.dragDelay + " cycles with Shift held, " + restored + " after")
+		return true
+	}
+
+	private fun emojisDone(player: PlayerEntity): Boolean {
+		if (emojisFrame == -1) {
+			Emojis.enabled = true
+			// as PacketDecoder writes public chat: the player's text with < and > escaped
+			ChatLineWriter.writeMessage(USER, "hello :) and ^_^ <lt>3", -1, USER, null, ChatType.PUBLIC, 0, USER)
+			player.hintDetails.text = "hi :D"
+			PluginRuntime.overheadTextChanged(player, player.hintDetails.text)
+			emojisFrame = frames
+			return false
+		}
+		if (frames - emojisFrame < MARKER_FRAMES) {
+			return false
+		}
+		val line: String? = ChatBox.CHAT_LINES[0]?.message
+		val overhead: String? = player.hintDetails.text
+		saveFrame("build/smoke/frame-emojis.png")
+		Emojis.enabled = false
+		if (line == null || !line.contains("<img=") || line.contains(":)") || overhead == null || !overhead.contains("<img=")) {
+			fail("Emojis left the chat line as \"" + line + "\" and the overhead as \"" + overhead + "\"")
+			return true
+		}
+		println("SMOKE emojis: chat \"" + line + "\", overhead \"" + overhead + "\"")
 		return true
 	}
 

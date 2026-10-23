@@ -793,11 +793,13 @@ object PluginRuntime {
 	}
 
 	@JvmStatic
-	fun chatMessage(type: Int, name: String?, message: String?, clan: String?) {
+	fun chatMessage(type: Int, name: String?, message: String?, clan: String?): String? {
 		if (!started || !bus.hasListeners(Events.CHAT_MESSAGE)) {
-			return
+			return message
 		}
-		bus.post(Events.CHAT_MESSAGE, ChatMessage(type, name, message, clan))
+		val event: ChatMessage = ChatMessage(type, name, message, clan)
+		bus.post(Events.CHAT_MESSAGE, event)
+		return event.message
 	}
 
 	@JvmStatic

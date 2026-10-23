@@ -47,8 +47,10 @@ package com.jagex.game.runetek5.plugin.api
  * - 16: panel tooltips, [ClientApi.addTooltip] with a [PanelComponent].
  * - 17: [Widget.setHidden], and the [LoopTimer] infobox.
  * - 18: [Widget.dragDeadTime] and [Widget.setDragDeadTime].
+ * - 19: chat lines a listener rewrites (ChatMessage.message), [Actor.setOverheadText], [ClientApi.createImage]
+ *   and chat icons ([ClientApi.addChatIcon]).
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 18
+	const val VERSION: Int = 19
 }

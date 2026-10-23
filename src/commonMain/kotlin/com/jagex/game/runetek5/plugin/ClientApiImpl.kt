@@ -792,6 +792,17 @@ object ClientApiImpl : ClientApi {
 		return PluginImage.fromPng(png)
 	}
 
+	override fun createImage(width: Int, height: Int, argb: IntArray): Image? {
+		if (width <= 0 || height <= 0 || width > PluginImage.MAX_SIZE || height > PluginImage.MAX_SIZE || argb.size < width * height) {
+			return null
+		}
+		return PluginImage(width, height, argb.copyOf(width * height))
+	}
+
+	override fun addChatIcon(image: Image): Int {
+		return PluginChatIcons.add(image as? PluginImage ?: return -1)
+	}
+
 	override fun addTooltip(text: String) {
 		Tooltips.add(text)
 	}

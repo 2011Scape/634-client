@@ -7,6 +7,7 @@ import com.jagex.game.runetek5.client.features.BarrowsBrothers
 import com.jagex.game.runetek5.client.features.Boosts
 import com.jagex.game.runetek5.client.features.Cannon
 import com.jagex.game.runetek5.client.features.DiscordPresence
+import com.jagex.game.runetek5.client.features.Emojis
 import com.jagex.game.runetek5.client.features.GroundItems
 import com.jagex.game.runetek5.client.features.GroundTiles
 import com.jagex.game.runetek5.client.features.IdleNotifier
@@ -62,6 +63,7 @@ object BuiltinPlugins {
 			builtIn(AttackStyles.DESCRIPTOR, AttackStyles),
 			builtIn(Cannon.DESCRIPTOR, Cannon),
 			builtIn(AntiDrag.DESCRIPTOR, AntiDrag),
+			builtIn(Emojis.DESCRIPTOR, Emojis),
 		)
 	}
 

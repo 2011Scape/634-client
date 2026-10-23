@@ -358,6 +358,16 @@ interface ClientApi {
 	 */
 	fun loadImage(png: ByteArray): Image?
 
+	/** A picture [width] by [height] of [argb] pixels, row by row (RuneLite's BufferedImage); null for a size out of range. Since API 19. */
+	fun createImage(width: Int, height: Int, argb: IntArray): Image?
+
+	/**
+	 * Adds [image] to the chat icons, RuneLite's ChatIconManager: the number to write as `<img=N>` in a
+	 * chat line, an overhead line or interface text to show it; -1 while the game's own icons are not
+	 * loaded yet (ask again once logged in). The icons stay for the session. Since API 19.
+	 */
+	fun addChatIcon(image: Image): Int
+
 	/**
 	 * Shows [text] in a tooltip box by the mouse this frame, over everything, as RuneLite's TooltipManager:
 	 * call it while drawing, each frame it is to show. `</br>` breaks a line and `<col=rrggbb>` colours
