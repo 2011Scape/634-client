@@ -43,6 +43,7 @@ import com.jagex.game.runetek5.client.features.RegenMeter
 import com.jagex.game.runetek5.client.features.ReportButton
 import com.jagex.game.runetek5.client.features.RunEnergy
 import com.jagex.game.runetek5.client.features.Slayer
+import com.jagex.game.runetek5.client.features.Smelting
 import com.jagex.game.runetek5.client.features.SpecialCounter
 import com.jagex.game.runetek5.client.features.StatusBars
 import com.jagex.game.runetek5.client.features.TileIndicators
@@ -118,6 +119,7 @@ object BuiltinPlugins {
 			builtIn(Hunter.DESCRIPTOR, Hunter),
 			builtIn(Implings.DESCRIPTOR, Implings),
 			builtIn(Cooking.DESCRIPTOR, Cooking),
+			builtIn(Smelting.DESCRIPTOR, Smelting),
 		)
 	}
 
