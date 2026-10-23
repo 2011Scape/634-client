@@ -19,7 +19,6 @@ import com.jagex.game.runetek5.client.features.LootTracker
 import com.jagex.game.runetek5.client.features.MenuEntrySwapper
 import com.jagex.game.runetek5.client.features.Mining
 import com.jagex.game.runetek5.client.features.MouseTooltips
-import com.jagex.game.runetek5.client.features.NamePlates
 import com.jagex.game.runetek5.client.features.NpcIndicators
 import com.jagex.game.runetek5.client.features.ObjectIndicators
 import com.jagex.game.runetek5.client.features.OpponentInfo
@@ -55,7 +54,6 @@ object BuiltinPlugins {
 			builtIn(IdleNotifier.DESCRIPTOR, IdleNotifier),
 			builtIn(MenuEntrySwapper.DESCRIPTOR, MenuEntrySwapper),
 			builtIn(InventoryValue.DESCRIPTOR, InventoryValue),
-			builtIn(NamePlates.DESCRIPTOR, NamePlates),
 			builtIn(GroundTiles.DESCRIPTOR, GroundTiles),
 			builtIn(NpcIndicators.DESCRIPTOR, NpcIndicators),
 			builtIn(DiscordPresence.DESCRIPTOR, DiscordPresence),
