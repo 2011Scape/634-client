@@ -99,6 +99,13 @@ object Party : Plugin {
 	@JvmField
 	var state: State = State(emptyList(), -1, -1, null)
 
+	/** How many members' dots the minimap and the world map showed in the last frame (the smoke test's proof). */
+	@JvmField
+	var minimapDots: Int = 0
+
+	@JvmField
+	var worldMapDots: Int = 0
+
 	private var context: PluginContext? = null
 	private var lastPingSeq: Int = -1
 	private var pingPrimed: Boolean = false
@@ -117,6 +124,9 @@ object Party : Plugin {
 	private val xs: IntArray = IntArray(4)
 	private val ys: IntArray = IntArray(4)
 	private val size: Size = Size()
+
+	/** A stat line's height: the font's, and a pixel above and below. */
+	private var statLine: Int = 14
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
@@ -405,7 +415,8 @@ object Party : Plugin {
 		val line: Int = g.fontHeight()
 		val width: Int = if (overlay.preferredWidth > 0) overlay.preferredWidth else PANEL_WIDTH
 		val statLines: Int = if (compactPanel) 1 else 2
-		val memberHeight: Int = line + statLines * STAT_LINE + GAP
+		statLine = line + 2
+		val memberHeight: Int = line + statLines * statLine + GAP
 		val height: Int = BORDER + line + (if (current.invite != null) line else 0) + current.members.size * memberHeight + BORDER
 		PanelComponent.background(g, 0, 0, width, height, overlay.backgroundColour)
 		var y: Int = BORDER
@@ -445,17 +456,18 @@ object Party : Plugin {
 		} else {
 			val full: Int = width - BORDER * 2
 			stat(g, BORDER, y, full, member.hp, member.hpMax, HP, "HP " + member.hp + "/" + member.hpMax)
-			stat(g, BORDER, y + STAT_LINE, full, member.prayer, member.prayerMax, PRAYER, "Prayer " + member.prayer + "/" + member.prayerMax)
+			stat(g, BORDER, y + statLine, full, member.prayer, member.prayerMax, PRAYER, "Prayer " + member.prayer + "/" + member.prayerMax)
 		}
 	}
 
-	/** One stat: its bar, with its name and value written over it ("HP 45/99", "Spec 75%"). */
+	/** One stat: its bar, as tall as the text, with its name and value written over it ("HP 45/99"). */
 	private fun stat(g: Graphics, x: Int, y: Int, width: Int, value: Int, max: Int, colour: Int, label: String) {
-		g.fillRect(x, y + 2, width, STAT_BAR, BAR_BACK)
+		val height: Int = statLine - 1
+		g.fillRect(x, y + 1, width, height, BAR_BACK)
 		if (max > 0) {
-			g.fillRect(x, y + 2, width * value.coerceIn(0, max) / max, STAT_BAR, colour)
+			g.fillRect(x, y + 1, width * value.coerceIn(0, max) / max, height, colour)
 		}
-		g.textCentered(x + width / 2, y + STAT_LINE - 3, label, WHITE, BLACK)
+		g.textCentered(x + width / 2, y + height - 2, label, WHITE, BLACK)
 	}
 
 	/** The leader's crown, drawn pixel by pixel from [CROWN_PIXELS]: three points with gold tips, a band with jewels. */
@@ -509,41 +521,50 @@ object Party : Plugin {
 
 	private fun drawMinimap(g: Graphics, client: ClientApi) {
 		if (!client.minimapArea(area)) {
+			minimapDots = 0
 			return
 		}
 		g.clip(area[0], area[1], area[2], area[3])
+		val level: Int = client.localPlayer()?.level() ?: 0
+		var dots = 0
 		for (member in state.members) {
-			if (member.slot == state.local || member.x < 0 || !client.projectMinimap(member.x, member.y, point)) {
+			// projectMinimap takes scene tiles; a member on another floor is not shown
+			if (member.slot == state.local || member.x < 0 || member.level != level || !client.projectMinimap(member.x - client.sceneBaseX(), member.y - client.sceneBaseY(), point)) {
 				continue
 			}
-			g.fillCircle(point[0], point[1], DOT, colour(member.name))
+			g.fillCircle(point[0], point[1], DOT, BLACK)
+			g.fillCircle(point[0], point[1], DOT - 1, colour(member.name))
+			dots++
 		}
 		g.unclip()
+		minimapDots = dots
 	}
 
 	private fun drawWorldMap(g: Graphics, client: ClientApi) {
 		if (!client.worldMapArea(area)) {
+			worldMapDots = 0
 			return
 		}
 		g.clip(area[0], area[1], area[2], area[3])
+		var dots = 0
 		for (member in state.members) {
 			if (member.slot == state.local || member.x < 0 || !client.projectWorldMap(member.x, member.y, point)) {
 				continue
 			}
+			dots++
 			g.fillCircle(point[0], point[1], DOT + 1, colour(member.name))
 			if (g.fontReady()) {
 				g.textCentered(point[0], point[1] - DOT - 3, member.name, WHITE, BLACK)
 			}
 		}
 		g.unclip()
+		worldMapDots = dots
 	}
 
 	private const val BASE37: String = "_abcdefghijklmnopqrstuvwxyz0123456789"
 	private const val BORDER: Int = 4
 	private const val GAP: Int = 2
 	private const val PANEL_WIDTH: Int = 150
-	private const val STAT_LINE: Int = 13
-	private const val STAT_BAR: Int = 10
 
 	/** The crown, 13 by 10: O outline, G gold, L and Y its lights, R and B jewels. */
 	private val CROWN_PIXELS: Array<String> = arrayOf(

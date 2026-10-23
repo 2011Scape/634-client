@@ -5618,16 +5618,51 @@ object SmokeTest {
 			2 -> {
 				if (Party.pingShowing() && state.members.size >= 2) {
 					saveFrame("build/smoke/frame-party.png")
-					println("SMOKE party: " + (if (lead) "led" else "joined") + " a party of " + state.members.map { it.name } + ", the ping shows")
-					if (lead) {
-						ClientCommandProcessor.sendCheat("party leave", false, false)
+					println("SMOKE party: " + (if (lead) "led" else "joined") + " a party of " + state.members.map { it.name } + ", the ping shows, minimap dots " + Party.minimapDots)
+					if (lead && Party.minimapDots == 0) {
+						return partyFail("the member's dot is not on the minimap")
 					}
-					Party.enabled = partyWasEnabled
-					return true
-				}
-				if (waited > PARTY_WAIT) {
+					partyFrame = frames
+					partyStep = 3
+					if (lead && !openTab("World Map", "View World Map")) {
+						println("SMOKE party: no world map button found; the world map dot is not checked")
+						partyStep = 5
+					}
+				} else if (waited > PARTY_WAIT) {
 					return partyFail("no ping seen, members " + state.members.map { it.name } + ", ping varcs " + ClientApiImpl.varcInt(Party.PING_SEQ) + "/" + ClientApiImpl.varcInt(Party.PING_TILE))
 				}
+			}
+			3 -> {
+				if (!lead) {
+					// the joiner stays until the leader has checked the maps and left
+					if (!state.inParty() || waited > PARTY_WAIT) {
+						Party.enabled = partyWasEnabled
+						return true
+					}
+					return false
+				}
+				if (Party.worldMapDots == 0 && waited < BANK_WAIT_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-party-worldmap.png")
+				println("SMOKE party: world map dots " + Party.worldMapDots)
+				if (Party.worldMapDots == 0) {
+					return partyFail("the member's dot is not on the world map")
+				}
+				clickComponent(WORLD_MAP, WORLD_MAP_CLOSE)
+				partyFrame = frames
+				partyStep = 4
+			}
+			4 -> {
+				if (ClientApiImpl.worldMapArea(IntArray(4)) && waited < BANK_WAIT_FRAMES) {
+					return false
+				}
+				partyStep = 5
+			}
+			else -> {
+				ClientCommandProcessor.sendCheat("party leave", false, false)
+				Party.enabled = partyWasEnabled
+				return true
 			}
 		}
 		return false
