@@ -51,8 +51,9 @@ package com.jagex.game.runetek5.plugin.api
  *   and chat icons ([ClientApi.addChatIcon]).
  * - 20: keys remapped or dropped before the client reads them ([com.jagex.game.runetek5.plugin.api.events.Events.KEY_INPUT]),
  *   [Widget.setText], and the client variables ([ClientApi.varcInt], [ClientApi.varcString], [ClientApi.setVarcString]).
+ * - 21: the mouse cursor ([ClientApi.setCursor], [ClientApi.resetCursor]) and items' icons as pictures ([ClientApi.itemImage]).
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 20
+	const val VERSION: Int = 21
 }

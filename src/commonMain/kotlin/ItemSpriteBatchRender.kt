@@ -17,9 +17,52 @@ import com.jagex.game.runetek5.preference.GamePreferences
 import com.jagex.game.runetek5.InterfaceRectangles
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.Js5TextureSource
+import com.jagex.game.runetek5.config.item.ItemType
+import com.jagex.game.runetek5.config.objtype.ObjNumMode
+import com.jagex.game.runetek5.graphics.font.AbstractFontRenderer
 import kotlin.jvm.JvmStatic
 
 object ItemSpriteBatchRender {
+
+	/**
+	 * Not part of the original client: item [objId]'s icon as ARGB pixels (36 by 32), drawn as the batch
+	 * draws one (on the software toolkit), for a plugin (ClientApi.itemImage); null while its model is not
+	 * loaded yet.
+	 */
+	@JvmStatic
+	fun itemPixels(objId: Int, amount: Int): IntArray? {
+		val toolkit: Toolkit = ClientState.activeToolkit ?: return null
+		val renderer: Toolkit
+		val font: AbstractFontRenderer?
+		if (GamePreferences.uid!!.toolkit!!.getValue() == ToolkitType.JAVA) {
+			renderer = toolkit
+			font = Renderers.FONT_RENDERER
+		} else {
+			if (Renderers.GPU_ITEM_RENDERER == null) {
+				val canvas: Canvas = Canvas()
+				canvas.setSize(36, 32)
+				Renderers.GPU_ITEM_RENDERER = CanvasToolkitFactory.create(ToolkitType.JAVA, Js5TextureSource.anInterface4_10, 0, canvas, Resource.SHADER)
+				Renderers.GPU_ITEM_FONT_RENDERER = Renderers.GPU_ITEM_RENDERER!!.createFontRenderer(FontMetricsLoader.getFontMetrics(FontManager.p11FullIndex, Resource.FONT_METRICS), SpriteType.decodeGroup(Resource.SPRITES, FontManager.p11FullIndex))
+			}
+			renderer = Renderers.GPU_ITEM_RENDERER!!
+			font = Renderers.GPU_ITEM_FONT_RENDERER
+		}
+		var type: ItemType = TypeLists.OBJ!!.list(objId)
+		val stacks: IntArray? = type.stackIds
+		if (amount > 1 && stacks != null) {
+			// the stack's own look, as ObjTypeList.getSprite picks it
+			var stackId: Int = -1
+			for (i in 0 until 10) {
+				if (amount >= type.stackTriggerAmount!![i] && type.stackTriggerAmount!![i] != 0) {
+					stackId = stacks[i]
+				}
+			}
+			if (stackId != -1) {
+				type = TypeLists.OBJ!!.list(stackId)
+			}
+		}
+		return type.getSpritePixels(amount, false, 3153952, toolkit, renderer, font, null, ObjNumMode.SHOWCOUNT_IFNOT1, 1)
+	}
 
 	@OriginalMember(owner = "client!hk", name = "a", descriptor = "(Lclient!ha;I)V")
 	@JvmStatic

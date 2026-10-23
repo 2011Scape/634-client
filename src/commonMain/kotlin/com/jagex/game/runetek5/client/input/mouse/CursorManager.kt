@@ -9,6 +9,7 @@ import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
 import com.jagex.game.runetek5.client.GameShell
+import com.jagex.game.runetek5.plugin.PluginCursor
 import com.jagex.game.runetek5.config.TypeLists
 import com.jagex.game.runetek5.config.cursor.CursorType
 import com.jagex.game.runetek5.graphics.sprite.SpriteType
@@ -79,6 +80,9 @@ class CursorManager @OriginalMember(owner = "client!pfa", name = "<init>", descr
 		@OriginalMember(owner = "client!iba", name = "a", descriptor = "(II)V")
 		@JvmStatic
 		fun setCursor(@OriginalArg(1) cursorId: Int) {
+			if (PluginCursor.override()) {
+				return // Not part of the original client: a plugin's cursor stands (ClientApi.setCursor)
+			}
 			var cursorId: Int = cursorId
 			if (GamePreferences.uid!!.customCursor!!.getValue() == 0) {
 				cursorId = -1
