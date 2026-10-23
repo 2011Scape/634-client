@@ -10,6 +10,7 @@ import com.jagex.game.runetek5.cache.node.Node
 import com.jagex.game.runetek5.cache.node.ObjStackEntry
 import com.jagex.game.runetek5.config.iftype.SubInterfaceType
 import com.jagex.game.runetek5.config.rsinterface.Component
+import com.jagex.game.runetek5.config.rsinterface.ComponentType
 import com.jagex.game.runetek5.core.datastruct.key.DequeIterator
 import com.jagex.game.runetek5.client.ClientState
 import com.jagex.game.runetek5.client.input.console.Console
@@ -1148,8 +1149,8 @@ object PluginRuntime {
 		if (!started || component == null || !bus.hasListeners(Events.MENU_ENTRY_ADDED)) {
 			return
 		}
-		if (component.containerItemId == -1 && !hasOption(component)) {
-			return // a layer, a label or a picture under the mouse: no entries of the client's, none of the plugins' either
+		if (component.containerItemId == -1 && !hasOption(component) && !isText(component)) {
+			return // a layer or a picture under the mouse: no entries of the client's, none of the plugins' either
 		}
 		menuBuilding = true
 		menuKind = MenuTarget.WIDGET.kind
@@ -1232,6 +1233,12 @@ object PluginRuntime {
 			fail(owner, error)
 		}
 		return true
+	}
+
+	/** A text shown, which a plugin may give entries of its own (a chat line's "Copy to clipboard"). Since API 27. */
+	private fun isText(component: Component): Boolean {
+		val text: String? = component.text
+		return component.type === ComponentType.TEXT && text != null && text.isNotEmpty()
 	}
 
 	private fun hasOption(component: Component): Boolean {

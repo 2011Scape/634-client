@@ -131,6 +131,19 @@ interface ClientApi {
 	 */
 	fun removeChatLine(id: Int): Boolean
 
+	/**
+	 * Stores a line in the chat box as the server's would be, without a ChatMessage for it (RuneLite's
+	 * Client.addChatMessage as its chat history restores the lines before a login): [type] as
+	 * [ChatLineView.type], [name] the sender or null, [clan] a clan chat's name or null. Since API 27.
+	 */
+	fun addChatLine(type: Int, name: String?, message: String, clan: String?)
+
+	/** Puts [text] on the system clipboard; false when there is none to use. Since API 27. */
+	fun setClipboard(text: String): Boolean
+
+	/** The system clipboard's text, null when it holds none or there is no clipboard. Since API 27. */
+	fun clipboard(): String?
+
 	/** Writes a line to the developer console. */
 	fun consolePrint(text: String)
 

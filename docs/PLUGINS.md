@@ -16,8 +16,8 @@ tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brot
 (`PlayerIndicators`), the special attack counter (`SpecialCounter`), the regeneration meter
 (`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`), the fishing (`Fishing`), the
 agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), the item identification
-(`ItemIdentification`), the chat notifications (`ChatNotifications`) and the chat filter (`ChatFilter`)
-are forty-two, built in, so the client's own code shows the way.
+(`ItemIdentification`), the chat notifications (`ChatNotifications`), the chat filter (`ChatFilter`) and
+the chat history (`ChatHistory`) are forty-three, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -553,6 +553,12 @@ alone unless you ask. **Collapse game chat** and **Collapse player chat** fold a
 latest with its count, and **Repeat filter** drops public chat said more often than that. The filter
 works on lines as they come: a changed list does not touch the lines already shown. OSRS's newer clan
 chats do not exist here.
+
+**Chat History** is RuneLite's. Your public, private and clan chat lines are kept when you log out and
+put back when you log in again (the client empties the chat box at each login), a chat line's
+right-click menu has **Copy to clipboard**, and each chat tab's has **Clear history**, which takes that
+tab's lines out. 634 sends a private message to the name its prompt's script was given and keeps it
+nowhere a plugin could change it, so RuneLite's PM target cycling is not here.
 
 ## Writing a plugin
 

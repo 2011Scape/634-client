@@ -58,8 +58,10 @@ package com.jagex.game.runetek5.plugin.api
  * - 25: whether an interface component was drawn ([Widget.isDrawnThisFrame]).
  * - 26: chat lines dropped ([com.jagex.game.runetek5.plugin.api.events.ChatMessage.consume]) and the chat box's lines
  *   ([ClientApi.chatLine], [ClientApi.removeChatLine]).
+ * - 27: chat lines stored by a plugin ([ClientApi.addChatLine]), the clipboard ([ClientApi.setClipboard],
+ *   [ClientApi.clipboard]), and menu entries on texts without options (chat lines).
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 26
+	const val VERSION: Int = 27
 }

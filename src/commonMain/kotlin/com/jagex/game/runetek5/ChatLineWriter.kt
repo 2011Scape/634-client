@@ -21,6 +21,12 @@ object ChatLineWriter {
 			return
 		}
 		val shown: String? = if (event == null) message else event.message
+		storeLine(name, shown, quickchatMessageId, crownedName, clan, type, effectFlags, simpleName)
+	}
+
+	/** Not part of the original client: the storing half of writeMessage, for a line a plugin adds (ClientApi.addChatLine). */
+	@JvmStatic
+	fun storeLine(name: String?, shown: String?, quickchatMessageId: Int, crownedName: String?, clan: String?, type: Int, effectFlags: Int, simpleName: String?) {
 		@Pc(9) var chatLine: ChatLine? = ChatBox.CHAT_LINES[99]
 		@Pc(11) var i: Int = 99
 		while (i > 0) {
