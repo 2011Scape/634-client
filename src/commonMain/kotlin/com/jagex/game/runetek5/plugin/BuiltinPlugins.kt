@@ -17,6 +17,7 @@ import com.jagex.game.runetek5.client.features.ItemStats
 import com.jagex.game.runetek5.client.features.KeyRemapping
 import com.jagex.game.runetek5.client.features.LootTracker
 import com.jagex.game.runetek5.client.features.MenuEntrySwapper
+import com.jagex.game.runetek5.client.features.Mining
 import com.jagex.game.runetek5.client.features.MouseTooltips
 import com.jagex.game.runetek5.client.features.NamePlates
 import com.jagex.game.runetek5.client.features.NpcIndicators
@@ -74,6 +75,7 @@ object BuiltinPlugins {
 			builtIn(CustomCursor.DESCRIPTOR, CustomCursor),
 			builtIn(ItemStats.DESCRIPTOR, ItemStats),
 			builtIn(Woodcutting.DESCRIPTOR, Woodcutting),
+			builtIn(Mining.DESCRIPTOR, Mining),
 		)
 	}
 

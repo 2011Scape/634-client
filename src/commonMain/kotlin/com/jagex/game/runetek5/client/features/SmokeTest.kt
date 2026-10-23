@@ -356,6 +356,11 @@ object SmokeTest {
 
 	private var woodcuttingFrame: Int = -1
 
+	/** client.test.mining: Mining with a copper rock beside the player mined out as the server would tell it, and an ore said in the chat. */
+	private val MINING: Boolean = "true" == lang.getProperty("client.test.mining")
+
+	private var miningFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1262,6 +1267,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 134217728
+		}
+		if (MINING && (checksDone and 268435456) == 0) {
+			if (!miningDone(player)) {
+				return
+			}
+			checksDone = checksDone or 268435456
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3812,6 +3823,34 @@ object SmokeTest {
 			return true
 		}
 		println("SMOKE woodcutting: a felled tree's pie and 3 logs in the session panel")
+		return true
+	}
+
+	private fun miningDone(player: PlayerEntity): Boolean {
+		val api = ClientApiImpl
+		if (miningFrame == -1) {
+			Mining.enabled = true
+			// a Falador copper rock (5779) two tiles south of the player is mined out (5763)
+			PluginRuntime.locChanged(player.movementBaseX[0], player.movementBaseY[0] - 2, api.localPlayer()?.level() ?: 0, 2, 5779, 5763, 10, 0)
+			Mining.chat(com.jagex.game.runetek5.plugin.api.events.ChatMessage(ChatType.GAME_FILTERED, "", "You swing your pickaxe at the rock.", null))
+			Mining.chat(com.jagex.game.runetek5.plugin.api.events.ChatMessage(ChatType.GAME_FILTERED, "", "You manage to mine some copper ore.", null))
+			miningFrame = frames
+			return false
+		}
+		if (frames - miningFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-mining.png")
+		val respawns: Int = Mining.respawns.size
+		val session: Boolean = Mining.session != null
+		Mining.enabled = false
+		Mining.session = null
+		Mining.respawns.clear()
+		if (respawns != 1 || !session) {
+			fail("Mining: " + respawns + " respawn pies (not 1), a session " + session)
+			return true
+		}
+		println("SMOKE mining: a mined-out rock's pie and the session panel")
 		return true
 	}
 

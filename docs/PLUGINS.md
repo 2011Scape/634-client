@@ -11,8 +11,8 @@ boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the status 
 timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the
 Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`), the
 anti drag (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`), the key remapping
-(`KeyRemapping`), the custom cursor (`CustomCursor`), the item stats (`ItemStats`) and the woodcutting
-(`Woodcutting`) are twenty-nine, built in, so the client's own code shows the way.
+(`KeyRemapping`), the custom cursor (`CustomCursor`), the item stats (`ItemStats`), the woodcutting
+(`Woodcutting`) and the mining (`Mining`) are thirty, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -437,6 +437,14 @@ notification, and a felled tree's stump shows a pie of the time until it grows b
 estimate (its logs' base time, scaled as the server scales it at normal player counts; normal trees grow
 back in 50 to 100 ticks at random, shown as 100), so the pie is close rather than exact, and goes when
 the tree is back. Not here from RuneLite: Forestry, redwoods, bark and clue nests (all OSRS-only).
+
+**Mining** is RuneLite's, off until switched on. A panel at the top left says whether you are mining,
+how much you have mined this session and an hour (the XP Tracker's Mining actions, as RuneLite takes
+them, or the ores the plugin counts itself when that is more), and goes after **Reset stats** minutes
+without mining. A mined-out rock shows a pie of the time until its ore is back, Void's estimate (the
+ore's base time, scaled as the server scales it at normal player counts; clay always 2 ticks), so close
+rather than exact, and gone once the rock is back. Not here from RuneLite: Motherlode Mine, Daeyalt,
+amethyst and the other OSRS-only rocks.
 
 ## Writing a plugin
 
