@@ -42,6 +42,9 @@ object RegenMeter : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("regenmeter", "Regeneration Meter", "1", PluginApi.VERSION, "Shows the time to your next life points heal round the orb, and to the next special attack energy on the combat tab.", "Pixel")
 
+	/** The plugin manager's switch. */
+	@JvmField var enabled: Boolean = true
+
 	/** Void's HitpointRestoration: every 6 seconds. */
 	const val HP_REGEN_TICKS: Int = 10
 
@@ -80,6 +83,12 @@ object RegenMeter : Plugin {
 	private var context: PluginContext? = null
 
 	private val tickListener: EventListener<GameTick> = EventListener { event ->
+		if (!enabled) {
+			// switched off: the timers start afresh when it is on again
+			lastLifePoints = -1
+			lastSpecial = -1
+			return@EventListener
+		}
 		val tick: Int = event.serverTick / CYCLES_PER_TICK
 		if (tick != lastTick) {
 			lastTick = tick
@@ -88,7 +97,7 @@ object RegenMeter : Plugin {
 	}
 
 	/** RuneLite's RegenMeterOverlay, over the interfaces. */
-	private val frameListener: EventListener<FrameDraw> = EventListener { event -> context?.client()?.let { draw(event.graphics, it) } }
+	private val frameListener: EventListener<FrameDraw> = EventListener { event -> if (enabled) context?.client()?.let { draw(event.graphics, it) } }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
@@ -110,6 +119,7 @@ object RegenMeter : Plugin {
 		this.context = context
 		val s: SettingsSchema = context.settings()
 		// RuneLite's RegenMeterConfig, in its order
+		s.toggle("enabled", "Regeneration Meter", true)
 		s.toggle("showHitpoints", "Show hitpoints regen", true)
 		s.toggle("showSpecial", "Show spec. attack regen", true)
 		s.toggle("showWhenNoChange", "Show at full hitpoints", false)
@@ -130,6 +140,7 @@ object RegenMeter : Plugin {
 
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
+		enabled = config.getBoolean("enabled", true)
 		showHitpoints = config.getBoolean("showHitpoints", true)
 		showSpecial = config.getBoolean("showSpecial", true)
 		showWhenNoChange = config.getBoolean("showWhenNoChange", false)
