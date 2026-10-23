@@ -540,6 +540,17 @@ object SmokeTest {
 
 	private const val PROTECT_FROM_MELEE_BIT: Int = 14
 
+	/** client.test.inventoryTags: a glory(4) put in an empty backpack slot (in the client only) and tagged red (not saved), Inventory Tags' outline, fill and underline drawn on it (API 30). */
+	private val INVENTORY_TAGS: Boolean = "true" == lang.getProperty("client.test.inventoryTags")
+
+	private var inventoryTagsStep: Int = 0
+
+	private var inventoryTagsFrame: Int = -1
+
+	private var inventoryTagsSlot: Int = -1
+
+	private var inventoryTagsWasEnabled: Boolean = false
+
 	private var implingsWasEnabled: Boolean = false
 
 	private var npcAggressionWasEnabled: Boolean = false
@@ -1616,6 +1627,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 4503599627370496L
+		}
+		if (INVENTORY_TAGS && (checksDone and 9007199254740992L) == 0L) {
+			if (!inventoryTagsDone()) {
+				return
+			}
+			checksDone = checksDone or 9007199254740992L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5168,6 +5185,70 @@ object SmokeTest {
 					return true
 				}
 				println("SMOKE prayer: Protect from Melee on, the orb says 0:03 for 1 point, its infobox, the flick helper and the prayer bar drawn")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Inventory Tags on a tagged glory(4): outlined, filled and underlined. Frame: frame-inventorytags.png. */
+	private fun inventoryTagsDone(): Boolean {
+		when (inventoryTagsStep) {
+			0 -> {
+				val backpack = ClientApiImpl.itemContainer(BACKPACK) ?: return false
+				for (slot in 0 until backpack.size()) {
+					if (inventoryTagsSlot < 0 && backpack.itemId(slot) < 0) {
+						inventoryTagsSlot = slot
+					}
+				}
+				if (inventoryTagsSlot < 0) {
+					fail("Inventory Tags: no empty backpack slot")
+					return true
+				}
+				openInventoryTab()
+				inventoryTagsFrame = frames
+				inventoryTagsStep = 1
+			}
+			1 -> {
+				if (frames - inventoryTagsFrame < MARKER_FRAMES) {
+					return false
+				}
+				fakeBackpackItem(inventoryTagsSlot, GLORY_4)
+				// in the plugin's map only: setTag would save it to the player's settings
+				InventoryTags.tags[GLORY_4] = 0xFFFF0000.toInt()
+				// off by default: on for the step, as the player had it after
+				inventoryTagsWasEnabled = InventoryTags.enabled
+				InventoryTags.enabled = true
+				InventoryTags.tagFill = true
+				InventoryTags.tagUnderline = true
+				inventoryTagsFrame = frames
+				inventoryTagsStep = 2
+			}
+			2 -> {
+				// the outline and fill come once the glory's model is loaded
+				if (ClientApiImpl.itemOutline(GLORY_4, 1, -0x10000) == null && frames - inventoryTagsFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				inventoryTagsFrame = frames
+				inventoryTagsStep = 3
+			}
+			else -> {
+				if (frames - inventoryTagsFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-inventorytags.png")
+				val drawn: Int = InventoryTags.drawnLastFrame
+				val outlined: Boolean = ClientApiImpl.itemOutline(GLORY_4, 1, -0x10000) != null
+				fakeBackpackItem(inventoryTagsSlot, -1)
+				InventoryTags.tags.remove(GLORY_4)
+				InventoryTags.tagFill = false
+				InventoryTags.enabled = inventoryTagsWasEnabled
+				InventoryTags.tagUnderline = false
+				if (drawn == 0 || !outlined) {
+					fail("Inventory Tags: " + drawn + " items marked, outline made " + outlined)
+					return true
+				}
+				println("SMOKE inventory tags: the tagged glory(4) in backpack slot " + inventoryTagsSlot + " outlined, filled and underlined")
 				return true
 			}
 		}

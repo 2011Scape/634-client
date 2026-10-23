@@ -442,6 +442,16 @@ interface ClientApi {
 	fun itemImage(itemId: Int, quantity: Int): Image?
 
 	/**
+	 * The outline of item [itemId]'s icon (RuneLite's ItemManager.getItemOutline): a picture the icon's size
+	 * with the pixels just around its shape in [argb] and the rest clear, to draw where the icon is. The stack's
+	 * number is not outlined. Null while the model is not loaded yet. Since API 30.
+	 */
+	fun itemOutline(itemId: Int, quantity: Int, argb: Int): Image?
+
+	/** Item [itemId]'s icon with every pixel of its shape in [argb], alpha and all (RuneLite's ImageUtil.fillImage); null while not loaded. Since API 30. */
+	fun itemFill(itemId: Int, quantity: Int, argb: Int): Image?
+
+	/**
 	 * Sprite [spriteId] of the cache (its first frame, the game's own icons and such) as a picture, for
 	 * [addChatIcon], [Graphics.image] and an [InfoBox] (RuneLite's SpriteManager.getSprite); null when the
 	 * cache has no such sprite or it is not loaded yet. Since API 23.
