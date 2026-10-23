@@ -109,6 +109,8 @@ object OverlayManager {
 			if (pathingEntity!!.worldPriority >= 0 && (SceneDrawer.timesSceneRendered == pathingEntity.drawCycle || pathingEntity.level == PlayerUpdate.localPlayer!!.level)) {
 				OverlayManager.projectEntityToScreen(pathingEntity.getOverheadHeight(), clipWidth shr 1, height shr 1, pathingEntity)
 				if (OverlayManager.projectedScreenPosition[0] >= 0) {
+					// Not part of the original client: whether this actor adds a chat line (Actor.overheadTop)
+					val textsBefore: Int = OverlayManager.overheadTextCount
 					if (pathingEntity.hintDetails.text != null && (playerCount <= i || ChatBox.publicFilter == 0 || ChatBox.publicFilter == 3 || ChatBox.publicFilter == 1 && FriendOrSelfCheck.isFriendOrSelf((pathingEntity as PlayerEntity).displayName)) && OverlayManager.overheadTextCount < OverlayManager.MAX_OVERHEAD_TEXTS) {
 						OverlayManager.OVERHEAD_TEXT_HALF_WIDTHS[OverlayManager.overheadTextCount] = FontMetrics.defaultFontMetrics!!.getWidthNoSprites(pathingEntity.hintDetails.text) / 2
 						OverlayManager.OVERHEAD_TEXT_X[OverlayManager.overheadTextCount] = OverlayManager.projectedScreenPosition[0]
@@ -255,6 +257,14 @@ object OverlayManager {
 							overheadY -= 2
 						}
 					}
+					// Not part of the original client: the top of what is drawn over the head (the health bar, the head icons and a
+					// chat line) in the game view, for plugins (Actor.overheadTop, API 23)
+					var overheadTop: Int = overheadY - clipTop
+					if (OverlayManager.overheadTextCount > textsBefore) {
+						overheadTop = kotlin.math.min(overheadTop, OverlayManager.projectedScreenPosition[1] - FontMetrics.defaultFontMetrics!!.paddingTop - 2)
+					}
+					pathingEntity.overheadTop = overheadTop
+					pathingEntity.overheadTopCycle = ClientState.clientCycle
 					@Pc(825) var hintArrows: Array<HintArrow?>
 					@Pc(833) var hintArrow: HintArrow?
 					if (pathingEntity !is PlayerEntity) {
