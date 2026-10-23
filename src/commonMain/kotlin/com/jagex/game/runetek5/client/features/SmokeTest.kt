@@ -505,6 +505,11 @@ object SmokeTest {
 
 	private var npcAggressionFrame: Int = -1
 
+	/** client.test.hunter: a box trap set beside the player as the server would tell it (LOC_CHANGED through the runtime), Hunter's pie drawn on it. */
+	private val HUNTER: Boolean = "true" == lang.getProperty("client.test.hunter")
+
+	private var hunterFrame: Int = -1
+
 	private var npcAggressionWasEnabled: Boolean = false
 
 	/** The world map (755) and its close button. */
@@ -1549,6 +1554,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 140737488355328L
+		}
+		if (HUNTER && (checksDone and 281474976710656L) == 0L) {
+			if (!hunterDone(player)) {
+				return
+			}
+			checksDone = checksDone or 281474976710656L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4924,6 +4935,28 @@ object SmokeTest {
 			return true
 		}
 		println("SMOKE npc aggression: the timer at " + left / 1000 + "s, " + lines + " edge pieces of the square drawn")
+		return true
+	}
+
+	/** Hunter on a box trap laid east of the player: its open pie. Frame: frame-hunter.png. */
+	private fun hunterDone(player: PlayerEntity): Boolean {
+		if (hunterFrame == -1) {
+			PluginRuntime.locChanged(player.movementBaseX[0] + 1, player.movementBaseY[0], player.level.toInt(), 2, -1, 19187, 10, 0)
+			hunterFrame = frames
+			return false
+		}
+		if (frames - hunterFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-hunter.png")
+		val traps: Int = Hunter.traps.size
+		val drawn: Int = Hunter.drawnLastFrame
+		Hunter.traps.clear()
+		if (traps != 1 || drawn != 1) {
+			fail("Hunter: " + traps + " traps, " + drawn + " drawn")
+			return true
+		}
+		println("SMOKE hunter: the box trap laid beside the player marked with its pie")
 		return true
 	}
 
