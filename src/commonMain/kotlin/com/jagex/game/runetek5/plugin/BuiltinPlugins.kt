@@ -1,14 +1,15 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.client.features.AttackStyles
 import com.jagex.game.runetek5.client.features.BankOrganizer
 import com.jagex.game.runetek5.client.features.BarrowsBrothers
 import com.jagex.game.runetek5.client.features.Boosts
 import com.jagex.game.runetek5.client.features.DiscordPresence
 import com.jagex.game.runetek5.client.features.GroundItems
-import com.jagex.game.runetek5.client.features.LootTracker
 import com.jagex.game.runetek5.client.features.GroundTiles
 import com.jagex.game.runetek5.client.features.IdleNotifier
 import com.jagex.game.runetek5.client.features.InventoryValue
+import com.jagex.game.runetek5.client.features.LootTracker
 import com.jagex.game.runetek5.client.features.MenuEntrySwapper
 import com.jagex.game.runetek5.client.features.NamePlates
 import com.jagex.game.runetek5.client.features.NpcIndicators
@@ -56,6 +57,7 @@ object BuiltinPlugins {
 			builtIn(TileIndicators.DESCRIPTOR, TileIndicators),
 			builtIn(XpGlobes.DESCRIPTOR, XpGlobes),
 			builtIn(BarrowsBrothers.DESCRIPTOR, BarrowsBrothers),
+			builtIn(AttackStyles.DESCRIPTOR, AttackStyles),
 		)
 	}
 

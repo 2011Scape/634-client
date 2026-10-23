@@ -2,15 +2,15 @@
 
 How to add to the client without changing it: a plugin is a jar in a folder, written against a
 small, stable API, that reads the game, draws on it, adds menu entries and commands, and keeps its
-own settings. The XP drops (`XpDrops`), the idle notifier (`IdleNotifier`), the menu
-swapper (`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name plates (`NamePlates`),
-the ground tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Discord presence
-(`DiscordPresence`), the ground items (`GroundItems`), the loot tracker (`LootTracker`), the
-object markers (`ObjectIndicators`), the XP tracker (`XpTracker`), the opponent information
-(`OpponentInfo`), the boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the
-status bars (`StatusBars`), the timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the
-XP globes (`XpGlobes`) and the Barrows Brothers (`BarrowsBrothers`) are twenty, built in, so the client's
-own code shows the way.
+own settings. The XP drops (`XpDrops`), the idle notifier (`IdleNotifier`), the menu swapper
+(`MenuEntrySwapper`), the inventory value (`InventoryValue`), the name plates (`NamePlates`), the ground
+tiles (`GroundTiles`), the npc indicators (`NpcIndicators`), the Discord presence (`DiscordPresence`),
+the ground items (`GroundItems`), the loot tracker (`LootTracker`), the object markers
+(`ObjectIndicators`), the XP tracker (`XpTracker`), the opponent information (`OpponentInfo`), the
+boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the status bars (`StatusBars`), the
+timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the
+Barrows Brothers (`BarrowsBrothers`) and the attack styles (`AttackStyles`) are twenty-one, built in, so
+the client's own code shows the way.
 
 ## Contents
 
@@ -364,6 +364,15 @@ yellow, as in RuneLite. The tunnels' prayer drain (every 18 seconds on Void) get
 each drain it sees; the puzzle door's answer is outlined in green; and the chest's loot, as the backpack
 gains it (634 has no reward window), is priced in the chat at Grand Exchange prices. Each part has its
 switch.
+
+**Attack Styles** is RuneLite's, off until switched on. The attack style in use shows above the chat
+box: always, or only while it trains a skill you asked to be warned about (Attack, Strength, Defence,
+Ranged or Magic), when it is red. A change to a warned style is said in the chat and, with **Warning
+notification**, as a desktop notification; **Remove warned styles** hides those styles' buttons in the
+combat tab, and **Hide auto retaliate** its button. The style comes from the server's style index and
+the worn weapon's type (the cache's param 686, with the styles each type has on Void); autocasting is
+Casting, or Defensive Casting. Not here from RuneLite: hiding the staff's autocast buttons (634 keeps
+them in the spellbook, not the combat tab).
 
 ## Writing a plugin
 

@@ -291,6 +291,11 @@ object SmokeTest {
 
 	private var barrowsFrame: Int = -1
 
+	/** client.test.attackStyles: Attack Styles warning for Attack: the unarmed style named and its combat tab button hidden. */
+	private val ATTACK_STYLES: Boolean = "true" == lang.getProperty("client.test.attackStyles")
+
+	private var attackStylesFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1149,6 +1154,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 524288
+		}
+		if (ATTACK_STYLES && (checksDone and 1048576) == 0) {
+			if (!attackStylesDone()) {
+				return
+			}
+			checksDone = checksDone or 1048576
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3409,6 +3420,43 @@ object SmokeTest {
 		if (BarrowsBrothers.prayerDrainTimer != null) {
 			fail("the prayer drain timer outlived the crypt")
 		}
+		return true
+	}
+
+	private fun attackStylesDone(): Boolean {
+		val api = ClientApiImpl
+		if (attackStylesFrame == -1) {
+			AttackStyles.enabled = true
+			AttackStyles.warnForAttack = true
+			AttackStyles.removeWarnedStyles = true
+			attackStylesFrame = frames
+			return false
+		}
+		if (frames - attackStylesFrame < MARKER_FRAMES) {
+			return false
+		}
+		val style: AttackStyles.AttackStyle? = AttackStyles.attackStyle
+		val button: Boolean? = api.widget(AttackStyles.COMBAT_INTERFACE, AttackStyles.FIRST_STYLE)?.isHidden()
+		val first: AttackStyles.AttackStyle? = WeaponStyles.styles(AttackStyles.weaponType(api)).firstOrNull()
+		val expectHidden: Boolean = first != null && AttackStyles.isWarned(first)
+		saveFrame("build/smoke/frame-attackstyles.png")
+		AttackStyles.warnForAttack = false
+		AttackStyles.removeWarnedStyles = false
+		AttackStyles.tick(api)
+		AttackStyles.enabled = false
+		if (style == null || style == AttackStyles.AttackStyle.OTHER) {
+			fail("Attack Styles found the style " + style + " for weapon type " + AttackStyles.weaponType(api) + ", varp 43 = " + api.varp(AttackStyles.STYLE_VARP))
+			return true
+		}
+		if (button != expectHidden) {
+			fail("Attack Styles left the warned style's button 884:" + AttackStyles.FIRST_STYLE + (if (button == true) " hidden" else " shown") + ", expected " + (if (expectHidden) "hidden" else "shown"))
+			return true
+		}
+		if (api.widget(AttackStyles.COMBAT_INTERFACE, AttackStyles.FIRST_STYLE)?.isHidden() == true) {
+			fail("Attack Styles did not show 884:" + AttackStyles.FIRST_STYLE + " again once the warning was off")
+			return true
+		}
+		println("SMOKE attack styles: " + style.displayName + " for weapon type " + AttackStyles.weaponType(api) + ", button 884:11 " + (if (expectHidden) "hidden" else "shown") + " while Attack is warned, shown after")
 		return true
 	}
 
