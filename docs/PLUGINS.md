@@ -18,8 +18,9 @@ tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brot
 agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), the item identification
 (`ItemIdentification`), the chat notifications (`ChatNotifications`), the chat filter (`ChatFilter`),
 the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual levels
-(`VirtualLevels`), the metronome (`Metronome`), the death indicator (`DeathIndicator`) and the NPC
-aggression timer (`NpcAggression`) are forty-eight, built in, so the client's own code shows the way.
+(`VirtualLevels`), the metronome (`Metronome`), the death indicator (`DeathIndicator`), the NPC
+aggression timer (`NpcAggression`) and the hunter (`Hunter`) are forty-nine, built in, so the client's
+own code shows the way.
 
 ## Contents
 
@@ -594,6 +595,13 @@ ground (the aggressive colour while the clock runs, the other once it is up), wi
 the time is up. It shows near the monsters you name (wildcards allowed), near your slayer task's, or
 always. Void's tolerance has one 21 by 21 square around where its clock started (not OSRS's two areas):
 stepping out of it starts a new square and the 10 minutes again. The Wilderness is left out.
+
+**Hunter** is RuneLite's. The traps you set are marked by state: an open trap with a pie of the minute
+until it falls over (Void's 100 ticks), a trap with something in it, one something is going into, and a
+sprung empty one, each in its colour. It follows Void's bird snares, box traps (and the magic box),
+deadfalls and net traps, whose locations change with their state; Void's pitfalls keep their state in
+variables and its rabbit snares are not set up yet, so neither is marked, and the maniacal monkey's and
+the crab traps are not on Void.
 
 ## Writing a plugin
 
