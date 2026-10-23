@@ -6,6 +6,7 @@ import com.jagex.game.runetek5.client.features.BankOrganizer
 import com.jagex.game.runetek5.client.features.BarrowsBrothers
 import com.jagex.game.runetek5.client.features.Boosts
 import com.jagex.game.runetek5.client.features.Cannon
+import com.jagex.game.runetek5.client.features.CustomCursor
 import com.jagex.game.runetek5.client.features.DiscordPresence
 import com.jagex.game.runetek5.client.features.Emojis
 import com.jagex.game.runetek5.client.features.GroundItems
@@ -68,6 +69,7 @@ object BuiltinPlugins {
 			builtIn(Emojis.DESCRIPTOR, Emojis),
 			builtIn(MouseTooltips.DESCRIPTOR, MouseTooltips),
 			builtIn(KeyRemapping.DESCRIPTOR, KeyRemapping),
+			builtIn(CustomCursor.DESCRIPTOR, CustomCursor),
 		)
 	}
 

@@ -10,8 +10,9 @@ the ground items (`GroundItems`), the loot tracker (`LootTracker`), the object m
 boosts information (`Boosts`), the bank organizer (`BankOrganizer`), the status bars (`StatusBars`), the
 timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the
 Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`), the
-anti drag (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`) and the key
-remapping (`KeyRemapping`) are twenty-six, built in, so the client's own code shows the way.
+anti drag (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`), the key remapping
+(`KeyRemapping`) and the custom cursor (`CustomCursor`) are twenty-seven, built in, so the client's own
+code shows the way.
 
 ## Contents
 
@@ -52,7 +53,8 @@ the game for you.
   of an interface on this client (to draw its own in its place), or change how long an item must be
   held before it drags; rewrite a chat line or an overhead line before it shows, and add pictures of its
   own to the chat icons (`<img=N>`); set a component's text and the client variables (the chat box's
-  typed line); and remap the player's own keys before the client reads them (`KeyInput`).
+  typed line); remap the player's own keys before the client reads them (`KeyInput`); and set the
+  mouse cursor, from a picture or an item's icon.
 - Add: entries to the right-click menu of a tile, npc, player, ground item, location or interface
   component (an inventory slot included), with an action of its own, and entries that open a
   submenu of its own beside the menu; console commands (`::name`); lines in the chat box and the
@@ -412,6 +414,11 @@ to F12, and a key of your choosing for Escape; a key can stand for Space in a di
 for Control. Enter sends the line and locks the chat again, as do Escape (which also drops what was
 typed) and Backspace on an empty line. In 634, Enter on an empty line opens Quick Chat; with the plugin
 on, that Enter unlocks or locks the chat instead.
+
+**Custom Cursor** is RuneLite's, off until switched on. The mouse cursor over the game is one of
+RuneLite's pictures (RS3 gold or silver, a dragon dagger, a poisoned one, a trout, a dragon scimitar),
+the icon of the weapon you wear, or a picture of your own: `cursor.png` in the `.634-client` folder. Not
+here from RuneLite: the browser build, which carries neither the pictures nor your file.
 
 ## Writing a plugin
 

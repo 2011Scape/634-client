@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.plugin
 
+import ItemSpriteBatchRender
 import com.jagex.game.runetek5.config.varc.VarcTypeList
 import com.jagex.game.runetek5.ChatLineWriter
 import com.jagex.game.runetek5.LocType
@@ -813,6 +814,23 @@ object ClientApiImpl : ClientApi {
 		val varcs: Array<String?> = VarcTypeList.VARC_STRING ?: return null
 		return if (id >= 0 && id < varcs.size) varcs[id] else null
 	}
+
+	override fun setCursor(image: Image, hotX: Int, hotY: Int) {
+		PluginCursor.set(image as? PluginImage ?: return, hotX, hotY)
+	}
+
+	override fun resetCursor() {
+		PluginCursor.reset()
+	}
+
+	override fun itemImage(itemId: Int, quantity: Int): Image? {
+		val pixels: IntArray = ItemSpriteBatchRender.itemPixels(itemId, quantity) ?: return null
+		return PluginImage(ITEM_ICON_WIDTH, ITEM_ICON_HEIGHT, pixels)
+	}
+
+	/** The size of an item's icon. */
+	private const val ITEM_ICON_WIDTH: Int = 36
+	private const val ITEM_ICON_HEIGHT: Int = 32
 
 	override fun setVarcString(id: Int, value: String?) {
 		val varcs: Array<String?> = VarcTypeList.VARC_STRING ?: return

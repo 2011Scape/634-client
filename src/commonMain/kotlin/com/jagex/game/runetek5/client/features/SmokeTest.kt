@@ -54,6 +54,8 @@ import com.jagex.game.runetek5.plugin.PluginRegistration
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.entity.NPCEntity
 import com.jagex.game.runetek5.plugin.PluginRuntime
+import com.jagex.game.runetek5.client.input.mouse.CursorManager
+import com.jagex.game.runetek5.plugin.PluginCursor
 import com.jagex.game.runetek5.client.input.keyboard.CanvasKeyRecorder
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecorder
 import com.jagex.game.runetek5.ChatLineWriter
@@ -329,6 +331,15 @@ object SmokeTest {
 	private var keyRemapFrame: Int = -1
 
 	private var keyRemapYaw: Int = 0
+
+	/** client.test.customCursor: Custom Cursor's first picture, then the worn weapon's icon, put on the canvas, and the game's back. */
+	private val CUSTOM_CURSOR: Boolean = "true" == lang.getProperty("client.test.customCursor")
+
+	private var cursorStep: Int = 0
+
+	private var cursorFrame: Int = -1
+
+	private var cursorIconPixels: Int = 0
 
 	private var bankFrame: Int = -1
 
@@ -1218,6 +1229,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 16777216
+		}
+		if (CUSTOM_CURSOR && (checksDone and 33554432) == 0) {
+			if (!customCursorDone()) {
+				return
+			}
+			checksDone = checksDone or 33554432
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3672,6 +3689,47 @@ object SmokeTest {
 			}
 		}
 		keyRemapStep++
+		return false
+	}
+
+	private fun customCursorDone(): Boolean {
+		if (cursorFrame != -1 && frames - cursorFrame < MARKER_FRAMES) {
+			return false
+		}
+		cursorFrame = frames
+		when (cursorStep++) {
+			0 -> {
+				CustomCursor.enabled = true
+				CustomCursor.cursorStyle = 0
+			}
+			1 -> {
+				if (CustomCursor.shownStyle != 0 || !PluginCursor.isSet()) {
+					fail("Custom Cursor: style " + CustomCursor.shownStyle + " shown, a plugin cursor " + PluginCursor.isSet())
+					CustomCursor.enabled = false
+					return true
+				}
+				CustomCursor.cursorStyle = CustomCursor.EQUIPPED_WEAPON
+			}
+			2 -> {
+				val weapon: Boolean = CustomCursor.shownStyle == CustomCursor.EQUIPPED_WEAPON && PluginCursor.isSet()
+				CustomCursor.enabled = false
+				val worn: Int = ClientApiImpl.itemContainer(CustomCursor.WORN)?.itemId(CustomCursor.WEAPON_SLOT) ?: -1
+				val icon: com.jagex.game.runetek5.plugin.PluginImage? = ClientApiImpl.itemImage(worn, 1) as com.jagex.game.runetek5.plugin.PluginImage?
+				cursorIconPixels = icon?.pixels?.count { (it ushr 24) != 0 } ?: 0
+				if (!weapon || cursorIconPixels < 50) {
+					fail("Custom Cursor: the worn weapon's icon is not the cursor (style " + CustomCursor.shownStyle + ", " + cursorIconPixels + " pixels drawn)")
+					return true
+				}
+			}
+			else -> {
+				if (PluginCursor.isSet() || CursorManager.currentCursor == -3) {
+					fail("Custom Cursor: the plugin's cursor stayed after it was switched off")
+					return true
+				}
+				println("SMOKE custom cursor: RS3 Gold, then the worn weapon's icon (" + cursorIconPixels + " pixels drawn) on the canvas; the game's cursor back once off")
+				return true
+			}
+		}
 		return false
 	}
 

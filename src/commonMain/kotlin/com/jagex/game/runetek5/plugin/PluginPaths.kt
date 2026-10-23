@@ -76,6 +76,36 @@ object PluginPaths {
 		}
 	}
 
+	/** The bytes of [file], or null without the file or when it cannot be read (or is over 4 MB). */
+	@JvmStatic
+	fun readBytes(file: io.File): ByteArray? {
+		try {
+			if (!file.exists() || file.length() > MAX_READ) {
+				return null
+			}
+			val bytes = ByteArray(file.length().toInt())
+			val stream: io.FileInputStream = io.FileInputStream(file)
+			try {
+				var at = 0
+				while (at < bytes.size) {
+					val read: Int = stream.read(bytes, at, bytes.size - at)
+					if (read < 0) {
+						return null
+					}
+					at += read
+				}
+			} finally {
+				stream.close()
+			}
+			return bytes
+		} catch (ex: io.IOException) {
+			lang.printlnErr("Plugins: cannot read " + file.getPath() + ": " + ex)
+			return null
+		}
+	}
+
+	private const val MAX_READ: Long = 4L * 1024L * 1024L
+
 	/** Writes [text] to [file], making its folder; false when it cannot. */
 	@JvmStatic
 	fun writeText(file: io.File, text: String): Boolean {

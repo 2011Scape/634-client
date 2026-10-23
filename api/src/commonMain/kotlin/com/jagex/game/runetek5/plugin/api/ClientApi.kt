@@ -378,6 +378,21 @@ interface ClientApi {
 	fun setVarcString(id: Int, value: String?)
 
 	/**
+	 * Shows [image] as the mouse cursor over the game, its point at ([hotX], [hotY]), instead of the game's
+	 * own cursors (RuneLite's ClientUI.setCursor); [resetCursor] gives them back. Since API 21.
+	 */
+	fun setCursor(image: Image, hotX: Int, hotY: Int)
+
+	/** The game's own cursors back. Since API 21. */
+	fun resetCursor()
+
+	/**
+	 * Item [itemId]'s icon as a picture (RuneLite's ItemManager.getImage), with [quantity] shown as the
+	 * game shows a stack; null while its model is not loaded yet (ask again later). Since API 21.
+	 */
+	fun itemImage(itemId: Int, quantity: Int): Image?
+
+	/**
 	 * Shows [text] in a tooltip box by the mouse this frame, over everything, as RuneLite's TooltipManager:
 	 * call it while drawing, each frame it is to show. `</br>` breaks a line and `<col=rrggbb>` colours
 	 * what follows. Since API 12.
