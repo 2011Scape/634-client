@@ -841,6 +841,10 @@ object ClientApiImpl : ClientApi {
 		return spritePixels(type)
 	}
 
+	override fun overrideSprite(spriteId: Int, image: Image?) {
+		PluginSpriteOverrides.set(spriteId, image as? PluginImage)
+	}
+
 	/** A cache sprite's whole canvas (its padding too, as the game draws it) in ARGB; palette index 0 is clear. */
 	@JvmStatic
 	fun spritePixels(type: SpriteType): PluginImage? {

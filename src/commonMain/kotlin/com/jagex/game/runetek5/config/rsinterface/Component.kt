@@ -52,6 +52,7 @@ import com.jagex.game.runetek5.js5.Js5ResourceProvider
 import com.jagex.game.runetek5.client.ClientState
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
+import com.jagex.game.runetek5.plugin.PluginSpriteOverrides
 
 @OriginalClass("client!at")
 class Component : Widget {
@@ -1432,6 +1433,11 @@ class Component : Widget {
 	@OriginalMember(owner = "client!at", name = "c", descriptor = "(Lclient!ha;B)Lclient!mi;")
 	fun getSprite(@OriginalArg(0) toolkit: Toolkit?): NativeSprite? {
 		Component.missingMedia = false
+		// Not part of the original client: a plugin's picture in place of the sprite (ClientApi.overrideSprite).
+		val overridden: NativeSprite? = PluginSpriteOverrides.sprite(this.spriteId)
+		if (overridden != null) {
+			return overridden
+		}
 		@Pc(48) val spriteHash: Long = (this.spriteShadow.toLong() shl 40) + ((if (this.flipVertical) 1L else 0L) shl 38) + (this.borderThickness.toLong() shl 36) + ((if (this.alpha) 1L else 0L) shl 35) + this.spriteId.toLong() + ((if (this.flipHorizontal) 1L else 0L) shl 39)
 		@Pc(54) var sprite: NativeSprite? = Component.NATIVE_SPRITE_CACHE.get(spriteHash) as NativeSprite?
 		if (sprite != null) {

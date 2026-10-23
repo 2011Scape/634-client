@@ -400,6 +400,12 @@ interface ClientApi {
 	fun spriteImage(spriteId: Int): Image?
 
 	/**
+	 * Draws [image] wherever an interface shows sprite [spriteId] of the cache, as RuneLite's sprite
+	 * overrides (Client.getSpriteOverrides); null gives the cache's own back. Since API 24.
+	 */
+	fun overrideSprite(spriteId: Int, image: Image?)
+
+	/**
 	 * Shows [text] in a tooltip box by the mouse this frame, over everything, as RuneLite's TooltipManager:
 	 * call it while drawing, each frame it is to show. `</br>` breaks a line and `<col=rrggbb>` colours
 	 * what follows. Since API 12.

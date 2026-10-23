@@ -396,6 +396,13 @@ object SmokeTest {
 
 	private var runEnergyText: String = ""
 
+	/** client.test.poison: the player poisoned by Void's ::poison 14, Poison's infobox and the orb's green heart (API 24's sprite override). */
+	private val POISON: Boolean = "true" == lang.getProperty("client.test.poison")
+
+	private var poisonFrame: Int = -1
+
+	private var poisonSeen: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1338,6 +1345,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 8589934592L
+		}
+		if (POISON && (checksDone and 17179869184L) == 0L) {
+			if (!poisonDone()) {
+				return
+			}
+			checksDone = checksDone or 17179869184L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4090,6 +4103,37 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** Poisoned for one hit of 14: the infobox, and the orb's heart drawn green. Frame: frame-poison.png. */
+	private fun poisonDone(): Boolean {
+		if (poisonFrame == -1) {
+			Poison.showInfoboxes = true
+			sendCommand("poison 14")
+			poisonFrame = frames
+			return false
+		}
+		val poisoned: Boolean = ClientApiImpl.varp(Poison.POISON_VARP) > 0
+		if (!poisoned && frames - poisonFrame < BANK_WAIT_FRAMES) {
+			return false
+		}
+		if (poisonSeen == -1) {
+			poisonSeen = frames
+		}
+		if (frames - poisonSeen < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-poison.png")
+		val heart: Int = Poison.heart
+		val box: Boolean = Poison.infobox != null
+		val damage: Int = Poison.lastDamage
+		Poison.showInfoboxes = false
+		if (!poisoned || heart != Poison.HEART_POISON || !box || damage != 14) {
+			fail("Poison: poisoned " + poisoned + ", heart " + heart + ", infobox " + box + ", next damage " + damage)
+			return true
+		}
+		println("SMOKE poison: poisoned for " + damage + ", the green heart on the orb and the infobox; " + Poison.createTooltip())
+		return true
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {

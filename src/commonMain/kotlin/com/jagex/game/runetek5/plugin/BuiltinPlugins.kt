@@ -24,6 +24,7 @@ import com.jagex.game.runetek5.client.features.ObjectIndicators
 import com.jagex.game.runetek5.client.features.OpponentInfo
 import com.jagex.game.runetek5.client.features.OverlaySettings
 import com.jagex.game.runetek5.client.features.PlayerIndicators
+import com.jagex.game.runetek5.client.features.Poison
 import com.jagex.game.runetek5.client.features.RegenMeter
 import com.jagex.game.runetek5.client.features.ReportButton
 import com.jagex.game.runetek5.client.features.RunEnergy
@@ -84,6 +85,7 @@ object BuiltinPlugins {
 			builtIn(SpecialCounter.DESCRIPTOR, SpecialCounter),
 			builtIn(RegenMeter.DESCRIPTOR, RegenMeter),
 			builtIn(RunEnergy.DESCRIPTOR, RunEnergy),
+			builtIn(Poison.DESCRIPTOR, Poison),
 		)
 	}
 

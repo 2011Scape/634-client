@@ -281,8 +281,9 @@ as a zip beside the jar.
   `src/jvmMain/resources/smaa/`).
 - [RuneLite](https://github.com/runelite/runelite), whose plugins the built-in ones follow, and for
   the Boosts Information buff and debuff pictures (BSD 2-Clause licence, in
-  `src/commonMain/kotlin/com/jagex/game/runetek5/client/features/BoostImages.kt`) and the Custom Cursor
-  pictures (BSD 2-Clause licence, in `src/jvmMain/resources/customcursor/cursors.rgba`).
+  `src/commonMain/kotlin/com/jagex/game/runetek5/client/features/BoostImages.kt`), the Custom Cursor
+  pictures (BSD 2-Clause licence, in `src/jvmMain/resources/customcursor/cursors.rgba`) and the Poison
+  plugin's poison and disease hearts (BSD 2-Clause licence, in `src/jvmMain/resources/poison/hearts.rgba`).
 - [117HD](https://github.com/117HD/RLHD), for the lava flow map behind the fire cape and the lava
   and the water's normal, flow and foam maps (BSD 2-Clause licence, in
   `src/jvmMain/resources/634hd/materials/flow/`), for the per-area fog and ground fog of its
