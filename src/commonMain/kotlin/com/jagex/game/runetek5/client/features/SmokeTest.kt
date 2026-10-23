@@ -519,6 +519,8 @@ object SmokeTest {
 
 	private var implingsFailure: String? = null
 
+	private var implingsWasEnabled: Boolean = false
+
 	private var npcAggressionWasEnabled: Boolean = false
 
 	/** The world map (755) and its close button. */
@@ -4967,6 +4969,9 @@ object SmokeTest {
 	private fun implingsDone(player: PlayerEntity): Boolean {
 		when (implingsStep) {
 			0 -> {
+				// off by default: on for the step, as the player had it after
+				implingsWasEnabled = Implings.enabled
+				Implings.enabled = true
 				Implings.modes.fill(Implings.HIGHLIGHT)
 				Implings.showspawn = true
 				sendCommand("tele 2592 4318 0")
@@ -4998,6 +5003,7 @@ object SmokeTest {
 					Implings.modes[k] = Implings.KINDS[k].defaultMode
 				}
 				Implings.showspawn = false
+				Implings.enabled = implingsWasEnabled
 				sendCommand("tele " + SCENE_HOME[0] + " " + SCENE_HOME[1] + " " + SCENE_HOME[2])
 				implingsFrame = frames
 				implingsStep = 3
