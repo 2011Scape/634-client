@@ -22,7 +22,8 @@ the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual 
 aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implings`), the cooking
 (`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`), the inventory tags (`InventoryTags`), the
 inventory grid (`InventoryGrid`), the examine (`Examine`), the entity hider (`EntityHider`), the
-animation smoothing (`AnimationSmoothing`) and the screenshot (`Screenshot`) are fifty-nine, built in, so the client's own code shows the way.
+animation smoothing (`AnimationSmoothing`), the party (`Party`) and the screenshot (`Screenshot`) are
+sixty, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -662,6 +663,22 @@ blends only some of them; `::tween` blends them all until it is typed again). It
 animation that looks wrong blended can be left out by its id in **Animations not smoothed**. RuneLite's
 own list of those is of OSRS animations; 634's blending already turns a rotation the short way round
 and keeps the cut-offs the cache marks, which OSRS's list mostly works around.
+
+**Party** is RuneLite's, but the game server keeps the party (Void's `content/social/party`), so there is
+no party server and no one sees anyone's address. `::party invite <name>` (from anywhere; `_` for a
+space) invites a player, whose chat box shows "<name> wishes to join you in a party." in purple, as a
+duel challenge: a left click on it accepts (right click: Decline), as do the panel's menu and `::party
+accept`. The leader manages the party from the panel's right-click menu: **Invite player...** (the
+game's name box asks who), and on a member's row **Kick** and **Make leader**; `::party kick <name>`,
+`::party leader <name>`, `::party leave` and `::party decline` do the same by hand. A party holds eight;
+when the leader leaves, the next member leads. Out of a party, the panel shows "Right-click to invite". The panel lists the members, the leader with a crown, each with two labelled bars,
+HP and Prayer with their values (on one line with **Compact panel**); hovering a member shows their
+special attack and run energy too, and where they are (Lumbridge, Edgeville, ...). Their dots show on the minimap and the world map. Holding the
+**Ping hotkey** (Ctrl) adds Ping to a tile's menu: the tile lights up for everyone in the pinger's colour,
+with a sound. A member's location is hidden while they are in the Wilderness or another PvP area
+(marked "Wilderness" in red); their stats and pings are not. The server sends it all in client variables
+(2300 to 2360) and the plugin sends only the commands, so a server without parties shows nothing. It is
+off at first.
 
 **Screenshot** is RuneLite's. A hotkey (or `::screenshot`) takes a screenshot of the game, and so do
 your level-ups, quest completions and Barrows chests, your deaths, the players you kill and a kick from
