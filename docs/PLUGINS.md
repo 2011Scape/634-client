@@ -16,8 +16,8 @@ tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brot
 (`PlayerIndicators`), the special attack counter (`SpecialCounter`), the regeneration meter
 (`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`), the fishing (`Fishing`), the
 agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), the item identification
-(`ItemIdentification`) and the chat notifications (`ChatNotifications`) are forty-one, built in, so the
-client's own code shows the way.
+(`ItemIdentification`), the chat notifications (`ChatNotifications`) and the chat filter (`ChatFilter`)
+are forty-two, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -544,6 +544,15 @@ items) find nothing here.
 too), are highlighted in red in other players' and the game's chat lines; your name, a highlight, a
 trade or duel request and a private message can each notify you. Void sends no broadcasts, so that
 notification finds nothing, and OSRS's newer clan chats do not exist here.
+
+**Chat Filter** is RuneLite's. Messages with the words or patterns you list, or from the names you list,
+have the words starred, are replaced with "Hey, everyone, I just tried to say something very silly!", or
+are not shown at all (**Filter type**), in other players' public, private and clan chat lines and their
+overhead chat, and in the game's lines with **Filter game chat**; friends and clan chat members are left
+alone unless you ask. **Collapse game chat** and **Collapse player chat** fold a repeated line into the
+latest with its count, and **Repeat filter** drops public chat said more often than that. The filter
+works on lines as they come: a changed list does not touch the lines already shown. OSRS's newer clan
+chats do not exist here.
 
 ## Writing a plugin
 

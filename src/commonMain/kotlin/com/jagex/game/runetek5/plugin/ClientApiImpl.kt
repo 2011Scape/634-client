@@ -17,6 +17,10 @@ import com.jagex.game.runetek5.cache.node.HashTableIterator
 import com.jagex.game.runetek5.cache.node.ObjStackEntry
 import com.jagex.game.runetek5.core.datastruct.key.DequeIterator
 import com.jagex.game.runetek5.client.ClientState
+import com.jagex.game.runetek5.ChatLine
+import com.jagex.game.runetek5.interaction.chat.ChatBox
+import com.jagex.game.runetek5.client.menu.MiniMenu
+import com.jagex.game.runetek5.plugin.api.ChatLineView
 import com.jagex.game.runetek5.client.GameShell
 import com.jagex.game.runetek5.client.input.console.Console
 import com.jagex.game.runetek5.config.TypeLists
@@ -839,6 +843,39 @@ object ClientApiImpl : ClientApi {
 		}
 		val type: SpriteType = SpriteDataProvider.listSingle(sprites, spriteId, 0) ?: return null
 		return spritePixels(type)
+	}
+
+	override fun chatLineCount(): Int {
+		var count: Int = 0
+		while (count < ChatBox.CHAT_LINES.size && ChatBox.CHAT_LINES[count] != null && count < ChatBox.NUM_CHAT_LINES) {
+			count++
+		}
+		return count
+	}
+
+	override fun chatLine(i: Int): ChatLineView? {
+		if (i < 0 || i >= chatLineCount()) {
+			return null
+		}
+		val line: ChatLine = ChatBox.CHAT_LINES[i] ?: return null
+		return PluginChatLine(line.identifier, line.type, line.name, line.message, line.clan)
+	}
+
+	override fun removeChatLine(id: Int): Boolean {
+		val count: Int = chatLineCount()
+		for (i in 0 until count) {
+			if (ChatBox.CHAT_LINES[i]?.identifier == id) {
+				for (j in i until ChatBox.CHAT_LINES.size - 1) {
+					ChatBox.CHAT_LINES[j] = ChatBox.CHAT_LINES[j + 1]
+				}
+				ChatBox.CHAT_LINES[ChatBox.CHAT_LINES.size - 1] = null
+				ChatBox.NUM_CHAT_LINES--
+				// the chat box redraws its lines when the latest message's tick changes
+				MiniMenu.lastChatMessageTick = ClientState.serverTick
+				return true
+			}
+		}
+		return false
 	}
 
 	override fun overrideSprite(spriteId: Int, image: Image?) {

@@ -450,6 +450,13 @@ object SmokeTest {
 
 	private var chatNotificationsFrame: Int = -1
 
+	/** client.test.chatFilter: through the client's own chat path, a public line with a filtered word not stored (API 26's consume), and a repeated game line collapsed into one with its count (removeChatLine). */
+	private val CHAT_FILTER: Boolean = "true" == lang.getProperty("client.test.chatFilter")
+
+	private var chatFilterFrame: Int = -1
+
+	private var chatFilterWasEnabled: Boolean = false
+
 	private var itemIdentificationWasEnabled: Boolean = false
 
 	private var bankFrame: Int = -1
@@ -1444,6 +1451,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 1099511627776L
+		}
+		if (CHAT_FILTER && (checksDone and 2199023255552L) == 0L) {
+			if (!chatFilterDone()) {
+				return
+			}
+			checksDone = checksDone or 2199023255552L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4508,6 +4521,47 @@ object SmokeTest {
 			return true
 		}
 		println("SMOKE chat notifications: \"" + line + "\"")
+		return true
+	}
+
+	/** Chat Filter removing "buy gold" and collapsing a game line said twice. Frame: frame-chatfilter.png. */
+	private fun chatFilterDone(): Boolean {
+		val api = ClientApiImpl
+		if (chatFilterFrame == -1) {
+			// off by default: on for the step, as the player had it after
+			chatFilterWasEnabled = ChatFilter.enabled
+			ChatFilter.enabled = true
+			ChatFilter.filteredWords = "gold"
+			ChatFilter.filterType = ChatFilter.REMOVE_MESSAGE
+			ChatFilter.collapseGameChat = true
+			ChatFilter.compile()
+			val before: Int = api.chatLineCount()
+			ChatLineWriter.writeMessage("Spammer", "buy gold here", -1, "Spammer", null, ChatType.PUBLIC, 0, "Spammer")
+			if (api.chatLineCount() != before) {
+				fail("Chat Filter: the filtered line was stored")
+				return true
+			}
+			ChatLineWriter.writeMessage(null, "Smoke test repeat.", -1, null, null, ChatType.GAME, 0, null)
+			ChatLineWriter.writeMessage(null, "Smoke test repeat.", -1, null, null, ChatType.GAME, 0, null)
+			chatFilterFrame = frames
+			return false
+		}
+		if (frames - chatFilterFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-chatfilter.png")
+		val newest: String? = api.chatLine(0)?.message()
+		val previous: String? = api.chatLine(1)?.message()
+		ChatFilter.filteredWords = ""
+		ChatFilter.filterType = ChatFilter.CENSOR_WORDS
+		ChatFilter.collapseGameChat = false
+		ChatFilter.compile()
+		ChatFilter.enabled = chatFilterWasEnabled
+		if (newest != "Smoke test repeat. (2)" || previous == "Smoke test repeat.") {
+			fail("Chat Filter: the newest lines read \"" + newest + "\", \"" + previous + "\"")
+			return true
+		}
+		println("SMOKE chat filter: the filtered line never stored, the repeat collapsed into \"" + newest + "\"")
 		return true
 	}
 

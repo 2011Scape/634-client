@@ -118,6 +118,19 @@ interface ClientApi {
 	/** Writes a line to the chat box, as a game message. Dropped when not logged in. */
 	fun chatMessage(text: String)
 
+	/** How many lines the chat box holds (up to 100), newest first in [chatLine]. Since API 26. */
+	fun chatLineCount(): Int
+
+	/** Chat box line [i], 0 the newest; null past the last. Since API 26. */
+	fun chatLine(i: Int): ChatLineView?
+
+	/**
+	 * Takes the line [id] ([ChatLineView.id]) out of the chat box, the older ones moving up, and has the
+	 * chat box drawn again (RuneLite's MessageNode removal, as its chat filter collapses repeats). False
+	 * when no line has that id. Since API 26.
+	 */
+	fun removeChatLine(id: Int): Boolean
+
 	/** Writes a line to the developer console. */
 	fun consolePrint(text: String)
 

@@ -7,6 +7,7 @@ import com.jagex.game.runetek5.client.features.BankOrganizer
 import com.jagex.game.runetek5.client.features.BarrowsBrothers
 import com.jagex.game.runetek5.client.features.Boosts
 import com.jagex.game.runetek5.client.features.Cannon
+import com.jagex.game.runetek5.client.features.ChatFilter
 import com.jagex.game.runetek5.client.features.ChatNotifications
 import com.jagex.game.runetek5.client.features.CustomCursor
 import com.jagex.game.runetek5.client.features.DiscordPresence
@@ -98,6 +99,7 @@ object BuiltinPlugins {
 			builtIn(ItemCharges.DESCRIPTOR, ItemCharges),
 			builtIn(ItemIdentification.DESCRIPTOR, ItemIdentification),
 			builtIn(ChatNotifications.DESCRIPTOR, ChatNotifications),
+			builtIn(ChatFilter.DESCRIPTOR, ChatFilter),
 		)
 	}
 
