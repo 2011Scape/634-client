@@ -361,6 +361,15 @@ object SmokeTest {
 
 	private var miningFrame: Int = -1
 
+	/** client.test.reportButton: Report Button's login timer, then the date, on 751:11, and its own words back once off. */
+	private val REPORT_BUTTON: Boolean = "true" == lang.getProperty("client.test.reportButton")
+
+	private var reportStep: Int = 0
+
+	private var reportFrame: Int = -1
+
+	private var reportTexts: String = ""
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1273,6 +1282,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 268435456
+		}
+		if (REPORT_BUTTON && (checksDone and 536870912) == 0) {
+			if (!reportButtonDone()) {
+				return
+			}
+			checksDone = checksDone or 536870912
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3852,6 +3867,48 @@ object SmokeTest {
 		}
 		println("SMOKE mining: a mined-out rock's pie and the session panel")
 		return true
+	}
+
+	private fun reportButtonDone(): Boolean {
+		val api = ClientApiImpl
+		if (reportFrame != -1 && frames - reportFrame < MARKER_FRAMES) {
+			return false
+		}
+		reportFrame = frames
+		val shown: String = api.widget(ReportButton.INTERFACE, ReportButton.TEXT)?.text() ?: ""
+		when (reportStep++) {
+			0 -> {
+				ReportButton.enabled = true
+				ReportButton.time = ReportButton.LOGIN_TIME
+			}
+			1 -> {
+				saveFrame("build/smoke/frame-reportbutton.png")
+				reportTexts = shown
+				if (!Regex("[0-9]{2}:[0-9]{2}:[0-9]{2}").matches(shown)) {
+					fail("Report Button: the login timer reads \"" + shown + "\"")
+					return true
+				}
+				ReportButton.time = ReportButton.DATE
+			}
+			2 -> {
+				reportTexts += ", " + shown
+				if (!Regex("[A-Z][a-z]{2}\\. [0-9]{2}, [0-9]{4}").matches(shown)) {
+					fail("Report Button: the date reads \"" + shown + "\"")
+					return true
+				}
+				ReportButton.enabled = false
+				ReportButton.restore(api)
+			}
+			else -> {
+				if (shown != ReportButton.REPORT_ABUSE) {
+					fail("Report Button: the button reads \"" + shown + "\" once off")
+					return true
+				}
+				println("SMOKE report button: " + reportTexts + ", then \"" + shown + "\" once off")
+				return true
+			}
+		}
+		return false
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {
