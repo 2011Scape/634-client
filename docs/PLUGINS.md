@@ -18,8 +18,8 @@ tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brot
 agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), the item identification
 (`ItemIdentification`), the chat notifications (`ChatNotifications`), the chat filter (`ChatFilter`),
 the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual levels
-(`VirtualLevels`), the metronome (`Metronome`) and the death indicator (`DeathIndicator`) are
-forty-seven, built in, so the client's own code shows the way.
+(`VirtualLevels`), the metronome (`Metronome`), the death indicator (`DeathIndicator`) and the NPC
+aggression timer (`NpcAggression`) are forty-eight, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -587,6 +587,13 @@ place; all go once you stand on the tile again or the gravestone crumbles, and t
 logout. It reads Void's "Oh dear, you are dead!" and "Your gravestone has appeared and will last N
 minutes…"; a death in the Wilderness, where your items go to your killer, leaves no gravestone and no
 mark.
+
+**NPC Aggression Timer** is RuneLite's. Aggressive monsters stop attacking you once you have stayed in
+one area for 10 minutes: a timer counts down to it and **Show area lines** draws the area's edges on the
+ground (the aggressive colour while the clock runs, the other once it is up), with a notification when
+the time is up. It shows near the monsters you name (wildcards allowed), near your slayer task's, or
+always. Void's tolerance has one 21 by 21 square around where its clock started (not OSRS's two areas):
+stepping out of it starts a new square and the 10 minutes again. The Wilderness is left out.
 
 ## Writing a plugin
 

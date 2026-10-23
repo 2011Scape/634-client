@@ -500,6 +500,11 @@ object SmokeTest {
 
 	private var deathIndicatorFailure: String? = null
 
+	/** client.test.npcAggression: the NPC Aggression Timer always active with its area lines: the timer infobox and the 21 by 21 square drawn round the player. */
+	private val NPC_AGGRESSION: Boolean = "true" == lang.getProperty("client.test.npcAggression")
+
+	private var npcAggressionFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1528,6 +1533,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 70368744177664L
+		}
+		if (NPC_AGGRESSION && (checksDone and 140737488355328L) == 0L) {
+			if (!npcAggressionDone()) {
+				return
+			}
+			checksDone = checksDone or 140737488355328L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -4843,6 +4854,31 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** NPC Aggression Timer's timer and square. Frame: frame-npcaggression.png. */
+	private fun npcAggressionDone(): Boolean {
+		if (npcAggressionFrame == -1) {
+			NpcAggression.npcUnaggroAlwaysActive = true
+			NpcAggression.npcUnaggroShowAreaLines = true
+			npcAggressionFrame = frames
+			return false
+		}
+		if (frames - npcAggressionFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-npcaggression.png")
+		val timer: Boolean = NpcAggression.timer != null
+		val lines: Int = NpcAggression.linesDrawn
+		val left: Long = NpcAggression.remainingMillis()
+		NpcAggression.npcUnaggroAlwaysActive = false
+		NpcAggression.npcUnaggroShowAreaLines = false
+		if (!timer || lines == 0) {
+			fail("NPC Aggression Timer: timer " + timer + ", " + lines + " edge pieces drawn")
+			return true
+		}
+		println("SMOKE npc aggression: the timer at " + left / 1000 + "s, " + lines + " edge pieces of the square drawn")
+		return true
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {

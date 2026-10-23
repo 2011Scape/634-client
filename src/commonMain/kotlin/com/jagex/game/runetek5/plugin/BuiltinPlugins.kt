@@ -29,6 +29,7 @@ import com.jagex.game.runetek5.client.features.MenuEntrySwapper
 import com.jagex.game.runetek5.client.features.Metronome
 import com.jagex.game.runetek5.client.features.Mining
 import com.jagex.game.runetek5.client.features.MouseTooltips
+import com.jagex.game.runetek5.client.features.NpcAggression
 import com.jagex.game.runetek5.client.features.NpcIndicators
 import com.jagex.game.runetek5.client.features.ObjectIndicators
 import com.jagex.game.runetek5.client.features.OpponentInfo
@@ -110,6 +111,7 @@ object BuiltinPlugins {
 			builtIn(VirtualLevels.DESCRIPTOR, VirtualLevels),
 			builtIn(Metronome.DESCRIPTOR, Metronome),
 			builtIn(DeathIndicator.DESCRIPTOR, DeathIndicator),
+			builtIn(NpcAggression.DESCRIPTOR, NpcAggression),
 		)
 	}
 
