@@ -602,6 +602,19 @@ object SmokeTest {
 
 	private var animationSmoothingOffCount: Int = 0
 
+	/**
+	 * client.test.party: the Party plugin with a second smoke client on a server with parties (Void's Party).
+	 * "lead:<name>" invites <name>, waits for them, reads their stats, pings a tile and leaves; "join" waits for the
+	 * invite, accepts it and waits for the leader's ping.
+	 */
+	private val PARTY: String = lang.getProperty("client.test.party", "")
+
+	private var partyStep: Int = 0
+
+	private var partyFrame: Int = -1
+
+	private var partyWasEnabled: Boolean = false
+
 	private var animationSmoothingWasEnabled: Boolean = false
 
 	/**
@@ -682,6 +695,10 @@ object SmokeTest {
 	private var groundItemsSummary: String = ""
 
 	private const val MARKER_FRAMES: Int = 40
+
+	/** The party step's waits: for the other client, and between two invites. */
+	private const val PARTY_WAIT: Int = 3000
+	private const val PARTY_REINVITE: Int = 300
 
 	/** The backpack's item container, and an amulet of glory(4) for Item Charges. */
 	private const val BACKPACK: Int = 93
@@ -1726,6 +1743,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 288230376151711744L
+		}
+		if (PARTY.isNotEmpty() && (checksDone and 576460752303423488L) == 0L) {
+			if (!partyDone()) {
+				return
+			}
+			checksDone = checksDone or 576460752303423488L
 		}
 		if (SCREENSHOT && (checksDone and 144115188075855872L) == 0L) {
 			if (!screenshotDone()) {
@@ -5537,6 +5560,69 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** The party with a second client: see [PARTY]. Frame: frame-party.png. */
+	private fun partyDone(): Boolean {
+		val lead: Boolean = PARTY.startsWith("lead:")
+		val state: Party.State = Party.state
+		val waited: Int = frames - partyFrame
+		when (partyStep) {
+			0 -> {
+				partyWasEnabled = Party.enabled
+				Party.enabled = true
+				partyFrame = frames
+				partyStep = 1
+				if (lead) {
+					ClientCommandProcessor.sendCheat("party invite " + PARTY.substring(5), false, false)
+				}
+			}
+			1 -> {
+				if (lead) {
+					if (state.members.size >= 2) {
+						val other: Party.Member = state.members.first { it.slot != state.local }
+						if (other.hpMax <= 0) {
+							return partyFail("the member's hitpoints never came")
+						}
+						println("SMOKE party: " + other.name + " joined, hitpoints " + other.hp + "/" + other.hpMax + ", prayer " + other.prayer + "/" + other.prayerMax + ", tile " + other.x + "," + other.y)
+						val player: PlayerEntity = PlayerUpdate.localPlayer ?: return false
+						ClientCommandProcessor.sendCheat("ping " + player.movementBaseX[0].let { it + ClientApiImpl.sceneBaseX() } + " " + player.movementBaseY[0].let { it + ClientApiImpl.sceneBaseY() } + " " + ClientApiImpl.localPlayer()!!.level(), false, false)
+						partyFrame = frames
+						partyStep = 2
+					} else if (waited > 0 && waited % PARTY_REINVITE == 0) {
+						ClientCommandProcessor.sendCheat("party invite " + PARTY.substring(5), false, false)
+					}
+				} else if (state.invite != null) {
+					ClientCommandProcessor.sendCheat("party accept", false, false)
+					partyFrame = frames
+					partyStep = 2
+				}
+				if (partyStep == 1 && waited > PARTY_WAIT) {
+					return partyFail(if (lead) "no one joined" else "no invite came")
+				}
+			}
+			2 -> {
+				if (Party.pingShowing() && state.members.size >= 2) {
+					saveFrame("build/smoke/frame-party.png")
+					println("SMOKE party: " + (if (lead) "led" else "joined") + " a party of " + state.members.map { it.name } + ", the ping shows")
+					if (lead) {
+						ClientCommandProcessor.sendCheat("party leave", false, false)
+					}
+					Party.enabled = partyWasEnabled
+					return true
+				}
+				if (waited > PARTY_WAIT) {
+					return partyFail("no ping seen, members " + state.members.map { it.name } + ", ping varcs " + ClientApiImpl.varcInt(Party.PING_SEQ) + "/" + ClientApiImpl.varcInt(Party.PING_TILE))
+				}
+			}
+		}
+		return false
+	}
+
+	private fun partyFail(why: String): Boolean {
+		Party.enabled = partyWasEnabled
+		fail("Party: " + why)
+		return true
 	}
 
 	/** Animation Smoothing: on, the scene's sequences blended through its filter; off, none. Frame: frame-animationsmoothing.png. */
