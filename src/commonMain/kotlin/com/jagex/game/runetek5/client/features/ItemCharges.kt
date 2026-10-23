@@ -61,9 +61,9 @@ object ItemCharges : Plugin {
 	const val BINDING_NECKLACE_ID: Int = 5521
 	const val WORN: Int = 94
 
-	/** The teleport jewellery 634 counts in its name (RuneLite's TELEPORT items). */
+	/** The teleport jewellery 634 counts in its name (RuneLite's TELEPORT items, but the ring of wealth, which has no charges in 634). */
 	@JvmField
-	val TELEPORT_NAMES: Array<String> = arrayOf("amulet of glory", "ring of duelling", "games necklace", "skills necklace", "combat bracelet", "ring of slaying", "digsite pendant", "ring of wealth", "ferocious ring")
+	val TELEPORT_NAMES: Array<String> = arrayOf("amulet of glory", "ring of duelling", "games necklace", "skills necklace", "combat bracelet", "ring of slaying", "digsite pendant", "ferocious ring")
 
 	@JvmField val FRUIT_NAMES: Array<String> = arrayOf("apples", "oranges", "strawberries", "bananas", "tomatoes")
 	@JvmField val SACK_NAMES: Array<String> = arrayOf("potatoes", "onions", "cabbages")
