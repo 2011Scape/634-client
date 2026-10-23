@@ -10,6 +10,7 @@ import com.jagex.game.runetek5.client.GameShell
 import com.jagex.game.runetek5.AbstractMouseManager
 import com.jagex.game.runetek5.client.input.mouse.CursorManager
 import com.jagex.game.runetek5.client.input.mouse.MouseRecord
+import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
 /**
@@ -51,11 +52,11 @@ object PluginCursor {
 	private var mouseInside: Boolean = true
 
 	private val presence: MouseListener = object : MouseListener {
-		override fun mouseClicked(e: MouseEvent) {}
+		override fun mouseClicked(e: MouseEvent) = Unit
 
-		override fun mousePressed(e: MouseEvent) {}
+		override fun mousePressed(e: MouseEvent) = Unit
 
-		override fun mouseReleased(e: MouseEvent) {}
+		override fun mouseReleased(e: MouseEvent) = Unit
 
 		override fun mouseEntered(e: MouseEvent) {
 			mouseInside = true
