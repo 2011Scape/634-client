@@ -20,8 +20,8 @@ agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), th
 the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual levels
 (`VirtualLevels`), the metronome (`Metronome`), the death indicator (`DeathIndicator`), the NPC
 aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implings`), the cooking
-(`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`) and the inventory tags (`InventoryTags`)
-are fifty-four, built in, so the client's own code shows the way.
+(`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`), the inventory tags (`InventoryTags`) and
+the inventory grid (`InventoryGrid`) are fifty-five, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -637,6 +637,11 @@ for an **Inventory tag** submenu: a colour already used, **Pick** for any colour
 item of that kind is then marked in its colour wherever items are shown (the backpack, the bank, the
 deposit box, the equipment): an outline round its shape, a line under it, and/or its shape filled at
 **Fill opacity**.
+
+**Inventory Grid** is RuneLite's. While you drag an item in the backpack, the backpack's 28 slots are
+shaded as a grid, the slot under the mouse is highlighted, and the item is shown see-through where it
+would land, with the item it would swap with shown where it came from. **Drag delay** waits that long
+after the press before showing anything.
 
 ## Writing a plugin
 

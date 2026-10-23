@@ -2,8 +2,10 @@ package com.jagex.game.runetek5.client.features
 
 import client
 import InterfaceOptionInteract
+import com.jagex.game.runetek5.InterfaceDrag
 import com.jagex.game.runetek5.SceneDrawer
 import com.jagex.game.runetek5.core.constants.TileFlag
+import com.jagex.game.runetek5.graphics.ifcomponent.InterfaceRenderer
 import com.jagex.game.runetek5.scene.SettingsBits
 import com.jagex.game.runetek5.SceneVisibleTiles
 import memoryReport
@@ -549,6 +551,26 @@ object SmokeTest {
 
 	private var inventoryTagsSlot: Int = -1
 
+	/**
+	 * client.test.inventoryGrid: a glory(4) in an empty backpack slot (client only) held as if dragged, Inventory Grid's
+	 * 28 slots shaded (API 31). The hold is set again at each logic tick, before the client's drag step, with a drag
+	 * parent no interface shows: so the client never finds it, never lets go and never drops (no move is sent, no
+	 * script runs).
+	 */
+	private val INVENTORY_GRID: Boolean = "true" == lang.getProperty("client.test.inventoryGrid")
+
+	private var inventoryGridStep: Int = 0
+
+	private var inventoryGridFrame: Int = -1
+
+	private var inventoryGridSlot: Int = -1
+
+	/** The slot held as dragged, null for none: SmokeTest.tick holds it again each logic tick. */
+	private var inventoryGridHeld: Component? = null
+
+	/** The drag parent no interface shows: the client finds a drag's parent by identity, and draws the dragged layer at its rectangle (the grid's). */
+	private val inventoryGridParent: Component = Component()
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1076,6 +1098,7 @@ object SmokeTest {
 		if (!ENABLED) {
 			return
 		}
+		holdDrag()
 		if (benchCount >= 0) {
 			benchTicks++
 		}
@@ -1619,6 +1642,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 9007199254740992L
+		}
+		if (INVENTORY_GRID && (checksDone and 18014398509481984L) == 0L) {
+			if (!inventoryGridDone()) {
+				return
+			}
+			checksDone = checksDone or 18014398509481984L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5195,6 +5224,95 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** Inventory Grid while a backpack item is held as dragged: the grid. Frame: frame-inventorygrid.png. */
+	private fun inventoryGridDone(): Boolean {
+		when (inventoryGridStep) {
+			0 -> {
+				val backpack = ClientApiImpl.itemContainer(BACKPACK) ?: return false
+				for (slot in 0 until backpack.size()) {
+					if (inventoryGridSlot < 0 && backpack.itemId(slot) < 0) {
+						inventoryGridSlot = slot
+					}
+				}
+				if (inventoryGridSlot < 0) {
+					fail("Inventory Grid: no empty backpack slot")
+					return true
+				}
+				openInventoryTab()
+				inventoryGridFrame = frames
+				inventoryGridStep = 1
+			}
+			1 -> {
+				if (frames - inventoryGridFrame < MARKER_FRAMES) {
+					return false
+				}
+				fakeBackpackItem(inventoryGridSlot, GLORY_4)
+				inventoryGridFrame = frames
+				inventoryGridStep = 2
+			}
+			2 -> {
+				val grid: Component? = ClientApiImpl.widget(InventoryGrid.BACKPACK_INTERFACE, InventoryGrid.BACKPACK_GRID) as? Component
+				val slot: Component? = grid?.child(inventoryGridSlot) as? Component
+				// each frame: the mouse could come onto the backpack
+				if (grid != null && slot != null) {
+					val mx: Int = ClientApiImpl.mouseX()
+					val my: Int = ClientApiImpl.mouseY()
+					if (mx >= grid.screenX() && my >= grid.screenY() && mx < grid.screenX() + grid.width() && my < grid.screenY() + grid.height()) {
+						releaseDrag()
+						fakeBackpackItem(inventoryGridSlot, -1)
+						println("SMOKE inventory grid: not run, the mouse is over the backpack")
+						return true
+					}
+				}
+				inventoryGridHeld = slot
+				inventoryGridParent.cacheReference = grid?.cacheReference ?: 0
+				holdDrag()
+				if (InventoryGrid.slotsDrawn < InventoryGrid.SLOTS && frames - inventoryGridFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				inventoryGridFrame = frames
+				inventoryGridStep = 3
+			}
+			else -> {
+				holdDrag()
+				if (frames - inventoryGridFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-inventorygrid.png")
+				val shaded: Int = InventoryGrid.slotsDrawn
+				val dragged: Int = ClientApiImpl.draggedWidget()?.itemId() ?: -1
+				releaseDrag()
+				fakeBackpackItem(inventoryGridSlot, -1)
+				if (shaded != InventoryGrid.SLOTS || dragged != GLORY_4) {
+					fail("Inventory Grid: " + shaded + " slots shaded, the dragged widget holds " + dragged)
+					return true
+				}
+				println("SMOKE inventory grid: the glory(4) held as dragged, its id read from draggedWidget, all 28 slots shaded")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Lets go of the held slot. */
+	private fun releaseDrag() {
+		inventoryGridHeld = null
+		InterfaceDrag.component = null
+		InterfaceDrag.isDragging = false
+		InterfaceDrag.aClass24_7 = null
+	}
+
+	/** Holds the slot as dragged until the next logic tick, with a parent the client never finds and no target. */
+	private fun holdDrag() {
+		val slot: Component = inventoryGridHeld ?: return
+		InterfaceDrag.component = slot
+		InterfaceDrag.isDragging = true
+		InterfaceDrag.aClass24_7 = inventoryGridParent
+		InterfaceDrag.aClass24_13 = null
+		InterfaceDrag.dragParentFound = false
+		InterfaceRenderer.dragTickCount = 0
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {

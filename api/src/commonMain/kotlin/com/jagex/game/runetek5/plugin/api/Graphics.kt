@@ -75,6 +75,9 @@ interface Graphics {
 	 */
 	fun itemIcon(itemId: Int, quantity: Int, x: Int, y: Int): Boolean
 
+	/** [itemIcon] drawn see-through, [alpha] 0 (not seen) to 255 (as itemIcon). Since API 31. */
+	fun itemIconAlpha(itemId: Int, quantity: Int, x: Int, y: Int, alpha: Int): Boolean
+
 	/**
 	 * Moves what is drawn from now on by ([dx], [dy]), added to every point, clip included, until the end
 	 * of the overlay; how a [PanelOverlay] draws at (0, 0). Since API 12.

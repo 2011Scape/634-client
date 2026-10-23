@@ -451,6 +451,18 @@ interface ClientApi {
 	/** Item [itemId]'s icon with every pixel of its shape in [argb], alpha and all (RuneLite's ImageUtil.fillImage); null while not loaded. Since API 30. */
 	fun itemFill(itemId: Int, quantity: Int, argb: Int): Image?
 
+	/** Whether a component (such as a backpack item) is being dragged, past its dead zone (RuneLite's isDraggingWidget). Since API 31. */
+	fun isDraggingWidget(): Boolean
+
+	/** The component pressed for a drag, null for none (RuneLite's getDraggedWidget). Since API 31. */
+	fun draggedWidget(): Widget?
+
+	/** The component the dragged one is over, null for none (RuneLite's getDraggedOnWidget). Since API 31. */
+	fun draggedOnWidget(): Widget?
+
+	/** Client cycles (20 ms each) since the dragged component was pressed, 0 for none (RuneLite's getItemPressedDuration). Since API 31. */
+	fun itemPressedDuration(): Int
+
 	/**
 	 * Sprite [spriteId] of the cache (its first frame, the game's own icons and such) as a picture, for
 	 * [addChatIcon], [Graphics.image] and an [InfoBox] (RuneLite's SpriteManager.getSprite); null when the
