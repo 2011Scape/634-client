@@ -370,6 +370,11 @@ object SmokeTest {
 
 	private var reportTexts: String = ""
 
+	/** client.test.playerIndicators: Player Indicators on the player's own name, tile and minimap name, and the friends chat rank icons made from the cache's sprites (API 23). */
+	private val PLAYER_INDICATORS: Boolean = "true" == lang.getProperty("client.test.playerIndicators")
+
+	private var playerIndicatorsFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -845,7 +850,7 @@ object SmokeTest {
 	private var sceneSummary: String = ""
 
 	/** The checks done so far, one bit each in the order frame() runs them. */
-	private var checksDone: Int = 0
+	private var checksDone: Long = 0L
 
 	private var startToolkit: Int = -1
 
@@ -1109,185 +1114,191 @@ object SmokeTest {
 		}
 		// each check runs until it is done, once: a done check is not asked again (and so does not add its
 		// summary to the pass line on every later frame)
-		if (WINDOW_MODES && (checksDone and 1) == 0) {
+		if (WINDOW_MODES && (checksDone and 1L) == 0L) {
 			if (!windowModesDone()) {
 				return
 			}
-			checksDone = checksDone or 1
+			checksDone = checksDone or 1L
 		}
-		if (SUB_INTERFACES && (checksDone and 2) == 0) {
+		if (SUB_INTERFACES && (checksDone and 2L) == 0L) {
 			if (!subInterfacesDone()) {
 				return
 			}
-			checksDone = checksDone or 2
+			checksDone = checksDone or 2L
 		}
-		if (MENU_WALK && (checksDone and 4) == 0) {
+		if (MENU_WALK && (checksDone and 4L) == 0L) {
 			if (!menuWalkDone(player)) {
 				return
 			}
-			checksDone = checksDone or 4
+			checksDone = checksDone or 4L
 		}
-		if (MEDIA && (checksDone and 8) == 0) {
+		if (MEDIA && (checksDone and 8L) == 0L) {
 			if (!mediaDone(player)) {
 				return
 			}
-			checksDone = checksDone or 8
+			checksDone = checksDone or 8L
 		}
-		if (MARKERS && (checksDone and 16) == 0) {
+		if (MARKERS && (checksDone and 16L) == 0L) {
 			if (!markersDone(player)) {
 				return
 			}
-			checksDone = checksDone or 16
+			checksDone = checksDone or 16L
 		}
-		if (XP_DROPS && (checksDone and 32) == 0) {
+		if (XP_DROPS && (checksDone and 32L) == 0L) {
 			if (!xpDropsDone()) {
 				return
 			}
-			checksDone = checksDone or 32
+			checksDone = checksDone or 32L
 		}
-		if (RESPAWN && (checksDone and 64) == 0) {
+		if (RESPAWN && (checksDone and 64L) == 0L) {
 			if (!respawnDone()) {
 				return
 			}
-			checksDone = checksDone or 64
+			checksDone = checksDone or 64L
 		}
-		if (GROUND_ITEMS && (checksDone and 128) == 0) {
+		if (GROUND_ITEMS && (checksDone and 128L) == 0L) {
 			if (!groundItemsDone(player)) {
 				return
 			}
-			checksDone = checksDone or 128
+			checksDone = checksDone or 128L
 		}
-		if (LOOT_TRACKER && (checksDone and 256) == 0) {
+		if (LOOT_TRACKER && (checksDone and 256L) == 0L) {
 			if (!lootTrackerDone()) {
 				return
 			}
-			checksDone = checksDone or 256
+			checksDone = checksDone or 256L
 		}
-		if (OBJECT_MARKERS && (checksDone and 512) == 0) {
+		if (OBJECT_MARKERS && (checksDone and 512L) == 0L) {
 			if (!objectMarkersDone(player)) {
 				return
 			}
-			checksDone = checksDone or 512
+			checksDone = checksDone or 512L
 		}
-		if (XP_TRACKER && (checksDone and 1024) == 0) {
+		if (XP_TRACKER && (checksDone and 1024L) == 0L) {
 			if (!xpTrackerDone()) {
 				return
 			}
-			checksDone = checksDone or 1024
+			checksDone = checksDone or 1024L
 		}
-		if (OPPONENT_INFO && (checksDone and 2048) == 0) {
+		if (OPPONENT_INFO && (checksDone and 2048L) == 0L) {
 			if (!opponentInfoDone(player)) {
 				return
 			}
-			checksDone = checksDone or 2048
+			checksDone = checksDone or 2048L
 		}
-		if ((BOOSTS || OVERLAY_DRAG) && (checksDone and 4096) == 0) {
+		if ((BOOSTS || OVERLAY_DRAG) && (checksDone and 4096L) == 0L) {
 			if (!boostsDone()) {
 				return
 			}
-			checksDone = checksDone or 4096
+			checksDone = checksDone or 4096L
 		}
-		if (OVERLAY_DRAG && (checksDone and 8192) == 0) {
+		if (OVERLAY_DRAG && (checksDone and 8192L) == 0L) {
 			if (!overlayDragDone()) {
 				return
 			}
-			checksDone = checksDone or 8192
+			checksDone = checksDone or 8192L
 		}
-		if (BANK_ORGANIZER && (checksDone and 16384) == 0) {
+		if (BANK_ORGANIZER && (checksDone and 16384L) == 0L) {
 			if (!bankOrganizerDone()) {
 				return
 			}
-			checksDone = checksDone or 16384
+			checksDone = checksDone or 16384L
 		}
-		if (STATUS_BARS && (checksDone and 32768) == 0) {
+		if (STATUS_BARS && (checksDone and 32768L) == 0L) {
 			if (!statusBarsDone()) {
 				return
 			}
-			checksDone = checksDone or 32768
+			checksDone = checksDone or 32768L
 		}
-		if (TIMERS && (checksDone and 65536) == 0) {
+		if (TIMERS && (checksDone and 65536L) == 0L) {
 			if (!timersDone()) {
 				return
 			}
-			checksDone = checksDone or 65536
+			checksDone = checksDone or 65536L
 		}
-		if (TILE_INDICATORS && (checksDone and 131072) == 0) {
+		if (TILE_INDICATORS && (checksDone and 131072L) == 0L) {
 			if (!tileIndicatorsDone(player)) {
 				return
 			}
-			checksDone = checksDone or 131072
+			checksDone = checksDone or 131072L
 		}
-		if (XP_GLOBES && (checksDone and 262144) == 0) {
+		if (XP_GLOBES && (checksDone and 262144L) == 0L) {
 			if (!xpGlobesDone()) {
 				return
 			}
-			checksDone = checksDone or 262144
+			checksDone = checksDone or 262144L
 		}
-		if (BARROWS && (checksDone and 524288) == 0) {
+		if (BARROWS && (checksDone and 524288L) == 0L) {
 			if (!barrowsDone()) {
 				return
 			}
-			checksDone = checksDone or 524288
+			checksDone = checksDone or 524288L
 		}
-		if (ATTACK_STYLES && (checksDone and 1048576) == 0) {
+		if (ATTACK_STYLES && (checksDone and 1048576L) == 0L) {
 			if (!attackStylesDone()) {
 				return
 			}
-			checksDone = checksDone or 1048576
+			checksDone = checksDone or 1048576L
 		}
-		if (CANNON && (checksDone and 2097152) == 0) {
+		if (CANNON && (checksDone and 2097152L) == 0L) {
 			if (!cannonDone(player)) {
 				return
 			}
-			checksDone = checksDone or 2097152
+			checksDone = checksDone or 2097152L
 		}
-		if (ANTI_DRAG && (checksDone and 4194304) == 0) {
+		if (ANTI_DRAG && (checksDone and 4194304L) == 0L) {
 			if (!antiDragDone()) {
 				return
 			}
-			checksDone = checksDone or 4194304
+			checksDone = checksDone or 4194304L
 		}
-		if (EMOJIS && (checksDone and 8388608) == 0) {
+		if (EMOJIS && (checksDone and 8388608L) == 0L) {
 			if (!emojisDone(player)) {
 				return
 			}
-			checksDone = checksDone or 8388608
+			checksDone = checksDone or 8388608L
 		}
-		if (KEY_REMAPPING && (checksDone and 16777216) == 0) {
+		if (KEY_REMAPPING && (checksDone and 16777216L) == 0L) {
 			if (!keyRemappingDone()) {
 				return
 			}
-			checksDone = checksDone or 16777216
+			checksDone = checksDone or 16777216L
 		}
-		if (CUSTOM_CURSOR && (checksDone and 33554432) == 0) {
+		if (CUSTOM_CURSOR && (checksDone and 33554432L) == 0L) {
 			if (!customCursorDone()) {
 				return
 			}
-			checksDone = checksDone or 33554432
+			checksDone = checksDone or 33554432L
 		}
-		if (ITEM_STATS && (checksDone and 67108864) == 0) {
+		if (ITEM_STATS && (checksDone and 67108864L) == 0L) {
 			if (!itemStatsDone()) {
 				return
 			}
-			checksDone = checksDone or 67108864
+			checksDone = checksDone or 67108864L
 		}
-		if (WOODCUTTING && (checksDone and 134217728) == 0) {
+		if (WOODCUTTING && (checksDone and 134217728L) == 0L) {
 			if (!woodcuttingDone(player)) {
 				return
 			}
-			checksDone = checksDone or 134217728
+			checksDone = checksDone or 134217728L
 		}
-		if (MINING && (checksDone and 268435456) == 0) {
+		if (MINING && (checksDone and 268435456L) == 0L) {
 			if (!miningDone(player)) {
 				return
 			}
-			checksDone = checksDone or 268435456
+			checksDone = checksDone or 268435456L
 		}
-		if (REPORT_BUTTON && (checksDone and 536870912) == 0) {
+		if (REPORT_BUTTON && (checksDone and 536870912L) == 0L) {
 			if (!reportButtonDone()) {
 				return
 			}
-			checksDone = checksDone or 536870912
+			checksDone = checksDone or 536870912L
+		}
+		if (PLAYER_INDICATORS && (checksDone and 1073741824L) == 0L) {
+			if (!playerIndicatorsDone()) {
+				return
+			}
+			checksDone = checksDone or 1073741824L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3909,6 +3920,49 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** Player Indicators with the own player highlighted: their name drawn, the rank icons added as chat icons. Frame: frame-playerindicators.png. */
+	/** Player Indicators' check: a health bar half full for 6 seconds. */
+	private const val HALF_HEALTH: Int = 128
+	private const val HEALTH_BAR_CYCLES: Int = 300
+
+	private fun playerIndicatorsDone(): Boolean {
+		if (playerIndicatorsFrame == -1) {
+			PlayerIndicators.enabled = true
+			PlayerIndicators.highlight[PlayerIndicators.SELF] = PlayerIndicators.ENABLED
+			PlayerIndicators.drawPlayerTiles = true
+			PlayerIndicators.drawMinimapNames = true
+			// a chat line and a health bar over the head (on this client only): the name goes above both
+			PlayerUpdate.localPlayer?.let {
+				it.setOverheadText("Indicator check")
+				it.healthRatio = HALF_HEALTH
+				it.healthBarEndCycle = ClientState.clientCycle + HEALTH_BAR_CYCLES
+			}
+			playerIndicatorsFrame = frames
+			return false
+		}
+		if (frames - playerIndicatorsFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-playerindicators.png")
+		val drawn: Int = PlayerIndicators.drawnLastFrame
+		val top: Int = PlayerUpdate.localPlayer?.overheadTop() ?: -1
+		val nameY: Int = PlayerIndicators.lastAboveHeadY
+		val icons: StringBuilder = StringBuilder()
+		for (rank in PlayerIndicators.RANK_SPRITES.indices) {
+			icons.append(PlayerIndicators.rankIcon(ClientApiImpl, rank))
+		}
+		PlayerIndicators.enabled = false
+		PlayerIndicators.highlight[PlayerIndicators.SELF] = PlayerIndicators.DISABLED
+		PlayerIndicators.drawPlayerTiles = false
+		PlayerIndicators.drawMinimapNames = false
+		if (drawn < 1 || icons.count { it == '<' } != PlayerIndicators.RANK_SPRITES.size || top < 0 || nameY >= top) {
+			fail("Player Indicators: " + drawn + " names drawn, rank icons \"" + icons + "\", the name at y " + nameY + " and the overheads' top at " + top)
+			return true
+		}
+		println("SMOKE player indicators: own name drawn at y " + nameY + ", above the health bar and chat line (their top " + top + "), rank icons " + icons)
+		return true
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {

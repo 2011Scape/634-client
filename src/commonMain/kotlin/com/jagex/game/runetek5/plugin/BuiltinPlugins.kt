@@ -19,11 +19,11 @@ import com.jagex.game.runetek5.client.features.LootTracker
 import com.jagex.game.runetek5.client.features.MenuEntrySwapper
 import com.jagex.game.runetek5.client.features.Mining
 import com.jagex.game.runetek5.client.features.MouseTooltips
-import com.jagex.game.runetek5.client.features.NamePlates
 import com.jagex.game.runetek5.client.features.NpcIndicators
 import com.jagex.game.runetek5.client.features.ObjectIndicators
 import com.jagex.game.runetek5.client.features.OpponentInfo
 import com.jagex.game.runetek5.client.features.OverlaySettings
+import com.jagex.game.runetek5.client.features.PlayerIndicators
 import com.jagex.game.runetek5.client.features.ReportButton
 import com.jagex.game.runetek5.client.features.StatusBars
 import com.jagex.game.runetek5.client.features.TileIndicators
@@ -50,7 +50,6 @@ object BuiltinPlugins {
 			builtIn(IdleNotifier.DESCRIPTOR, IdleNotifier),
 			builtIn(MenuEntrySwapper.DESCRIPTOR, MenuEntrySwapper),
 			builtIn(InventoryValue.DESCRIPTOR, InventoryValue),
-			builtIn(NamePlates.DESCRIPTOR, NamePlates),
 			builtIn(GroundTiles.DESCRIPTOR, GroundTiles),
 			builtIn(NpcIndicators.DESCRIPTOR, NpcIndicators),
 			builtIn(DiscordPresence.DESCRIPTOR, DiscordPresence),
@@ -78,6 +77,7 @@ object BuiltinPlugins {
 			builtIn(Woodcutting.DESCRIPTOR, Woodcutting),
 			builtIn(Mining.DESCRIPTOR, Mining),
 			builtIn(ReportButton.DESCRIPTOR, ReportButton),
+			builtIn(PlayerIndicators.DESCRIPTOR, PlayerIndicators),
 		)
 	}
 

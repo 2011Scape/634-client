@@ -393,6 +393,13 @@ interface ClientApi {
 	fun itemImage(itemId: Int, quantity: Int): Image?
 
 	/**
+	 * Sprite [spriteId] of the cache (its first frame, the game's own icons and such) as a picture, for
+	 * [addChatIcon], [Graphics.image] and an [InfoBox] (RuneLite's SpriteManager.getSprite); null when the
+	 * cache has no such sprite or it is not loaded yet. Since API 23.
+	 */
+	fun spriteImage(spriteId: Int): Image?
+
+	/**
 	 * Shows [text] in a tooltip box by the mouse this frame, over everything, as RuneLite's TooltipManager:
 	 * call it while drawing, each frame it is to show. `</br>` breaks a line and `<col=rrggbb>` colours
 	 * what follows. Since API 12.
