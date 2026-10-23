@@ -12,7 +12,8 @@ timers (`TimersAndBuffs`), the tile indicators (`TileIndicators`), the XP globes
 Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the cannon (`Cannon`), the
 anti drag (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`), the key remapping
 (`KeyRemapping`), the custom cursor (`CustomCursor`), the item stats (`ItemStats`), the woodcutting
-(`Woodcutting`) and the mining (`Mining`) are thirty, built in, so the client's own code shows the way.
+(`Woodcutting`), the mining (`Mining`) and the report button (`ReportButton`) are thirty-one, built in,
+so the client's own code shows the way.
 
 ## Contents
 
@@ -445,6 +446,12 @@ without mining. A mined-out rock shows a pie of the time until its ore is back, 
 ore's base time, scaled as the server scales it at normal player counts; clay always 2 ticks), so close
 rather than exact, and gone once the rock is back. Not here from RuneLite: Motherlode Mine, Daeyalt,
 amethyst and the other OSRS-only rocks.
+
+**Report Button** is RuneLite's. The chat box's Report Abuse button shows, by **Display options**, the
+date, the time you have been logged in (the default), the time in UTC, at Jagex's office in London, or
+where you are, the game ticks since you logged in, or how long the mouse and keyboard have been idle, in
+12- or 24-hour time; it still opens the report when clicked, and reads "Report Abuse" again once the
+plugin is off. In the browser London's time is the local one (the page knows no other zones).
 
 ## Writing a plugin
 
