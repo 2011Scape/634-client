@@ -13,8 +13,8 @@ Barrows Brothers (`BarrowsBrothers`), the attack styles (`AttackStyles`), the ca
 anti drag (`AntiDrag`), the emojis (`Emojis`), the mouse tooltips (`MouseTooltips`), the key remapping
 (`KeyRemapping`), the custom cursor (`CustomCursor`), the item stats (`ItemStats`), the woodcutting
 (`Woodcutting`), the mining (`Mining`), the report button (`ReportButton`), the player indicators
-(`PlayerIndicators`) and the special attack counter (`SpecialCounter`) are thirty-three, built in, so
-the client's own code shows the way.
+(`PlayerIndicators`), the special attack counter (`SpecialCounter`) and the regeneration meter
+(`RegenMeter`) are thirty-four, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -472,6 +472,14 @@ drops**, misses too with **Spec drop misses**). A threshold for Darklight or the
 count green once reached and, with **Threshold notifications**, notifies you. The Dragon warhammer,
 Elder maul, Arclight, Emberlight, Dinh's bulwark and the other OSRS-only weapons are not here, nor the
 defence drain percentage that only they feed (its setting stays), nor RuneLite's party sharing.
+
+**Regeneration Meter** is RuneLite's. A ring round the life points orb fills up to your next heal, and
+the special attack bar on the combat tab fills along its foot to the next tenth of energy (634 has no
+special attack orb). The timers are Void's: the life points heal every 6 seconds from the moment they
+fall below the maximum (the prayers, resting and the regen bracelet heal more each time, not sooner),
+and the special energy gains a tenth every 30 seconds. Over the maximum the ring empties instead; **Show
+at full hitpoints** keeps it turning at full; **Hitpoint notification** notifies you that many seconds
+before a heal. The Lightbearer is OSRS-only.
 
 ## Writing a plugin
 

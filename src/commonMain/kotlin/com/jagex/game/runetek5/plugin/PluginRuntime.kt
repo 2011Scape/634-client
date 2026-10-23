@@ -768,6 +768,7 @@ object PluginRuntime {
 		if (!started) {
 			return
 		}
+		ClientState.activeToolkit?.beginOverlayFrame()
 		// the tooltips over everything, the frame's interfaces included
 		Tooltips.draw(width, height)
 		if (!bus.hasListeners(Events.FRAME_DRAW)) {
