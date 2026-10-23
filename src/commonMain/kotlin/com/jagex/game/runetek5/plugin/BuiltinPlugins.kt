@@ -41,6 +41,7 @@ import com.jagex.game.runetek5.client.features.SpecialCounter
 import com.jagex.game.runetek5.client.features.StatusBars
 import com.jagex.game.runetek5.client.features.TileIndicators
 import com.jagex.game.runetek5.client.features.TimersAndBuffs
+import com.jagex.game.runetek5.client.features.VirtualLevels
 import com.jagex.game.runetek5.client.features.Woodcutting
 import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.client.features.XpGlobes
@@ -104,6 +105,7 @@ object BuiltinPlugins {
 			builtIn(ChatFilter.DESCRIPTOR, ChatFilter),
 			builtIn(ChatHistory.DESCRIPTOR, ChatHistory),
 			builtIn(CombatLevel.DESCRIPTOR, CombatLevel),
+			builtIn(VirtualLevels.DESCRIPTOR, VirtualLevels),
 		)
 	}
 
