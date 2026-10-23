@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.scene
 
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.core.datastruct.key.Deque
 import org.openrs2.deob.annotation.OriginalMember
 import com.jagex.game.runetek5.MapRegion
@@ -21,10 +22,12 @@ object LocAction {
 	@JvmStatic
 	fun queueLocChange(@OriginalArg(0) plane: Int, @OriginalArg(2) y: Int, @OriginalArg(4) shape: Int, @OriginalArg(5) layer: Int, @OriginalArg(6) rotation: Int, @OriginalArg(7) id: Int, @OriginalArg(9) x: Int) {
 		@Pc(11) var changeLocationRequest: ChangeLocationRequest? = null
+		var previousId: Int = -1 // Not part of the original client: what stood there, for the plugins' LocChanged
 		@Pc(16) var changeLocationRequest2: ChangeLocationRequest? = LocAction.pendingRemovals!!.first() as ChangeLocationRequest?
 		while (changeLocationRequest2 != null) {
 			if (plane == changeLocationRequest2.plane && changeLocationRequest2.x == x && y == changeLocationRequest2.y && changeLocationRequest2.layer == layer) {
 				changeLocationRequest = changeLocationRequest2
+				previousId = if (changeLocationRequest2.spawnDelay == -1) changeLocationRequest2.dstId else changeLocationRequest2.srcId
 				break
 			}
 			changeLocationRequest2 = LocAction.pendingRemovals!!.next() as ChangeLocationRequest?
@@ -39,12 +42,14 @@ object LocAction {
 				ChangeLocationRequest.fillSourceLocation(changeLocationRequest)
 			}
 			LocAction.pendingRemovals!!.addLast(changeLocationRequest)
+			previousId = changeLocationRequest.srcId
 		}
 		changeLocationRequest.revertDelay = -1
 		changeLocationRequest.dstRotation = rotation
 		changeLocationRequest.dstShape = shape
 		changeLocationRequest.spawnDelay = 0
 		changeLocationRequest.dstId = id
+		PluginRuntime.locChanged(x, y, plane, layer, previousId, id, shape, rotation) // Not part of the original client: the plugins' LocChanged
 	}
 
 	@OriginalMember(owner = "client!fga", name = "a", descriptor = "(B)V")

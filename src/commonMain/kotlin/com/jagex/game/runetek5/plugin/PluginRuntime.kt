@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.plugin.api.events.LocChanged
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecordEntry
 import com.jagex.game.runetek5.plugin.api.events.KeyInput
 import com.jagex.game.runetek5.ChatLineWriter
@@ -1059,6 +1060,25 @@ object PluginRuntime {
 			return
 		}
 		bus.post(Events.INTERACTING_CHANGED, actor)
+	}
+
+	private val locChangedEvent: LocChanged = LocChanged()
+
+	/** The server changed the location on scene tile ([x], [y]) of [level] in [layer] from [oldId] to [newId] (-1 for none). */
+	@JvmStatic
+	fun locChanged(x: Int, y: Int, level: Int, layer: Int, oldId: Int, newId: Int, shape: Int, rotation: Int) {
+		if (!started || !bus.hasListeners(Events.LOC_CHANGED)) {
+			return
+		}
+		locChangedEvent.sceneX = x
+		locChangedEvent.sceneY = y
+		locChangedEvent.level = level
+		locChangedEvent.layer = layer
+		locChangedEvent.oldId = oldId
+		locChangedEvent.newId = newId
+		locChangedEvent.shape = shape
+		locChangedEvent.rotation = rotation
+		bus.post(Events.LOC_CHANGED, locChangedEvent)
 	}
 
 	/** [text] appeared over [actor]'s head. */
