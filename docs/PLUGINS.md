@@ -15,8 +15,8 @@ tile indicators (`TileIndicators`), the XP globes (`XpGlobes`), the Barrows Brot
 (`Woodcutting`), the mining (`Mining`), the report button (`ReportButton`), the player indicators
 (`PlayerIndicators`), the special attack counter (`SpecialCounter`), the regeneration meter
 (`RegenMeter`), the run energy (`RunEnergy`), the poison (`Poison`), the fishing (`Fishing`), the
-agility (`Agility`) and the slayer (`Slayer`) are thirty-eight, built in, so the client's own code shows
-the way.
+agility (`Agility`), the slayer (`Slayer`) and the item charges (`ItemCharges`) are thirty-nine, built
+in, so the client's own code shows the way.
 
 ## Contents
 
@@ -521,6 +521,16 @@ box: the client keeps no npc model outlines). **Show monster weakness** shows th
 monster low enough for it, by Void's rules: a gargoyle under 90 life points (rock hammer), a rockslug
 under 60 (salt), a zygomite under 80 (fungicide) and a lizard under a quarter (ice cooler). Superior
 foes are OSRS-only, and the `!task` chat command needs RuneLite's server.
+
+**Item Charges** is RuneLite's. The charges left on the items shown (backpack, bank, equipment) are
+drawn on them, white or in the low and very low warning colours, and **Infoboxes** shows the worn ones:
+teleport jewellery, potion doses (off until switched on), imp-in-a-box, fungicide, watering cans,
+waterskins, ogre bellows, fruit baskets, vegetable sacks and Guthix rest, each read from the item's name
+as 634 counts them in it, and the Binding necklace, whose charges Void tells after each use (remembered
+between sessions). The Ring of recoil shattering and the Binding necklace's end can be notified. Not
+here: the dodgy necklace, the ring of forging and the bracelet of clay (no charge messages on Void), and
+the OSRS-only amulets of chemistry and bounty, the bracelets of slaughter and expeditious, the abyssal
+bracelet, the Chronicle, blood essence and the explorer's ring's alchemy.
 
 ## Writing a plugin
 
