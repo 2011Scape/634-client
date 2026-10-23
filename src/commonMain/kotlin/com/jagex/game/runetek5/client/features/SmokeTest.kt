@@ -380,6 +380,13 @@ object SmokeTest {
 
 	private var specialCounterFrame: Int = -1
 
+	/** client.test.regenMeter: Regeneration Meter's ring round the life points orb, shown at full life points. */
+	private val REGEN_METER: Boolean = "true" == lang.getProperty("client.test.regenMeter")
+
+	private var regenMeterFrame: Int = -1
+
+	private var regenMeterShown: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1310,6 +1317,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 2147483648L
+		}
+		if (REGEN_METER && (checksDone and 4294967296L) == 0L) {
+			if (!regenMeterDone()) {
+				return
+			}
+			checksDone = checksDone or 4294967296L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3997,6 +4010,38 @@ object SmokeTest {
 			return true
 		}
 		println("SMOKE special counter: Bandos Godsword 450 counted and dropped, special energy " + energy)
+		return true
+	}
+
+	/** Regeneration Meter with "Show at full hitpoints" on: the ring fills round the orb. Frame: frame-regenmeter.png. */
+	private fun regenMeterDone(): Boolean {
+		if (regenMeterFrame == -1) {
+			RegenMeter.showWhenNoChange = true
+			regenMeterFrame = frames
+			return false
+		}
+		val waited: Int = frames - regenMeterFrame
+		if (RegenMeter.hitpointsPercentage < 0.3 && waited < 600) {
+			regenMeterShown = -1
+			return false
+		}
+		// a few frames with the ring up: the OpenGL toolkits' frame is read from the last one shown
+		if (regenMeterShown == -1) {
+			regenMeterShown = frames
+		}
+		if (frames - regenMeterShown < 5) {
+			return false
+		}
+		saveFrame("build/smoke/frame-regenmeter.png")
+		val drawn: Int = RegenMeter.drawnLastFrame
+		val percent: Double = RegenMeter.hitpointsPercentage
+		RegenMeter.showWhenNoChange = false
+		if (drawn < 1 || percent <= 0.0) {
+			fail("Regeneration Meter: " + drawn + " rings drawn at " + percent)
+			return true
+		}
+		val orb = ClientApiImpl.widget(RegenMeter.HEALTH_ORB, RegenMeter.HEALTH_ORB_CIRCLE)
+		println("SMOKE regen meter: the life points ring drawn at " + percent + " round the orb at " + orb?.screenX() + "," + orb?.screenY() + " " + orb?.width() + "x" + orb?.height())
 		return true
 	}
 

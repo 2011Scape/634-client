@@ -1483,6 +1483,14 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 		this.drawTarget!!.bindDraw()
 	}
 
+	// Not part of the original client: see Toolkit.beginOverlayFrame. The GL state can say depth test while
+	// this toolkit's cache says 2D mode, so the test is turned off whatever the cache says.
+	override fun beginOverlayFrame() {
+		HdGl.glDisable(OpenGLConstants.GL_DEPTH_TEST)
+		this.depthTestEnabled = false
+		this.functionMask = 0
+	}
+
 	fun toggleZbuffer(zbuffer: Boolean) {
 		if (zbuffer == this.depthTestEnabled) {
 			return
