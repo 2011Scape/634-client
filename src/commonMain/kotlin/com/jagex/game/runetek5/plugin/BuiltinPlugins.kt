@@ -16,6 +16,7 @@ import com.jagex.game.runetek5.client.features.CustomCursor
 import com.jagex.game.runetek5.client.features.DeathIndicator
 import com.jagex.game.runetek5.client.features.DiscordPresence
 import com.jagex.game.runetek5.client.features.Emojis
+import com.jagex.game.runetek5.client.features.Examine
 import com.jagex.game.runetek5.client.features.Fishing
 import com.jagex.game.runetek5.client.features.GroundItems
 import com.jagex.game.runetek5.client.features.GroundTiles
@@ -126,6 +127,7 @@ object BuiltinPlugins {
 			builtIn(Prayer.DESCRIPTOR, Prayer),
 			builtIn(InventoryTags.DESCRIPTOR, InventoryTags),
 			builtIn(InventoryGrid.DESCRIPTOR, InventoryGrid),
+			builtIn(Examine.DESCRIPTOR, Examine),
 		)
 	}
 

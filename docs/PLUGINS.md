@@ -20,8 +20,9 @@ agility (`Agility`), the slayer (`Slayer`), the item charges (`ItemCharges`), th
 the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual levels
 (`VirtualLevels`), the metronome (`Metronome`), the death indicator (`DeathIndicator`), the NPC
 aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implings`), the cooking
-(`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`), the inventory tags (`InventoryTags`) and
-the inventory grid (`InventoryGrid`) are fifty-five, built in, so the client's own code shows the way.
+(`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`), the inventory tags (`InventoryTags`), the
+inventory grid (`InventoryGrid`) and the examine (`Examine`) are fifty-six, built in, so the client's
+own code shows the way.
 
 ## Contents
 
@@ -642,6 +643,10 @@ deposit box, the equipment): an outline round its shape, a line under it, and/or
 shaded as a grid, the slot under the mouse is highlighted, and the item is shown see-through where it
 would land, with the item it would swap with shown where it came from. **Drag delay** waits that long
 after the press before showing anything.
+
+**Examine** is RuneLite's. Examining an item adds a line after its examine text with its price, the
+exchange's guide price and High Level Alchemy's, times the stack examined: "Price of 1,000 x Feather: GE
+average 3,000 (3 ea) HA value 1,000 (1 ea)". Coins and an item with neither price get no line.
 
 ## Writing a plugin
 

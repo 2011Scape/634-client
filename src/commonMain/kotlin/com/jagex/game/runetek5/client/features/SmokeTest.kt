@@ -573,6 +573,13 @@ object SmokeTest {
 	/** The drag parent no interface shows: the client finds a drag's parent by identity, and draws the dragged layer at its rectangle (the grid's). */
 	private val inventoryGridParent: Component = Component()
 
+	/** client.test.examine: a rune scimitar's examine as Void sends it (the click remembered as Examine's would be, the text written as an item examine line), the price line after it. */
+	private val EXAMINE: Boolean = "true" == lang.getProperty("client.test.examine")
+
+	private var examineFrame: Int = -1
+
+	private const val RUNE_SCIMITAR: Int = 1333
+
 	private var inventoryTagsWasEnabled: Boolean = false
 
 	private var implingsWasEnabled: Boolean = false
@@ -1664,6 +1671,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 18014398509481984L
+		}
+		if (EXAMINE && (checksDone and 36028797018963968L) == 0L) {
+			if (!examineDone()) {
+				return
+			}
+			checksDone = checksDone or 36028797018963968L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5380,6 +5393,34 @@ object SmokeTest {
 		InterfaceDrag.aClass24_13 = null
 		InterfaceDrag.dragParentFound = false
 		InterfaceRenderer.dragTickCount = 0
+	}
+
+	/** Examine's price line after a rune scimitar's examine text. Frame: frame-examine.png. */
+	private fun examineDone(): Boolean {
+		val api = ClientApiImpl
+		if (examineFrame == -1) {
+			Examine.pendingItem = RUNE_SCIMITAR
+			Examine.pendingQuantity = 1
+			Examine.pendingAt = lang.currentTimeMillis()
+			ChatLineWriter.writeMessage(null, "A vicious, curved sword.", -1, null, null, Examine.ITEM_EXAMINE, 0, null)
+			examineFrame = frames
+			return false
+		}
+		val newest: String? = api.chatLine(0)?.message()
+		if ((newest == null || !newest.contains("Price of")) && frames - examineFrame < BANK_WAIT_FRAMES) {
+			return false
+		}
+		if (frames - examineFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-examine.png")
+		val before: String? = api.chatLine(1)?.message()
+		if (newest == null || !ClientFeatures.plainText(newest).startsWith("Price of Rune scimitar:") || before != "A vicious, curved sword.") {
+			fail("Examine: the newest line \"" + newest + "\", the one before \"" + before + "\"")
+			return true
+		}
+		println("SMOKE examine: \"" + ClientFeatures.plainText(newest) + "\" after the examine text")
+		return true
 	}
 
 	private fun keyRemapFailed(why: String): Boolean {
