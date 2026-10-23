@@ -53,7 +53,7 @@ package com.jagex.game.runetek5.plugin.api
  *   [Widget.setText], and the client variables ([ClientApi.varcInt], [ClientApi.varcString], [ClientApi.setVarcString]).
  * - 21: the mouse cursor ([ClientApi.setCursor], [ClientApi.resetCursor]) and items' icons as pictures ([ClientApi.itemImage]).
  * - 22: locations the server changes ([com.jagex.game.runetek5.plugin.api.events.Events.LOC_CHANGED]).
- * - 23: the cache's sprites as pictures ([ClientApi.spriteImage]).
+ * - 23: the cache's sprites as pictures ([ClientApi.spriteImage]) and the top of an actor's overheads ([Actor.overheadTop]).
  * - 24: the interfaces' sprites replaced ([ClientApi.overrideSprite]).
  * - 25: whether an interface component was drawn ([Widget.isDrawnThisFrame]).
  * - 26: chat lines dropped ([com.jagex.game.runetek5.plugin.api.events.ChatMessage.consume]) and the chat box's lines
