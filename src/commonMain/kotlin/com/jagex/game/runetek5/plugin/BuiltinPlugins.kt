@@ -4,6 +4,7 @@ import com.jagex.game.runetek5.client.features.AttackStyles
 import com.jagex.game.runetek5.client.features.BankOrganizer
 import com.jagex.game.runetek5.client.features.BarrowsBrothers
 import com.jagex.game.runetek5.client.features.Boosts
+import com.jagex.game.runetek5.client.features.Cannon
 import com.jagex.game.runetek5.client.features.DiscordPresence
 import com.jagex.game.runetek5.client.features.GroundItems
 import com.jagex.game.runetek5.client.features.GroundTiles
@@ -58,6 +59,7 @@ object BuiltinPlugins {
 			builtIn(XpGlobes.DESCRIPTOR, XpGlobes),
 			builtIn(BarrowsBrothers.DESCRIPTOR, BarrowsBrothers),
 			builtIn(AttackStyles.DESCRIPTOR, AttackStyles),
+			builtIn(Cannon.DESCRIPTOR, Cannon),
 		)
 	}
 

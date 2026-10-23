@@ -296,6 +296,11 @@ object SmokeTest {
 
 	private var attackStylesFrame: Int = -1
 
+	/** client.test.cannon: Cannon with a cannon taken to stand beside the player, loaded with 20: its count and double-hit tiles drawn. */
+	private val CANNON: Boolean = "true" == lang.getProperty("client.test.cannon")
+
+	private var cannonFrame: Int = -1
+
 	private var bankFrame: Int = -1
 
 	/** client.test.boosts: Attack boosted and Defence drained by hand, in Boosts Information's infoboxes, panel and compact list, with its timers and its notification. */
@@ -1160,6 +1165,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 1048576
+		}
+		if (CANNON && (checksDone and 2097152) == 0) {
+			if (!cannonDone(player)) {
+				return
+			}
+			checksDone = checksDone or 2097152
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -3457,6 +3468,36 @@ object SmokeTest {
 			return true
 		}
 		println("SMOKE attack styles: " + style.displayName + " for weapon type " + AttackStyles.weaponType(api) + ", button 884:11 " + (if (expectHidden) "hidden" else "shown") + " while Attack is warned, shown after")
+		return true
+	}
+
+	private fun cannonDone(player: PlayerEntity): Boolean {
+		val api = ClientApiImpl
+		if (cannonFrame == -1) {
+			// no cannon can be set up by the test account: one is taken to stand two tiles east of the player
+			Cannon.enabled = true
+			Cannon.showDoubleHitSpot = true
+			Cannon.cannonPlaced = true
+			Cannon.cannonX = api.sceneBaseX() + player.movementBaseX[0] + 2
+			Cannon.cannonY = api.sceneBaseY() + player.movementBaseY[0] - 1
+			Cannon.cannonLevel = api.localPlayer()?.level() ?: 0
+			Cannon.cannonWorld = api.worldId()
+			Cannon.chat(api, com.jagex.game.runetek5.plugin.api.events.ChatMessage(com.jagex.game.runetek5.plugin.api.ChatType.GAME, "", "You load the cannon with 20 cannon balls.", null))
+			cannonFrame = frames
+			return false
+		}
+		if (frames - cannonFrame < MARKER_FRAMES) {
+			return false
+		}
+		val drawn: String? = Cannon.drawnCount
+		saveFrame("build/smoke/frame-cannon.png")
+		Cannon.showDoubleHitSpot = false
+		Cannon.forget()
+		if (drawn != "20") {
+			fail("Cannon drew the count " + drawn + ", not 20")
+			return true
+		}
+		println("SMOKE cannon: count " + drawn + " drawn over the cannon, double-hit tiles on")
 		return true
 	}
 
