@@ -455,6 +455,8 @@ object SmokeTest {
 
 	private var chatFilterFrame: Int = -1
 
+	private var chatFilterWasEnabled: Boolean = false
+
 	private var itemIdentificationWasEnabled: Boolean = false
 
 	private var bankFrame: Int = -1
@@ -4514,6 +4516,9 @@ object SmokeTest {
 	private fun chatFilterDone(): Boolean {
 		val api = ClientApiImpl
 		if (chatFilterFrame == -1) {
+			// off by default: on for the step, as the player had it after
+			chatFilterWasEnabled = ChatFilter.enabled
+			ChatFilter.enabled = true
 			ChatFilter.filteredWords = "gold"
 			ChatFilter.filterType = ChatFilter.REMOVE_MESSAGE
 			ChatFilter.collapseGameChat = true
@@ -4539,6 +4544,7 @@ object SmokeTest {
 		ChatFilter.filterType = ChatFilter.CENSOR_WORDS
 		ChatFilter.collapseGameChat = false
 		ChatFilter.compile()
+		ChatFilter.enabled = chatFilterWasEnabled
 		if (newest != "Smoke test repeat. (2)" || previous == "Smoke test repeat.") {
 			fail("Chat Filter: the newest lines read \"" + newest + "\", \"" + previous + "\"")
 			return true
