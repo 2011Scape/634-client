@@ -4318,12 +4318,22 @@ object SmokeTest {
 	}
 
 	/** Player Indicators with the own player highlighted: their name drawn, the rank icons added as chat icons. Frame: frame-playerindicators.png. */
+	/** Player Indicators' check: a health bar half full for 6 seconds. */
+	private const val HALF_HEALTH: Int = 128
+	private const val HEALTH_BAR_CYCLES: Int = 300
+
 	private fun playerIndicatorsDone(): Boolean {
 		if (playerIndicatorsFrame == -1) {
 			PlayerIndicators.enabled = true
 			PlayerIndicators.highlight[PlayerIndicators.SELF] = PlayerIndicators.ENABLED
 			PlayerIndicators.drawPlayerTiles = true
 			PlayerIndicators.drawMinimapNames = true
+			// a chat line and a health bar over the head (on this client only): the name goes above both
+			PlayerUpdate.localPlayer?.let {
+				it.setOverheadText("Indicator check")
+				it.healthRatio = HALF_HEALTH
+				it.healthBarEndCycle = ClientState.clientCycle + HEALTH_BAR_CYCLES
+			}
 			playerIndicatorsFrame = frames
 			return false
 		}
@@ -4332,6 +4342,8 @@ object SmokeTest {
 		}
 		saveFrame("build/smoke/frame-playerindicators.png")
 		val drawn: Int = PlayerIndicators.drawnLastFrame
+		val top: Int = PlayerUpdate.localPlayer?.overheadTop() ?: -1
+		val nameY: Int = PlayerIndicators.lastAboveHeadY
 		val icons: StringBuilder = StringBuilder()
 		for (rank in PlayerIndicators.RANK_SPRITES.indices) {
 			icons.append(PlayerIndicators.rankIcon(ClientApiImpl, rank))
@@ -4340,11 +4352,11 @@ object SmokeTest {
 		PlayerIndicators.highlight[PlayerIndicators.SELF] = PlayerIndicators.DISABLED
 		PlayerIndicators.drawPlayerTiles = false
 		PlayerIndicators.drawMinimapNames = false
-		if (drawn < 1 || icons.count { it == '<' } != PlayerIndicators.RANK_SPRITES.size) {
-			fail("Player Indicators: " + drawn + " names drawn, rank icons \"" + icons + "\"")
+		if (drawn < 1 || icons.count { it == '<' } != PlayerIndicators.RANK_SPRITES.size || top < 0 || nameY >= top) {
+			fail("Player Indicators: " + drawn + " names drawn, rank icons \"" + icons + "\", the name at y " + nameY + " and the overheads' top at " + top)
 			return true
 		}
-		println("SMOKE player indicators: own name drawn, rank icons " + icons)
+		println("SMOKE player indicators: own name drawn at y " + nameY + ", above the health bar and chat line (their top " + top + "), rank icons " + icons)
 		return true
 	}
 
