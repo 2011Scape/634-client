@@ -121,16 +121,24 @@ object BarrowsOverlay {
 		}
 	}
 
-	/** At the end of the frame: the brothers' letters on the minimap, and the puzzle's answer outlined. */
+	/** As the minimap is drawn: the brothers' letters on it, under the orbs as the game's own dots are (API 38). */
 	@JvmStatic
-	fun drawFrame(g: Graphics, client: ClientApi) {
+	fun drawMinimap(g: Graphics, client: ClientApi) {
 		drawnLetters = 0
-		drawnAnswer = null
 		if (!BarrowsBrothers.enabled || client.gameState() !== GameState.LOGGED_IN) {
 			return
 		}
 		if (BarrowsBrothers.showBrotherLoc && g.fontReady() && BarrowsBrothers.isBarrowsLoaded(client) && client.minimapArea(area)) {
 			drawBrothers(g, client)
+		}
+	}
+
+	/** At the end of the frame: the puzzle's answer outlined. */
+	@JvmStatic
+	fun drawFrame(g: Graphics, client: ClientApi) {
+		drawnAnswer = null
+		if (!BarrowsBrothers.enabled || client.gameState() !== GameState.LOGGED_IN) {
+			return
 		}
 		val answer: Widget? = if (BarrowsBrothers.showPuzzleAnswer) BarrowsBrothers.puzzleAnswer(client) else null
 		if (answer != null && !answer.isHidden()) {
