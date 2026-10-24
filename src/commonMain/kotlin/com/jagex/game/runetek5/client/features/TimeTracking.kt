@@ -431,19 +431,24 @@ object TimeTracking : Plugin {
 		values.fill(-1)
 		grewAt.fill(-1)
 		for (entry in text.split(',')) {
-			val eq: Int = entry.indexOf('=')
-			val at: Int = entry.indexOf('@')
-			if (eq < 0 || at < eq) {
-				continue
-			}
-			val varbit: Int = entry.substring(0, eq).toIntOrNull() ?: continue
-			val i: Int = FarmingPatchData.PATCHES.indexOfFirst { it.varbit == varbit }
-			if (i < 0) {
-				continue
-			}
-			values[i] = entry.substring(eq + 1, at).toIntOrNull() ?: -1
-			grewAt[i] = entry.substring(at + 1).toIntOrNull() ?: -1
+			decodeEntry(entry)
 		}
+	}
+
+	/** One "varbit=value@minute" of [encode]; one that is unreadable, or of a patch not in the table, is skipped. */
+	private fun decodeEntry(entry: String) {
+		val eq: Int = entry.indexOf('=')
+		val at: Int = entry.indexOf('@')
+		if (eq < 0 || at < eq) {
+			return
+		}
+		val varbit: Int = entry.substring(0, eq).toIntOrNull() ?: return
+		val i: Int = FarmingPatchData.PATCHES.indexOfFirst { it.varbit == varbit }
+		if (i < 0) {
+			return
+		}
+		values[i] = entry.substring(eq + 1, at).toIntOrNull() ?: -1
+		grewAt[i] = entry.substring(at + 1).toIntOrNull() ?: -1
 	}
 
 	// --- the infoboxes ---
@@ -467,11 +472,10 @@ object TimeTracking : Plugin {
 			val now: Long = lang.currentTimeMillis() / 1000L
 			val out: StringBuilder = StringBuilder(category.title)
 			for (i in FarmingPatchData.PATCHES.indices) {
-				if (FarmingPatchData.PATCHES[i].category !== category) {
-					continue
+				val line: String? = if (FarmingPatchData.PATCHES[i].category === category) describe(i, now) else null
+				if (line != null) {
+					out.append("</br>").append(line)
 				}
-				val line: String = describe(i, now) ?: continue
-				out.append("</br>").append(line)
 			}
 			return out.toString()
 		}
