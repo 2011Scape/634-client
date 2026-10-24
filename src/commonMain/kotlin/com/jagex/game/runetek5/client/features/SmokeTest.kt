@@ -75,6 +75,8 @@ import com.jagex.game.runetek5.plugin.Tooltips
 import com.jagex.game.runetek5.plugin.InfoBoxes
 import com.jagex.game.runetek5.plugin.OverlayLayout
 import com.jagex.game.runetek5.plugin.api.PanelOverlay
+import com.jagex.game.runetek5.plugin.api.Widget
+import com.jagex.game.runetek5.interaction.FriendList
 import com.jagex.game.runetek5.plugin.api.QuestState
 import com.jagex.game.runetek5.plugin.api.Skill
 import kotlin.jvm.JvmStatic
@@ -497,6 +499,13 @@ object SmokeTest {
 	private var metronomeStart: Long = -1L
 
 	private var metronomeTicks: Int = 0
+
+	/** client.test.friendNotes: browsertest added as a friend (through the client, as the friends list's Add Friend does), its row on the Friends tab found and named, a note kept and shown over it, then the note and the friend removed. */
+	private val FRIEND_NOTES: Boolean = "true" == lang.getProperty("client.test.friendNotes")
+
+	private var friendNotesStep: Int = 0
+
+	private var friendNotesFrame: Int = -1
 
 	/** client.test.hiscore: the Hiscore panel shown for a player put in as if the website had answered (the smoke test asks no website), then closed. */
 	private val HISCORE: Boolean = "true" == lang.getProperty("client.test.hiscore")
@@ -1789,6 +1798,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 4611686018427387904L
+		}
+		if (FRIEND_NOTES && (checksDone and Long.MIN_VALUE) == 0L) {
+			if (!friendNotesDone()) {
+				return
+			}
+			checksDone = checksDone or Long.MIN_VALUE
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5644,6 +5659,75 @@ object SmokeTest {
 					return true
 				}
 				println("SMOKE animation smoothing: " + animationSmoothingCount + " blended frames in " + MARKER_FRAMES + " frames on, none off")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Friend Notes on browsertest's row of the Friends tab: named from the row, its note shown over it and in the typing prompt. Frame: frame-friendnotes.png. */
+	private fun friendNotesDone(): Boolean {
+		val friend: String = "browsertest"
+		when (friendNotesStep) {
+			0 -> {
+				FriendList.addFriend(friend)
+				openTab("Friends List", "Friends")
+				friendNotesFrame = frames
+				friendNotesStep = 1
+			}
+			1 -> {
+				val row: Widget? = FriendNotes.rowOf(ClientApiImpl, friend)
+				if (row == null) {
+					if (frames - friendNotesFrame > 500) {
+						val seen: StringBuilder = StringBuilder()
+						for (c in 0 until 40) {
+							val w: Widget = ClientApiImpl.widget(FriendNotes.FRIENDS, c) ?: continue
+							for (i in 0 until minOf(w.childCount(), 4)) {
+								seen.append(c).append('.').append(i).append('=').append(w.child(i)?.text()).append(' ')
+							}
+						}
+						for (i in 0 until minOf(ClientApiImpl.chatLineCount(), 3)) {
+							seen.append("| chat: ").append(ClientApiImpl.chatLine(i)?.message())
+						}
+						seen.append(" | client friends ").append(FriendList.FRIEND_COUNT).append(", 550 loaded ").append(Interface.peekComponents(FriendNotes.FRIENDS)?.size)
+						saveFrame("build/smoke/frame-friendnotes.png")
+						FriendList.removeFriend(friend)
+						fail("Friend Notes: no row for " + friend + " on the Friends tab; friend " + ClientApiImpl.isFriend(friend) + "; rows " + seen)
+						return true
+					}
+					return false
+				}
+				val named: String? = FriendNotes.rowName(ClientApiImpl, row.id(), row.slot())
+				FriendNotes.setNote(friend, "smoke note")
+				val tip: String? = FriendNotes.tooltipAt(ClientApiImpl, row.screenX() + row.width() / 2, row.screenY() + row.height() / 2)
+				if (named == null || FriendNotes.key(named) != friend || tip != "Note: smoke note") {
+					FriendNotes.setNote(friend, "")
+					FriendList.removeFriend(friend)
+					fail("Friend Notes: the row named " + named + ", tooltip " + tip)
+					return true
+				}
+				FriendNotes.editing = named
+				FriendNotes.typed.setLength(0)
+				FriendNotes.typed.append("smoke note")
+				println("SMOKE friend notes: row " + row.id().ushr(16) + ":" + (row.id() and 0xFFFF) + " slot " + row.slot() + " names " + named + ", tooltip \"" + tip + "\"")
+				friendNotesFrame = frames
+				friendNotesStep = 2
+			}
+			else -> {
+				if (frames - friendNotesFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-friendnotes.png")
+				val prompt: String = FriendNotes.prompt.boundsX.toString() + "," + FriendNotes.prompt.boundsY + " " + FriendNotes.prompt.boundsWidth + "x" + FriendNotes.prompt.boundsHeight
+				FriendNotes.editing = null
+				FriendNotes.setNote(friend, "")
+				FriendList.removeFriend(friend)
+				openInventoryTab()
+				if (FriendNotes.prompt.boundsWidth <= 0) {
+					fail("Friend Notes: the typing prompt was not drawn (" + prompt + ")")
+					return true
+				}
+				println("SMOKE friend notes: typing prompt drawn at " + prompt)
 				return true
 			}
 		}
