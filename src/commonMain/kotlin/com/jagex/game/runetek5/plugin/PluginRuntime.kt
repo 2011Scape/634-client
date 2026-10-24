@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.plugin.api.ActorFilter
+import com.jagex.game.runetek5.network.packet.StockMarketOffer
 import com.jagex.game.runetek5.plugin.api.AnimationFilter
 import com.jagex.game.runetek5.plugin.api.ProjectileFilter
 import com.jagex.game.runetek5.plugin.api.events.LocChanged
@@ -29,6 +30,7 @@ import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.plugin.api.Actor
 import com.jagex.game.runetek5.plugin.api.CommandHandler
 import com.jagex.game.runetek5.plugin.api.GameState
+import com.jagex.game.runetek5.plugin.api.GrandExchangeOffer
 import com.jagex.game.runetek5.plugin.api.MenuAction
 import com.jagex.game.runetek5.plugin.api.MenuEntry
 import com.jagex.game.runetek5.plugin.api.MenuTarget
@@ -47,6 +49,7 @@ import com.jagex.game.runetek5.plugin.api.events.Events
 import com.jagex.game.runetek5.plugin.api.events.FrameDraw
 import com.jagex.game.runetek5.plugin.api.events.GameStateChanged
 import com.jagex.game.runetek5.plugin.api.events.GameTick
+import com.jagex.game.runetek5.plugin.api.events.GrandExchangeOfferChanged
 import com.jagex.game.runetek5.plugin.api.events.GroundItem
 import com.jagex.game.runetek5.plugin.api.events.HitsplatApplied
 import com.jagex.game.runetek5.plugin.api.events.InterfaceChanged
@@ -1214,6 +1217,42 @@ object PluginRuntime {
 		locChangedEvent.shape = shape
 		locChangedEvent.rotation = rotation
 		bus.post(Events.LOC_CHANGED, locChangedEvent)
+	}
+
+	/** The server sent Grand Exchange offer [slot] (UPDATE_GE_SLOT): the plugins' GrandExchangeOfferChanged. */
+	@JvmStatic
+	fun grandExchangeOfferChanged(slot: Int) {
+		if (!started || !bus.hasListeners(Events.GRAND_EXCHANGE_OFFER_CHANGED)) {
+			return
+		}
+		readGrandExchangeOffer(slot, grandExchangeEvent.offer)
+		bus.post(Events.GRAND_EXCHANGE_OFFER_CHANGED, grandExchangeEvent)
+	}
+
+	private val grandExchangeEvent: GrandExchangeOfferChanged = GrandExchangeOfferChanged()
+
+	/** Offer [slot] as the client holds it, into [out]; bit 8 of its state is a sell (Void's OfferState: 9, 10, 13). */
+	@JvmStatic
+	fun readGrandExchangeOffer(slot: Int, out: GrandExchangeOffer) {
+		val offer: StockMarketOffer? = StockMarketOffer.GRAND_EXCHANGE_SLOTS[slot]
+		out.slot = slot
+		if (offer == null || offer.getSlotState() == GrandExchangeOffer.EMPTY) {
+			out.state = GrandExchangeOffer.EMPTY
+			out.sell = false
+			out.itemId = -1
+			out.price = 0
+			out.quantity = 0
+			out.quantityDone = 0
+			out.coins = 0
+			return
+		}
+		out.state = offer.getSlotState()
+		out.sell = offer.isBuyOffer() == 1 // the deob's name: the bit is set for a sell
+		out.itemId = offer.itemId
+		out.price = offer.price
+		out.quantity = offer.amount
+		out.quantityDone = offer.currentAmount
+		out.coins = offer.totalPrice
 	}
 
 	/** [text] appeared over [actor]'s head. */

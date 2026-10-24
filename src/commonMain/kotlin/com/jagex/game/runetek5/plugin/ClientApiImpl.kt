@@ -46,6 +46,7 @@ import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.Image
 import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.GroundItemVisitor
+import com.jagex.game.runetek5.plugin.api.GrandExchangeOffer
 import com.jagex.game.runetek5.AbstractMouseManager
 import com.jagex.game.runetek5.FriendsChatPlayer
 import com.jagex.game.runetek5.InterfaceManager
@@ -1109,5 +1110,13 @@ object ClientApiImpl : ClientApi {
 	private fun hasDestination(): Boolean {
 		val size: Int = sceneSize()
 		return Minimap.minimapFlagX in 1 until size && Minimap.minimapFlagY in 1 until size
+	}
+
+	override fun grandExchangeOffer(slot: Int, out: GrandExchangeOffer): Boolean {
+		if (slot < 0 || slot >= GrandExchangeOffer.SLOTS) {
+			return false
+		}
+		PluginRuntime.readGrandExchangeOffer(slot, out)
+		return true
 	}
 }

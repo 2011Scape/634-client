@@ -1355,6 +1355,7 @@ object PacketDecoder {
 												}
 												BufferedConnectionContext.currentPacket = null
 												client.lastGrandExchangeUpdateTick = ClientState.serverTick
+												PluginRuntime.grandExchangeOfferChanged(geSlot) // Not part of the original client
 												return true
 											} else if (BufferedConnectionContext.currentPacket === ServerProt.IF_SETANIM) {
 												var animationId: Int = BufferedConnectionContext.receivedBuffer.readShort()

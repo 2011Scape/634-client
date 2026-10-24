@@ -530,4 +530,10 @@ interface ClientApi {
 	fun destinationTileX(): Int
 
 	fun destinationTileY(): Int
+
+	/**
+	 * Grand Exchange offer [slot] (0 to 5) as the server last sent it, copied into [out]; false for a
+	 * slot out of range. [GrandExchangeOffer.EMPTY] until the server sends the slot. Since API 35.
+	 */
+	fun grandExchangeOffer(slot: Int, out: GrandExchangeOffer): Boolean
 }

@@ -20,6 +20,7 @@ import com.jagex.game.runetek5.client.features.Emojis
 import com.jagex.game.runetek5.client.features.EntityHider
 import com.jagex.game.runetek5.client.features.Examine
 import com.jagex.game.runetek5.client.features.Fishing
+import com.jagex.game.runetek5.client.features.GrandExchange
 import com.jagex.game.runetek5.client.features.GroundItems
 import com.jagex.game.runetek5.client.features.GroundTiles
 import com.jagex.game.runetek5.client.features.Hunter
@@ -134,6 +135,7 @@ object BuiltinPlugins {
 			builtIn(EntityHider.DESCRIPTOR, EntityHider),
 			builtIn(AnimationSmoothing.DESCRIPTOR, AnimationSmoothing),
 			builtIn(Screenshot.DESCRIPTOR, Screenshot),
+			builtIn(GrandExchange.DESCRIPTOR, GrandExchange),
 		)
 	}
 

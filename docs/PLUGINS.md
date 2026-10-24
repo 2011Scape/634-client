@@ -22,7 +22,8 @@ the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual 
 aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implings`), the cooking
 (`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`), the inventory tags (`InventoryTags`), the
 inventory grid (`InventoryGrid`), the examine (`Examine`), the entity hider (`EntityHider`), the
-animation smoothing (`AnimationSmoothing`) and the screenshot (`Screenshot`) are fifty-nine, built in, so the client's own code shows the way.
+animation smoothing (`AnimationSmoothing`), the screenshot (`Screenshot`) and the Grand Exchange
+(`GrandExchange`) are sixty, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -65,7 +66,8 @@ the game for you.
   own to the chat icons (`<img=N>`); set a component's text and the client variables (the chat box's
   typed line); remap the player's own keys before the client reads them (`KeyInput`); and set the
   mouse cursor, from a picture or an item's icon; smooth animations, blending them between their keyframes
-  (`setAnimationFilter`); and hear when the server changes a location (`LocChanged`).
+  (`setAnimationFilter`); and hear when the server changes a location (`LocChanged`) or a Grand Exchange offer
+  (`GrandExchangeOfferChanged`).
 - Add: entries to the right-click menu of a tile, npc, player, ground item, location or interface
   component (an inventory slot included), with an action of its own, and entries that open a
   submenu of its own beside the menu; console commands (`::name`); lines in the chat box and the
@@ -670,6 +672,14 @@ Barrows Rewards, Deaths, PvP Kills, Clan Chat Kicks) as "Attack(99) 2011-06-01_1
 desktop in Pictures/634-client, in a browser as a download. It can say where it went, copy the picture
 to the clipboard, and show the date on the report button in it. OSRS's pets, clues, collection log,
 combat achievements and raids are not in 634, and image hosts are left out.
+
+**Grand Exchange** is RuneLite's, as far as 634 goes. Void only says that "one or more" offers were
+updated, so each offer that trades gets OSRS's line in the chat: "Grand Exchange: Bought 5 / 10 x Rune
+bar.", "Finished buying…", "Aborted offer to buy…". **Desktop notifications** sends the same line to the
+desktop. The offers are remembered for each account, so offers that traded while you were logged out
+are told once at your next login. **Offers panel** (or `::geoffers`) shows your offers with a bar of how
+far along each is, for watching them away from the exchange. RuneLite's offer search, buy limit timers
+and its price website are left out.
 
 ## Writing a plugin
 
