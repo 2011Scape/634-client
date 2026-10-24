@@ -533,6 +533,8 @@ object SmokeTest {
 
 	private var fairyRingsFrame: Int = 0
 
+	private var fairyRingsKeyRemapping: Boolean = false
+
 	/** The account's Fairy Tale II and III states before the test, by Void's names, to put back. */
 	private var fairyRingsQuests: Array<String>? = null
 
@@ -5412,9 +5414,15 @@ object SmokeTest {
 					return true
 				}
 				println("SMOKE fairy rings: the log's AKQ row dialled AKQ, the button says \"" + label + "\"; the travel log lists all " + rows.size + " codes")
-				FairyRings.search.setLength(0)
-				FairyRings.search.append("hunter")
-				FairyRings.typing = true
+				// typed as the keyboard gives it, Key Remapping on (its locked chat would take W A S D): the keys go to
+				// the search, none to the chat or the camera
+				fairyRingsKeyRemapping = KeyRemapping.enabled
+				KeyRemapping.enabled = true
+				FairyRings.startSearch()
+				val keys = KeyRecorder.keyRecorder as CanvasKeyRecorder
+				for (c in "swamp") {
+					keys.inject(-1, c, 3)
+				}
 				fairyRingsFrame = frames
 				fairyRingsStep = 3
 			}
@@ -5425,21 +5433,26 @@ object SmokeTest {
 				saveFrame("build/smoke/frame-fairyrings-search.png")
 				// typed in the chat box's line, as RuneLite's search is
 				val line: String? = api.widget(KeyRemapping.CHATBOX, KeyRemapping.CHATBOX_INPUT)?.text()
-				if (!FairyRings.searchInChat || line == null || !OpponentInfo.removeTags(line).startsWith(FairyRings.FILTER_LABEL + "hunter")) {
+				if (!FairyRings.searchInChat || line == null || !OpponentInfo.removeTags(line).startsWith(FairyRings.FILTER_LABEL + "swamp")) {
 					fail("Fairy Rings: the search is not in the chat box's line, which reads \"" + line + "\"")
 					return true
 				}
-				FairyRings.typing = false
-				val rows: List<Widget> = fairyRows()
-				val codes: List<String> = rows.sortedBy { it.screenY() }.map { FairyRings.rowCode(it.componentId())!! }
-				val want: List<String> = FairyRings.matching("hunter")
-				// in the log's own order (by destination, or as re-sorted)
-				if (codes.sorted() != want.sorted() || rows.map { it.screenY() }.toSet().size != rows.size) {
-					fail("Fairy Rings: searching \"hunter\" left " + codes + ", not " + want)
+				val chat: String = api.varcString(KeyRemapping.CHAT_INPUT_VARC) ?: ""
+				if (chat.isNotEmpty()) {
+					fail("Fairy Rings: keys typed into the search reached the chat too: \"" + chat + "\"")
 					return true
 				}
-				println("SMOKE fairy rings: searching \"hunter\" leaves " + codes.joinToString(", ") + ", one under another")
-				FairyRings.search.setLength(0)
+				// Escape, as the keyboard gives it: the search cleared and over
+				(KeyRecorder.keyRecorder as CanvasKeyRecorder).inject(13, '\u0000', 0)
+				val rows: List<Widget> = fairyRows()
+				val codes: List<String> = rows.sortedBy { it.screenY() }.map { FairyRings.rowCode(it.componentId())!! }
+				val want: List<String> = FairyRings.matching("swamp")
+				// in the log's own order (by destination, or as re-sorted)
+				if (codes.sorted() != want.sorted() || rows.map { it.screenY() }.toSet().size != rows.size) {
+					fail("Fairy Rings: searching \"swamp\" left " + codes + ", not " + want)
+					return true
+				}
+				println("SMOKE fairy rings: \"swamp\" typed into the chat box's line leaves " + codes.joinToString(", ") + ", one under another; nothing reached the chat")
 				fairyRingsFrame = frames
 				fairyRingsStep = 4
 			}
@@ -5449,6 +5462,11 @@ object SmokeTest {
 				}
 				// the search over: the chat box's line is the chat's again
 				val line: String = api.widget(KeyRemapping.CHATBOX, KeyRemapping.CHATBOX_INPUT)?.text() ?: ""
+				KeyRemapping.enabled = fairyRingsKeyRemapping
+				if (FairyRings.typing || FairyRings.search.isNotEmpty()) {
+					fail("Fairy Rings: Escape left the search up (\"" + FairyRings.search + "\")")
+					return true
+				}
 				if (line.startsWith(FairyRings.FILTER_LABEL)) {
 					fail("Fairy Rings: the chat box's line still reads \"" + line + "\" after the search")
 					return true
