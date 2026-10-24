@@ -5808,6 +5808,38 @@ object SmokeTest {
 					return true
 				}
 				println("SMOKE interact highlight: faced npc " + interactNpc + " kept the interact colour while hovered")
+				// last, a real hover: the pointer held on the npc's silhouette, the game's own picking and menu deciding
+				interactFrame = frames
+				interactStep = 5
+				return false
+			}
+			5 -> {
+				val entity: PathingEntity? = ClientApiImpl.npcByIndex(interactNpc) as? PathingEntity
+				val mask: LocGeometry.Mask? = if (entity == null) null else ActorGeometry.current(entity)
+				val hit: Int = mask?.hits?.indexOfFirst { it } ?: -1
+				if (mask != null && hit >= 0) {
+					// the middle of the silhouette's middle row, kept on the npc as it walks
+					val row: Int = mask.rows / 2
+					var column: Int = (0 until mask.columns).firstOrNull { mask.hit(it, row) } ?: (hit % mask.columns)
+					while (column + 1 < mask.columns && mask.hit(column + 1, row)) {
+						column++
+						if (column - ((0 until mask.columns).firstOrNull { mask.hit(it, row) } ?: 0) >= 2) {
+							break
+						}
+					}
+					(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(PluginRuntime.viewX() + mask.x + column * mask.step + mask.step / 2, PluginRuntime.viewY() + mask.y + row * mask.step + mask.step / 2)
+				}
+				if (frames - interactFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-interacthighlight-hover.png")
+				(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(-1, -1)
+				val colour: Int = InteractHighlight.lastNpcColour
+				if (InteractHighlight.lastNpc != interactNpc || (colour != InteractHighlight.hoverColour && colour != InteractHighlight.attackHoverColour)) {
+					fail("Interact Highlight: the pointer on npc " + interactNpc + " outlined " + InteractHighlight.lastNpc + " in " + colour.toUInt().toString(16) + "; menu top " + PluginRuntime.topClickType + " " + PluginRuntime.topOption)
+					return true
+				}
+				println("SMOKE interact highlight: the pointer on npc " + interactNpc + " outlined it in the hover colour (menu top \"" + PluginRuntime.topOption + "\")")
 				return true
 			}
 			else -> {

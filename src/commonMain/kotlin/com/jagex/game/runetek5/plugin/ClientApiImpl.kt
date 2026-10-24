@@ -1139,10 +1139,10 @@ object ClientApiImpl : ClientApi {
 	}
 
 	override fun hoveredTarget(out: HoveredTarget): Boolean {
-		if (MiniMenu.isOpen || menuEntryCount() == 0) {
+		// the menu's entries are only readable inside MenuBuilt: its top as last built, if this cycle's or the last
+		if (MiniMenu.isOpen || PluginRuntime.topClickType < 0 || PluginRuntime.topCycle < ClientState.clientCycle - 1) {
 			return false
 		}
-		val top: MenuEntry = menuEntry(0) ?: return false
-		return HoveredTargets.decode(top.clickType(), top.param0(), top.param1(), top.entityUid(), top.option(), out)
+		return HoveredTargets.decode(PluginRuntime.topClickType, PluginRuntime.topParam0, PluginRuntime.topParam1, PluginRuntime.topUid, PluginRuntime.topOption, out)
 	}
 }
