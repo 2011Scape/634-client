@@ -263,25 +263,30 @@ object ScreenMarkers : Plugin {
 	@JvmStatic
 	fun decode(text: String, out: MutableList<Marker>) {
 		for (entry in text.split(';')) {
-			val f: List<String> = entry.split('|')
-			if (f.size != 10) {
-				continue
-			}
-			val n: List<Int?> = f.mapIndexed { i, s -> if (i == 1) 0 else s.toIntOrNull() }
-			if (n.any { it == null }) {
-				continue
-			}
-			val m: Marker = Marker(n[0]!!, f[1])
-			m.border = n[2]!!
-			m.fill = n[3]!!
-			m.thickness = n[4]!!
-			m.labelled = n[5] == 1
-			m.x = n[6]!!
-			m.y = n[7]!!
-			m.width = n[8]!!
-			m.height = n[9]!!
-			out.add(m)
+			decodeMarker(entry)?.let { out.add(it) }
 		}
+	}
+
+	/** One box of [encode], or null when it is unreadable. */
+	private fun decodeMarker(entry: String): Marker? {
+		val f: List<String> = entry.split('|')
+		if (f.size != 10) {
+			return null
+		}
+		val n: List<Int?> = f.mapIndexed { i, s -> if (i == 1) 0 else s.toIntOrNull() }
+		if (n.any { it == null }) {
+			return null
+		}
+		val m: Marker = Marker(n[0]!!, f[1])
+		m.border = n[2]!!
+		m.fill = n[3]!!
+		m.thickness = n[4]!!
+		m.labelled = n[5] == 1
+		m.x = n[6]!!
+		m.y = n[7]!!
+		m.width = n[8]!!
+		m.height = n[9]!!
+		return m
 	}
 
 	private fun drawBox(g: Graphics, x: Int, y: Int, width: Int, height: Int, border: Int, fill: Int, thickness: Int) {
