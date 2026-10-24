@@ -8,8 +8,8 @@ import kotlin.jvm.JvmStatic
 
 /**
  * Not part of the original client: what the player has when a Shortest Path search starts (levels, the
- * backpack and what is worn, the spellbook), read on the game thread so the search can check the
- * transports' requirements against it.
+ * backpack and what is worn, the spellbook, the quest vars), read on the game thread so the search can
+ * check the transports' requirements against it.
  */
 class ShortestPathPlayer(
 	@JvmField val levels: IntArray,
@@ -18,6 +18,8 @@ class ShortestPathPlayer(
 	@JvmField val worn: Set<Int>,
 	/** "modern", "ancient", "lunar", or null when no spellbook is open in its tab. */
 	@JvmField val spellbook: String?,
+	/** A varp's (false) or a varbit's (true) value: the quests Void keeps in them, which it sends to the client. */
+	@JvmField val vars: (Boolean, Int) -> Int,
 ) {
 	companion object {
 		const val INVENTORY: Int = 93
@@ -43,7 +45,7 @@ class ShortestPathPlayer(
 					LUNAR -> book = "lunar"
 				}
 			}
-			return ShortestPathPlayer(levels, items, worn, book)
+			return ShortestPathPlayer(levels, items, worn, book) { bit, id -> if (bit) client.varbit(id) else client.varp(id) }
 		}
 
 		private fun add(container: ItemContainer, items: HashMap<Int, Int>, worn: HashSet<Int>?) {
@@ -61,7 +63,8 @@ class ShortestPathPlayer(
 /**
  * Not part of the original client: whether a Shortest Path transport may be taken, by the plugin's
  * switches and the requirements the generator wrote for it (levels by skill name, a spellbook, items
- * with their amounts where `a|b` is either one, a worn item, a quest).
+ * with their amounts where `a|b` is either one, a worn item, and quests as the varps and varbits Void
+ * keeps them in: `var=varp:302:60|61,varbit:2326:!0`, each var one of the values, or with `!` none of them).
  */
 class ShortestPathRules(
 	@JvmField val player: ShortestPathPlayer,
@@ -69,8 +72,6 @@ class ShortestPathRules(
 	@JvmField val staves: Map<Int, Set<Int>>,
 	/** Whether the items a teleport needs must be carried; false takes every teleport item as had. */
 	@JvmField val checkItems: Boolean,
-	/** Whether a transport behind a quest may be taken: the client cannot tell Void's quests apart. */
-	@JvmField val questLocked: Boolean,
 	/** The most coins a transport may cost. */
 	@JvmField val coinLimit: Int,
 ) {
@@ -90,9 +91,20 @@ class ShortestPathRules(
 			key == "book" -> player.spellbook == null || player.spellbook == value
 			key == "items" -> items(value, transport.type == "TELEPORT_ITEM" && !checkItems)
 			key == "equipped" -> value.isEmpty() || value.split('|').any { (it.toIntOrNull() ?: -1) in player.worn }
-			key == "quest" -> questLocked
+			key == "var" -> value.split(',').all { varTest(it) }
 			else -> true // "consumed" and other notes
 		}
+	}
+
+	/** One `varp:<id>:<a|b>` or `varbit:<id>:!<a|b>` test. */
+	private fun varTest(test: String): Boolean {
+		val parts: List<String> = test.split(':')
+		val id: Int = parts.getOrNull(1)?.toIntOrNull() ?: return true
+		val list: String = parts.getOrElse(2) { "" }
+		val negate: Boolean = list.startsWith("!")
+		val values: List<Int> = list.removePrefix("!").split('|').mapNotNull { it.toIntOrNull() }
+		val value: Int = player.vars(parts[0] == "varbit", id)
+		return (value in values) != negate
 	}
 
 	/** Every group of `ids x amount` carried, a rune also covered by a worn staff; coins up to [coinLimit]. */

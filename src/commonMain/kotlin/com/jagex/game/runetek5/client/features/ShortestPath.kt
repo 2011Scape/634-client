@@ -68,7 +68,6 @@ object ShortestPath : Plugin {
 	@JvmField var useGnomeGliders: Boolean = true
 	@JvmField var useCharterShips: Boolean = true
 	@JvmField var useCanoes: Boolean = true
-	@JvmField var useQuestLocked: Boolean = true
 	@JvmField var currencyThreshold: Int = 100_000
 	@JvmField var drawTiles: Boolean = true
 	@JvmField var drawMinimap: Boolean = true
@@ -213,7 +212,6 @@ object ShortestPath : Plugin {
 		s.toggle("useGnomeGliders", "Use gnome gliders", true)
 		s.toggle("useCharterShips", "Use charter ships", true)
 		s.toggle("useCanoes", "Use canoes", true)
-		s.toggle("useQuestLocked", "Use transports behind quests", true)
 		s.number("currencyThreshold", "Currency threshold", 100_000, 0, 10_000_000, 1000)
 		s.toggle("drawTiles", "Draw path on tiles", true)
 		s.toggle("drawMinimap", "Draw path on minimap", true)
@@ -238,7 +236,6 @@ object ShortestPath : Plugin {
 		useGnomeGliders = config.getBoolean("useGnomeGliders", true)
 		useCharterShips = config.getBoolean("useCharterShips", true)
 		useCanoes = config.getBoolean("useCanoes", true)
-		useQuestLocked = config.getBoolean("useQuestLocked", true)
 		currencyThreshold = config.getInt("currencyThreshold", 100_000).coerceIn(0, 10_000_000)
 		drawTiles = config.getBoolean("drawTiles", true)
 		drawMinimap = config.getBoolean("drawMinimap", true)
@@ -308,7 +305,7 @@ object ShortestPath : Plugin {
 			return
 		}
 		val start: Int = ShortestPathFinder.pack(client.sceneBaseX() + player.serverTileX(), client.sceneBaseY() + player.serverTileY(), player.level())
-		val rules = ShortestPathRules(ShortestPathPlayer.read(client), staves, useTeleportationItems != ITEMS_ALL, useQuestLocked, currencyThreshold)
+		val rules = ShortestPathRules(ShortestPathPlayer.read(client), staves, useTeleportationItems != ITEMS_ALL, currencyThreshold)
 		val bySource = HashMap<Int, MutableList<ShortestPathTransport>>()
 		val anywhere = ArrayList<ShortestPathTransport>()
 		for (transport in transports) {

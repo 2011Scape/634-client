@@ -736,8 +736,10 @@ teleport spells of the spellbook you have open when you have the Magic level and
 elemental staff counts for its runes), teleport tablets and jewellery you carry or wear (or all of them,
 or none: a setting), fairy rings with a Dramen or Lunar staff worn, spirit trees, gnome gliders, charter
 ships up to the currency threshold, and canoes by your Woodcutting level, each with its own switch.
-The client cannot see Void's quest progress, so a transport behind a quest is taken unless
-**Use transports behind quests** is off. It is found again when you stray more than the recalculate
+Quests are checked as Void checks them, from the varps and varbits it keeps them in and sends to the
+client (Priest in Peril for Port Phasmatys, Fairy Tale II started for the rings, Plague City for Ardougne
+Teleport); a quest Void has not written counts as done, as its `quests.requirements.skipMissing` has it.
+It is found again when you stray more than the recalculate
 distance from it or your backpack or worn items change (the old path shows in the calculating colour
 meanwhile), and goes when you come within the reached distance of the target. Old School's map files are
 another world, so the map and transports are 634's, made from the Void server's own collision (every
