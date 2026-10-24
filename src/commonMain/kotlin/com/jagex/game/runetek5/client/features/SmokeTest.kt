@@ -5167,6 +5167,14 @@ object SmokeTest {
 			0 -> {
 				// off by default: on for the step
 				ShortestPath.enabled = true
+				// a tile within the finish distance is refused, with a word to the player, not set and cleared unseen
+				val refused: Int = ShortestPath.refusedTooClose
+				ShortestPath.setTarget(api, api.sceneBaseX() + player.movementBaseX[0] + 2, api.sceneBaseY() + player.movementBaseY[0], player.level.toInt())
+				if (ShortestPath.targets.isNotEmpty() || ShortestPath.refusedTooClose != refused + 1) {
+					shortestPathFailure = "Shortest Path: a target 2 tiles away was " + (if (ShortestPath.targets.isEmpty()) "dropped without a word" else "set")
+				} else {
+					println("SMOKE shortest path: a target 2 tiles away is refused as within the finish distance, with a chat message")
+				}
 				val x: Int = api.sceneBaseX() + player.movementBaseX[0] - 12
 				val y: Int = api.sceneBaseY() + player.movementBaseY[0] + 8
 				ShortestPath.setTarget(api, x, y, player.level.toInt())
