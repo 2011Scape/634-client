@@ -29,9 +29,11 @@ jobs:
           validate-wrappers: true
 
       # Both targets: the JVM client and checks, commonMain compiled against the common standard
-      # library alone (compileCommonMainKotlinMetadata), and the browser bundle
+      # library alone (compileCommonMainKotlinMetadata), and the browser bundle. Two workers, as release.yml:
+      # the JVM, JS, metadata and test compiles share one Kotlin daemon (3 GB), and three or more at once
+      # run it out of heap (OutOfMemoryError in compileKotlinJs or compileCommonMainKotlinMetadata).
       - name: Compile, package and check
-        run: ./gradlew build releaseJar --console=plain
+        run: ./gradlew build releaseJar --console=plain --max-workers=2
 
       # Every class loads and verifies from the release jar, and no new method is over the JIT limit
       # (src/ci/java/CheckClasses), on the newest supported JDK as well
