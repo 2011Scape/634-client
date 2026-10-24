@@ -103,6 +103,7 @@ are off unless the client is started with `--dev-commands`.
 | | Inventory value: what your backpack is worth, with its three most valuable items, at the top of the game view. | `::invvalue` |
 | | Player indicators, as RuneLite's: yourself, friends, clan chat members, team mates and others coloured by name over the head, tile, minimap name and menu entry, with the clan chat rank's icon. | `::playerindicators` |
 | | Menu entry swapper: hold Shift and right-click an npc, object, ground item or item to choose its left click and its Shift-click. | `::menuswapper` |
+| | Shortest path, from RuneLite's plugin hub: right-click the world map (or Shift and right-click a tile) for *Set target*, and the shortest way there over 634's paths, doors, stairs and ladders is drawn on the tiles, the minimap and the world map. | `::path <x> <y> [level]`, `::path` |
 | | Discord presence, as RuneLite's: the Discord desktop app shows the skill you train, where you are (bosses, cities, dungeons, minigames, regions) and for how long, each a setting in the plugin manager. Discord must be running on the same computer. | `::discord`, `::discord status` |
 | | The plugin manager: every plugin with its switch and its settings, from the Plugins button in the Settings tab. | `::pluginmanager` |
 | `--no-shift-drop` | Turn off dropping an item with Shift and a left click. | `::shiftdrop` |
@@ -284,6 +285,8 @@ as a zip beside the jar.
   `src/commonMain/kotlin/com/jagex/game/runetek5/client/features/BoostImages.kt`), the Custom Cursor
   pictures (BSD 2-Clause licence, in `src/jvmMain/resources/customcursor/cursors.rgba`) and the Poison
   plugin's poison and disease hearts (BSD 2-Clause licence, in `src/jvmMain/resources/poison/hearts.rgba`).
+- [Shortest Path](https://github.com/Skretzo/shortest-path) by Skretzo, the plugin hub plugin the
+  built-in Shortest Path follows (its map and transports are 634's own, made from Void's).
 - [117HD](https://github.com/117HD/RLHD), for the lava flow map behind the fire cape and the lava
   and the water's normal, flow and foam maps (BSD 2-Clause licence, in
   `src/jvmMain/resources/634hd/materials/flow/`), for the per-area fog and ground fog of its

@@ -727,6 +727,17 @@ border width and the outline's feather are RuneLite's settings. An npc's or a pl
 its models' triangles as the toolkit draws them; the SSE toolkit cannot hand them out, so there the shape
 is sampled with the game's own picking, coarser and refreshed every other frame.
 
+**Shortest Path** is from RuneLite's plugin hub (Skretzo's). Right-click the world map, or hold Shift and
+right-click a tile in the game, for **Set target** (and **Clear target**), or type `::path <x> <y> [level]`
+(`::path` alone clears it): the shortest way there is drawn on the tiles, as dots on the minimap and as a
+line on the world map, the tiles where it takes stairs or a ladder in their own colour with the
+transport's name. It is found again when you stray more than the recalculate distance from it, and goes
+when you come within the reached distance of the target. Old School's map files are another world, so
+the map and transports are 634's, made from the Void server's own collision (every ordinary door and gate
+counted open) and its stairs, ladders, trapdoors and shortcuts; they ship in the jar
+(`src/jvmMain/resources/shortest-path/`). A search too long for its limit goes to the nearest tile it
+reached. Off at first.
+
 ## Writing a plugin
 
 Start from [`plugin-template/`](../plugin-template): copy the folder, and change the manifest in
