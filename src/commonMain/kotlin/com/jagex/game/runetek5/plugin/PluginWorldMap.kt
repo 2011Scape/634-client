@@ -58,7 +58,14 @@ object PluginWorldMap {
 	 * (a dungeon, an upper floor) where it draws it; with no area loaded a tile is where its coordinates say.
 	 */
 	@JvmStatic
-	fun project(x: Int, y: Int, level: Int, out: IntArray): Boolean {
+	fun project(x: Int, y: Int, level: Int, out: IntArray): Boolean = project(x, y, level, out, true)
+
+	/**
+	 * As [project], and with [onScreen] false a tile off the map's box too (its pixel outside the box), for a
+	 * line from a tile on the map to one off it: false then only when the map is not shown or shows no such tile.
+	 */
+	@JvmStatic
+	fun project(x: Int, y: Int, level: Int, out: IntArray, onScreen: Boolean): Boolean {
 		if (!shown() || out.size < 2) {
 			return false
 		}
@@ -80,7 +87,7 @@ object PluginWorldMap {
 		}
 		val px: Int = left + ((mapX - tileLeft + 0.5f) * pixelsPerTile).toInt()
 		val py: Int = top + ((tileTop - mapY + 0.5f) * pixelsPerTile).toInt()
-		if (px < left || py < top || px >= left + width || py >= top + height) {
+		if (onScreen && (px < left || py < top || px >= left + width || py >= top + height)) {
 			return false
 		}
 		out[0] = px

@@ -560,12 +560,15 @@ object ShortestPath : Plugin {
 			return
 		}
 		val tile: Int = ShortestPathFinder.pack(x, y, level)
-		when (verb) {
+		val set: Boolean = when (verb) {
 			"add" -> addTarget(client, tile)
-			"start" -> setStart(client, tile)
+			"start" -> {
+				setStart(client, tile)
+				true
+			}
 			else -> setTarget(client, tile)
 		}
-		client.consolePrint("Finding the way to $x, $y.")
+		client.consolePrint(if (set) "Finding the way to $x, $y." else "$x, $y is within the finish distance ($finishDistance): no path.")
 	}
 
 	/** The map, transports and destinations are read and ready. */
@@ -659,19 +662,51 @@ object ShortestPath : Plugin {
 	}
 
 	@JvmStatic
-	fun setTarget(client: ClientApi, tile: Int) {
+	fun setTarget(client: ClientApi, tile: Int): Boolean {
+		if (tooClose(client, tile, "that tile")) {
+			return false
+		}
 		targets.clear()
 		targets.add(tile)
 		start = -1
 		shown = null
 		restart(client)
+		return true
 	}
 
 	/** Set Target 2...: one more place the path may end, the nearest taken. */
 	@JvmStatic
-	fun addTarget(client: ClientApi, tile: Int) {
+	fun addTarget(client: ClientApi, tile: Int): Boolean {
+		if (start == -1 && tooClose(client, tile, "that tile")) {
+			return false
+		}
 		targets.add(tile)
 		restart(client)
+		return true
+	}
+
+	/** Whether the player stands within the finish distance of [tile]. */
+	private fun withinFinish(client: ClientApi, tile: Int): Boolean {
+		val player: Player = client.localPlayer() ?: return false
+		val here: Int = ShortestPathFinder.pack(client.sceneBaseX() + player.serverTileX(), client.sceneBaseY() + player.serverTileY(), player.level())
+		return finishDistance >= 0 && ShortestPathFinder.distance(here, tile) <= finishDistance
+	}
+
+	/** For the smoke test: how many targets were refused as too close. */
+	@JvmField var refusedTooClose: Int = 0
+
+	/**
+	 * Whether the player already stands within the finish distance of [tile]: a path there would end on the next
+	 * tick (tick()) before it was seen, so the target is refused and the player told why, in the chat.
+	 */
+	private fun tooClose(client: ClientApi, tile: Int, what: String): Boolean {
+		if (!withinFinish(client, tile)) {
+			return false
+		}
+		refusedTooClose++
+		val tiles: String = if (finishDistance == 1) "tile" else "tiles"
+		client.chatMessage("Shortest Path: you are already within $finishDistance $tiles of $what (the finish distance), so there is no path to show.")
+		return true
 	}
 
 	/** Set Start: the path from there, not from the player, and never found again as the player moves. */
@@ -688,7 +723,13 @@ object ShortestPath : Plugin {
 			requestData()
 			return false
 		}
-		val tiles: IntArray = destinations.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value ?: return false
+		val entry = destinations.entries.firstOrNull { it.key.equals(name, ignoreCase = true) } ?: return false
+		val tiles: IntArray = entry.value
+		// the nearest one already within reach: no path to show
+		val near: Int? = tiles.firstOrNull { withinFinish(client, it) }
+		if (near != null && tooClose(client, near, "a " + entry.key.lowercase())) {
+			return true
+		}
 		targets.clear()
 		tiles.forEach { targets.add(it) }
 		start = -1

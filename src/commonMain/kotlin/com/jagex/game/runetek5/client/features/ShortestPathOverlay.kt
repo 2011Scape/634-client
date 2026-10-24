@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.client.features
 
+import com.jagex.game.runetek5.plugin.PluginWorldMap
 import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.Graphics
@@ -493,11 +494,15 @@ object ShortestPathOverlay {
 		g.clip(area[0], area[1], area[2], area[3])
 		val path: IntArray = finder.path
 		val colour: Int = ShortestPath.colour()
+		drawnJumps = 0
 		for (i in path.indices) {
 			val node: Int = path[i]
-			if (i > 0 && ShortestPathFinder.distance(path[i - 1], node) > 1 && mapPoint(client, path[i - 1], previous) && mapPoint(client, node, point)) {
-				dashed(g, previous[0], previous[1], point[0], point[1], colour)
+			// a transport's jump: its ends may be off the shown part of the map, the line clipped to the map's box
+			if (i > 0 && ShortestPathFinder.distance(path[i - 1], node) > 1 && mapPointAnywhere(path[i - 1], previous) && mapPointAnywhere(node, point) &&
+				dashed(g, previous[0], previous[1], point[0], point[1], colour, area)
+			) {
 				ShortestPath.drawnCounts[2]++
+				drawnJumps++
 			}
 			if (mapSquare(g, client, node, colour)) {
 				ShortestPath.drawnCounts[2]++
@@ -511,6 +516,13 @@ object ShortestPathOverlay {
 		}
 		g.unclip()
 	}
+
+	/** For the smoke test: the transports' dashed jumps the world map drew last frame. */
+	@JvmField var drawnJumps: Int = 0
+
+	/** A tile's pixel on the world map even when it is off the part shown (outside its box). */
+	private fun mapPointAnywhere(node: Int, out: IntArray): Boolean =
+		PluginWorldMap.project(ShortestPathFinder.x(node), ShortestPathFinder.y(node), ShortestPathFinder.level(node), out, false)
 
 	private fun mapPoint(client: ClientApi, node: Int, out: IntArray): Boolean =
 		client.projectWorldMap(ShortestPathFinder.x(node), ShortestPathFinder.y(node), ShortestPathFinder.level(node), out)
@@ -526,20 +538,71 @@ object ShortestPathOverlay {
 		return true
 	}
 
-	/** RuneLite's jump stroke: a one-pixel line, nine on and nine off. */
-	private fun dashed(g: Graphics, x1: Int, y1: Int, x2: Int, y2: Int, colour: Int) {
+	/**
+	 * RuneLite's jump stroke: a one-pixel line, nine on and nine off, the part inside [box] (x, y, width, height)
+	 * only; the dashes counted from the line's own start, so they keep still as the map pans. False when none
+	 * of it is in the box.
+	 */
+	private fun dashed(g: Graphics, x1: Int, y1: Int, x2: Int, y2: Int, colour: Int, box: IntArray): Boolean {
 		val dx: Double = (x2 - x1).toDouble()
 		val dy: Double = (y2 - y1).toDouble()
 		val length: Double = kotlin.math.sqrt(dx * dx + dy * dy)
-		if (length < 1.0) {
-			return
+		if (length < 1.0 || !clipSegment(x1.toDouble(), y1.toDouble(), dx, dy, box, clipped)) {
+			return false
 		}
-		var t = 0.0
-		while (t < length) {
-			val t2: Double = minOf(length, t + 9.0)
-			g.line(x1 + (dx * t / length).toInt(), y1 + (dy * t / length).toInt(), x1 + (dx * t2 / length).toInt(), y1 + (dy * t2 / length).toInt(), colour)
+		val from: Double = clipped[0] * length
+		val to: Double = clipped[1] * length
+		// the first dash at or before the box's edge, on the line's own 18-pixel rhythm
+		var t: Double = kotlin.math.floor(from / 18.0) * 18.0
+		while (t < to) {
+			val a: Double = maxOf(t, from)
+			val b: Double = minOf(t + 9.0, to)
+			if (b > a) {
+				g.line(x1 + (dx * a / length).toInt(), y1 + (dy * a / length).toInt(), x1 + (dx * b / length).toInt(), y1 + (dy * b / length).toInt(), colour)
+			}
 			t += 18.0
 		}
+		return true
+	}
+
+	private val clipped: DoubleArray = DoubleArray(2)
+
+	/**
+	 * Liang-Barsky: the part of the line from (x, y) by (dx, dy) inside [box] (x, y, width, height), as fractions of
+	 * it into [out] (from, to); false when it misses the box.
+	 */
+	@JvmStatic
+	fun clipSegment(x: Double, y: Double, dx: Double, dy: Double, box: IntArray, out: DoubleArray): Boolean {
+		var from = 0.0
+		var to = 1.0
+		val left: Double = box[0].toDouble()
+		val top: Double = box[1].toDouble()
+		val right: Double = (box[0] + box[2] - 1).toDouble()
+		val bottom: Double = (box[1] + box[3] - 1).toDouble()
+		val ps: DoubleArray = doubleArrayOf(-dx, dx, -dy, dy)
+		val qs: DoubleArray = doubleArrayOf(x - left, right - x, y - top, bottom - y)
+		for (i in 0 until 4) {
+			val p: Double = ps[i]
+			val q: Double = qs[i]
+			if (p == 0.0) {
+				if (q < 0.0) {
+					return false
+				}
+			} else {
+				val r: Double = q / p
+				if (p < 0.0) {
+					from = maxOf(from, r)
+				} else {
+					to = minOf(to, r)
+				}
+			}
+		}
+		if (from > to) {
+			return false
+		}
+		out[0] = from
+		out[1] = to
+		return true
 	}
 
 	/** RuneLite's highlight overlays: the spell to cast, the backpack's item to use, the bank's items to take. */
