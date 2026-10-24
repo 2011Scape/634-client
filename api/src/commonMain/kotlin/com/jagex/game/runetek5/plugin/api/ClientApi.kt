@@ -132,6 +132,13 @@ interface ClientApi {
 	fun removeChatLine(id: Int): Boolean
 
 	/**
+	 * Changes the text of chat box line [id] ([ChatLineView.id]) to [message] and has the chat box drawn
+	 * again, the line keeping its place (RuneLite's MessageNode.setValue, as its chat commands answer a
+	 * lookup that comes in after the line did). False when no line has that id. Since API 39.
+	 */
+	fun setChatLine(id: Int, message: String): Boolean
+
+	/**
 	 * Stores a line in the chat box as the server's would be, without a ChatMessage for it (RuneLite's
 	 * Client.addChatMessage as its chat history restores the lines before a login): [type] as
 	 * [ChatLineView.type], [name] the sender or null, [clan] a clan chat's name or null. Since API 27.
