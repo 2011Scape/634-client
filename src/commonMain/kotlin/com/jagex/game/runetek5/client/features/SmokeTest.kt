@@ -3395,6 +3395,8 @@ object SmokeTest {
 	 * are there, a modal opened into a free container of the root interface draws, and closing modals
 	 * removes it and leaves the overlays. True once it is done.
 	 */
+	private fun hasLoadScripts(interfaceId: Int): Boolean = Interface.peekComponents(interfaceId)?.any { it?.onLoadScript != null } ?: true
+
 	private fun subInterfacesDone(): Boolean {
 		if (subInterfaceStep == 0) {
 			var overlay: Int = -1
@@ -3403,7 +3405,11 @@ object SmokeTest {
 			while (sub != null) {
 				if (sub.openType === SubInterfaceType.OVERLAY) {
 					overlaysAtStart++
-					overlay = sub.interfaceId
+					// one whose components run no load scripts: the modal shares the overlay's components, and closing
+					// it leaves them unlaid out, which a tab that builds its contents once on load (the friends list) never recovers from
+					if (overlay == -1 || !hasLoadScripts(sub.interfaceId)) {
+						overlay = sub.interfaceId
+					}
 				}
 				sub = InterfaceManager.OPEN_INTERFACES.next() as SubInterface?
 			}
