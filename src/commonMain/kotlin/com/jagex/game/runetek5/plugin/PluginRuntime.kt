@@ -90,7 +90,8 @@ import withLock
 @Suppress("TooGenericExceptionCaught") // whatever a plugin throws, it is disabled and the game goes on: that is the point
 object PluginRuntime {
 
-	private const val MAX_PLUGINS: Int = 64
+	/** The built-ins alone are past 64; room for as many again from jars. */
+	private const val MAX_PLUGINS: Int = 128
 
 	private const val MAX_OVERLAYS: Int = 128
 
