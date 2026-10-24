@@ -1,4 +1,5 @@
 import com.jagex.game.runetek5.graphics.texture.TextureTransformationMatrix
+import com.jagex.game.runetek5.graphics.model.FaceBuffer
 import emulatedLong
 import com.jagex.game.runetek5.utils.IntPairSort
 import com.jagex.game.runetek5.TextureCombineSource
@@ -3121,6 +3122,56 @@ class JavaModel : Model {
 			}
 		}
 		return false
+	}
+
+	/** Not part of the original client: see Model.projectFaces; [pick]'s projection, every face kept. */
+	override fun projectFaces(matrix: Matrix?, out: FaceBuffer): Boolean {
+		val model: JavaMatrix = matrix as JavaMatrix? ?: return false
+		val camera: JavaMatrix = this.toolkit!!.camera ?: return false
+		if (this.vertexX == null || this.vertexY == null || this.vertexZ == null || this.faceA == null || this.faceB == null || this.faceC == null) {
+			return false
+		}
+		val tx: Float = camera.tx + camera.e1_1 * model.tx + camera.e1_2 * model.ty + camera.e1_3 * model.tz
+		val ty: Float = camera.ty + camera.e2_1 * model.tx + camera.e2_2 * model.ty + camera.e2_3 * model.tz
+		val tz: Float = camera.tz + camera.e3_1 * model.tx + camera.e3_2 * model.ty + camera.e3_3 * model.tz
+		val m11: Float = camera.e1_1 * model.e1_1 + camera.e1_2 * model.e2_1 + camera.e1_3 * model.e3_1
+		val m12: Float = camera.e1_1 * model.e1_2 + camera.e1_2 * model.e2_2 + camera.e1_3 * model.e3_2
+		val m13: Float = camera.e1_1 * model.e1_3 + camera.e1_2 * model.e2_3 + camera.e1_3 * model.e3_3
+		val m21: Float = camera.e2_1 * model.e1_1 + camera.e2_2 * model.e2_1 + camera.e2_3 * model.e3_1
+		val m22: Float = camera.e2_1 * model.e1_2 + camera.e2_2 * model.e2_2 + camera.e2_3 * model.e3_2
+		val m23: Float = camera.e2_1 * model.e1_3 + camera.e2_2 * model.e2_3 + camera.e2_3 * model.e3_3
+		val m31: Float = camera.e3_1 * model.e1_1 + camera.e3_2 * model.e2_1 + camera.e3_3 * model.e3_1
+		val m32: Float = camera.e3_1 * model.e1_2 + camera.e3_2 * model.e2_2 + camera.e3_3 * model.e3_2
+		val m33: Float = camera.e3_1 * model.e1_3 + camera.e3_2 * model.e2_3 + camera.e3_3 * model.e3_3
+		val centerX: Int = this.toolkit!!.projectionCenterX
+		val centerY: Int = this.toolkit!!.lb
+		val scaleX: Float = this.toolkit!!.projectionScaleX.toFloat()
+		val scaleY: Float = this.toolkit!!.projectionScaleY.toFloat()
+		val zNear: Float = this.toolkit!!.zNear.toFloat()
+		this.useThreadBuffers(lang.currentThread())
+		val sx: IntArray = this.screenX!!
+		val sy: IntArray = this.screenY!!
+		for (v in 0 until this.vertexCount) {
+			val px: Float = this.vertexX!![v].toFloat()
+			val py: Float = this.vertexY!![v].toFloat()
+			val pz: Float = this.vertexZ!![v].toFloat()
+			val depth: Float = tz + m31 * px + m32 * py + m33 * pz
+			if (depth >= zNear) {
+				sx[v] = centerX + ((tx + m11 * px + m12 * py + m13 * pz) * scaleX / depth).toInt()
+				sy[v] = centerY + ((ty + m21 * px + m22 * py + m23 * pz) * scaleY / depth).toInt()
+			} else {
+				sx[v] = -999999
+			}
+		}
+		for (f in 0 until this.faceCount) {
+			val a: Int = this.faceA!![f].toInt()
+			val b: Int = this.faceB!![f].toInt()
+			val c: Int = this.faceC!![f].toInt()
+			if (sx[a] != -999999 && sx[b] != -999999 && sx[c] != -999999) {
+				out.add(sx[a], sy[a], sx[b], sy[b], sx[c], sy[c])
+			}
+		}
+		return true
 	}
 
 	@OriginalMember(owner = "client!jga", name = "e", descriptor = "(I)V")

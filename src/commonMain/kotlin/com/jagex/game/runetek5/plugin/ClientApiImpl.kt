@@ -47,6 +47,7 @@ import com.jagex.game.runetek5.plugin.api.Image
 import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.GroundItemVisitor
 import com.jagex.game.runetek5.plugin.api.GrandExchangeOffer
+import com.jagex.game.runetek5.plugin.api.HoveredTarget
 import com.jagex.game.runetek5.AbstractMouseManager
 import com.jagex.game.runetek5.FriendsChatPlayer
 import com.jagex.game.runetek5.InterfaceManager
@@ -1118,5 +1119,30 @@ object ClientApiImpl : ClientApi {
 		}
 		PluginRuntime.readGrandExchangeOffer(slot, out)
 		return true
+	}
+
+	override fun actorOutline(actor: Actor, width: Int, feather: Int, argb: Int): Boolean {
+		val toolkit = ClientState.activeToolkit ?: return false
+		val entity: PathingEntity = actor as? PathingEntity ?: return false
+		ActorGeometry.request(entity)
+		val mask: LocGeometry.Mask = ActorGeometry.current(entity) ?: return false
+		// the picking's space is the game view's, as locOutline's
+		LocGeometry.drawOutline(toolkit, mask, width.coerceIn(1, 16), feather.coerceIn(0, 4), argb, PluginRuntime.viewX(), PluginRuntime.viewY())
+		return true
+	}
+
+	override fun actorShape(actor: Actor, xs: IntArray, ys: IntArray): Int {
+		val entity: PathingEntity = actor as? PathingEntity ?: return 0
+		ActorGeometry.request(entity)
+		val mask: LocGeometry.Mask = ActorGeometry.current(entity) ?: return 0
+		return LocGeometry.hull(mask, xs, ys)
+	}
+
+	override fun hoveredTarget(out: HoveredTarget): Boolean {
+		if (MiniMenu.isOpen || menuEntryCount() == 0) {
+			return false
+		}
+		val top: MenuEntry = menuEntry(0) ?: return false
+		return HoveredTargets.decode(top.clickType(), top.param0(), top.param1(), top.entityUid(), top.option(), out)
 	}
 }

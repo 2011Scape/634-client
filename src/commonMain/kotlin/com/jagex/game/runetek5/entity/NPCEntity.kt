@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.entity
 
+import com.jagex.game.runetek5.plugin.ActorGeometry
 import com.jagex.game.runetek5.plugin.api.Npc
 import com.jagex.game.runetek5.plugin.api.NpcDefinition
 import com.jagex.game.runetek5.plugin.PluginRuntime
@@ -101,6 +102,9 @@ class NPCEntity : PathingEntity(), Npc {
 	override fun removeTileShadow() {
 		throw IllegalStateException()
 	}
+
+	/** Not part of the original client: see PathingEntity.pickModels. */
+	override fun pickModels(toolkit: Toolkit?): Boolean = this.npcType != null && this.getAnimatedBodyModel(131072, toolkit)
 
 	@OriginalMember(owner = "client!ff", name = "a", descriptor = "(Lclient!ha;III)Z")
 	override fun picked(@OriginalArg(0) toolkit: Toolkit?, @OriginalArg(1) mouseY: Int, @OriginalArg(2) mouseX: Int): Boolean {
@@ -301,6 +305,7 @@ class NPCEntity : PathingEntity(), Npc {
 			modelIndex++
 		}
 		super.drawCycle = SceneDrawer.timesSceneRendered
+		ActorGeometry.capture(this, super.models, matrix, pickableEntity, toolkit) // Not part of the original client: a plugin's actor outline (ActorGeometry)
 		super.models[2] = null
 		super.models[1] = null
 		super.models[0] = null

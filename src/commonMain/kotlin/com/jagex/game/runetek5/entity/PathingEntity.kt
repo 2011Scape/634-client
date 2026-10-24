@@ -135,6 +135,13 @@ abstract class PathingEntity : AbstractInteractiveEntity, Actor {
 	@JvmField
 	var hullY: Int = 0
 
+	/**
+	 * Not part of the original client: rebuilds [models] as picking builds them (animated, with the vertices a
+	 * toolkit keeps for picking), for a plugin's actor outline when the drawn ones let theirs go (634HD). False
+	 * when it cannot.
+	 */
+	open fun pickModels(toolkit: Toolkit?): Boolean = false
+
 	/** Not part of the original client: keeps the drawn body model's bounds (see [hullCycle]). */
 	fun recordHull(model: Model, yaw: Int, y: Int) {
 		hullMinX = model.V()

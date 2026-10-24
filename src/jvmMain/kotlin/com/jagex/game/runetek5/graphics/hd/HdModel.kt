@@ -4,6 +4,7 @@
  */
 package com.jagex.game.runetek5.graphics.hd
 
+import com.jagex.game.runetek5.graphics.model.FaceBuffer
 import com.jagex.game.runetek5.client.features.HdSettings
 import com.jagex.game.runetek5.client.features.RenderStats
 import com.jagex.game.runetek5.graphics.hd.scene.HdDynamicStream
@@ -1200,6 +1201,67 @@ class HdModel : Model {
 			this.calculateBounds()
 		}
 		return this.maxY.toInt()
+	}
+
+	/** Not part of the original client: see Model.projectFaces; [pick]'s projection, every face kept. */
+	override fun projectFaces(matrix: Matrix?, out: FaceBuffer): Boolean {
+		// a model whose vertices were let go once uploaded has nothing to project: the caller samples picking
+		if (matrix == null || this.verticesX == null || this.verticesY == null || this.verticesZ == null || this.triangles == null || this.vertexNormalIndices == null || this.facesA == null || this.facesB == null || this.facesC == null) {
+			return false
+		}
+		val modelMatrix: Matrix43? = matrix as Matrix43? ?: return false
+		val viewMatrix: Matrix43 = this.glToolkit!!.viewMatrix43
+		val translateX: Float = viewMatrix.xD + modelMatrix!!.zD * viewMatrix.xC + viewMatrix.xA * modelMatrix.xD + modelMatrix.yD * viewMatrix.xB
+		val translateY: Float = viewMatrix.yD + modelMatrix.zD * viewMatrix.yC + modelMatrix.xD * viewMatrix.yA + modelMatrix.yD * viewMatrix.yB
+		HdModel.modelViewXY = viewMatrix.xC * modelMatrix.zB + modelMatrix.yB * viewMatrix.xB + viewMatrix.xA * modelMatrix.xB
+		HdModel.modelViewYZ = modelMatrix.xC * viewMatrix.yA + viewMatrix.yB * modelMatrix.yC + viewMatrix.yC * modelMatrix.zC
+		HdModel.modelViewZX = viewMatrix.zB * modelMatrix.yA + modelMatrix.xA * viewMatrix.zA + modelMatrix.zA * viewMatrix.zC
+		HdModel.modelViewZZ = modelMatrix.xC * viewMatrix.zA + modelMatrix.yC * viewMatrix.zB + viewMatrix.zC * modelMatrix.zC
+		val translateZ: Float = viewMatrix.zA * modelMatrix.xD + viewMatrix.zB * modelMatrix.yD + modelMatrix.zD * viewMatrix.zC + viewMatrix.zD
+		HdModel.modelViewYY = viewMatrix.yA * modelMatrix.xB + viewMatrix.yB * modelMatrix.yB + viewMatrix.yC * modelMatrix.zB
+		HdModel.modelViewYX = modelMatrix.zA * viewMatrix.yC + modelMatrix.yA * viewMatrix.yB + viewMatrix.yA * modelMatrix.xA
+		HdModel.modelViewXZ = viewMatrix.xB * modelMatrix.yC + viewMatrix.xA * modelMatrix.xC + modelMatrix.zC * viewMatrix.xC
+		HdModel.modelViewXX = modelMatrix.zA * viewMatrix.xC + modelMatrix.xA * viewMatrix.xA + modelMatrix.yA * viewMatrix.xB
+		HdModel.modelViewZY = viewMatrix.zC * modelMatrix.zB + modelMatrix.yB * viewMatrix.zB + modelMatrix.xB * viewMatrix.zA
+		val scaleX: Float = this.glToolkit.projectionScaleX.toFloat()
+		val scaleY: Float = this.glToolkit.projectionScaleY.toFloat()
+		val centerX: Float = this.glToolkit.projectionCenterX.toFloat()
+		val centerY: Float = this.glToolkit.projectionCenterY.toFloat()
+		val zNear: Float = this.glToolkit.zNear.toFloat()
+		if (this.glToolkit.scratchVerticesX.size < this.numNormals) {
+			this.glToolkit.scratchVerticesY = IntArray(this.numNormals)
+			this.glToolkit.scratchVerticesX = IntArray(this.numNormals)
+		}
+		val projectedX: IntArray = this.glToolkit.scratchVerticesX
+		val projectedY: IntArray = this.glToolkit.scratchVerticesY
+		for (j in 0 until this.maxDepth) {
+			val pointX: Float = this.verticesX!![j].toFloat()
+			val pointY: Float = this.verticesY!![j].toFloat()
+			val pointZ: Float = this.verticesZ!![j].toFloat()
+			val viewZ: Float = translateZ + pointZ * HdModel.modelViewZZ + HdModel.modelViewZX * pointX + pointY * HdModel.modelViewZY
+			val viewX: Float = translateX + pointY * HdModel.modelViewXY + pointX * HdModel.modelViewXX + HdModel.modelViewXZ * pointZ
+			val viewY: Float = translateY + HdModel.modelViewYY * pointY + pointX * HdModel.modelViewYX + pointZ * HdModel.modelViewYZ
+			val visible: Boolean = viewZ >= zNear
+			val screenX: Int = if (visible) (centerX + viewX * scaleX / viewZ).toInt() else -999999
+			val screenY: Int = if (visible) (centerY + viewY * scaleY / viewZ).toInt() else 0
+			for (k in this.triangles!![j] until this.triangles!![j + 1]) {
+				val normalIndex: Int = this.vertexNormalIndices!![k] - 1
+				if (normalIndex == -1) {
+					break
+				}
+				projectedX[normalIndex] = screenX
+				projectedY[normalIndex] = screenY
+			}
+		}
+		for (f in 0 until this.numFaces) {
+			val a: Int = this.facesA!![f].toInt()
+			val b: Int = this.facesB!![f].toInt()
+			val c: Int = this.facesC!![f].toInt()
+			if (projectedX[a] != -999999 && projectedX[b] != -999999 && projectedX[c] != -999999) {
+				out.add(projectedX[a], projectedY[a], projectedX[b], projectedY[b], projectedX[c], projectedY[c])
+			}
+		}
+		return true
 	}
 
 	private fun pick(quick: Boolean, zoom: Int, y: Int, sizeShift: Int, x: Int, matrix: Matrix?): Boolean {

@@ -98,7 +98,7 @@ object LocGeometry {
 	}
 
 	/** The screen rectangle the capsules cover: left, top, right, bottom; null with none worked out this frame. */
-	private fun bounds(pickable: PickableEntity): IntArray? {
+	internal fun bounds(pickable: PickableEntity): IntArray? {
 		val polygons: Array<BoundingBoxPolygon?> = pickable.boundingBoxPolygons ?: return null
 		var minX: Int = Int.MAX_VALUE
 		var minY: Int = Int.MAX_VALUE
@@ -262,7 +262,8 @@ object LocGeometry {
 		if (distance < 0) {
 			return 0
 		}
-		val pixels: Int = distance * mask.step
+		// from the cell's near edge: a cell next to the shape is 1 pixel off it, however coarse the cells
+		val pixels: Int = (distance - 1) * mask.step + 1
 		if (feather > 0 && pixels > width - feather) {
 			return alpha * (width - pixels + 1) / (feather + 1)
 		}

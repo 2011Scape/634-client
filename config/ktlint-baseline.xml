@@ -579,7 +579,7 @@
         <error line="11" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/entity/NPCEntity.kt">
-        <error line="18" column="1" source="standard:no-unused-imports" />
+        <error line="19" column="1" source="standard:no-unused-imports" />
     </file>
     <file name="src/commonMain/kotlin/com/jagex/game/runetek5/entity/grounditem/AbstractGroundItem.kt">
         <error line="15" column="1" source="standard:no-unused-imports" />
