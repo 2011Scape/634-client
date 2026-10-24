@@ -1420,7 +1420,21 @@ object PluginRuntime {
 		worldMapEntries = MiniMenu.entryCount > before
 	}
 
-	/** Whether plugins added entries over the world map this cycle: the left click is then Cancel's. */
+	/** The game's own topmost entry, under any plugin's: what the left click would be without the plugins; null for none. */
+	private fun topGameEntry(): MiniMenuEntry? {
+		var top: MiniMenuEntry? = null
+		var entry: MiniMenuEntry? = MiniMenu.entryList.first() as MiniMenuEntry?
+		while (entry != null) {
+			val type: Int = entry.clickType
+			if (entry !== MiniMenu.cancelOption && type != MiniMenuAction.CANCEL && type != MiniMenuAction.PLUGIN_SUBMENU && (type < MiniMenuAction.PLUGIN_FIRST || type > MiniMenuAction.PLUGIN_LAST)) {
+				top = entry // the list runs from the bottom of the menu up
+			}
+			entry = MiniMenu.entryList.next() as MiniMenuEntry?
+		}
+		return top
+	}
+
+	/** Whether plugins added entries over the world map this cycle: the left click is then given back to the game's own entry. */
 	private var worldMapEntries: Boolean = false
 
 	/** The API versions that brought the world map's and the minimap's menu targets: older plugins never see them. */
@@ -1550,9 +1564,10 @@ object PluginRuntime {
 	fun menuBuilt(): Boolean {
 		promotedDefault = null
 		if (worldMapEntries) {
-			// only plugins' entries over the world map: Cancel takes the left click, which stays the map's drag
 			worldMapEntries = false
-			promotedDefault = MiniMenu.cancelOption
+			// plugins' entries over the world map go on top, but the left click stays the one the game had there:
+			// Scroll map, or an icon's own option (a dungeon's link opens its map); Cancel when the game had none
+			promotedDefault = topGameEntry() ?: MiniMenu.cancelOption
 		}
 		if (!started || MiniMenu.isOpen) {
 			return false

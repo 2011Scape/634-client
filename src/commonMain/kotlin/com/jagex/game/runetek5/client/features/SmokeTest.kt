@@ -5216,7 +5216,7 @@ object SmokeTest {
 				} else {
 					println("SMOKE shortest path: " + ShortestPath.drawnCounts[2] + " segments on the world map; its centre is tile " + tile[0] + "," + tile[1] + "," + tile[2])
 				}
-				// the mouse on the map: Set Target in its right-click menu, and a left click left to the map (Cancel's)
+				// the mouse on the map: Set Target in its right-click menu, and the left click left to the map's own entry
 				(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(box[0] + box[2] / 2, box[1] + box[3] / 2)
 				shortestPathFrame = frames
 				shortestPathStep = 21
@@ -5226,12 +5226,57 @@ object SmokeTest {
 					return false
 				}
 				val setTarget: Boolean = findEntry("Set Target") != null
-				val leftClick: Boolean = PluginRuntime.promotedDefault() === MiniMenu.cancelOption
-				(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(-1, -1)
+				// the game's own left click over the map (Scroll map), not a plugin's
+				val promoted: MiniMenuEntry? = PluginRuntime.promotedDefault()
+				val leftClick: Boolean = promoted != null && (promoted.clickType < MiniMenuAction.PLUGIN_FIRST || promoted.clickType > MiniMenuAction.PLUGIN_LAST) && promoted.clickType != MiniMenuAction.PLUGIN_SUBMENU
 				if (shortestPathFailure == null && (!setTarget || !leftClick)) {
-					shortestPathFailure = "Shortest Path: over the world map Set Target " + (if (setTarget) "offered" else "missing") + ", the left click " + (if (leftClick) "Cancel's" else "a plugin entry's")
+					shortestPathFailure = "Shortest Path: over the world map Set Target " + (if (setTarget) "offered" else "missing") + ", the left click " + (if (leftClick) "the game's" else "a plugin entry's")
 				} else if (shortestPathFailure == null) {
-					println("SMOKE shortest path: over the world map Set Target is in the menu and the left click stays the map's")
+					println("SMOKE shortest path: over the world map Set Target is in the menu and the left click stays the map's (\"" + promoted!!.opBase + "\")")
+				}
+				// over one of the map's own icons with options (a dungeon's link): its entry keeps the left click. The map
+				// moves to Edgeville, where the dungeon's ladder has one
+				com.jagex.game.runetek5.graphics.map.worldmap.WorldMapDisplay.mapCenterX = 3096 - com.jagex.game.runetek5.graphics.map.worldmap.WorldMap.mapSquareAbsX
+				com.jagex.game.runetek5.graphics.map.worldmap.WorldMapDisplay.mapCenterY = 3470 - com.jagex.game.runetek5.graphics.map.worldmap.WorldMap.mapSquareAbsY
+				shortestPathFrame = frames
+				shortestPathStep = 23
+			}
+			23 -> {
+				if (frames - shortestPathFrame < 15) {
+					return false
+				}
+				val icon: IntArray? = worldMapIcon()
+				if (icon == null) {
+					println("SMOKE shortest path: no clickable map icon on screen; the icon's left click is not checked")
+					(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(-1, -1)
+					clickComponent(WORLD_MAP, WORLD_MAP_CLOSE)
+					shortestPathFrame = frames
+					shortestPathStep = 3
+					return false
+				}
+				(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(icon[0], icon[1])
+				shortestPathFrame = frames
+				shortestPathStep = 22
+			}
+			22 -> {
+				if (frames - shortestPathFrame < 10) {
+					return false
+				}
+				var gameEntry: MiniMenuEntry? = null
+				var entry: MiniMenuEntry? = MiniMenu.entryList.first() as MiniMenuEntry?
+				while (entry != null) {
+					val type: Int = entry.clickType
+					if (type == MiniMenuAction.OP_MAPELEMENT1 || type == MiniMenuAction.OP_MAPELEMENT2 || type == MiniMenuAction.OP_MAPELEMENT3 || type == MiniMenuAction.OP_MAPELEMENT4 || type == MiniMenuAction.OP_MAPELEMENT5) {
+						gameEntry = entry
+					}
+					entry = MiniMenu.entryList.next() as MiniMenuEntry?
+				}
+				val cancelled: Boolean = PluginRuntime.promotedDefault() === MiniMenu.cancelOption
+				(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(-1, -1)
+				if (shortestPathFailure == null && (gameEntry == null || cancelled)) {
+					shortestPathFailure = "Shortest Path: over a map icon " + (if (gameEntry == null) "no icon entry" else "the left click went to Cancel, not \"" + gameEntry.opBase + "\"")
+				} else if (shortestPathFailure == null) {
+					println("SMOKE shortest path: over a map icon the left click stays the icon's (\"" + gameEntry!!.opBase + "\")")
 				}
 				clickComponent(WORLD_MAP, WORLD_MAP_CLOSE)
 				shortestPathFrame = frames
@@ -5312,6 +5357,25 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** The middle of a world map icon on screen that has options of its own (a dungeon's link), or null for none. */
+	private fun worldMapIcon(): IntArray? {
+		val zones = com.jagex.game.runetek5.graphics.map.worldmap.WorldMapInteraction.MEC_CLICKZONES ?: return null
+		var zone = zones.first() as com.jagex.game.runetek5.graphics.map.worldmap.ClickzoneMEC?
+		while (zone != null) {
+			val type = com.jagex.game.runetek5.graphics.map.worldmap.WorldMap.MECTYPE_LIST!!.list(zone.category!!.id)
+			if (type?.minimenuActions?.any { it != null } == true && zone.spriteLeft <= zone.spriteRight) {
+				val x: Int = (zone.spriteLeft + zone.spriteRight) / 2
+				val y: Int = (minOf(zone.spriteTop, zone.spriteBottom) + maxOf(zone.spriteTop, zone.spriteBottom)) / 2
+				// ClickzoneMEC.contains takes y first, whatever its arguments are named
+				if (zone.contains(y, x)) {
+					return intArrayOf(x, y)
+				}
+			}
+			zone = zones.next() as com.jagex.game.runetek5.graphics.map.worldmap.ClickzoneMEC?
+		}
+		return null
 	}
 
 	/** Death Indicator after a pretend death here: the arrow, the infobox and the world map's mark. Frame: frame-deathindicator.png. */
