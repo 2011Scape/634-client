@@ -511,6 +511,17 @@ object SmokeTest {
 
 	private var interactStep: Int = 0
 
+	/** client.test.shortestPath: Shortest Path to a tile near home, drawn on the tiles, the minimap and the world map; the world map's pixel-to-tile lookup (API 37). */
+	private val SHORTEST_PATH: Boolean = "true" == lang.getProperty("client.test.shortestPath")
+
+	private var shortestPathStep: Int = 0
+
+	private var shortestPathFrame: Int = -1
+
+	private var shortestPathFailure: String? = null
+
+	private var shortestPathFound: Int = -1
+
 	private var interactFrame: Int = -1
 
 	private var interactNpc: Int = -1
@@ -1828,6 +1839,12 @@ object SmokeTest {
 				return
 			}
 			checksDone2 = checksDone2 or 1L
+		}
+		if (SHORTEST_PATH && (checksDone2 and 2L) == 0L) {
+			if (!shortestPathDone(player)) {
+				return
+			}
+			checksDone2 = checksDone2 or 2L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5137,6 +5154,86 @@ object SmokeTest {
 		}
 		println("SMOKE metronome: " + ticks + " server ticks in " + elapsed + " ms, sound " + sound + " played")
 		return true
+	}
+
+	/**
+	 * Shortest Path to a tile 12 west and 8 north of the player: found, drawn on the tiles and the minimap,
+	 * then on the world map, whose centre pixel maps back to a tile that projects onto that pixel. Frames:
+	 * frame-shortestpath.png, frame-shortestpath-map.png.
+	 */
+	private fun shortestPathDone(player: PlayerEntity): Boolean {
+		val api = ClientApiImpl
+		when (shortestPathStep) {
+			0 -> {
+				// off by default: on for the step
+				ShortestPath.enabled = true
+				val x: Int = api.sceneBaseX() + player.movementBaseX[0] - 12
+				val y: Int = api.sceneBaseY() + player.movementBaseY[0] + 8
+				ShortestPath.setTarget(api, x, y, player.level.toInt())
+				shortestPathFrame = frames
+				shortestPathStep = 1
+			}
+			1 -> {
+				val finder: ShortestPathFinder? = ShortestPath.finder
+				if ((finder == null || !finder.done || ShortestPath.drawnCounts[0] == 0) && frames - shortestPathFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				if (finder != null && finder.done && shortestPathFound < 0) {
+					shortestPathFound = frames
+				}
+				if (shortestPathFound >= 0 && frames - shortestPathFound < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-shortestpath.png")
+				if (finder == null || !finder.done || !finder.reached || finder.path.size < 8) {
+					shortestPathFailure = "Shortest Path: " + (if (finder == null) "no search (map " + (ShortestPath.grid != null) + ")" else "done " + finder.done + ", reached " + finder.reached + ", " + finder.path.size + " tiles")
+				} else if (ShortestPath.drawnCounts[0] == 0 || ShortestPath.drawnCounts[1] == 0) {
+					shortestPathFailure = "Shortest Path: " + ShortestPath.drawnCounts[0] + " tiles and " + ShortestPath.drawnCounts[1] + " minimap dots drawn"
+				} else {
+					println("SMOKE shortest path: " + finder.path.size + " tiles found after " + finder.visitedCount + " visited, " + ShortestPath.drawnCounts[0] + " drawn on the tiles, " + ShortestPath.drawnCounts[1] + " on the minimap")
+				}
+				if (shortestPathFailure != null || !openTab("World Map", "View World Map")) {
+					shortestPathStep = 3
+					return false
+				}
+				shortestPathFrame = frames
+				shortestPathStep = 2
+			}
+			2 -> {
+				if (ShortestPath.drawnCounts[2] == 0 && frames - shortestPathFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-shortestpath-map.png")
+				val box = IntArray(4)
+				val tile = IntArray(3)
+				val point = IntArray(2)
+				if (ShortestPath.drawnCounts[2] == 0) {
+					shortestPathFailure = "Shortest Path: nothing drawn on the world map"
+				} else if (!api.worldMapArea(box) || !api.worldMapTile(box[0] + box[2] / 2, box[1] + box[3] / 2, tile)) {
+					shortestPathFailure = "Shortest Path: the world map's centre is on no tile"
+				} else if (!api.projectWorldMap(tile[0], tile[1], tile[2], point) || kotlin.math.abs(point[0] - box[0] - box[2] / 2) > 8 || kotlin.math.abs(point[1] - box[1] - box[3] / 2) > 8) {
+					shortestPathFailure = "Shortest Path: the map's centre is tile " + tile[0] + "," + tile[1] + "," + tile[2] + ", which projects to " + point[0] + "," + point[1]
+				} else {
+					println("SMOKE shortest path: " + ShortestPath.drawnCounts[2] + " segments on the world map; its centre is tile " + tile[0] + "," + tile[1] + "," + tile[2])
+				}
+				clickComponent(WORLD_MAP, WORLD_MAP_CLOSE)
+				shortestPathFrame = frames
+				shortestPathStep = 3
+			}
+			else -> {
+				if (api.worldMapArea(IntArray(4)) && frames - shortestPathFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				ShortestPath.clearTarget()
+				ShortestPath.enabled = false
+				shortestPathFailure?.let {
+					fail(it)
+					return true
+				}
+				return true
+			}
+		}
+		return false
 	}
 
 	/** Death Indicator after a pretend death here: the arrow, the infobox and the world map's mark. Frame: frame-deathindicator.png. */

@@ -32,6 +32,8 @@ fun main() {
     window.addEventListener("pagehide", { net.closeAllSockets() })
     holdPageAwake()
     window.addEventListener("pageshow", { event -> if (event.asDynamic().persisted == true) window.location.reload() })
+    // Shortest Path's map and transports, fetched beside the client's start (the plugin waits for them)
+    pageScope.launch { fetchShortestPath() }
     pageScope.launch {
         CachePersistence.hydrate()
         fetchPageResources()
@@ -169,6 +171,23 @@ private suspend fun fetchPageResources() {
 }
 
 /*
+ * Shortest Path's map and transport table (src/jvmMain/resources/shortest-path) into lang.readResource.
+ * Not waited for: until they arrive the plugin says it is loading, and a file that cannot be fetched
+ * leaves it without a map, as a missing resource does on the JVM.
+ */
+private suspend fun fetchShortestPath() {
+    for (name in arrayOf("collision.gz", "transports.tsv.gz")) {
+        try {
+            val response: dynamic = window.fetch("shortest-path/" + name).await()
+            if (response.ok != true) continue
+            val buffer: org.khronos.webgl.ArrayBuffer = (response.arrayBuffer() as kotlin.js.Promise<org.khronos.webgl.ArrayBuffer>).await()
+            lang.pageResources["/shortest-path/" + name] = org.khronos.webgl.Int8Array(buffer).unsafeCast<ByteArray>()
+        } catch (e: Throwable) {
+        }
+    }
+}
+
+/*
  * The browser always draws at the normal render distance: a page has far less memory and time per
  * frame than the desktop, and a longer view (the launcher's default is twice as far) drops the
  * software toolkit well under 10 frames a second. A URL switch or window.CONFIG asking for another
@@ -181,4 +200,3 @@ private fun fixRenderDistance() {
     }
     lang.setProperty("client.renderDistance", "1")
 }
-
