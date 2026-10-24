@@ -25,8 +25,8 @@ inventory grid (`InventoryGrid`), the examine (`Examine`), the entity hider (`En
 animation smoothing (`AnimationSmoothing`), the screenshot (`Screenshot`), the Grand Exchange
 (`GrandExchange`), the time tracking (`TimeTracking`), the screen markers (`ScreenMarkers`), the
 hiscore (`Hiscore`), the friend notes (`FriendNotes`), the interact highlight (`InteractHighlight`), the shortest path
-(`ShortestPath`), the item prices (`PriceTooltips`) and the fairy rings (`FairyRings`) are sixty-eight,
-built in, so the client's own code shows the way.
+(`ShortestPath`), the item prices (`PriceTooltips`), the fairy rings (`FairyRings`) and the chat commands
+(`ChatCommands`) are sixty-nine, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -789,6 +789,18 @@ entries do. Searching keeps the codes whose letters or destination hold what you
 log when **Open search automatically** is on, or with **Search** on a code's right-click; type at the top
 of the game view, Enter keeps the search and Escape clears it. `::fairyring <text>` lists the matching
 codes in the console. RuneLite's tags (extra search words for a place) are not here.
+
+**Chat Commands** is RuneLite's. A chat line that is one of its commands, from anyone (public chat,
+private messages either way, the clan chat), becomes its answer, the figures in red: `!lvl <skill>` (a
+skill's name or RuneLite's short forms, `att`, `hp`, `rc`, `dg`...) and `!total` give the sender's level,
+experience and rank, `!cmb` their combat level and the levels it is made of (634's Summoning included),
+all from the game website's hiscores; `!price <item>` gives an item's Grand Exchange guide price and High
+Level Alchemy value (the item named exactly so, else the first tradeable one whose name holds the words);
+`!qp` gives your quest points, on your own line only, since another player's are not sent to the client.
+A line whose sender's hiscores are not in yet is answered where it stands once they come (the plugin
+API's `setChatLine`, API 39), or left as it was if the website does not know the name. Each command has
+its own switch. 634's hiscores have no kill counts, clue scrolls or minigames, so RuneLite's `!kc`, `!pb`,
+`!clues` and the like are not here; the client shows no public chat on Tutorial Island.
 
 ## Writing a plugin
 

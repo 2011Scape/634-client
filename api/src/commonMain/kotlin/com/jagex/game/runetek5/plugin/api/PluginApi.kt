@@ -74,9 +74,10 @@ package com.jagex.game.runetek5.plugin.api
  *   right-click entries on it ([MenuTarget.WORLD_MAP]).
  * - 38: right-click entries on the minimap ([MenuTarget.MINIMAP]), [ClientApi.projectMinimap] keeping to the
  *   minimap's round mask, and drawing under the orbs ([com.jagex.game.runetek5.plugin.api.events.Events.MINIMAP_DRAW]).
+ * - 39: a chat box line's text changed in place ([ClientApi.setChatLine]).
  * - 31: the drag ([ClientApi.isDraggingWidget], [ClientApi.draggedWidget], [ClientApi.draggedOnWidget], [ClientApi.itemPressedDuration]) and [Graphics.itemIconAlpha].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 38
+	const val VERSION: Int = 39
 }

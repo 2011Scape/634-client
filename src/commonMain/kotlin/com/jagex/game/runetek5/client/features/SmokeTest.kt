@@ -532,6 +532,15 @@ object SmokeTest {
 
 	private var fairyRingsFrame: Int = 0
 
+	/** client.test.chatCommands: !price, !lvl, !qp sent as public chat and answered on their echo; !total answered late, in place. */
+	private val CHAT_COMMANDS: Boolean = "true" == lang.getProperty("client.test.chatCommands")
+
+	private var chatCommandsStep: Int = -1
+
+	private var chatCommandsHome: IntArray? = null
+
+	private var chatCommandsFrame: Int = 0
+
 	private var shortestPathFrame: Int = -1
 
 	private var shortestPathFailure: String? = null
@@ -1873,6 +1882,12 @@ object SmokeTest {
 				return
 			}
 			checksDone2 = checksDone2 or 8L
+		}
+		if (CHAT_COMMANDS && (checksDone2 and 16L) == 0L) {
+			if (!chatCommandsDone()) {
+				return
+			}
+			checksDone2 = checksDone2 or 16L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5351,6 +5366,113 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	private fun chatCommandsDone(): Boolean {
+		val api = ClientApiImpl
+		val asked: Array<String> = arrayOf("!price rune scimitar", "!lvl att", "!qp")
+		val wanted: Array<String> = arrayOf("Price of " + ChatCommands.HIGHLIGHT + "Rune scimitar", "Level " + ChatCommands.HIGHLIGHT + "Attack: 99", "Quest points: ")
+		when (chatCommandsStep) {
+			-1 -> {
+				// the client shows no public chat on Tutorial Island, where the smoke test's player stands: to Lumbridge
+				if (chatCommandsFrame == 0) {
+					val here: com.jagex.game.runetek5.plugin.api.Player? = api.localPlayer()
+					chatCommandsHome = intArrayOf(api.sceneBaseX() + (here?.serverTileX() ?: 0), api.sceneBaseY() + (here?.serverTileY() ?: 0), here?.level() ?: 0)
+					sendCommand("tele 3222 3218 0")
+					chatCommandsFrame = frames
+					return false
+				}
+				if (com.jagex.game.runetek5.MapRegion.inTutorialIsland != 0 || frames - chatCommandsFrame < 150) {
+					if (frames - chatCommandsFrame < 600) {
+						return false
+					}
+					fail("Chat Commands: the player did not leave Tutorial Island (admin ::tele)")
+					return true
+				}
+				chatCommandsFrame = 0
+				chatCommandsStep = 0
+			}
+			0, 1, 2 -> {
+				val i: Int = chatCommandsStep
+				if (chatCommandsFrame == 0) {
+					if (i == 0) {
+						ChatCommands.enabled = true
+						com.jagex.game.runetek5.plugin.ItemPrices.setForTest(mapOf(1333 to 15_000))
+						HiscoreLookup.put(USER, smokeHiscores())
+					}
+					ChatCommands.answered.clear()
+					// as the chat box's own script sends it: the server echoes it back as the player's public chat
+					com.jagex.game.runetek5.ScriptRunner.sendPublicChat(asked[i], com.jagex.game.runetek5.config.rsinterface.cs2.ClientScriptOpCode.CHAT_SENDPUBLIC)
+					chatCommandsFrame = frames
+					return false
+				}
+				val line: String? = (0 until 5).mapNotNull { api.chatLine(it)?.message() }.firstOrNull { it.startsWith(wanted[i]) }
+				if (line == null) {
+					if (frames - chatCommandsFrame < 300) {
+						return false
+					}
+					fail("Chat Commands: \"" + asked[i] + "\" was not answered; the newest line is \"" + api.chatLine(0)?.message() + "\"")
+					return true
+				}
+				println("SMOKE chat commands: \"" + asked[i] + "\" became \"" + OpponentInfo.removeTags(line) + "\"")
+				if (i == 2) {
+					saveFrame("build/smoke/frame-chatcommands.png")
+					// hiscores not in yet: the line stays as typed, answered in place when they come
+					HiscoreLookup.clear()
+					ChatCommands.answered.clear()
+					com.jagex.game.runetek5.ScriptRunner.sendPublicChat("!total", com.jagex.game.runetek5.config.rsinterface.cs2.ClientScriptOpCode.CHAT_SENDPUBLIC)
+				}
+				chatCommandsStep++
+				chatCommandsFrame = if (i == 2) frames else 0
+			}
+			3 -> {
+				val line = (0 until 5).mapNotNull { api.chatLine(it) }.firstOrNull { it.message() == "!total" }
+				if (line == null) {
+					if (frames - chatCommandsFrame < 300) {
+						return false
+					}
+					fail("Chat Commands: \"!total\" did not come back as typed")
+					return true
+				}
+				// the website's answer coming in now (the smoke test's hiscores are nowhere): the line waits for it
+				HiscoreLookup.put(USER, smokeHiscores())
+				ChatCommands.pending.add(ChatCommands.Pending(line.id(), USER, "!total", lang.currentTimeMillis()))
+				chatCommandsFrame = frames
+				chatCommandsStep = 4
+			}
+			4 -> {
+				val line: String? = (0 until 5).mapNotNull { api.chatLine(it)?.message() }.firstOrNull { it.startsWith("Level " + ChatCommands.HIGHLIGHT + "Overall") }
+				if (line == null || frames - chatCommandsFrame < MARKER_FRAMES) {
+					if (frames - chatCommandsFrame < 300) {
+						return false
+					}
+					fail("Chat Commands: \"!total\" was not answered in place once the hiscores came; the newest line is \"" + api.chatLine(0)?.message() + "\"")
+					return true
+				}
+				saveFrame("build/smoke/frame-chatcommands-late.png")
+				println("SMOKE chat commands: \"!total\" answered in place when the hiscores came: \"" + OpponentInfo.removeTags(line) + "\"")
+				chatCommandsHome?.let { sendCommand("tele " + it[0] + " " + it[1] + " " + it[2]) }
+				chatCommandsFrame = frames
+				chatCommandsStep = 5
+			}
+			else -> {
+				// home again before the run ends, or the next run starts away from Tutorial Island's guide
+				if (com.jagex.game.runetek5.MapRegion.inTutorialIsland == 0 && frames - chatCommandsFrame < 600) {
+					return false
+				}
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Hiscores for the smoke test's player: 99 in every skill. */
+	private fun smokeHiscores(): HiscoreLookup.Result {
+		val r = HiscoreLookup.Result(USER, IntArray(Skill.COUNT) { 99 }, IntArray(Skill.COUNT) { 1_000 + it }, LongArray(Skill.COUNT) { 13_034_431L })
+		r.overallLevel = 99 * Skill.COUNT
+		r.overallXp = 13_034_431L * Skill.COUNT
+		r.overallRank = 5
+		return r
 	}
 
 	/** The travel log's code rows that show (have text and are drawn). */

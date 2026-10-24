@@ -973,6 +973,20 @@ object ClientApiImpl : ClientApi {
 		return false
 	}
 
+	override fun setChatLine(id: Int, message: String): Boolean {
+		val count: Int = chatLineCount()
+		for (i in 0 until count) {
+			val line: ChatLine = ChatBox.CHAT_LINES[i] ?: continue
+			if (line.identifier == id) {
+				line.message = message
+				// the chat box redraws its lines when the latest message's tick changes
+				MiniMenu.lastChatMessageTick = ClientState.serverTick
+				return true
+			}
+		}
+		return false
+	}
+
 	override fun addChatLine(type: Int, name: String?, message: String, clan: String?) {
 		ChatLineWriter.storeLine(name, message, -1, name, clan, type, 0, name)
 	}

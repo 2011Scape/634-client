@@ -8,6 +8,7 @@ import com.jagex.game.runetek5.client.features.BankOrganizer
 import com.jagex.game.runetek5.client.features.BarrowsBrothers
 import com.jagex.game.runetek5.client.features.Boosts
 import com.jagex.game.runetek5.client.features.Cannon
+import com.jagex.game.runetek5.client.features.ChatCommands
 import com.jagex.game.runetek5.client.features.ChatFilter
 import com.jagex.game.runetek5.client.features.ChatHistory
 import com.jagex.game.runetek5.client.features.ChatNotifications
@@ -152,6 +153,7 @@ object BuiltinPlugins {
 			builtIn(ShortestPath.DESCRIPTOR, ShortestPath),
 			builtIn(PriceTooltips.DESCRIPTOR, PriceTooltips),
 			builtIn(FairyRings.DESCRIPTOR, FairyRings),
+			builtIn(ChatCommands.DESCRIPTOR, ChatCommands),
 		)
 	}
 
