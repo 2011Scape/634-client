@@ -23,8 +23,8 @@ aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implin
 (`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`), the inventory tags (`InventoryTags`), the
 inventory grid (`InventoryGrid`), the examine (`Examine`), the entity hider (`EntityHider`), the
 animation smoothing (`AnimationSmoothing`), the screenshot (`Screenshot`), the Grand Exchange
-(`GrandExchange`), the time tracking (`TimeTracking`), the screen markers (`ScreenMarkers`) and the
-hiscore (`Hiscore`) are sixty-three, built in, so the client's own code shows the way.
+(`GrandExchange`), the time tracking (`TimeTracking`), the screen markers (`ScreenMarkers`), the
+hiscore (`Hiscore`) and the friend notes (`FriendNotes`) are sixty-four, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -708,6 +708,12 @@ the Stats tab has them, their total level and overall rank; the mouse over a ski
 experience. `::hiscore` alone, or **Close** on shift-right-clicking the panel, closes it. The lookups are
 the same ones Opponent Information makes, from the website's `index_lite.json`. RuneLite's side panel
 search box and its other hiscore boards (ironman, seasonal) are not in 634.
+
+**Friend Notes** is RuneLite's. Right-clicking a name on the friends list offers **Add Note** (or **Edit
+Note** and **Delete Note** once it has one): type the note, Enter keeps it and Escape leaves it as it was.
+With the mouse over the name the note shows as a tooltip. Notes are kept by name, up to 128 characters;
+`::friendnote <name> [note]` sets one, or clears it with no note (`_` for a space in the name). RuneLite's
+note icon beside the name, and notes on the ignore list, are not here.
 
 ## Writing a plugin
 

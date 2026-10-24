@@ -20,6 +20,7 @@ import com.jagex.game.runetek5.client.features.Emojis
 import com.jagex.game.runetek5.client.features.EntityHider
 import com.jagex.game.runetek5.client.features.Examine
 import com.jagex.game.runetek5.client.features.Fishing
+import com.jagex.game.runetek5.client.features.FriendNotes
 import com.jagex.game.runetek5.client.features.GrandExchange
 import com.jagex.game.runetek5.client.features.GroundItems
 import com.jagex.game.runetek5.client.features.GroundTiles
@@ -142,6 +143,7 @@ object BuiltinPlugins {
 			builtIn(TimeTracking.DESCRIPTOR, TimeTracking),
 			builtIn(ScreenMarkers.DESCRIPTOR, ScreenMarkers),
 			builtIn(Hiscore.DESCRIPTOR, Hiscore),
+			builtIn(FriendNotes.DESCRIPTOR, FriendNotes),
 		)
 	}
 
