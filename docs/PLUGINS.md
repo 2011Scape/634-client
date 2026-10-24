@@ -786,10 +786,11 @@ and explorer's ring are not in 634. `::itemprices` turns it on and off.
 code goes ("Kandarin: Piscatoris Hunter area"), or "Invalid location". The travel log beside it, which in
 634 lists only the codes you have been to, lists all 43 of Void's codes with their destinations, laid out
 and sorted by the log itself (**Re-sort list** still works); clicking one dials it, as the log's own
-entries do. Searching keeps the codes whose letters or destination hold what you type: it opens with
-**Search** on a code's right-click, or with the log when **Open search automatically** is on (off by
-default: the search takes every key you type while it is up, chat included); type at the top of the game
-view, Enter keeps the search and Escape clears it. `::fairyring <text>` lists the matching
+entries do. Searching keeps the codes whose letters or destination hold what you type: as RuneLite's, it
+opens with the log (**Open search automatically**, on by default) or with **Search** on a code's
+right-click, and is typed in the chat box's line, which reads "Filter fairy rings:" while it is up; Enter
+keeps the search and Escape clears it, and the line is your chat's again after. (With an amount being
+asked for in the chat box, the search is typed at the top of the game view instead.) `::fairyring <text>` lists the matching
 codes in the console. RuneLite's tags (extra search words for a place) are not here.
 
 **Chat Commands** is RuneLite's. A chat line that is one of its commands, from anyone (public chat,

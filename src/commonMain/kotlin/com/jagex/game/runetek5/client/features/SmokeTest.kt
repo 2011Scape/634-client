@@ -5423,6 +5423,12 @@ object SmokeTest {
 					return false
 				}
 				saveFrame("build/smoke/frame-fairyrings-search.png")
+				// typed in the chat box's line, as RuneLite's search is
+				val line: String? = api.widget(KeyRemapping.CHATBOX, KeyRemapping.CHATBOX_INPUT)?.text()
+				if (!FairyRings.searchInChat || line == null || !OpponentInfo.removeTags(line).startsWith(FairyRings.FILTER_LABEL + "hunter")) {
+					fail("Fairy Rings: the search is not in the chat box's line, which reads \"" + line + "\"")
+					return true
+				}
 				FairyRings.typing = false
 				val rows: List<Widget> = fairyRows()
 				val codes: List<String> = rows.sortedBy { it.screenY() }.map { FairyRings.rowCode(it.componentId())!! }
@@ -5434,13 +5440,18 @@ object SmokeTest {
 				}
 				println("SMOKE fairy rings: searching \"hunter\" leaves " + codes.joinToString(", ") + ", one under another")
 				FairyRings.search.setLength(0)
-				FairyRings.restore(api)
 				fairyRingsFrame = frames
 				fairyRingsStep = 4
 			}
 			else -> {
 				if (frames - fairyRingsFrame < 5) {
 					return false
+				}
+				// the search over: the chat box's line is the chat's again
+				val line: String = api.widget(KeyRemapping.CHATBOX, KeyRemapping.CHATBOX_INPUT)?.text() ?: ""
+				if (line.startsWith(FairyRings.FILTER_LABEL)) {
+					fail("Fairy Rings: the chat box's line still reads \"" + line + "\" after the search")
+					return true
 				}
 				// put back as the server had them; the account's quests back as they were
 				FairyRings.enabled = false

@@ -190,7 +190,8 @@ object KeyRemapping : Plugin {
 			}
 			return
 		}
-		if (!enabled || !chatboxFocused(client)) {
+		// Fairy Rings' search has the chat box's line and the keys while it is typed
+		if (!enabled || FairyRings.typing || !chatboxFocused(client)) {
 			return
 		}
 		if (typing) {
@@ -292,7 +293,7 @@ object KeyRemapping : Plugin {
 	/** Each client cycle: the dialogues open, and the locked chat's line kept reading "Press Enter to Chat...". */
 	@JvmStatic
 	fun tick(client: ClientApi) {
-		if (!enabled || client.gameState() !== GameState.LOGGED_IN) {
+		if (!enabled || client.gameState() !== GameState.LOGGED_IN || FairyRings.typing) {
 			return
 		}
 		readDialogues(client)
