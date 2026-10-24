@@ -48,6 +48,12 @@ class PriceTooltipsTest {
 	}
 
 	@Test
+	fun noProfitWhileTheNatureRunesPriceIsUnknown() {
+		PriceTooltips.showAlchProfit = true
+		assertEquals("GE: 15K gp</br>HA: 15.3K gp", PriceTooltips.stackValueText(1, 15_000, 15_360, 0))
+	}
+
+	@Test
 	fun theBackpackTheBankAndTheBanksBackpack() {
 		assertEquals(PriceTooltips.BACKPACK_CONTAINER, PriceTooltips.containerOf(PriceTooltips.BACKPACK, false))
 		assertEquals(PriceTooltips.BANK_CONTAINER, PriceTooltips.containerOf(PriceTooltips.BANK, false))

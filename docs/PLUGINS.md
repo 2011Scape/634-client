@@ -776,7 +776,8 @@ house portals) and its messages to other plugins. Off at first.
 a tooltip shows what it is worth: "GE: 30K gp (15K ea)" and "HA: 30.7K gp (15.3K ea)", the stack's
 exchange guide price and High Level Alchemy's value, with one item's after it on a stack of more than one
 (**Show price each on stacks**). **Show High Alchemy profit** adds what alching it would make after the
-item's guide price and a nature rune's, green for a gain and red for a loss. **Hide tooltips on backpack
+item's guide price and a nature rune's, green for a gain and red for a loss (none while the nature rune's
+price is not known). **Hide tooltips on backpack
 items** leaves the backpack out, except while High Level Alchemy is picked (**Show prices while
 alching**). Coins, and an item with neither price, get no tooltip. RuneLite's seed vault, treasure chest
 and explorer's ring are not in 634. `::itemprices` turns it on and off.
@@ -785,9 +786,10 @@ and explorer's ring are not in 634. `::itemprices` turns it on and off.
 code goes ("Kandarin: Piscatoris Hunter area"), or "Invalid location". The travel log beside it, which in
 634 lists only the codes you have been to, lists all 43 of Void's codes with their destinations, laid out
 and sorted by the log itself (**Re-sort list** still works); clicking one dials it, as the log's own
-entries do. Searching keeps the codes whose letters or destination hold what you type: it opens with the
-log when **Open search automatically** is on, or with **Search** on a code's right-click; type at the top
-of the game view, Enter keeps the search and Escape clears it. `::fairyring <text>` lists the matching
+entries do. Searching keeps the codes whose letters or destination hold what you type: it opens with
+**Search** on a code's right-click, or with the log when **Open search automatically** is on (off by
+default: the search takes every key you type while it is up, chat included); type at the top of the game
+view, Enter keeps the search and Escape clears it. `::fairyring <text>` lists the matching
 codes in the console. RuneLite's tags (extra search words for a place) are not here.
 
 **Chat Commands** is RuneLite's. A chat line that is one of its commands, from anyone (public chat,
@@ -798,7 +800,9 @@ all from the game website's hiscores; `!price <item>` gives an item's Grand Exch
 Level Alchemy value (the item named exactly so, else the first tradeable one whose name holds the words);
 `!qp` gives your quest points, on your own line only, since another player's are not sent to the client.
 A line whose sender's hiscores are not in yet is answered where it stands once they come (the plugin
-API's `setChatLine`, API 39), or left as it was if the website does not know the name. Each command has
+API's `setChatLine`, API 39), or left as it was if the website does not know the name or another plugin
+dropped the line. `!price` reads the item names a few hundred a frame after you log in (all at once would
+stall the game for a moment); one asked before that is done is answered in place the same way. Each command has
 its own switch. 634's hiscores have no kill counts, clue scrolls or minigames, so RuneLite's `!kc`, `!pb`,
 `!clues` and the like are not here; the client shows no public chat on Tutorial Island.
 

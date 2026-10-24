@@ -36,8 +36,10 @@ import kotlin.jvm.JvmStatic
  * Not part of the original client: RuneLite's Fairy Rings. With a fairy ring's dial open (734), the teleport
  * button says where the dialled code goes; the travel log beside it (735), which in 634 lists only the codes
  * the player has been to, lists every code with its destination instead, and can be searched: by typing at
- * the top of the game view (opened with the log when **Open search automatically** is on, or by **Search** on
- * a code's right-click), the codes whose letters or destination hold what is typed stay. Clicking a code dials
+ * the top of the game view (by **Search** on a code's right-click, or with the log when **Open search
+ * automatically** is on), the codes whose letters or destination hold what is typed stay. RuneLite opens its
+ * search by default, in the chat box where the player types; here the prompt is away from the chat box and
+ * takes every key while it is up, so it opens by default only when asked for. Clicking a code dials
  * it, as the log's own entries do (the server sets the dials).
  *
  * The codes and destinations are the Void server's (fairy_ring_codes.toml); the dials are varbits 2341-2343,
@@ -129,7 +131,7 @@ object FairyRings : Plugin {
 	)
 
 	@JvmField var enabled: Boolean = true
-	@JvmField var autoOpen: Boolean = true
+	@JvmField var autoOpen: Boolean = false
 
 	/** What the log is searched by, and whether it is being typed. */
 	@JvmField val search: StringBuilder = StringBuilder()
@@ -241,7 +243,7 @@ object FairyRings : Plugin {
 		this.context = context
 		val s = context.settings()
 		s.toggle("enabled", "Fairy Rings", true)
-		s.toggle("autoOpen", "Open search automatically", true)
+		s.toggle("autoOpen", "Open search automatically", false)
 		readSettings(context.config())
 		searchAction = context.registerMenuAction(MenuAction { _, _, _, _ -> startSearch() })
 		prompt.priority = PanelOverlay.PRIORITY_HIGH
@@ -265,7 +267,7 @@ object FairyRings : Plugin {
 	@JvmStatic
 	fun readSettings(config: PluginConfig) {
 		enabled = config.getBoolean("enabled", true)
-		autoOpen = config.getBoolean("autoOpen", true)
+		autoOpen = config.getBoolean("autoOpen", false)
 		if (!enabled) {
 			typing = false
 			context?.client()?.let { restore(it) }
@@ -344,6 +346,10 @@ object FairyRings : Plugin {
 
 	/** RuneLite's setWidgetTextToDestination: the dial's teleport button says where the code goes. */
 	private fun labelDial(client: ClientApi) {
+		// only while the dial is up: one button or the other shows
+		if (client.widget(DIAL, TELEPORT_BUTTON)?.isDrawnThisFrame() != true && client.widget(DIAL, TELEPORT_BUTTON_2)?.isDrawnThisFrame() != true) {
+			return
+		}
 		val text: String = DESTINATIONS[dialledCode(client)] ?: INVALID
 		for (button in intArrayOf(TELEPORT_BUTTON, TELEPORT_BUTTON_2)) {
 			val w: Widget = client.widget(DIAL, button) ?: continue

@@ -2,7 +2,10 @@ package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.client.features.ChatCommands
 import com.jagex.game.runetek5.client.features.HiscoreLookup
+import com.jagex.game.runetek5.plugin.api.ChatLineView
+import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.Skill
+import java.lang.reflect.Proxy
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -67,9 +70,39 @@ class ChatCommandsTest {
 		assertTrue(ChatCommands.needsHiscores("!lvl attack"))
 		assertTrue(ChatCommands.needsHiscores("!TOTAL"))
 		assertTrue(ChatCommands.needsHiscores("!cmb"))
+		// a skill 634 does not have is not looked up
+		assertFalse(ChatCommands.needsHiscores("!lvl sailing"))
 		assertFalse(ChatCommands.needsHiscores("!lvlattack"))
 		assertTrue(ChatCommands.isCommandType(2) && ChatCommands.isCommandType(6) && ChatCommands.isCommandType(9))
 		assertFalse(ChatCommands.isCommandType(0))
 		assertEquals("Quest points: ${red}54$end", ChatCommands.questPointsAnswer(54))
+	}
+
+	private class Line(val id: Int, val name: String?, val message: String?) : ChatLineView {
+		override fun id(): Int = id
+		override fun type(): Int = 2
+		override fun name(): String? = name
+		override fun message(): String? = message
+		override fun clan(): String? = null
+	}
+
+	/** A chat box of [lines], newest first. */
+	private fun chatBox(lines: List<ChatLineView>): ClientApi = Proxy.newProxyInstance(ClientApi::class.java.classLoader, arrayOf(ClientApi::class.java)) { _, method, args ->
+		when (method.name) {
+			"chatLineCount" -> lines.size
+			"chatLine" -> lines.getOrNull(args[0] as Int)
+			else -> null
+		}
+	} as ClientApi
+
+	@Test
+	fun aWaitingLineIsFoundAgainOrLeftBe() {
+		val waiting = ChatCommands.Pending(11, "zezima", "zezima", "!lvl att", 0L)
+		// still where it was foreseen
+		assertEquals(11, ChatCommands.waitingLine(chatBox(listOf(Line(12, "bob", "hi"), Line(11, "<img=1>zezima", "!lvl att"))), waiting))
+		// dropped by a plugin after this one: id 11 went to someone else's line, which is not touched
+		assertNull(ChatCommands.waitingLine(chatBox(listOf(Line(11, "bob", "hi"))), waiting))
+		// taken out and put back (a repeat collapsed): found by its name and text
+		assertEquals(14, ChatCommands.waitingLine(chatBox(listOf(Line(14, "zezima", "!lvl att"), Line(13, "bob", "!lvl att"))), waiting))
 	}
 }
