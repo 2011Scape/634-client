@@ -29,7 +29,8 @@ import kotlin.jvm.JvmStatic
  * Not part of the original client: RuneLite's Interact Highlight. The npc or location a left click would
  * act on is outlined by its own silhouette (ClientApi.actorOutline and locOutline, API 36 and 10), in the
  * hover colour, an npc that can be attacked in the attack colour; the npc you are fighting or talking to
- * and the location you last clicked are outlined in the interact colours until you are done with them.
+ * and the location you last clicked are outlined in the interact colours until you are done with them, also
+ * while hovered (RuneLite's order: hovering what you interact with keeps the interact colour).
  * Players can be outlined too, off at first. A built-in plugin (BuiltinPlugins, docs/PLUGINS.md).
  */
 object InteractHighlight : Plugin {
@@ -71,6 +72,10 @@ object InteractHighlight : Plugin {
 	@JvmField var lastNpc: Int = -1
 	@JvmField var lastLoc: Int = -1
 	@JvmField var lastPlayer: Int = -1
+
+	/** For the smoke test: the colours they were outlined in. */
+	@JvmField var lastNpcColour: Int = 0
+	@JvmField var lastLocColour: Int = 0
 
 	/** For the smoke test: what to treat as hovered in place of the mouse (null for the mouse). */
 	@JvmField var testHover: HoveredTarget? = null
@@ -204,47 +209,47 @@ object InteractHighlight : Plugin {
 			return
 		}
 		val me: Player = client.localPlayer() ?: return
-		var hoveredActor: Actor? = null
-		var hoveredLoc: Int = -1
-		if (showHover && hover(client)) {
-			when (hovered.kind) {
-				MenuTarget.NPC -> if (npcs) {
-					val npc: Npc? = client.npcByIndex(hovered.id)
-					if (npc != null) {
-						hoveredActor = npc
-						outlineNpc(client, npc, if ("Attack".equals(hovered.option, true)) attackHoverColour else hoverColour)
-					}
-				}
-				MenuTarget.PLAYER -> if (players) {
-					val player: Player? = client.playerByIndex(hovered.id)
-					if (player != null) {
-						hoveredActor = player
-						if (client.actorOutline(player, borderWidth, feather, hoverColour)) {
-							lastPlayer = hovered.id
-						}
-					}
-				}
-				MenuTarget.LOC -> if (objects) {
-					hoveredLoc = hovered.id
-					if (client.locOutline(hovered.sceneX, hovered.sceneY, me.level(), hovered.id, borderWidth, feather, objectHoverColour)) {
-						lastLoc = hovered.id
-					}
-				}
-				else -> {}
+		// what you are interacting with first: hovering it keeps the interact colour (RuneLite's order)
+		var interactedNpc: Npc? = null
+		var interactedLoc: Boolean = false
+		if (showInteract) {
+			val target: Actor? = me.interacting()
+			if (npcs && target is Npc) {
+				interactedNpc = target
+				outlineNpc(client, target, if (attackable(target)) attackInteractColour else interactColour)
+			}
+			if (objects && clickedLocId >= 0) {
+				interactedLoc = true
+				outlineLoc(client, clickedLocX, clickedLocY, me.level(), clickedLocId, objectInteractColour)
 			}
 		}
-		if (!showInteract) {
+		if (!showHover || !hover(client)) {
 			return
 		}
-		// what you are interacting with, unless it is the one hovered (hover wins)
-		val target: Actor? = me.interacting()
-		if (npcs && target is Npc && target !== hoveredActor) {
-			outlineNpc(client, target, if (attackable(target)) attackInteractColour else interactColour)
-		}
-		if (objects && clickedLocId >= 0 && !(hoveredLoc == clickedLocId && hovered.sceneX == clickedLocX && hovered.sceneY == clickedLocY)) {
-			if (client.locOutline(clickedLocX, clickedLocY, me.level(), clickedLocId, borderWidth, feather, objectInteractColour)) {
-				lastLoc = clickedLocId
+		when (hovered.kind) {
+			MenuTarget.NPC -> if (npcs) {
+				val npc: Npc? = client.npcByIndex(hovered.id)
+				if (npc != null && npc !== interactedNpc) {
+					outlineNpc(client, npc, if ("Attack".equals(hovered.option, true)) attackHoverColour else hoverColour)
+				}
 			}
+			MenuTarget.PLAYER -> if (players) {
+				val player: Player? = client.playerByIndex(hovered.id)
+				if (player != null && player !== me.interacting() && client.actorOutline(player, borderWidth, feather, hoverColour)) {
+					lastPlayer = hovered.id
+				}
+			}
+			MenuTarget.LOC -> if (objects && !(interactedLoc && hovered.id == clickedLocId && hovered.sceneX == clickedLocX && hovered.sceneY == clickedLocY)) {
+				outlineLoc(client, hovered.sceneX, hovered.sceneY, me.level(), hovered.id, objectHoverColour)
+			}
+			else -> {}
+		}
+	}
+
+	private fun outlineLoc(client: ClientApi, sceneX: Int, sceneY: Int, level: Int, id: Int, argb: Int) {
+		if (client.locOutline(sceneX, sceneY, level, id, borderWidth, feather, argb)) {
+			lastLoc = id
+			lastLocColour = argb
 		}
 	}
 
@@ -259,11 +264,10 @@ object InteractHighlight : Plugin {
 		return true
 	}
 
-	private fun outlineNpc(client: ClientApi, npc: Npc, argb: Int): Boolean {
-		val drawn: Boolean = client.actorOutline(npc, borderWidth, feather, argb)
-		if (drawn) {
+	private fun outlineNpc(client: ClientApi, npc: Npc, argb: Int) {
+		if (client.actorOutline(npc, borderWidth, feather, argb)) {
 			lastNpc = npc.index()
+			lastNpcColour = argb
 		}
-		return drawn
 	}
 }

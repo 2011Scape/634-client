@@ -720,7 +720,8 @@ note icon beside the name, and notes on the ignore list, are not here.
 **Interact Highlight** is RuneLite's. The npc or object a left click would act on is outlined by its own
 shape in the hover colour (an npc whose top option is Attack in the attack colour), and the npc you are
 fighting or talking to, and the object you last clicked, in the interact colours until you are done with
-them (the object once you have stood idle for two ticks, or clicked something else). Each of npcs, objects
+them (the object once you have stood idle for two ticks, or clicked something else), also while the mouse
+is still over them. Each of npcs, objects
 and players (off at first) can be switched off, as can hovering and interacting, and the colours, the
 border width and the outline's feather are RuneLite's settings. An npc's or a player's outline comes from
 its models' triangles as the toolkit draws them; the SSE toolkit cannot hand them out, so there the shape

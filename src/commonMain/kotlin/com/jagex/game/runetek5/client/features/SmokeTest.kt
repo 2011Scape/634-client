@@ -5768,18 +5768,70 @@ object SmokeTest {
 				interactFrame = frames
 				interactStep = 2
 			}
+			3 -> {
+				if (frames - interactFrame < MARKER_FRAMES / 2) {
+					return false
+				}
+				saveFrame("build/smoke/frame-interacthighlight-interact.png")
+				val hover: HoveredTarget = InteractHighlight.testHover!!
+				InteractHighlight.testHover = null
+				val colour: Int = InteractHighlight.lastLocColour
+				InteractHighlight.clickedLocId = -1
+				InteractHighlight.idleTicks = 0
+				if (InteractHighlight.lastLoc != hover.id || colour != InteractHighlight.objectInteractColour) {
+					fail("Interact Highlight: the clicked, hovered location " + hover.id + " outlined in " + colour.toUInt().toString(16) + ", not the interact colour")
+					return true
+				}
+				println("SMOKE interact highlight: clicked location " + hover.id + " kept the interact colour while hovered")
+				// the npc again, now as the one the player faces (talks to, fights): the interact colour while hovered
+				val npcHover: HoveredTarget = HoveredTarget()
+				npcHover.kind = MenuTarget.NPC
+				npcHover.id = interactNpc
+				npcHover.option = "Talk-to"
+				InteractHighlight.testHover = npcHover
+				player.faceEntity = interactNpc
+				interactFrame = frames
+				interactStep = 4
+				return false
+			}
+			4 -> {
+				if (frames - interactFrame < MARKER_FRAMES / 2) {
+					return false
+				}
+				saveFrame("build/smoke/frame-interacthighlight-npc-interact.png")
+				InteractHighlight.testHover = null
+				val faced: Boolean = player.interacting() === ClientApiImpl.npcByIndex(interactNpc)
+				player.faceEntity = -1
+				val colour: Int = InteractHighlight.lastNpcColour
+				if (!faced || InteractHighlight.lastNpc != interactNpc || (colour != InteractHighlight.interactColour && colour != InteractHighlight.attackInteractColour)) {
+					fail("Interact Highlight: the faced, hovered npc " + interactNpc + " (faced " + faced + ") outlined " + InteractHighlight.lastNpc + " in " + colour.toUInt().toString(16) + ", not the interact colour")
+					return true
+				}
+				println("SMOKE interact highlight: faced npc " + interactNpc + " kept the interact colour while hovered")
+				return true
+			}
 			else -> {
 				if (frames - interactFrame < MARKER_FRAMES) {
 					return false
 				}
 				saveFrame("build/smoke/frame-interacthighlight-loc.png")
 				val hover: HoveredTarget = InteractHighlight.testHover!!
-				InteractHighlight.testHover = null
-				if (InteractHighlight.lastLoc != hover.id) {
-					fail("Interact Highlight: location " + hover.id + " at " + hover.sceneX + "," + hover.sceneY + " not outlined")
+				if (InteractHighlight.lastLoc != hover.id || InteractHighlight.lastLocColour != InteractHighlight.objectHoverColour) {
+					InteractHighlight.testHover = null
+					fail("Interact Highlight: location " + hover.id + " at " + hover.sceneX + "," + hover.sceneY + " not outlined in the hover colour")
 					return true
 				}
 				println("SMOKE interact highlight: location " + hover.id + " at " + hover.sceneX + "," + hover.sceneY + " outlined")
+				if (interactStep == 2) {
+					// clicked, still hovered: the interact colour wins (the plugin's idle rule is left alone: no ticks pass in a frame)
+					InteractHighlight.clickedLocX = hover.sceneX
+					InteractHighlight.clickedLocY = hover.sceneY
+					InteractHighlight.clickedLocId = hover.id
+					InteractHighlight.idleTicks = -1000
+					interactFrame = frames
+					interactStep = 3
+					return false
+				}
 				return true
 			}
 		}
