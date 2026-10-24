@@ -278,8 +278,8 @@ object FriendNotes : Plugin {
 
 	private inline fun findRow(client: ClientApi, test: (Widget) -> Boolean): Widget? {
 		for (component in 0 until 40) {
-			val parent: Widget = client.widget(FRIENDS, component) ?: continue
-			if (parent.isHidden() || !parent.isDrawnThisFrame()) {
+			val parent: Widget? = client.widget(FRIENDS, component)
+			if (parent == null || parent.isHidden() || !parent.isDrawnThisFrame()) {
 				continue
 			}
 			for (i in 0 until parent.childCount()) {
