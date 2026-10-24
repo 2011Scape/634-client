@@ -516,6 +516,15 @@ object SmokeTest {
 
 	private var shortestPathStep: Int = 0
 
+	/** client.test.itemPrices: Item Prices' tooltip for a stack, then for a backpack item under the pointer. */
+	private val ITEM_PRICES: Boolean = "true" == lang.getProperty("client.test.itemPrices")
+
+	private var itemPricesStep: Int = 0
+
+	private var itemPricesFrame: Int = 0
+
+	private var itemPricesItem: Int = -1
+
 	private var shortestPathFrame: Int = -1
 
 	private var shortestPathFailure: String? = null
@@ -1845,6 +1854,12 @@ object SmokeTest {
 				return
 			}
 			checksDone2 = checksDone2 or 2L
+		}
+		if (ITEM_PRICES && (checksDone2 and 4L) == 0L) {
+			if (!itemPricesDone()) {
+				return
+			}
+			checksDone2 = checksDone2 or 4L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5161,6 +5176,81 @@ object SmokeTest {
 	 * then on the world map, whose centre pixel maps back to a tile that projects onto that pixel. Frames:
 	 * frame-shortestpath.png, frame-shortestpath-map.png.
 	 */
+	private fun itemPricesDone(): Boolean {
+		val api = ClientApiImpl
+		when (itemPricesStep) {
+			0 -> {
+				// a rune scimitar's guide price (alching it loses), a nature rune's
+				com.jagex.game.runetek5.plugin.ItemPrices.setForTest(mapOf(1333 to 15_000, 561 to 200))
+				PriceTooltips.enabled = true
+				PriceTooltips.showAlchProfit = true
+				PriceTooltips.testItem = 1333
+				PriceTooltips.testQuantity = 2
+				itemPricesFrame = frames
+				itemPricesStep = 1
+			}
+			1 -> {
+				if (frames - itemPricesFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-itemprices-stack.png")
+				val shown: String? = PriceTooltips.shown
+				val want: String? = PriceTooltips.stackValueText(2, 15_000, api.itemHaPrice(1333), 200)
+				PriceTooltips.testItem = -1
+				if (shown == null || shown != want) {
+					fail("Item Prices: 2 rune scimitars showed \"" + shown + "\", not \"" + want + "\"")
+					return true
+				}
+				println("SMOKE item prices: 2 rune scimitars: " + shown.replace("</br>", " / "))
+				openInventoryTab()
+				itemPricesFrame = frames
+				itemPricesStep = 2
+			}
+			2 -> {
+				// the pointer on the first item in the backpack: the menu's own top entry gives the item
+				val backpack: Widget? = api.widget(149, 0)
+				if (backpack == null || !backpack.isDrawnThisFrame()) {
+					if (frames - itemPricesFrame < MARKER_FRAMES) {
+						return false
+					}
+					fail("Item Prices: the backpack did not open")
+					return true
+				}
+				val slot: Widget? = (0 until backpack.childCount()).mapNotNull { backpack.child(it) }.firstOrNull { it.itemId() >= 0 && it.itemId() != PriceTooltips.COINS && it.width() > 0 }
+				if (slot == null) {
+					println("SMOKE item prices: the backpack is empty, no pointer check")
+					return finishItemPrices()
+				}
+				itemPricesItem = slot.itemId()
+				com.jagex.game.runetek5.plugin.ItemPrices.setForTest(mapOf(1333 to 15_000, 561 to 200, itemPricesItem to 1_234))
+				(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(slot.screenX() + slot.width() / 2, slot.screenY() + slot.height() / 2)
+				itemPricesFrame = frames
+				itemPricesStep = 3
+			}
+			else -> {
+				if (frames - itemPricesFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-itemprices-hover.png")
+				(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(-1, -1)
+				val shown: String? = PriceTooltips.shown
+				if (shown == null || !shown.startsWith("GE: ")) {
+					fail("Item Prices: the pointer on backpack item " + itemPricesItem + " showed \"" + shown + "\" (menu top " + PluginRuntime.topOption + ")")
+					return true
+				}
+				println("SMOKE item prices: the pointer on backpack item " + itemPricesItem + " (" + api.itemName(itemPricesItem) + "): " + shown.replace("</br>", " / "))
+				return finishItemPrices()
+			}
+		}
+		return false
+	}
+
+	private fun finishItemPrices(): Boolean {
+		PriceTooltips.showAlchProfit = false
+		PriceTooltips.testItem = -1
+		return true
+	}
+
 	private fun shortestPathDone(player: PlayerEntity): Boolean {
 		val api = ClientApiImpl
 		when (shortestPathStep) {

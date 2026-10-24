@@ -49,6 +49,7 @@ import com.jagex.game.runetek5.client.features.OverlaySettings
 import com.jagex.game.runetek5.client.features.PlayerIndicators
 import com.jagex.game.runetek5.client.features.Poison
 import com.jagex.game.runetek5.client.features.Prayer
+import com.jagex.game.runetek5.client.features.PriceTooltips
 import com.jagex.game.runetek5.client.features.RegenMeter
 import com.jagex.game.runetek5.client.features.ReportButton
 import com.jagex.game.runetek5.client.features.RunEnergy
@@ -148,6 +149,7 @@ object BuiltinPlugins {
 			builtIn(FriendNotes.DESCRIPTOR, FriendNotes),
 			builtIn(InteractHighlight.DESCRIPTOR, InteractHighlight),
 			builtIn(ShortestPath.DESCRIPTOR, ShortestPath),
+			builtIn(PriceTooltips.DESCRIPTOR, PriceTooltips),
 		)
 	}
 
