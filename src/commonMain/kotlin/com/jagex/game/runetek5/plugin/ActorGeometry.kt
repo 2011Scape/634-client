@@ -24,11 +24,13 @@ import kotlin.concurrent.Volatile
  */
 object ActorGeometry {
 
-	/** The most mask cells: a bigger actor gets coarser cells. As LocGeometry's. */
-	const val MAX_CELLS: Int = 6000
+	/** The most mask cells: an actor fills pixel cells unless it is very big on the screen. */
+	const val MAX_CELLS: Int = 40000
 
-	/** The most picks the sampling fallback makes: each one projects the whole model (about 5 us each on the SSE toolkit). */
-	private const val MAX_PICKS: Int = 600
+	/** The sampling fallback's picks, coarse then along the edge: each one projects the whole model (about 5 us on the SSE toolkit). */
+	private const val COARSE_PICKS: Int = 220
+
+	private const val EDGE_PICKS: Int = 500
 
 	/** Frames an actor stays asked for after the last ask. */
 	private const val KEEP_FRAMES: Int = 5
@@ -226,25 +228,11 @@ object ActorGeometry {
 		}
 	}
 
-	/** The fallback: the area the actor's pick capsules cover, sampled with each model's own pick. */
+	/** The fallback: the area the actor's pick capsules cover, sampled with each model's own pick, finer along the edge. */
 	private fun sample(models: Array<Model?>, matrix: Matrix, pickable: PickableEntity?): LocGeometry.Mask? {
 		val box: IntArray = (if (pickable == null) null else LocGeometry.bounds(pickable)) ?: return null
-		val width: Int = box[2] - box[0] + 1
-		val height: Int = box[3] - box[1] + 1
-		var step: Int = 1
-		while ((width / step + 1) * (height / step + 1) > MAX_PICKS) {
-			step++
+		return LocGeometry.sampleShape(box[0], box[1], box[2] - box[0] + 1, box[3] - box[1] + 1, COARSE_PICKS, EDGE_PICKS) { x, y ->
+			models.any { it != null && pickedSafely(it, x, y, matrix) }
 		}
-		val columns: Int = width / step + 1
-		val rows: Int = height / step + 1
-		val hits: BooleanArray = BooleanArray(columns * rows)
-		for (row in 0 until rows) {
-			for (column in 0 until columns) {
-				val x: Int = box[0] + column * step + step / 2
-				val y: Int = box[1] + row * step + step / 2
-				hits[row * columns + column] = models.any { it != null && pickedSafely(it, x, y, matrix) }
-			}
-		}
-		return LocGeometry.Mask(box[0], box[1], step, columns, rows, hits)
 	}
 }

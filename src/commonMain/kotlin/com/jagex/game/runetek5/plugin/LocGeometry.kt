@@ -25,8 +25,14 @@ import kotlin.jvm.JvmStatic
  */
 object LocGeometry {
 
-	/** The most samples a mask takes: a larger location is sampled more sparsely. */
-	private const val MAX_SAMPLES: Int = 6000
+	/** The most picks a location's first, coarse pass makes: a larger location is sampled more sparsely. */
+	private const val COARSE_SAMPLES: Int = 2500
+
+	/** The most picks spent again along its edge, finer. */
+	private const val EDGE_SAMPLES: Int = 4000
+
+	/** The most cells a refined mask holds: past it the fine cells stay coarser. */
+	private const val MAX_FINE_CELLS: Int = 80000
 
 	/** The points of each half-circle when a capsule is drawn as a polygon. */
 	private const val CAPSULE_STEPS: Int = 8
@@ -131,8 +137,23 @@ object LocGeometry {
 		if (entity === cachedEntity && key.contentEquals(cachedKey)) {
 			return cachedMask
 		}
+		val mask: Mask = sampleShape(box[0], box[1], width, height, COARSE_SAMPLES, EDGE_SAMPLES) { x, y -> entity.picked(toolkit, y, x) }
+		cachedEntity = entity
+		cachedKey = key
+		cachedMask = mask
+		return mask
+	}
+
+	/**
+	 * A shape sampled with [pick] (is this screen point on it?) over the [width] by [height] box at ([left], [top]):
+	 * first coarse, at most [coarseBudget] picks, then again finer along its edge (the coarse cells that differ from
+	 * a neighbour), at most [edgeBudget] picks more, the cells inside and outside the edge copied from the coarse
+	 * pass. A cell is sampled at its top-left pixel.
+	 */
+	@JvmStatic
+	fun sampleShape(left: Int, top: Int, width: Int, height: Int, coarseBudget: Int, edgeBudget: Int, pick: (Int, Int) -> Boolean): Mask {
 		var step: Int = 1
-		while ((width / step + 1) * (height / step + 1) > MAX_SAMPLES) {
+		while ((width / step + 1) * (height / step + 1) > coarseBudget) {
 			step++
 		}
 		val columns: Int = width / step + 1
@@ -140,14 +161,54 @@ object LocGeometry {
 		val hits: BooleanArray = BooleanArray(columns * rows)
 		for (row in 0 until rows) {
 			for (column in 0 until columns) {
-				hits[row * columns + column] = entity.picked(toolkit, box[1] + row * step, box[0] + column * step)
+				hits[row * columns + column] = pick(left + column * step, top + row * step)
 			}
 		}
-		val mask: Mask = Mask(box[0], box[1], step, columns, rows, hits)
-		cachedEntity = entity
-		cachedKey = key
-		cachedMask = mask
-		return mask
+		val coarse: Mask = Mask(left, top, step, columns, rows, hits)
+		if (step == 1) {
+			return coarse
+		}
+		val edge: BooleanArray = BooleanArray(columns * rows)
+		var edges: Int = 0
+		for (row in 0 until rows) {
+			for (column in 0 until columns) {
+				if (differsFromNeighbour(coarse, column, row)) {
+					edge[row * columns + column] = true
+					edges++
+				}
+			}
+		}
+		// the finest cells whose edge picks fit the budget, and the mask not too big
+		var fine: Int = 1
+		while (fine < step && (edges.toLong() * ((step + fine - 1) / fine) * ((step + fine - 1) / fine) > edgeBudget || (width / fine + 1).toLong() * (height / fine + 1) > MAX_FINE_CELLS)) {
+			fine++
+		}
+		if (fine >= step) {
+			return coarse
+		}
+		val fineColumns: Int = width / fine + 1
+		val fineRows: Int = height / fine + 1
+		val fineHits: BooleanArray = BooleanArray(fineColumns * fineRows)
+		for (row in 0 until fineRows) {
+			val coarseRow: Int = minOf(row * fine / step, rows - 1)
+			for (column in 0 until fineColumns) {
+				val coarseColumn: Int = minOf(column * fine / step, columns - 1)
+				fineHits[row * fineColumns + column] = if (edge[coarseRow * columns + coarseColumn]) pick(left + column * fine, top + row * fine) else coarse.hit(coarseColumn, coarseRow)
+			}
+		}
+		return Mask(left, top, fine, fineColumns, fineRows, fineHits)
+	}
+
+	private fun differsFromNeighbour(mask: Mask, column: Int, row: Int): Boolean {
+		val hit: Boolean = mask.hit(column, row)
+		for (dy in -1..1) {
+			for (dx in -1..1) {
+				if ((dx != 0 || dy != 0) && mask.hit(column + dx, row + dy) != hit) {
+					return true
+				}
+			}
+		}
+		return false
 	}
 
 	/** The convex hull of the mask's hits (each hit a [Mask.step]-pixel square), into [xs] and [ys]; the point count, 0 for none. */
@@ -233,52 +294,83 @@ object LocGeometry {
 		return n
 	}
 
+	/** Squared distances to the shape, one per cell of the area an outline covers; reused frame to frame. */
+	private var distances: FloatArray = FloatArray(0)
+
 	/**
-	 * Draws the mask's outline, as RuneLite's ModelOutlineRenderer: the samples within [width] pixels
-	 * outside the shape, in [argb], the outer [feather] pixels of it fading out. [offsetX] and [offsetY]
-	 * move the picking's screen space to the frame's.
+	 * Draws the mask's outline, as RuneLite's ModelOutlineRenderer: the pixels within [width] of the shape (by their
+	 * distance from it, so corners round off), in [argb], the outer [feather] pixels of it fading out. [offsetX] and
+	 * [offsetY] move the picking's screen space to the frame's. A row's cells of one alpha are drawn as one box.
 	 */
 	@JvmStatic
 	fun drawOutline(toolkit: Toolkit, mask: Mask, width: Int, feather: Int, argb: Int, offsetX: Int, offsetY: Int) {
-		val reach: Int = maxOf(1, (width + mask.step - 1) / mask.step)
+		val step: Int = mask.step
+		val reach: Int = (width + step - 1) / step + 1
+		val columns: Int = mask.columns + reach * 2
+		val rows: Int = mask.rows + reach * 2
+		if (distances.size < columns * rows) {
+			distances = FloatArray(columns * rows)
+		}
+		val d2: FloatArray = distances
+		d2.fill(Float.MAX_VALUE, 0, columns * rows)
+		val stepSquared: Float = (step * step).toFloat()
+		// from each hit on the shape's edge, the cells around it that are not on the shape
+		for (row in 0 until mask.rows) {
+			for (column in 0 until mask.columns) {
+				if (!mask.hit(column, row) || !differsFromNeighbour(mask, column, row)) {
+					continue
+				}
+				for (dy in -reach..reach) {
+					for (dx in -reach..reach) {
+						if (mask.hit(column + dx, row + dy)) {
+							continue
+						}
+						val at: Int = (row + dy + reach) * columns + column + dx + reach
+						val d: Float = (dx * dx + dy * dy) * stepSquared
+						if (d < d2[at]) {
+							d2[at] = d
+						}
+					}
+				}
+			}
+		}
 		val alpha: Int = (argb ushr 24) and 0xFF
 		val rgb: Int = argb and 0xFFFFFF
-		for (row in -reach until mask.rows + reach) {
-			for (column in -reach until mask.columns + reach) {
-				val a: Int = outlineAlpha(mask, column, row, reach, width, feather, alpha)
-				if (a > 0) {
-					toolkit.aa(offsetX + mask.x + column * mask.step, offsetY + mask.y + row * mask.step, mask.step, mask.step, (a shl 24) or rgb, 1)
+		for (row in 0 until rows) {
+			var runStart: Int = 0
+			var runAlpha: Int = 0
+			for (column in 0..columns) {
+				val a: Int = if (column == columns) 0 else outlineAlpha(d2[row * columns + column], step, width, feather, alpha)
+				if (a != runAlpha) {
+					if (runAlpha > 0) {
+						toolkit.aa(offsetX + mask.x + (runStart - reach) * step, offsetY + mask.y + (row - reach) * step, (column - runStart) * step, step, (runAlpha shl 24) or rgb, 1)
+					}
+					runStart = column
+					runAlpha = a
 				}
 			}
 		}
 	}
 
-	/** The outline's alpha at a sample: 0 on the shape or beyond the outline, faded across the feather. */
-	private fun outlineAlpha(mask: Mask, column: Int, row: Int, reach: Int, width: Int, feather: Int, alpha: Int): Int {
-		if (mask.hit(column, row)) {
+	/**
+	 * The outline's alpha at a cell [squared] (squared pixels) from the shape's nearest cell: full near it, fading
+	 * across the outer [feather] pixels of [width], 0 beyond; in steps of 16, so a row's cells share runs.
+	 */
+	@JvmStatic
+	fun outlineAlpha(squared: Float, step: Int, width: Int, feather: Int, alpha: Int): Int {
+		if (squared == Float.MAX_VALUE) {
 			return 0
 		}
-		val distance: Int = nearestHit(mask, column, row, reach)
-		if (distance < 0) {
+		// centre to centre, less half a cell: how far the cell is from the shape's edge
+		val distance: Float = kotlin.math.sqrt(squared) - step * 0.5f
+		if (distance > width) {
 			return 0
 		}
-		// from the cell's near edge: a cell next to the shape is 1 pixel off it, however coarse the cells
-		val pixels: Int = (distance - 1) * mask.step + 1
-		if (feather > 0 && pixels > width - feather) {
-			return alpha * (width - pixels + 1) / (feather + 1)
+		if (feather <= 0 || distance <= width - feather) {
+			return alpha
 		}
-		return alpha
-	}
-
-	/** How many samples away the nearest hit is (the larger of the two axis distances), up to [reach]; -1 for none within it. */
-	private fun nearestHit(mask: Mask, column: Int, row: Int, reach: Int): Int {
-		for (d in 1..reach) {
-			for (i in -d..d) {
-				if (mask.hit(column + i, row - d) || mask.hit(column + i, row + d) || mask.hit(column - d, row + i) || mask.hit(column + d, row + i)) {
-					return d
-				}
-			}
-		}
-		return -1
+		val a: Int = (alpha * (width + 0.5f - distance) / (feather + 0.5f)).toInt().coerceIn(0, alpha)
+		val stepped: Int = a and 0xF0
+		return if (stepped == 0 && a > 0) 16 else stepped
 	}
 }
