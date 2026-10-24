@@ -100,11 +100,13 @@ class ShortestPathTransport(
 	@JvmField val label: String,
 	/** The generator's requirement fields, `key=value` split on ';' (magic=25, items=563x1,556x3, equipped=1704|1706). */
 	@JvmField val requirements: Map<String, String>,
+	/** What to click: the menu option and the dialogue choices ("Rub Amulet of glory > Edgeville"), or "". */
+	@JvmField val hint: String = "",
 ) {
 	val anywhere: Boolean get() = srcX < 0
 
 	companion object {
-		/** The transport table (transports.tsv.gz): type, src, dst, ticks, label, requirements; # starts a comment. */
+		/** The transport table (transports.tsv.gz): type, src, dst, ticks, label, requirements, hint; # starts a comment. */
 		@JvmStatic
 		fun decode(gzip: ByteArray): List<ShortestPathTransport> = parse(GzipDecompressor().decompress(gzip).decodeToString())
 
@@ -135,7 +137,7 @@ class ShortestPathTransport(
 					requirements[if (eq < 0) part else part.substring(0, eq)] = if (eq < 0) "" else part.substring(eq + 1)
 				}
 			}
-			return ShortestPathTransport(fields[0], src[0], src[1], src[2], dst[0], dst[1], dst[2], fields[3].toIntOrNull() ?: 1, fields[4], requirements)
+			return ShortestPathTransport(fields[0], src[0], src[1], src[2], dst[0], dst[1], dst[2], fields[3].toIntOrNull() ?: 1, fields[4], requirements, fields.getOrElse(6) { "" })
 		}
 
 		private fun tile(field: String): IntArray {

@@ -36,8 +36,12 @@ class MenuTarget private constructor(@JvmField val kind: Int, @JvmField val name
 		@JvmField
 		val WORLD_MAP: MenuTarget = MenuTarget(6, "world map")
 
+		/** The minimap: the entry's tile fields are 0. Since API 38. */
 		@JvmField
-		val ALL: Array<MenuTarget> = arrayOf(TILE, NPC, PLAYER, GROUND_ITEM, LOC, WIDGET, WORLD_MAP)
+		val MINIMAP: MenuTarget = MenuTarget(7, "minimap")
+
+		@JvmField
+		val ALL: Array<MenuTarget> = arrayOf(TILE, NPC, PLAYER, GROUND_ITEM, LOC, WIDGET, WORLD_MAP, MINIMAP)
 
 		/** The target with [kind], or [TILE] for a kind that is not one. */
 		@JvmStatic

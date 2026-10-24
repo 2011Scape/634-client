@@ -1320,6 +1320,10 @@ object PluginRuntime {
 			menuTargetWorldMap()
 			return
 		}
+		if (component.contentType == Component.CONTENT_TYPE_MINIMAP) {
+			menuTargetMinimap()
+			return
+		}
 		if (component.containerItemId == -1 && !hasOption(component) && !isText(component)) {
 			return // a layer or a picture under the mouse: no entries of the client's, none of the plugins' either
 		}
@@ -1366,6 +1370,26 @@ object PluginRuntime {
 	}
 
 	private val worldMapTile: IntArray = IntArray(3)
+
+	/** The mouse is over the minimap: the plugins' MenuEntryAdded for it. Since API 38. */
+	private fun menuTargetMinimap() {
+		menuBuilding = true
+		menuKind = MenuTarget.MINIMAP.kind
+		menuParam0Low = 0
+		menuParam1 = 0
+		menuEntityUid = 0L
+		menuItemId = -1
+		menuEntryAddedEvent.target = MenuTarget.MINIMAP
+		menuEntryAddedEvent.sceneX = 0
+		menuEntryAddedEvent.sceneY = 0
+		menuEntryAddedEvent.level = 0
+		menuEntryAddedEvent.id = 0
+		menuEntryAddedEvent.widgetId = 0
+		menuEntryAddedEvent.slot = -1
+		menuEntryAddedEvent.itemId = -1
+		bus.post(Events.MENU_ENTRY_ADDED, menuEntryAddedEvent)
+		menuBuilding = false
+	}
 
 	/** Adds a plugin's entry for the target being built: the tile's y in param1, and [menuParam0] in param0. */
 	fun addMenuEntry(label: String, clickType: Int) {

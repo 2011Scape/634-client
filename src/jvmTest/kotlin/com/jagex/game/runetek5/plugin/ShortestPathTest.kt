@@ -36,9 +36,21 @@ class ShortestPathTest {
 		}
 	}
 
-	private fun search(grid: ShortestPathGrid, start: Int, target: Int, transports: List<ShortestPathTransport> = emptyList(), anywhere: List<ShortestPathTransport> = emptyList()): ShortestPathFinder {
-		val bySource = transports.groupBy { pack(it.srcX, it.srcY, it.srcLevel) }
-		val finder = ShortestPathFinder(grid, bySource, anywhere, start, target, 2_500_000)
+	private fun search(
+		grid: ShortestPathGrid,
+		start: Int,
+		target: Int,
+		transports: List<ShortestPathTransport> = emptyList(),
+		anywhere: List<ShortestPathTransport> = emptyList(),
+		targets: IntArray = intArrayOf(target),
+		setup: (ShortestPathFinder.Options) -> Unit = {},
+	): ShortestPathFinder {
+		val options = ShortestPathFinder.Options()
+		options.transports = transports.groupBy { pack(it.srcX, it.srcY, it.srcLevel) }
+		options.anywhere = anywhere
+		options.avoidWilderness = false
+		setup(options)
+		val finder = ShortestPathFinder(grid, start, targets, options)
 		var guard = 0
 		while (!finder.step(40_000)) {
 			assertTrue(guard++ < 10_000, "the search never finished")
@@ -199,5 +211,59 @@ class ShortestPathTest {
 		assertTrue(walk.reached)
 		assertEquals("Varrock Teleport", walk.pathTransports[1]?.label)
 		assertTrue(walk.path.size < 40, "teleported, not walked: ${walk.path.size}")
+	}
+
+	@Test
+	fun theNearestOfSeveralTargetsIsTaken() {
+		val finder = search(ShortestPathGrid(regions), pack(10, 10, 0), -1, targets = intArrayOf(pack(50, 50, 0), pack(14, 12, 0)))
+		assertTrue(finder.reached)
+		assertEquals(pack(14, 12, 0), finder.path.last())
+	}
+
+	@Test
+	fun theWildernessIsAvoidedWhenAsked() {
+		// region (47, 55): x 3008..3071, y 3520..3583; the wilderness starts at y 3523
+		val wild: Array<Array<ByteArray?>?> = arrayOfNulls<Array<ByteArray?>?>(65536).also { it[(47 shl 8) or 55] = arrayOf(open(), null, null, null) }
+		val bits: ByteArray = wild[(47 shl 8) or 55]!![0]!!
+		for (y in 0 until 3) {
+			// no step east from x 3030 on the rows south of the ditch
+			val i: Int = (y * 64 + (3030 - 3008)) * 2 + 1
+			bits[i shr 3] = (bits[i shr 3].toInt() and (1 shl (i and 7)).inv()).toByte()
+		}
+		val grid = ShortestPathGrid(wild)
+		val start: Int = pack(3010, 3520, 0)
+		val target: Int = pack(3060, 3520, 0)
+		assertTrue(ShortestPathFinder.isWilderness(pack(3010, 3523, 0)))
+		assertFalse(ShortestPathFinder.isWilderness(start))
+		assertTrue(search(grid, start, target).reached, "through the wilderness")
+		assertFalse(search(grid, start, target) { it.avoidWilderness = true }.reached, "kept out of the wilderness")
+	}
+
+	@Test
+	fun aTeleportKeptInTheBankIsFetchedOnTheWay() {
+		val tablet = ShortestPathTransport("TELEPORT_ITEM", -1, -1, -1, 60, 60, 1, 5, "Varrock teleport", mapOf("items" to "8007x1", "consumed" to ""))
+		val finder = search(ShortestPathGrid(regions), pack(2, 2, 0), pack(61, 61, 1)) {
+			it.banks = setOf(pack(6, 2, 0))
+			it.bankAnywhere = listOf(tablet)
+		}
+		assertTrue(finder.reached)
+		val bank: Int = finder.pathTransports.indexOfFirst { it === ShortestPathFinder.BANK }
+		assertTrue(bank > 0, "the path visits the bank")
+		assertEquals(pack(6, 2, 0), finder.path[bank])
+		assertEquals("Varrock teleport", finder.pathTransports[bank + 1]?.label)
+	}
+
+	@Test
+	fun wornGroupsPermanentItemsAndBlockedItems() {
+		val grapple = ShortestPathTransport.parse("GRAPPLE_SHORTCUT\t1 1 0\t9 9 0\t10\tGrapple Wall\tagility=11;equipped=9419,9174|9177\n")[0]
+		assertFalse(ShortestPathRules(player(1, emptyMap(), setOf(9419)), emptyMap(), true, 100_000).meets(grapple), "no crossbow")
+		assertTrue(ShortestPathRules(player(1, emptyMap(), setOf(9419, 9177)).also { it.levels[16] = 11 }, emptyMap(), true, 100_000).meets(grapple))
+		val tablet = ShortestPathTransport.parse("TELEPORT_ITEM\t\t3212 3428 0\t5\tVarrock teleport\titems=8007x1;consumed\n")[0]
+		val carried: Map<Int, Int> = mapOf(8007 to 1)
+		assertTrue(ShortestPathRules(player(1, carried), emptyMap(), true, 100_000).meets(tablet))
+		assertFalse(ShortestPathRules(player(1, carried), emptyMap(), true, 100_000, permanentOnly = true).meets(tablet), "a tablet is used up")
+		assertFalse(ShortestPathRules(player(1, carried), emptyMap(), true, 100_000, blocked = setOf(8007)).meets(tablet), "blocked")
+		assertFalse(ShortestPathRules(player(1, emptyMap()), emptyMap(), true, 100_000).meets(tablet, true))
+		assertTrue(ShortestPathRules(player(1, emptyMap()), emptyMap(), true, 100_000, bank = carried).meets(tablet, true), "in the bank")
 	}
 }

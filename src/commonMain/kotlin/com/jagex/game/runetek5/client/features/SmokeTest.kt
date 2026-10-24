@@ -5220,10 +5220,43 @@ object SmokeTest {
 				shortestPathFrame = frames
 				shortestPathStep = 3
 			}
-			else -> {
+			3 -> {
 				if (api.worldMapArea(IntArray(4)) && frames - shortestPathFrame < BANK_WAIT_FRAMES) {
 					return false
 				}
+				// Find closest: every bank a target, the nearest found, drawn as an arrow line
+				ShortestPath.pathStyle = "Arrow line"
+				if (shortestPathFailure == null && !ShortestPath.findClosest(api, "Bank")) {
+					shortestPathFailure = "Shortest Path: no banks to find (" + ShortestPath.destinations.size + " kinds of map icon)"
+				}
+				shortestPathFrame = frames
+				shortestPathStep = 4
+			}
+			4 -> {
+				val finder: ShortestPathFinder? = ShortestPath.finder
+				if (shortestPathFailure == null && (finder == null || !finder.done || ShortestPath.drawnCounts[0] == 0) && frames - shortestPathFrame < BANK_WAIT_FRAMES * 4) {
+					return false
+				}
+				if (finder != null && finder.done && shortestPathFound < shortestPathFrame) {
+					shortestPathFound = frames
+				}
+				if (shortestPathFailure == null && finder != null && finder.done && frames - shortestPathFound < MARKER_FRAMES) {
+					return false
+				}
+				if (shortestPathFailure == null) {
+					val banks: IntArray = ShortestPath.destinations["Bank"] ?: IntArray(0)
+					if (finder == null || !finder.done || !finder.reached || finder.path.last() !in banks) {
+						shortestPathFailure = "Shortest Path: Find closest bank " + (if (finder == null) "never searched" else "done " + finder.done + ", reached " + finder.reached)
+					} else {
+						saveFrame("build/smoke/frame-shortestpath-bank.png")
+						val end: Int = finder.path.last()
+						println("SMOKE shortest path: the closest of " + banks.size + " banks is " + ShortestPathFinder.x(end) + "," + ShortestPathFinder.y(end) + "," + ShortestPathFinder.level(end) + ", " + finder.path.size + " tiles, " + finder.pathTransports.count { it != null } + " transports, drawn as an arrow line")
+					}
+				}
+				shortestPathStep = 5
+			}
+			else -> {
+				ShortestPath.pathStyle = "Tiles"
 				ShortestPath.clearTarget()
 				ShortestPath.enabled = false
 				shortestPathFailure?.let {
