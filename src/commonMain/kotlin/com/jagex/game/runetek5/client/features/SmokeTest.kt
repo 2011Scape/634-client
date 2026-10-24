@@ -525,6 +525,13 @@ object SmokeTest {
 
 	private var itemPricesItem: Int = -1
 
+	/** client.test.fairyRings: the dial (734) and travel log (735) opened here, a code dialled; its destination shown, the log searched. */
+	private val FAIRY_RINGS: Boolean = "true" == lang.getProperty("client.test.fairyRings")
+
+	private var fairyRingsStep: Int = 0
+
+	private var fairyRingsFrame: Int = 0
+
 	private var shortestPathFrame: Int = -1
 
 	private var shortestPathFailure: String? = null
@@ -1860,6 +1867,12 @@ object SmokeTest {
 				return
 			}
 			checksDone2 = checksDone2 or 4L
+		}
+		if (FAIRY_RINGS && (checksDone2 and 8L) == 0L) {
+			if (!fairyRingsDone()) {
+				return
+			}
+			checksDone2 = checksDone2 or 8L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5243,6 +5256,113 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	private fun fairyRingsDone(): Boolean {
+		val api = ClientApiImpl
+		when (fairyRingsStep) {
+			0 -> {
+				// as Void opens them at Zanaris's ring, by its admin commands: the quests to use rings, then the dial and the log
+				FairyRings.enabled = true
+				sendCommand("var fairy_tale_ii started")
+				sendCommand("var fairy_tale_iii completed")
+				sendCommand("inter fairy_ring")
+				sendCommand("inter travel_log")
+				fairyRingsFrame = frames
+				fairyRingsStep = 1
+			}
+			1 -> {
+				val list: Widget? = api.widget(FairyRings.TRAVEL_LOG, FairyRings.LIST)
+				if (list == null || !list.isDrawnThisFrame() || api.widget(FairyRings.DIAL, FairyRings.TELEPORT_BUTTON)?.isDrawnThisFrame() != true || frames - fairyRingsFrame < 60) {
+					if (frames - fairyRingsFrame < 400) {
+						return false
+					}
+					fail("Fairy Rings: the dial and the travel log did not open (admin ::inter)")
+					return true
+				}
+				// the log's AKQ row, clicked as a player does: the server sets the dials to it
+				FairyRings.typing = false
+				clickComponent(FairyRings.TRAVEL_LOG, FairyRings.rowOf("AKQ"))
+				fairyRingsFrame = frames
+				fairyRingsStep = 2
+			}
+			2 -> {
+				if (FairyRings.dialledCode(api) != "AKQ" && frames - fairyRingsFrame < 200) {
+					return false
+				}
+				if (frames - fairyRingsFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-fairyrings.png")
+				val label: String? = api.widget(FairyRings.DIAL, FairyRings.TELEPORT_BUTTON)?.text()
+				val rows: List<Widget> = fairyRows()
+				if (FairyRings.dialledCode(api) != "AKQ" || label != FairyRings.DESTINATIONS["AKQ"]) {
+					fail("Fairy Rings: the log's AKQ row dialled " + FairyRings.dialledCode(api) + ", the button says \"" + label + "\"")
+					return true
+				}
+				if (rows.size != FairyRings.DESTINATIONS.size || rows.map { it.screenY() }.toSet().size != rows.size) {
+					fail("Fairy Rings: the travel log shows " + rows.size + " codes (at " + rows.map { it.screenY() }.toSet().size + " heights), not " + FairyRings.DESTINATIONS.size)
+					return true
+				}
+				println("SMOKE fairy rings: the log's AKQ row dialled AKQ, the button says \"" + label + "\"; the travel log lists all " + rows.size + " codes")
+				FairyRings.search.setLength(0)
+				FairyRings.search.append("hunter")
+				FairyRings.typing = true
+				fairyRingsFrame = frames
+				fairyRingsStep = 3
+			}
+			3 -> {
+				if (frames - fairyRingsFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-fairyrings-search.png")
+				FairyRings.typing = false
+				val rows: List<Widget> = fairyRows()
+				val codes: List<String> = rows.sortedBy { it.screenY() }.map { FairyRings.rowCode(it.componentId())!! }
+				val want: List<String> = FairyRings.matching("hunter")
+				// in the log's own order (by destination, or as re-sorted)
+				if (codes.sorted() != want.sorted() || rows.map { it.screenY() }.toSet().size != rows.size) {
+					fail("Fairy Rings: searching \"hunter\" left " + codes + ", not " + want)
+					return true
+				}
+				println("SMOKE fairy rings: searching \"hunter\" leaves " + codes.joinToString(", ") + ", one under another")
+				FairyRings.search.setLength(0)
+				FairyRings.restore(api)
+				fairyRingsFrame = frames
+				fairyRingsStep = 4
+			}
+			else -> {
+				if (frames - fairyRingsFrame < 5) {
+					return false
+				}
+				// put back as the server had them; the account's quests back as they were
+				FairyRings.enabled = false
+				FairyRings.restore(api)
+				val label: String? = api.widget(FairyRings.DIAL, FairyRings.TELEPORT_BUTTON)?.text()
+				FairyRings.enabled = true
+				clickComponent(FairyRings.DIAL, 19)
+				sendCommand("var fairy_tale_ii unstarted")
+				sendCommand("var fairy_tale_iii unstarted")
+				if (label != FairyRings.TELEPORT_TEXT) {
+					fail("Fairy Rings: switched off, the button still says \"" + label + "\"")
+					return true
+				}
+				return true
+			}
+		}
+		return false
+	}
+
+	/** The travel log's code rows that show (have text and are drawn). */
+	private fun fairyRows(): List<Widget> {
+		val out: ArrayList<Widget> = ArrayList()
+		for (i in 0 until FairyRings.ROWS) {
+			val w: Widget = ClientApiImpl.widget(FairyRings.TRAVEL_LOG, FairyRings.FIRST_ROW + i) ?: continue
+			if (!w.isHidden() && !w.text().isNullOrEmpty()) {
+				out.add(w)
+			}
+		}
+		return out
 	}
 
 	private fun finishItemPrices(): Boolean {
