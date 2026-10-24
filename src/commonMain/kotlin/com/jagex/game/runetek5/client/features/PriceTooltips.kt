@@ -61,7 +61,6 @@ object PriceTooltips : Plugin {
 	/** The hovered item, its stack and whether High Level Alchemy is picked, from the menu as last built. */
 	private var hoveredItem: Int = -1
 	private var hoveredQuantity: Int = 0
-	private var hoveredAlching: Boolean = false
 	private var builtCycle: Int = -1
 
 	/** An item and stack the smoke test hovers (the mouse cannot), -1 for the menu's. */
@@ -145,7 +144,6 @@ object PriceTooltips : Plugin {
 		}
 		hoveredItem = item
 		hoveredQuantity = items.amount(slot)
-		hoveredAlching = alching
 	}
 
 	/** Whether a menu entry is High Level Alchemy cast on an item ("Cast" on "High Level Alchemy -> ..."). */
@@ -201,7 +199,8 @@ object PriceTooltips : Plugin {
 	/**
 	 * RuneLite's stackValueText: "GE: <stack> gp (<one> ea)", "HA: ..." and "HA Profit: ..." lines, `</br>`
 	 * between them; the profit is High Level Alchemy's value less the exchange price and a nature rune's, its
-	 * figure green when it gains and red when it loses. Null when neither price is above 0.
+	 * figure green when it gains and red when it loses, and left out while the nature rune's price is not known
+	 * (it would read as free). Null when neither price is above 0.
 	 */
 	@JvmStatic
 	fun stackValueText(quantity: Int, gePrice: Int, haValue: Int, naturePrice: Int): String? {
@@ -220,7 +219,7 @@ object PriceTooltips : Plugin {
 			text.append("HA: ").append(GroundItemRules.quantityToStackSize(haValue.toLong() * quantity)).append(" gp")
 			each(text, quantity, haValue.toLong())
 		}
-		if (showAlchProfit && haValue > 0 && gePrice > 0) {
+		if (showAlchProfit && haValue > 0 && gePrice > 0 && naturePrice > 0) {
 			val profit: Long = haValue.toLong() - gePrice - naturePrice
 			text.append("</br>HA Profit: ").append(if (profit > 0) PROFIT_COLOUR else LOSS_COLOUR)
 				.append(GroundItemRules.quantityToStackSize(profit * quantity)).append(TEXT_COLOUR).append(" gp")

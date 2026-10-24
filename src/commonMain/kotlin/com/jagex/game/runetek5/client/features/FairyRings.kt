@@ -36,8 +36,11 @@ import kotlin.jvm.JvmStatic
  * Not part of the original client: RuneLite's Fairy Rings. With a fairy ring's dial open (734), the teleport
  * button says where the dialled code goes; the travel log beside it (735), which in 634 lists only the codes
  * the player has been to, lists every code with its destination instead, and can be searched: by typing at
- * the top of the game view (opened with the log when **Open search automatically** is on, or by **Search** on
- * a code's right-click), the codes whose letters or destination hold what is typed stay. Clicking a code dials
+ * the chat box's line, as RuneLite's search is ("Filter fairy rings: hun*"; opened with the log when **Open
+ * search automatically** is on, or by **Search** on a code's right-click), the codes whose letters or
+ * destination hold what is typed stay. While it is up the keys are the search's, Enter keeps it and Escape
+ * clears it, and the line shows the chat again after. When the chat box's line is not the chat (an amount
+ * being asked for), the search is typed at the top of the game view instead. Clicking a code dials
  * it, as the log's own entries do (the server sets the dials).
  *
  * The codes and destinations are the Void server's (fairy_ring_codes.toml); the dials are varbits 2341-2343,
@@ -135,6 +138,12 @@ object FairyRings : Plugin {
 	@JvmField val search: StringBuilder = StringBuilder()
 	@JvmField var typing: Boolean = false
 
+	/** The chat box line's text before the search took it over, null while it has not; and whether it has. */
+	private var savedChatLine: String? = null
+	@JvmField var searchInChat: Boolean = false
+
+	const val FILTER_LABEL: String = "Filter fairy rings: "
+
 	/** The rows' text as the server sent it (the codes the player has been to), by row, to put back. */
 	private val serverText: Array<String?> = arrayOfNulls(ROWS)
 
@@ -222,7 +231,7 @@ object FairyRings : Plugin {
 	@JvmField
 	val prompt: PanelOverlay = object : PanelOverlay("FairyRingsSearch") {
 		override fun render(g: Graphics, view: Viewport): Size? {
-			if (!typing || !g.fontReady()) {
+			if (!typing || searchInChat || !g.fontReady()) {
 				return null
 			}
 			g.font(Font.BOLD)
@@ -257,7 +266,11 @@ object FairyRings : Plugin {
 	}
 
 	override fun stop() {
-		context?.client()?.let { restore(it) }
+		typing = false
+		context?.client()?.let {
+			showSearch(it)
+			restore(it)
+		}
 		context = null
 		typing = false
 	}
@@ -321,6 +334,8 @@ object FairyRings : Plugin {
 
 	private fun tick(client: ClientApi) {
 		if (!enabled || client.gameState() !== GameState.LOGGED_IN) {
+			typing = false
+			showSearch(client)
 			return
 		}
 		labelDial(client)
@@ -340,10 +355,55 @@ object FairyRings : Plugin {
 		if (open) {
 			fillLog(client)
 		}
+		showSearch(client)
 	}
+
+	/**
+	 * RuneLite's chat box search: while the search is typed the chat box's line reads "Filter fairy rings:"
+	 * and what is typed, in the chat's own colour, and the chat's line comes back after. A line that is not
+	 * the chat (no "name: ") is left be, and the search is typed at the top of the game view.
+	 */
+	@JvmStatic
+	fun showSearch(client: ClientApi) {
+		val input: Widget? = client.widget(KeyRemapping.CHATBOX, KeyRemapping.CHATBOX_INPUT)
+		if (!typing) {
+			val saved: String? = savedChatLine
+			if (saved != null && input != null && input.text()?.startsWith(FILTER_LABEL) == true) {
+				input.setText(saved)
+			}
+			savedChatLine = null
+			searchInChat = false
+			return
+		}
+		if (input == null || input.isHidden()) {
+			searchInChat = false
+			return
+		}
+		if (savedChatLine == null) {
+			val text: String = input.text() ?: ""
+			val prefix: String = KeyRemapping.prefix(text) ?: run {
+				searchInChat = false
+				return
+			}
+			savedChatLine = text
+			chatColour = prefix.substring(prefix.indexOf(": ") + 2)
+		}
+		val want: String = FILTER_LABEL + chatColour + search + "*"
+		if (input.text() != want) {
+			input.setText(want)
+		}
+		searchInChat = true
+	}
+
+	/** The typed chat's colour tag, taken from the chat line, for the search's text. */
+	private var chatColour: String = ""
 
 	/** RuneLite's setWidgetTextToDestination: the dial's teleport button says where the code goes. */
 	private fun labelDial(client: ClientApi) {
+		// only while the dial is up: one button or the other shows
+		if (client.widget(DIAL, TELEPORT_BUTTON)?.isDrawnThisFrame() != true && client.widget(DIAL, TELEPORT_BUTTON_2)?.isDrawnThisFrame() != true) {
+			return
+		}
 		val text: String = DESTINATIONS[dialledCode(client)] ?: INVALID
 		for (button in intArrayOf(TELEPORT_BUTTON, TELEPORT_BUTTON_2)) {
 			val w: Widget = client.widget(DIAL, button) ?: continue

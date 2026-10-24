@@ -32,7 +32,11 @@ import kotlin.jvm.JvmStatic
  *
  * The hiscores come in on their own thread (HiscoreLookup): a line asked about a name not yet looked up is
  * answered when they come, by changing its text where it stands (ClientApi.setChatLine, API 39), or left as
- * it was if the website does not know the name. 634's hiscores have no kill counts, clue scrolls or
+ * it was if the website does not know the name. The line is found again by its id and checked to still say
+ * the command (another plugin may have dropped or changed it), else by its sender and text, else left be.
+ * `!price` reads the item names from an index made a few hundred items a client cycle once logged in (the
+ * whole cache at once would hold the game thread for some 400 ms); a `!price` before it is done is answered
+ * in place the same way once it is. 634's hiscores have no kill counts, clue scrolls or
  * minigames, so RuneLite's `!kc`, `!pb`, `!clues` and the rest are not here. A built-in plugin
  * (BuiltinPlugins, docs/PLUGINS.md).
  */
@@ -50,6 +54,15 @@ object ChatCommands : Plugin {
 
 	/** How long a line waits for its sender's hiscores before it is left as it was. */
 	const val PENDING_MILLIS: Long = 30_000L
+
+	/** Item types read into the name index each client cycle (about 20 microseconds each). */
+	const val INDEX_STEP: Int = 250
+
+	/** How many newest lines are looked through for a waiting line that has moved. */
+	const val LINES_SEARCHED: Int = 30
+
+	/** The answers kept for the smoke test. */
+	const val ANSWERS_KEPT: Int = 20
 
 	/** RuneLite's SkillAbbreviations, for 634's skills: what `!lvl` takes besides a skill's name. */
 	@JvmField
@@ -90,8 +103,12 @@ object ChatCommands : Plugin {
 	@JvmField var price: Boolean = true
 	@JvmField var qp: Boolean = true
 
-	/** A line answered once its sender's hiscores are in: its id, the sender, the command and when it came. */
-	class Pending(@JvmField val lineId: Int, @JvmField val sender: String, @JvmField val text: String, @JvmField val since: Long)
+	/**
+	 * A line answered once what it needs is in (its sender's hiscores, or the item index): its id as foreseen,
+	 * the sender, the line's own name (the sender, or for a private message sent the one it went to), the
+	 * command as typed and when it came.
+	 */
+	class Pending(@JvmField val lineId: Int, @JvmField val sender: String, @JvmField val lineName: String?, @JvmField val text: String, @JvmField val since: Long)
 
 	@JvmField val pending: ArrayList<Pending> = ArrayList()
 
@@ -155,13 +172,21 @@ object ChatCommands : Plugin {
 		val answer: String? = answerNow(client, sender, text)
 		if (answer != null) {
 			event.message = answer
-			answered.add(answer)
+			remember(answer)
 			return
 		}
-		if (needsHiscores(text)) {
-			// asks the website now; the line is answered when they come
-			HiscoreLookup.lookup(sender)
-			pending.add(Pending(nextLineId(client), sender, text, lang.currentTimeMillis()))
+		// waits for the sender's hiscores (asked for by answerNow) or the item index; answered where it stands
+		if (needsHiscores(text) || (isPriceCommand(text) && names == null)) {
+			pending.add(Pending(nextLineId(client), sender, event.name?.let { OpponentInfo.removeTags(it) }, text, lang.currentTimeMillis()))
+		}
+	}
+
+	private fun isPriceCommand(text: String): Boolean = price && text.lowercase().startsWith("!price ")
+
+	private fun remember(answer: String) {
+		answered.add(answer)
+		while (answered.size > ANSWERS_KEPT) {
+			answered.removeAt(0)
 		}
 	}
 
@@ -169,8 +194,8 @@ object ChatCommands : Plugin {
 	@JvmStatic
 	fun answerNow(client: ClientApi, sender: String, text: String): String? {
 		val lower: String = text.lowercase()
-		if (price && lower.startsWith("!price ")) {
-			return priceAnswer(client, text.substring(7).trim())
+		if (isPriceCommand(text)) {
+			return if (names == null) null else priceAnswer(client, text.substring(7).trim())
 		}
 		if (qp && lower == "!qp") {
 			val own: String? = client.localPlayer()?.name()
@@ -186,7 +211,8 @@ object ChatCommands : Plugin {
 	@JvmStatic
 	fun needsHiscores(text: String): Boolean {
 		val lower: String = text.lowercase()
-		return (lvl && (lower.startsWith("!lvl ") || lower == "!total")) || (cmb && lower == "!cmb")
+		// a skill 634 does not have is not looked up
+		return (lvl && ((lower.startsWith("!lvl ") && skillOf(text.substring(5).trim()) != null) || lower == "!total")) || (cmb && lower == "!cmb")
 	}
 
 	/** The answer to a hiscores command [text] from [result], or null when it asks for no skill 634 has. */
@@ -269,15 +295,19 @@ object ChatCommands : Plugin {
 	@JvmStatic
 	fun questPointsAnswer(points: Int): String = "Quest points: " + HIGHLIGHT + points + NORMAL
 
-	/** The tradeable items' lower-case names, by id (noted, lent and placeholder items left out), read once. */
+	/** The tradeable items' lower-case names, by id (noted, lent and placeholder items left out), once read; null until. */
 	private var names: Array<String?>? = null
+
+	/** The index being read, and the next item type to read into it. */
+	private var reading: Array<String?>? = null
+	private var readingNext: Int = 0
 
 	/**
 	 * RuneLite's item search for `!price`: the tradeable items with a guide price ([price]) whose name holds
 	 * [search]; the one named exactly so, else the first by id. Null for none.
 	 */
 	@JvmStatic
-	fun findItem(search: String, price: (Int) -> Int): Int? = bestMatch(itemNames(), search, price)
+	fun findItem(search: String, price: (Int) -> Int): Int? = names?.let { bestMatch(it, search, price) }
 
 	@JvmStatic
 	fun bestMatch(names: Array<String?>, search: String, price: (Int) -> Int): Int? {
@@ -289,18 +319,26 @@ object ChatCommands : Plugin {
 		return found.firstOrNull { names[it] == s } ?: found.firstOrNull()
 	}
 
-	private fun itemNames(): Array<String?> {
-		names?.let { return it }
-		val list = TypeLists.OBJ ?: return arrayOfNulls(0)
-		val out: Array<String?> = arrayOfNulls(list.num)
-		for (i in 0 until list.num) {
+	/** Reads the next [INDEX_STEP] item types into the name index; true once it is whole. */
+	private fun readIndex(): Boolean {
+		if (names != null) {
+			return true
+		}
+		val list = TypeLists.OBJ ?: return false
+		val out: Array<String?> = reading ?: arrayOfNulls<String>(list.num).also { reading = it }
+		val end: Int = minOf(out.size, readingNext + INDEX_STEP)
+		for (i in readingNext until end) {
 			val type: ItemType = list.list(i)
 			if (type.stockmarket && type.certTemplateId == -1 && type.lendTemplateId == -1 && type.dummyitem == 0) {
 				out[i] = type.name?.lowercase()
 			}
 		}
-		names = out
-		return out
+		readingNext = end
+		if (end == out.size) {
+			names = out
+			reading = null
+		}
+		return names != null
 	}
 
 	/** The id this line will have: the newest line's plus one, as the client numbers its lines (ChatFilter's). */
@@ -311,6 +349,9 @@ object ChatCommands : Plugin {
 
 	/** Each client cycle: the waiting lines whose sender's hiscores are in, answered where they stand. */
 	private fun tick(client: ClientApi) {
+		if (enabled && price && names == null && client.gameState() === com.jagex.game.runetek5.plugin.api.GameState.LOGGED_IN) {
+			readIndex()
+		}
 		if (pending.isEmpty()) {
 			return
 		}
@@ -319,13 +360,35 @@ object ChatCommands : Plugin {
 		pending.removeAll { p -> answerLate(client, p) || now - p.since > PENDING_MILLIS || HiscoreLookup.notFound(p.sender) }
 	}
 
-	/** Answers [p] in place if its sender's hiscores are in; whether they were. */
+	/** Answers [p] in place if what it waits for is in; whether it was. */
 	private fun answerLate(client: ClientApi, p: Pending): Boolean {
-		val result: HiscoreLookup.Result = HiscoreLookup.lookup(p.sender) ?: return false
-		val answer: String? = hiscoreAnswer(result, p.text)
-		if (answer != null && client.setChatLine(p.lineId, answer)) {
-			answered.add(answer)
+		val answer: String?
+		if (isPriceCommand(p.text)) {
+			if (names == null) {
+				return false
+			}
+			answer = priceAnswer(client, p.text.substring(7).trim())
+		} else {
+			val result: HiscoreLookup.Result = HiscoreLookup.lookup(p.sender) ?: return false
+			answer = hiscoreAnswer(result, p.text)
+		}
+		val id: Int? = waitingLine(client, p)
+		if (answer != null && id != null && client.setChatLine(id, answer)) {
+			remember(answer)
 		}
 		return true
+	}
+
+	/**
+	 * The line [p] waits on as it stands now: the foreseen id while that line still says the command, else the
+	 * newest line from the same name that does (a plugin after this one may have taken it out and put it back),
+	 * else null: the line was dropped, and no other line is touched.
+	 */
+	@JvmStatic
+	fun waitingLine(client: ClientApi, p: Pending): Int? {
+		val saying: List<ChatLineView> = (0 until minOf(client.chatLineCount(), LINES_SEARCHED)).mapNotNull { client.chatLine(it) }
+			.filter { OpponentInfo.removeTags(it.message() ?: "").trim() == p.text }
+		val line: ChatLineView? = saying.firstOrNull { it.id() == p.lineId } ?: saying.firstOrNull { OpponentInfo.removeTags(it.name() ?: "") == (p.lineName ?: "") }
+		return line?.id()
 	}
 }
