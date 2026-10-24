@@ -1,11 +1,14 @@
 package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.client.ClientState
+import com.jagex.game.runetek5.graphics.map.worldmap.WorldMapDisplay
+import com.jagex.game.runetek5.graphics.map.worldmap.WorldMapElement
 import kotlin.jvm.JvmStatic
+import kotlin.math.floor
 
 /**
  * Not part of the original client: where the world map was last drawn (WorldMapViewDraw.drawWorldmap), for
- * ClientApi.worldMapArea and projectWorldMap: its box on the screen, the world tile at its top left and
+ * ClientApi.worldMapArea, projectWorldMap and worldMapTile: its box on the screen, the world tile at its top left and
  * its pixels a tile.
  */
 object PluginWorldMap {
@@ -49,14 +52,34 @@ object PluginWorldMap {
 		return true
 	}
 
-	/** World tile ([x], [y])'s centre on the screen into [out]; false when the map is not shown or the tile is off it. */
+	/**
+	 * World tile ([x], [y]) on [level] (-1: the first level that has it)'s centre on the screen into [out];
+	 * false when the map is not shown or the tile is off it. The map's area places each part of the world
+	 * (a dungeon, an upper floor) where it draws it; with no area loaded a tile is where its coordinates say.
+	 */
 	@JvmStatic
-	fun project(x: Int, y: Int, out: IntArray): Boolean {
+	fun project(x: Int, y: Int, level: Int, out: IntArray): Boolean {
 		if (!shown() || out.size < 2) {
 			return false
 		}
-		val px: Int = left + ((x - tileLeft + 0.5f) * pixelsPerTile).toInt()
-		val py: Int = top + ((tileTop - y + 0.5f) * pixelsPerTile).toInt()
+		var mapX: Int = x
+		var mapY: Int = y
+		val area: WorldMapElement? = WorldMapDisplay.getWorldMapArea()
+		if (area != null) {
+			val position: IntArray = scratch
+			val placed: Boolean = if (level >= 0) {
+				area.convertSourceToDisplay(position, x, y, level) || area.convertDisplayToSource(position, y, x)
+			} else {
+				area.convertDisplayToSource(position, y, x)
+			}
+			if (!placed) {
+				return false
+			}
+			mapX = position[1]
+			mapY = position[2]
+		}
+		val px: Int = left + ((mapX - tileLeft + 0.5f) * pixelsPerTile).toInt()
+		val py: Int = top + ((tileTop - mapY + 0.5f) * pixelsPerTile).toInt()
 		if (px < left || py < top || px >= left + width || py >= top + height) {
 			return false
 		}
@@ -64,4 +87,31 @@ object PluginWorldMap {
 		out[1] = py
 		return true
 	}
+
+	/** The world tile (x, y, level) under screen pixel ([screenX], [screenY]) into [out]; false when the map is not shown there. */
+	@JvmStatic
+	fun tileAt(screenX: Int, screenY: Int, out: IntArray): Boolean {
+		if (!shown() || out.size < 3 || screenX < left || screenY < top || screenX >= left + width || screenY >= top + height) {
+			return false
+		}
+		val mapX: Int = tileLeft + floor((screenX - left) / pixelsPerTile).toInt()
+		val mapY: Int = tileTop - floor((screenY - top) / pixelsPerTile).toInt()
+		val area: WorldMapElement? = WorldMapDisplay.getWorldMapArea()
+		if (area == null) {
+			out[0] = mapX
+			out[1] = mapY
+			out[2] = 0
+			return true
+		}
+		val position: IntArray = scratch
+		if (!area.mapToGameCoords(mapY, mapX, position)) {
+			return false
+		}
+		out[0] = position[1]
+		out[1] = position[2]
+		out[2] = position[0]
+		return true
+	}
+
+	private val scratch: IntArray = IntArray(3)
 }

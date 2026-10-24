@@ -158,6 +158,19 @@ interface ClientApi {
 	fun projectWorldMap(worldX: Int, worldY: Int, out: IntArray): Boolean
 
 	/**
+	 * As [projectWorldMap] for world tile ([worldX], [worldY]) on [level]: a map area that shows a dungeon or
+	 * an upper floor somewhere else on the map puts the tile where the map draws it. Since API 37 (from then
+	 * the three-argument form also follows those areas, taking the first level that has the tile).
+	 */
+	fun projectWorldMap(worldX: Int, worldY: Int, level: Int, out: IntArray): Boolean
+
+	/**
+	 * The world tile under screen pixel ([screenX], [screenY]) on the world map into [out] (three ints: x, y,
+	 * level); false while the map is not shown or the pixel is off it or on no tile. Since API 37.
+	 */
+	fun worldMapTile(screenX: Int, screenY: Int, out: IntArray): Boolean
+
+	/**
 	 * Points the game's hint arrow (the yellow arrow over a tile, and its mark on the minimap) at world tile
 	 * ([worldX], [worldY]) of [level], as RuneLite's Client.setHintArrow; set it again when the scene moves.
 	 * Since API 29.

@@ -998,7 +998,11 @@ object ClientApiImpl : ClientApi {
 
 	override fun worldMapArea(out: IntArray): Boolean = PluginWorldMap.area(out)
 
-	override fun projectWorldMap(worldX: Int, worldY: Int, out: IntArray): Boolean = PluginWorldMap.project(worldX, worldY, out)
+	override fun projectWorldMap(worldX: Int, worldY: Int, out: IntArray): Boolean = PluginWorldMap.project(worldX, worldY, -1, out)
+
+	override fun projectWorldMap(worldX: Int, worldY: Int, level: Int, out: IntArray): Boolean = PluginWorldMap.project(worldX, worldY, level, out)
+
+	override fun worldMapTile(screenX: Int, screenY: Int, out: IntArray): Boolean = PluginWorldMap.tileAt(screenX, screenY, out)
 
 	override fun setHintArrow(worldX: Int, worldY: Int, level: Int) {
 		val arrow: HintArrow = HintArrow()
