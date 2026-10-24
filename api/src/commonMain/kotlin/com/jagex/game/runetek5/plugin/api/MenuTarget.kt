@@ -29,8 +29,15 @@ class MenuTarget private constructor(@JvmField val kind: Int, @JvmField val name
 		@JvmField
 		val WIDGET: MenuTarget = MenuTarget(5, "widget")
 
+		/**
+		 * A world tile on the world map: the entry's sceneX and sceneY are the world tile's x and y (not scene
+		 * tiles) and its id is the level. Since API 37.
+		 */
 		@JvmField
-		val ALL: Array<MenuTarget> = arrayOf(TILE, NPC, PLAYER, GROUND_ITEM, LOC, WIDGET)
+		val WORLD_MAP: MenuTarget = MenuTarget(6, "world map")
+
+		@JvmField
+		val ALL: Array<MenuTarget> = arrayOf(TILE, NPC, PLAYER, GROUND_ITEM, LOC, WIDGET, WORLD_MAP)
 
 		/** The target with [kind], or [TILE] for a kind that is not one. */
 		@JvmStatic

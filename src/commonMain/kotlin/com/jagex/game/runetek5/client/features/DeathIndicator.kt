@@ -246,7 +246,7 @@ object DeathIndicator : Plugin {
 	/** RuneLite's WorldMapPoint: a red arrow on the world map pointing down at the tile. */
 	private fun drawWorldMap(g: Graphics, client: ClientApi) {
 		mapMarked = false
-		if (!deathOnWorldMap || !hasDeath() || !client.worldMapArea(area) || !client.projectWorldMap(deathX, deathY, point)) {
+		if (!deathOnWorldMap || !hasDeath() || !client.worldMapArea(area) || !client.projectWorldMap(deathX, deathY, deathPlane, point)) {
 			return
 		}
 		g.clip(area[0], area[1], area[2], area[3])

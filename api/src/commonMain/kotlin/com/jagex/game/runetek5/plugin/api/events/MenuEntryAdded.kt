@@ -11,7 +11,9 @@ import kotlin.jvm.JvmField
  * listener to add an entry for it. For [MenuTarget.WIDGET] the tile fields are 0 and [widgetId],
  * [slot] and [itemId] say which component, which of its slots and which item; it comes for each
  * component under the mouse that has options or an item, and (since API 27) for a text with no
- * options, such as a chat line, not for the plain layers around it. One reused instance.
+ * options, such as a chat line, not for the plain layers around it. For [MenuTarget.WORLD_MAP] (since
+ * API 37, when the mouse is over the world map) [sceneX] and [sceneY] are the world tile's x and y, not
+ * scene tiles, and [level] its level. One reused instance.
  */
 class MenuEntryAdded {
 	@JvmField

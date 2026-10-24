@@ -70,9 +70,11 @@ package com.jagex.game.runetek5.plugin.api
  *   [ClientApi.grandExchangeOffer]).
  * - 36: actor silhouettes ([ClientApi.actorOutline], [ClientApi.actorShape]) and what a left click would act on
  *   ([ClientApi.hoveredTarget], [HoveredTarget]).
+ * - 37: the world map's own areas ([ClientApi.projectWorldMap] with a level, [ClientApi.worldMapTile]) and
+ *   right-click entries on it ([MenuTarget.WORLD_MAP]).
  * - 31: the drag ([ClientApi.isDraggingWidget], [ClientApi.draggedWidget], [ClientApi.draggedOnWidget], [ClientApi.itemPressedDuration]) and [Graphics.itemIconAlpha].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 36
+	const val VERSION: Int = 37
 }
