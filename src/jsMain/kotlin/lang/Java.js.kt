@@ -144,6 +144,24 @@ internal val pageResources: MutableMap<String, ByteArray> = mutableMapOf()
 
 actual fun readResource(path: String): ByteArray? = pageResources[path]
 
+/* The paths fetched or being fetched: each asked for once. */
+private val requestedResources: MutableSet<String> = mutableSetOf()
+
+actual fun requestResource(path: String) {
+    if (pageResources.containsKey(path) || !requestedResources.add(path)) {
+        return
+    }
+    // from beside the bundle, the class path's root being the page's folder ("/shortest-path/x" is "shortest-path/x")
+    val fetched: dynamic = kotlinx.browser.window.fetch(path.removePrefix("/"))
+    fetched.then({ response: dynamic ->
+        if (response.ok == true) {
+            (response.arrayBuffer() as kotlin.js.Promise<org.khronos.webgl.ArrayBuffer>).then { buffer ->
+                pageResources[path] = org.khronos.webgl.Int8Array(buffer).unsafeCast<ByteArray>()
+            }
+        }
+    }, { _: dynamic -> })
+}
+
 actual fun String.javaIntern(): String = this
 
 actual fun decodeDefaultCharset(bytes: ByteArray?): String = bytes!!.decodeToString()

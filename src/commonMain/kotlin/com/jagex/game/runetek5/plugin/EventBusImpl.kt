@@ -38,6 +38,14 @@ class EventBusImpl : EventBus {
 		fun before(owner: PluginRegistration?)
 	}
 
+	/** Whether the plugin's listener gets this post, when set: the runtime keeps from a plugin what its API version did not have. */
+	fun interface ListenerFilter {
+		fun accepts(owner: PluginRegistration?): Boolean
+	}
+
+	@JvmField
+	var listenerFilter: ListenerFilter? = null
+
 	@JvmField
 	var beforeListener: ListenerHook? = null
 
@@ -141,7 +149,7 @@ class EventBusImpl : EventBus {
 			// read from the arrays as they are now, not a copy: a subscribe during the post may have grown
 			// them, and an unsubscribe after that writes its hole into the new ones
 			val listener: Any? = listeners[id][i]
-			if (listener != null) {
+			if (listener != null && listenerFilter?.accepts(owners[id][i]) != false) {
 				beforeListener?.before(owners[id][i])
 				try {
 					(listener as EventListener<E>).on(event)

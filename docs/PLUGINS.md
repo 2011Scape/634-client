@@ -731,11 +731,11 @@ is sampled with the game's own picking, coarser and refreshed every other frame.
 right-click a tile in the game, for **Set Target**; with a path up, **Set Target 2** (3...) adds places it
 may end (the nearest is taken), **Set Start** draws it from there instead of from you, and **Clear Path**
 (also on the minimap's right-click, or a hotkey of your choice) takes it away. The world map's
-**Find closest** lists its icons (bank, altar, anvil, fishing spot...) and goes to the nearest of them.
+**Find closest** lists its icons by name (bank, altar, anvil, fishing spot..., in submenus of forty) and goes to the nearest of them; it shows once the map is loaded, which happens off the game thread the first time it is wanted.
 `::path <x> <y> [level]`, `::path add|start <x> <y> [level]`, `::path closest <icon>` and `::path` alone
 do the same from the console. The way is drawn on the tiles in one of RuneLite's styles (tiles, lines,
-arrow line, turn markers, a tracer or markers), as dots on the minimap and as a line on the world map;
-a tile where a transport is taken is in its own colour with what to click ("Rub Amulet of glory >
+arrow line, turn markers, a tracer or markers), as tile squares on the minimap (under its orbs) and on the world map, a transport's jump dashed there;
+a tile where a transport is taken has what to click written above it ("Rub Amulet of glory >
 Edgeville"), a teleport to cast now pulses under you, and a tile counter (travelled or remaining) can be
 added. The spell to cast is outlined in the spellbook, the teleport item in the backpack, and the items
 to take out of the bank in the bank.

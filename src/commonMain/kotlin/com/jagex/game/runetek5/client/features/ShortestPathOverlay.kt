@@ -42,6 +42,10 @@ object ShortestPathOverlay {
 	private val area: IntArray = IntArray(4)
 	private val edge: IntArray = IntArray(2)
 
+	private val sceneNow: Scene = Scene()
+
+	private val SIDES: IntArray = intArrayOf(-1, 1)
+
 	/** The path on the game view. */
 	fun drawScene(g: Graphics, view: Viewport, client: ClientApi) {
 		val plugin = ShortestPath
@@ -50,7 +54,7 @@ object ShortestPathOverlay {
 			return
 		}
 		val player: Player = client.localPlayer() ?: return
-		val scene = Scene(client, player.level())
+		val scene: Scene = sceneNow.set(client, player.level())
 		if (plugin.drawCollisionMap) {
 			drawCollision(g, view, client, scene, player)
 		}
@@ -68,10 +72,20 @@ object ShortestPathOverlay {
 	}
 
 	/** The loaded scene: where its corner is, how big it is, the level drawn. */
-	private class Scene(client: ClientApi, @JvmField val level: Int) {
-		@JvmField val baseX: Int = client.sceneBaseX()
-		@JvmField val baseY: Int = client.sceneBaseY()
-		@JvmField val size: Int = client.sceneSize()
+	private class Scene {
+		@JvmField var level: Int = 0
+		@JvmField var baseX: Int = 0
+		@JvmField var baseY: Int = 0
+		@JvmField var size: Int = 0
+
+		/** This frame's scene, on [level]: one instance, set each frame. */
+		fun set(client: ClientApi, level: Int): Scene {
+			this.level = level
+			baseX = client.sceneBaseX()
+			baseY = client.sceneBaseY()
+			size = client.sceneSize()
+			return this
+		}
 
 		fun contains(node: Int): Boolean {
 			val x: Int = ShortestPathFinder.x(node) - baseX
@@ -216,7 +230,7 @@ object ShortestPathOverlay {
 		g.thickLine(x1, y1, x2, y2, 4, colour)
 		if (arrow) {
 			val angle: Double = atan2((y2 - y1).toDouble(), (x2 - x1).toDouble())
-			for (side in intArrayOf(-1, 1)) {
+			for (side in SIDES) {
 				val a2: Double = angle + PI + side * 0.5
 				g.thickLine(x2, y2, x2 + (cos(a2) * 10).toInt(), y2 + (sin(a2) * 10).toInt(), 4, colour)
 			}
@@ -240,7 +254,9 @@ object ShortestPathOverlay {
 	/** The index of the path's tile nearest the player: where the player is along it. */
 	@JvmStatic
 	fun progress(client: ClientApi, finder: ShortestPathFinder): Int {
-		val here: Int = ShortestPath.origin(client)
+		// where the player is, even when the path was drawn from a start of their own
+		val player: Player = client.localPlayer() ?: return 0
+		val here: Int = ShortestPathFinder.pack(client.sceneBaseX() + player.serverTileX(), client.sceneBaseY() + player.serverTileY(), player.level())
 		var best = 0
 		var bestDistance: Int = Int.MAX_VALUE
 		for (i in finder.path.indices) {
@@ -255,12 +271,12 @@ object ShortestPathOverlay {
 
 	/** The next transport from where the player is on the path, with its index; null when the rest is on foot. */
 	@JvmStatic
-	fun nextTransport(client: ClientApi, finder: ShortestPathFinder): Pair<Int, ShortestPathTransport>? {
+	fun nextTransport(client: ClientApi, finder: ShortestPathFinder): ShortestPathTransport? {
 		val from: Int = progress(client, finder)
 		for (i in from + 1 until finder.pathTransports.size) {
 			val transport: ShortestPathTransport? = finder.pathTransports[i]
 			if (transport != null) {
-				return i to transport
+				return transport
 			}
 		}
 		return null
@@ -275,17 +291,30 @@ object ShortestPathOverlay {
 		if (plugin.showUnreachableText && ShortestPath.unreachable(finder) && client.projectTile(player.serverTileX(), player.serverTileY(), scene.level, 0, point)) {
 			label(g, view.x + point[0], view.y + point[1], plugin.unreachableText, 0)
 		}
-		// RuneLite's bank pickup: what to take out, written over the bank's tile
+		// RuneLite's bank pickup: what to take out, written over the bank's tile, above the bank's own label
+		val pickups: List<Int> = plugin.pickups
+		if (!plugin.showBankPickupInfo || pickups.isEmpty()) {
+			return
+		}
+		if (pickupFor !== pickups) {
+			pickupFor = pickups
+			pickupText = null
+		}
 		val bank: Int = finder.pathTransports.indexOfFirst { it === ShortestPathFinder.BANK }
 		if (bank >= 0 && scene.contains(finder.path[bank]) && client.projectTile(scene.x(finder.path[bank]), scene.y(finder.path[bank]), scene.level, 0, point)) {
-			val names: List<String> = pickups(client, finder).mapNotNull { client.item(it)?.name() }
-			if (names.isNotEmpty()) {
-				label(g, view.x + point[0], view.y + point[1], "Pick up: " + names.joinToString(", "), 0)
-			}
+			val text: String = pickupText ?: ("Pick up: " + pickups.mapNotNull { client.item(it)?.name() }.joinToString(", ")).also { pickupText = it }
+			label(g, view.x + point[0], view.y + point[1], text, g.fontHeight() + LABEL_GAP)
 		}
 	}
 
-	/** The items to take out of the bank: those the transports after the bank visit need and the player lacks. */
+	/** The pickup label, made once for each list of pickups. */
+	private var pickupText: String? = null
+	private var pickupFor: List<Int>? = null
+
+	/**
+	 * The items to take out of the bank: those the transports after the bank visit need and the player lacks.
+	 * Worked out by the plugin when a path is found or what is carried changes, not each frame.
+	 */
 	@JvmStatic
 	fun pickups(client: ClientApi, finder: ShortestPathFinder): List<Int> {
 		val bank: Int = finder.pathTransports.indexOfFirst { it === ShortestPathFinder.BANK }
@@ -306,14 +335,22 @@ object ShortestPathOverlay {
 		return wanted.toList()
 	}
 
+	/** The tiles transports leave from in the scene as it was last loaded, for the debug view: found once a scene, not each frame. */
+	private var sceneTransports: IntArray = IntArray(0)
+	private var sceneTransportsKey: Long = -1L
+	private var sceneTransportsTable: List<ShortestPathTransport>? = null
+
 	/** RuneLite's debug view: every transport leaving from a tile of the scene, its tile filled in the transports' colour. */
 	private fun drawAllTransports(g: Graphics, view: Viewport, client: ClientApi, scene: Scene) {
-		for (transport in ShortestPath.transports) {
-			if (transport.anywhere || transport.type == "DEST" || transport.type == "STAFF") {
-				continue
-			}
-			val node: Int = ShortestPathFinder.pack(transport.srcX, transport.srcY, transport.srcLevel)
-			if (scene.contains(node) && client.tilePolygon(scene.x(node), scene.y(node), scene.level, 1, xs, ys)) {
+		val key: Long = (scene.baseX.toLong() shl 32) or (scene.baseY.toLong() shl 4) or scene.level.toLong()
+		if (key != sceneTransportsKey || sceneTransportsTable !== ShortestPath.transports) {
+			sceneTransportsKey = key
+			sceneTransportsTable = ShortestPath.transports
+			sceneTransports = ShortestPath.transports.filter { !it.anywhere && it.type != "DEST" && it.type != "STAFF" && it.type != "AREA" }
+				.map { ShortestPathFinder.pack(it.srcX, it.srcY, it.srcLevel) }.filter { scene.contains(it) }.distinct().toIntArray()
+		}
+		for (node in sceneTransports) {
+			if (client.tilePolygon(scene.x(node), scene.y(node), scene.level, 1, xs, ys)) {
 				for (c in 0 until 4) {
 					xs[c] += view.x
 					ys[c] += view.y
@@ -399,7 +436,7 @@ object ShortestPathOverlay {
 		if (!client.minimapArea(area)) {
 			return
 		}
-		val scene = Scene(client, player.level())
+		val scene: Scene = sceneNow.set(client, player.level())
 		g.clip(area[0], area[1], area[2], area[3])
 		val colour: Int = ShortestPath.colour()
 		for (node in finder.path) {
@@ -508,19 +545,16 @@ object ShortestPathOverlay {
 	/** RuneLite's highlight overlays: the spell to cast, the backpack's item to use, the bank's items to take. */
 	private fun drawHighlights(g: Graphics, client: ClientApi, finder: ShortestPathFinder) {
 		val plugin = ShortestPath
-		val next: ShortestPathTransport? = nextTransport(client, finder)?.second
-		if (next != null && plugin.highlightSpellbookSpells) {
-			val widget: List<Int> = next.requirements["widget"].orEmpty().split(':').mapNotNull { it.toIntOrNull() }
-			if (widget.size == 2) {
-				client.widget(widget[0], widget[1])?.let { box(g, it, plugin.colourTransports) }
-			}
+		val next: ShortestPathTransport? = nextTransport(client, finder)
+		if (next != null && plugin.highlightSpellbookSpells && next.widget >= 0) {
+			client.widget(next.widget ushr 16, next.widget and 0xFFFF)?.let { box(g, it, plugin.colourTransports) }
 		}
 		if (next != null && next.type == "TELEPORT_ITEM" && plugin.highlightInventoryItems) {
 			val ids: List<Int> = ShortestPathRules.itemIds(next)
 			highlightItems(g, client.widget(INVENTORY_INTERFACE, 0), ids, plugin.colourTransports)
 		}
 		if (plugin.highlightBankPickupItems && finder.pathTransports.any { it === ShortestPathFinder.BANK }) {
-			highlightItems(g, client.widget(BANK_INTERFACE, BANK_ITEMS), pickups(client, finder), plugin.colourBankPickup)
+			highlightItems(g, client.widget(BANK_INTERFACE, BANK_ITEMS), plugin.pickups, plugin.colourBankPickup)
 		}
 	}
 

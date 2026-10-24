@@ -5216,6 +5216,23 @@ object SmokeTest {
 				} else {
 					println("SMOKE shortest path: " + ShortestPath.drawnCounts[2] + " segments on the world map; its centre is tile " + tile[0] + "," + tile[1] + "," + tile[2])
 				}
+				// the mouse on the map: Set Target in its right-click menu, and a left click left to the map (Cancel's)
+				(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(box[0] + box[2] / 2, box[1] + box[3] / 2)
+				shortestPathFrame = frames
+				shortestPathStep = 21
+			}
+			21 -> {
+				if (frames - shortestPathFrame < 10) {
+					return false
+				}
+				val setTarget: Boolean = findEntry("Set Target") != null
+				val leftClick: Boolean = PluginRuntime.promotedDefault() === MiniMenu.cancelOption
+				(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(-1, -1)
+				if (shortestPathFailure == null && (!setTarget || !leftClick)) {
+					shortestPathFailure = "Shortest Path: over the world map Set Target " + (if (setTarget) "offered" else "missing") + ", the left click " + (if (leftClick) "Cancel's" else "a plugin entry's")
+				} else if (shortestPathFailure == null) {
+					println("SMOKE shortest path: over the world map Set Target is in the menu and the left click stays the map's")
+				}
 				clickComponent(WORLD_MAP, WORLD_MAP_CLOSE)
 				shortestPathFrame = frames
 				shortestPathStep = 3
@@ -5284,10 +5301,9 @@ object SmokeTest {
 				shortestPathStep = 6
 			}
 			else -> {
-				ShortestPath.useTeleportationItems = ShortestPath.ITEMS_CARRIED
-				ShortestPath.pathStyle = "Tiles"
 				ShortestPath.clearTarget()
-				ShortestPath.enabled = false
+				// the settings as the player has them, not the step's
+				ShortestPath.context?.config()?.let { ShortestPath.readSettings(it) }
 				shortestPathFailure?.let {
 					fail(it)
 					return true

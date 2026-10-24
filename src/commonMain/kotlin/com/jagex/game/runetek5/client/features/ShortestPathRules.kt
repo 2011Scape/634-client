@@ -87,7 +87,7 @@ class ShortestPathRules(
 
 	/** Whether [transport] may be taken, with the bank's items as carried when [banked]. */
 	fun meets(transport: ShortestPathTransport, banked: Boolean): Boolean {
-		if (transport.type == "TELEPORT_ITEM" && (permanentOnly && isUsedUp(transport) || itemIds(transport).any { it in blocked })) {
+		if (transport.type == "TELEPORT_ITEM" && (permanentOnly && isUsedUp(transport) || isBlocked(transport))) {
 			return false
 		}
 		for ((key, value) in transport.requirements) {
@@ -102,9 +102,10 @@ class ShortestPathRules(
 		val skill: Int = SKILLS.indexOf(key)
 		return when {
 			skill >= 0 -> player.levels[skill] >= (value.toIntOrNull() ?: 0)
-			key == "book" -> player.spellbook == null || player.spellbook == value
+			// no spellbook seen: the standard one, which every account starts with
+			key == "book" -> (player.spellbook ?: "modern") == value
 			key == "items" -> items(value, transport.type == "TELEPORT_ITEM" && !checkItems, banked)
-			key == "equipped" -> value.isEmpty() || value.split(',').all { group -> group.split('|').any { (it.toIntOrNull() ?: -1) in player.worn } }
+			key == "equipped" -> value.isEmpty() || value.split(',').all { group -> group.split('|').any { wearable(it.toIntOrNull() ?: -1, banked) } }
 			key == "var" -> value.split(',').all { varTest(it) }
 			else -> true // "consumed", "charged" and other notes
 		}
@@ -141,7 +142,21 @@ class ShortestPathRules(
 		if (assumeHad || ids.any { have(it, banked) >= amount }) {
 			return true
 		}
-		return ids.any { rune -> staves[rune]?.any { it in player.worn } == true }
+		return ids.any { rune -> staves[rune]?.any { wearable(it, banked) } == true }
+	}
+
+	/** Worn, or (after a bank visit) kept in the bank to be taken out and worn. */
+	private fun wearable(id: Int, banked: Boolean): Boolean = id in player.worn || banked && (bank[id] ?: 0) > 0
+
+	/** Blocked when some item it needs is blocked in every form it may take (all of a glory's charges). */
+	private fun isBlocked(transport: ShortestPathTransport): Boolean {
+		if (blocked.isEmpty()) {
+			return false
+		}
+		return transport.requirements["items"].orEmpty().split(',').any { group ->
+			val ids: List<Int> = group.substringBefore('x').split('|').mapNotNull { it.toIntOrNull() }
+			ids.isNotEmpty() && ids.all { it in blocked }
+		}
 	}
 
 	private fun have(id: Int, banked: Boolean): Int = (player.items[id] ?: 0) + if (banked) bank[id] ?: 0 else 0

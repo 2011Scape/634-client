@@ -9,10 +9,14 @@ import kotlin.jvm.JvmStatic
 
 object WorldMapPolygonFill {
 
+	/** Not part of the original client: fillPolygon's clip, reused (game thread only). */
+	private val clipScratch: IntArray = IntArray(4)
+
 	@OriginalMember(owner = "client!df", name = "a", descriptor = "(Lclient!ha;[IIII[I[I)V")
 	@JvmStatic
 	fun fillPolygon(@OriginalArg(0) toolkit: Toolkit?, @OriginalArg(1) vertices: IntArray?, @OriginalArg(3) count: Int, @OriginalArg(4) colour: Int, @OriginalArg(5) lineOffsets: IntArray?, @OriginalArg(6) lineWidths: IntArray?) {
-		@Pc(2) val clip: IntArray = IntArray(4)
+		// Not part of the original client: one clip array, not one a call (plugins fill polygons every frame)
+		@Pc(2) val clip: IntArray = clipScratch
 		toolkit!!.K(clip)
 		if (lineOffsets != null && clip[3] - clip[1] != lineOffsets.size) {
 			throw IllegalStateException()

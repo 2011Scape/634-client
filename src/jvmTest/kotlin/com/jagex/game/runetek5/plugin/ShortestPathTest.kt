@@ -1,8 +1,10 @@
 package com.jagex.game.runetek5.plugin
 
+import com.jagex.game.runetek5.client.features.ShortestPathArea
 import com.jagex.game.runetek5.client.features.ShortestPathFinder
 import com.jagex.game.runetek5.client.features.ShortestPathFinder.Companion.pack
 import com.jagex.game.runetek5.client.features.ShortestPathGrid
+import com.jagex.game.runetek5.client.features.ShortestPathGzip
 import com.jagex.game.runetek5.client.features.ShortestPathPlayer
 import com.jagex.game.runetek5.client.features.ShortestPathRules
 import com.jagex.game.runetek5.client.features.ShortestPathTransport
@@ -88,9 +90,9 @@ class ShortestPathTest {
 
 	@Test
 	fun aDiagonalNeedsBothSidesOpen() {
-		val grid = ShortestPathGrid(regions)
-		assertTrue(grid.canStep(5, 5, 0, 1, 1))
+		assertTrue(ShortestPathGrid(regions).canStep(5, 5, 0, 1, 1))
 		close(5, 5, 0, 1) // no step east from (5, 5)
+		val grid = ShortestPathGrid(regions) // the grid copies the planes it is made of
 		assertFalse(grid.canStep(5, 5, 0, 1, 1))
 		assertTrue(grid.canStep(5, 5, 0, 0, 1))
 	}
@@ -233,10 +235,17 @@ class ShortestPathTest {
 		val grid = ShortestPathGrid(wild)
 		val start: Int = pack(3010, 3520, 0)
 		val target: Int = pack(3060, 3520, 0)
-		assertTrue(ShortestPathFinder.isWilderness(pack(3010, 3523, 0)))
-		assertFalse(ShortestPathFinder.isWilderness(start))
-		assertTrue(search(grid, start, target).reached, "through the wilderness")
-		assertFalse(search(grid, start, target) { it.avoidWilderness = true }.reached, "kept out of the wilderness")
+		val area = ShortestPathArea(intArrayOf(3000, 3100, 3100, 3000), intArrayOf(3523, 3523, 3600, 3600), 0, 3)
+		assertTrue(area.contains(3010, 3523, 0))
+		assertFalse(area.contains(3010, 3520, 0))
+		assertTrue(search(grid, start, target) { it.wilderness = area }.reached, "through the wilderness")
+		assertFalse(
+			search(grid, start, target) {
+				it.wilderness = area
+				it.avoidWilderness = true
+			}.reached,
+			"kept out of the wilderness",
+		)
 	}
 
 	@Test
@@ -282,5 +291,150 @@ class ShortestPathTest {
 		assertFalse(way(1, emptySet()).reached, "Crafting 1")
 		assertFalse(way(40, emptySet()).reached, "no apron")
 		assertTrue(way(40, setOf(1757)).reached, "Crafting 40 and the brown apron")
+	}
+
+	/** The review's zig-zag: a path over open ground goes straight first, then diagonal, never back and forth. */
+	@Test
+	fun aPathOverOpenGroundDoesNotZigZag() {
+		val finder = search(ShortestPathGrid(regions), pack(2, 2, 0), pack(30, 12, 0))
+		val ys: List<Int> = finder.path.map { ShortestPathFinder.y(it) }
+		for (i in 1 until ys.size) {
+			assertTrue(ys[i] >= ys[i - 1], "y never goes back: $ys")
+		}
+		var turns = 0
+		for (i in 2 until finder.path.size) {
+			val a: Int = finder.path[i - 2]
+			val b: Int = finder.path[i - 1]
+			val c: Int = finder.path[i]
+			if (ShortestPathFinder.x(b) - ShortestPathFinder.x(a) != ShortestPathFinder.x(c) - ShortestPathFinder.x(b) ||
+				ShortestPathFinder.y(b) - ShortestPathFinder.y(a) != ShortestPathFinder.y(c) - ShortestPathFinder.y(b)
+			) {
+				turns++
+			}
+		}
+		assertTrue(turns <= 1, "one turn, from straight to diagonal: $turns")
+	}
+
+	/** The review's mark-at-push: the cheaper of two transports to one tile is taken, whichever is listed first. */
+	@Test
+	fun theCheaperOfTwoTransportsToOneTileIsTaken() {
+		val dear = ShortestPathTransport("TELEPORT_SPELL", -1, -1, -1, 50, 50, 0, 300, "Varrock Teleport", emptyMap())
+		val cheap = ShortestPathTransport("TELEPORT_ITEM", -1, -1, -1, 50, 50, 0, 5, "Varrock teleport", emptyMap())
+		val finder = search(ShortestPathGrid(regions), pack(2, 2, 0), pack(51, 51, 0), anywhere = listOf(dear, cheap))
+		assertTrue(finder.reached)
+		assertEquals("Varrock teleport", finder.pathTransports[1]?.label)
+	}
+
+	/** A walk that gets to a tile sooner than a dear transport's landing there keeps the tile. */
+	@Test
+	fun aWalkBeatsADearLanding() {
+		val stairs = transport(2, 2, 0, 6, 2, 0, ticks = 50)
+		val finder = search(ShortestPathGrid(regions), pack(2, 2, 0), pack(7, 2, 0), listOf(stairs))
+		assertTrue(finder.reached)
+		assertTrue(finder.pathTransports.all { it == null }, "walked, not by the transport")
+		assertEquals(6, finder.path.size)
+	}
+
+	/** Version 3: each step out of a tile on its own, so a step can be open one way and shut the other. */
+	@Test
+	fun aOneWayStepIsOneWay() {
+		val tiles = ByteArray(4096) { -1 } // every step open
+		// from (5, 6) the step south (bit 2) is shut, though the step north from (5, 5) is open
+		tiles[6 * 64 + 5] = (0xFF and (1 shl 2).inv()).toByte()
+		val grid: ShortestPathGrid = ShortestPathGrid.decode(collisionFile(version = 3, planes = listOf(tiles)))
+		assertTrue(grid.canStep(5, 5, 0, 0, 1))
+		assertFalse(grid.canStep(5, 6, 0, 0, -1))
+		assertTrue(search(grid, pack(5, 5, 0), pack(5, 6, 0)).path.size == 2, "north in one step")
+		assertTrue(search(grid, pack(5, 6, 0), pack(5, 5, 0)).path.size > 2, "south goes round")
+	}
+
+	/** A gzip file with a name in its header (the gzip tool's) reads as well as Java's. */
+	@Test
+	fun aGzipWithAFileNameReads() {
+		val body: ByteArray = "SPCM file".encodeToByteArray()
+		val deflater = java.util.zip.Deflater(9, true)
+		deflater.setInput(body)
+		deflater.finish()
+		val packed = ByteArray(256)
+		val n: Int = deflater.deflate(packed)
+		val crc = java.util.zip.CRC32().also { it.update(body) }.value
+		val out = java.io.ByteArrayOutputStream()
+		out.write(byteArrayOf(0x1F, 0x8B.toByte(), 8, 8, 0, 0, 0, 0, 0, 3))
+		out.write("collision.bin".encodeToByteArray())
+		out.write(0)
+		out.write(packed, 0, n)
+		for (v in longArrayOf(crc, body.size.toLong())) {
+			for (b in 0 until 4) out.write(((v shr (8 * b)) and 0xFF).toInt())
+		}
+		assertEquals("SPCM file", ShortestPathGzip.gunzip(out.toByteArray()).decodeToString())
+	}
+
+	@Test
+	fun aSearchStopsAtItsLimit() {
+		for (y in 0 until 64) {
+			close(30, y, 0, 1) // the target is walled off: the search would visit the whole region
+		}
+		val finder = search(ShortestPathGrid(regions), pack(2, 2, 0), pack(40, 2, 0)) { it.maxNodes = 100 }
+		assertTrue(finder.done)
+		assertFalse(finder.reached)
+		assertTrue(finder.visitedCount in 100..110, "stopped near the limit: ${finder.visitedCount}")
+	}
+
+	/** A transport usable only with the bank's items, from a tile (not a teleport): the path goes to the bank first. */
+	@Test
+	fun aTransportNeedingTheBanksItemsGoesByTheBank() {
+		// level 1 reached only by a ladder whose key is in the bank
+		val ladder = transport(20, 20, 0, 20, 21, 1)
+		val finder = search(ShortestPathGrid(regions), pack(2, 2, 0), pack(30, 30, 1)) {
+			it.banks = setOf(pack(4, 2, 0))
+			it.bankTransports = mapOf(pack(20, 20, 0) to listOf(ladder))
+		}
+		assertTrue(finder.reached)
+		val bank: Int = finder.pathTransports.indexOfFirst { it === ShortestPathFinder.BANK }
+		val climb: Int = finder.pathTransports.indexOfFirst { it === ladder }
+		assertTrue(bank in 1 until climb, "the bank, then the ladder: $bank, $climb")
+	}
+
+	/** Void's wilderness from the shipped table: its notch south of the ditch and the dungeons are not in it. */
+	@Test
+	fun theShippedWildernessIsVoids() {
+		val table = ShortestPathTransport.decode(lang.readResource("/shortest-path/transports.tsv.gz")!!)
+		val area: ShortestPathArea = ShortestPathArea.of(table.first { it.type == "AREA" && it.label == "wilderness" })!!
+		assertTrue(area.contains(3100, 3600, 0), "north of Edgeville")
+		assertFalse(area.contains(3100, 3500, 0), "Edgeville")
+		assertFalse(area.contains(3020, 3530, 0), "the notch by the Black Knights' fortress")
+		assertFalse(area.contains(3100, 9900, 0), "the dungeon under Edgeville")
+	}
+
+	@Test
+	fun blockingOneChargeOfAGloryKeepsTheOthers() {
+		val glory = ShortestPathTransport.parse("TELEPORT_ITEM\t\t3087 3496 0\t5\tAmulet of glory: Edgeville\titems=1706|1708|1710|1712;charged\n")[0]
+		val carried: Map<Int, Int> = mapOf(1712 to 1)
+		assertTrue(ShortestPathRules(player(1, carried), emptyMap(), true, 100_000, blocked = setOf(1706)).meets(glory))
+		assertFalse(ShortestPathRules(player(1, carried), emptyMap(), true, 100_000, blocked = setOf(1706, 1708, 1710, 1712)).meets(glory))
+	}
+
+	@Test
+	fun aStaffInTheBankStandsInForItsRunesAfterABankVisit() {
+		val staves: Map<Int, Set<Int>> = mapOf(556 to setOf(1381))
+		val runes: Map<Int, Int> = mapOf(554 to 1, 563 to 1)
+		val rules = ShortestPathRules(player(25, runes), staves, true, 100_000, bank = mapOf(1381 to 1))
+		assertFalse(rules.meets(varrockTeleport), "no air runes, no staff worn")
+		assertTrue(rules.meets(varrockTeleport, true), "the staff of air taken out of the bank")
+	}
+
+	/** A collision.gz of [planes] for region 0, level 0 up. */
+	private fun collisionFile(version: Int, planes: List<ByteArray>): ByteArray {
+		val body = java.io.ByteArrayOutputStream()
+		val data = java.io.DataOutputStream(body)
+		data.writeBytes("SPCM")
+		data.writeInt(version)
+		data.writeInt(1)
+		data.writeShort(0)
+		data.writeByte((1 shl planes.size) - 1)
+		planes.forEach { data.write(it) }
+		val out = java.io.ByteArrayOutputStream()
+		java.util.zip.GZIPOutputStream(out).use { it.write(body.toByteArray()) }
+		return out.toByteArray()
 	}
 }

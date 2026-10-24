@@ -68,8 +68,26 @@ object ShortestPath : Plugin {
 	/** The bank's container. */
 	private const val BANK: Int = 95
 
-	/** Tiles the search visits in a client cycle (50 a second): a cross-country path takes a few. */
-	private const val NODES_PER_CYCLE: Int = 40_000
+	/** The time the search may take in a client cycle (50 a second): a cross-country path takes a few dozen. */
+	private const val SLICE_NANOS: Long = 3_000_000L
+
+	/** The most entries a submenu takes (PluginRuntime's cap): Find closest is split into submenus of no more. */
+	private const val SUBMENU_ENTRIES: Int = 40
+
+	/** Client cycles to wait for the browser to fetch the map before giving up (30 seconds). */
+	private const val FETCH_CYCLES: Int = 1500
+
+	private const val MAP_FILE: String = "/shortest-path/collision.gz"
+	private const val TABLE_FILE: String = "/shortest-path/transports.tsv.gz"
+
+	/** The map's state: not asked for, being fetched, being decoded, ready, or not to be had. */
+	private const val DATA_NONE: Int = 0
+	private const val DATA_WAITING: Int = 1
+	private const val DATA_DECODING: Int = 2
+	private const val DATA_READY: Int = 3
+	private const val DATA_FAILED: Int = 4
+
+	private const val MAX_COORD: Int = 0x3FFF
 
 	/** RuneLite's cut-off: past this many tiles the path goes to the nearest one reached. */
 	private const val MAX_NODES: Int = 2_500_000
@@ -177,11 +195,23 @@ object ShortestPath : Plugin {
 	/** The world map's icons by name ("Bank", "Altar"...): the tiles each is used from, for Find closest. */
 	@JvmField var destinations: Map<String, IntArray> = emptyMap()
 
+	/** [destinations]' names in order, in submenus of no more than [SUBMENU_ENTRIES], each with its label. */
+	private var destinationMenus: List<Pair<String, List<String>>> = emptyList()
+
+	/** Void's wilderness, from the table's AREA row. */
+	@JvmField var wilderness: ShortestPathArea? = null
+
 	/** Rune id to the staves that stand in for it, from the table. */
 	private var staves: Map<Int, Set<Int>> = emptyMap()
 
-	/** The bank's items as last seen, item id to amount, kept between sessions. */
+	/** The bank's items as last seen, item id to amount, kept between sessions for each account. */
 	@JvmField var bank: Map<Int, Int> = emptyMap()
+
+	/** The account [bank] is of: the bank is kept by name, so another account never fetches from this one's. */
+	private var bankAccount: String? = null
+
+	/** The items to take out of the bank for the shown path, worked out when it is found or what is carried changes. */
+	@JvmField var pickups: List<Int> = emptyList()
 
 	/** The world tiles the path goes to (the nearest of them), [ShortestPathFinder.pack]ed. */
 	@JvmField val targets: ArrayList<Int> = ArrayList()
@@ -201,7 +231,11 @@ object ShortestPath : Plugin {
 	/** For the smoke test: what the last frame drew (scene tiles, minimap dots, world map segments). */
 	@JvmField val drawnCounts: IntArray = IntArray(3)
 
-	private var dataFailed: Boolean = false
+	@JvmField var dataState: Int = DATA_NONE
+	private var dataWait: Int = 0
+
+	/** Whether the player was told the map is still loading, so it is said once. */
+	private var toldLoading: Boolean = false
 	@JvmField var context: PluginContext? = null
 	private var setTargetAction: Int = -1
 	private var addTargetAction: Int = -1
@@ -219,11 +253,16 @@ object ShortestPath : Plugin {
 			context?.config()?.let { readSettings(it) }
 			if (!enabled) {
 				clearTarget()
-			} else if (targets.isNotEmpty()) {
+				unload()
+			} else if (targets.isNotEmpty() && isRouting(event.key)) {
 				context?.client()?.let { restart(it) } // a transport switched on or off: find the way again
 			}
 		}
 	}
+
+	/** Whether setting [key] changes what a search may take (a colour or a style only redraws). */
+	private fun isRouting(key: String): Boolean =
+		key.startsWith("use") || key.startsWith("cost") || key in arrayOf("avoidWilderness", "blockedTeleportItems", "includeBankPath", "currencyThreshold", "calculationCutoff")
 
 	private val menuListener: EventListener<MenuEntryAdded> = EventListener { event ->
 		if (enabled) {
@@ -238,11 +277,19 @@ object ShortestPath : Plugin {
 	}
 
 	private val clientTickListener: EventListener<ClientTick> = EventListener { _ ->
+		if (!enabled) {
+			return@EventListener
+		}
+		if (dataState == DATA_WAITING) {
+			context?.client()?.let { awaitData(it) }
+		}
 		val finder: ShortestPathFinder = this.finder ?: return@EventListener
-		if (enabled && !finder.done) {
+		if (!finder.done) {
 			searchCycles++
-			if (finder.step(NODES_PER_CYCLE)) {
+			// a slice of time, not of tiles: a search with many targets (Find closest) costs more a tile
+			if (finder.step(Int.MAX_VALUE, lang.nanoTime() + SLICE_NANOS)) {
 				shown = finder
+				context?.client()?.let { pickups = ShortestPathOverlay.pickups(it, finder) }
 			}
 		}
 	}
@@ -256,6 +303,9 @@ object ShortestPath : Plugin {
 	/** RuneLite's: the backpack or the worn items changed what may be taken, so the way is found again; the bank is remembered. */
 	private val itemListener: EventListener<ItemContainerChanged> = EventListener { event ->
 		val client: ClientApi = context?.client() ?: return@EventListener
+		if (!enabled) {
+			return@EventListener
+		}
 		if (event.containerId == BANK) {
 			readBank(client)
 		}
@@ -267,10 +317,20 @@ object ShortestPath : Plugin {
 	}
 
 	private val keyListener: EventListener<KeyPressed> = EventListener { event ->
-		if (enabled && clearPathHotkey != 0 && event.keyCode == clearPathHotkey && targets.isNotEmpty()) {
+		if (enabled && clearPathHotkey != 0 && event.keyCode == clearPathHotkey && targets.isNotEmpty() && !typing(event)) {
 			clearTarget()
 			event.consumed = true
 		}
+	}
+
+	/**
+	 * Whether the key would type into the chat: a letter, digit or sign with no Ctrl or Alt, unless Key
+	 * Remapping has the chat locked. Function keys and keys held with a modifier are hotkeys anywhere.
+	 */
+	private fun typing(event: KeyPressed): Boolean {
+		val client: ClientApi = context?.client() ?: return false
+		val printable: Boolean = event.keyChar.code in 33..126 && !client.isKeyHeld(KeyCode.CONTROL) && !client.isKeyHeld(KeyCode.ALT)
+		return printable && !(KeyRemapping.enabled && !KeyRemapping.typing)
 	}
 
 	/** `::path x y [level]`, `::path add x y [level]`, `::path start x y [level]`, `::path closest <icon>`, `::path` alone clears. */
@@ -301,7 +361,22 @@ object ShortestPath : Plugin {
 
 	override fun stop() {
 		clearTarget()
+		unload()
 		context = null
+	}
+
+	/** Lets go of the map and the table (about 30 MB) while the plugin is off. */
+	private fun unload() {
+		grid = null
+		transports = emptyList()
+		destinations = emptyMap()
+		destinationMenus = emptyList()
+		wilderness = null
+		staves = emptyMap()
+		if (dataState != DATA_DECODING) {
+			dataState = DATA_NONE
+		}
+		toldLoading = false
 	}
 
 	/** RuneLite's ShortestPathConfig and its sidebar's switches, the parts 634 has. */
@@ -407,11 +482,6 @@ object ShortestPath : Plugin {
 		costConsumableItems = config.getInt("costConsumableTeleportationItems", 0).coerceIn(0, 500)
 		costPermanentItems = config.getInt("costNonConsumableTeleportationItems", 0).coerceIn(0, 500)
 		costBankVisit = config.getInt("costBankVisit", 0).coerceIn(0, 500)
-		bank = config.get("bankItems", "").split(',').mapNotNull { pair ->
-			val id: Int? = pair.substringBefore(':').toIntOrNull()
-			val amount: Int? = pair.substringAfter(':', "").toIntOrNull()
-			if (id == null || amount == null) null else id to amount
-		}.toMap()
 	}
 
 	/** RuneLite's MenuVerbs: Shift on a tile, the world map always, the minimap's Clear Path. */
@@ -436,10 +506,14 @@ object ShortestPath : Plugin {
 				client.addMenuEntry("Clear Path", clearAction)
 			}
 		}
-		if (target === MenuTarget.WORLD_MAP && loadData(client) && destinations.isNotEmpty()) {
-			val submenu: Int = client.addSubmenu("Find closest")
-			for (name in destinations.keys.sorted()) {
-				client.addSubmenuEntry(submenu, name, findClosestAction)
+		if (target === MenuTarget.WORLD_MAP) {
+			// the map is read off the game thread the first time it is wanted; Find closest shows once it is ready
+			requestData()
+			for ((label, names) in destinationMenus) {
+				val submenu: Int = client.addSubmenu(label)
+				for (name in names) {
+					client.addSubmenuEntry(submenu, name, findClosestAction)
+				}
 			}
 		}
 	}
@@ -464,10 +538,15 @@ object ShortestPath : Plugin {
 			client.consolePrint("Shortest Path is off: switch it on in the plugin manager.")
 			return
 		}
+		if (dataState != DATA_READY) {
+			requestData()
+			client.consolePrint(if (dataState == DATA_FAILED) "Shortest Path has no map: it could not be read." else "Shortest Path is still loading its map: try again in a moment.")
+			return
+		}
 		if (args[0] == "closest") {
 			val name: String = args.drop(1).joinToString(" ")
 			if (!findClosest(client, name)) {
-				client.consolePrint("No map icon called '$name'. Try: " + destinations.keys.sorted().joinToString(", "))
+				client.consolePrint("No map icon called '$name'. Try: " + destinationMenus.flatMap { it.second }.joinToString(", "))
 			}
 			return
 		}
@@ -475,11 +554,12 @@ object ShortestPath : Plugin {
 		val rest: List<String> = if (verb.isEmpty()) args.toList() else args.drop(1)
 		val x: Int? = rest.getOrNull(0)?.toIntOrNull()
 		val y: Int? = rest.getOrNull(1)?.toIntOrNull()
-		if (x == null || y == null) {
-			client.consolePrint("Use: path <x> <y> [level], path add|start <x> <y> [level], path closest <icon>, or path clear")
+		val level: Int? = if (rest.size > 2) rest[2].toIntOrNull() else client.localPlayer()?.level() ?: 0
+		if (x == null || y == null || level == null || x !in 0..MAX_COORD || y !in 0..MAX_COORD || level !in 0..3) {
+			client.consolePrint("Use: path <x> <y> [level], path add|start <x> <y> [level], path closest <icon>, or path clear (x and y 0 to $MAX_COORD, level 0 to 3)")
 			return
 		}
-		val tile: Int = ShortestPathFinder.pack(x, y, rest.getOrNull(2)?.toIntOrNull() ?: client.localPlayer()?.level() ?: 0)
+		val tile: Int = ShortestPathFinder.pack(x, y, level)
 		when (verb) {
 			"add" -> addTarget(client, tile)
 			"start" -> setStart(client, tile)
@@ -488,37 +568,89 @@ object ShortestPath : Plugin {
 		client.consolePrint("Finding the way to $x, $y.")
 	}
 
-	/** The map, transports and destinations from the jar (or the page's fetch); false while they are not there yet. */
-	private fun loadData(client: ClientApi): Boolean {
-		if (grid != null) {
-			return true
+	/** The map, transports and destinations are read and ready. */
+	private fun loaded(): Boolean = dataState == DATA_READY
+
+	/** Asks for the map: the browser fetches it from beside the page, then it is decoded off the game thread. */
+	private fun requestData() {
+		if (dataState != DATA_NONE) {
+			return
 		}
-		if (dataFailed) {
-			return false
-		}
-		val collision: ByteArray? = lang.readResource("/shortest-path/collision.gz")
-		val table: ByteArray? = lang.readResource("/shortest-path/transports.tsv.gz")
+		lang.requestResource(MAP_FILE)
+		lang.requestResource(TABLE_FILE)
+		dataState = DATA_WAITING
+		dataWait = 0
+	}
+
+	/** Each client cycle while the files are awaited: once both are there, they are decoded on a thread of their own. */
+	private fun awaitData(client: ClientApi) {
+		val collision: ByteArray? = lang.readResource(MAP_FILE)
+		val table: ByteArray? = lang.readResource(TABLE_FILE)
 		if (collision == null || table == null) {
-			return false
+			if (++dataWait > FETCH_CYCLES) {
+				dataState = DATA_FAILED
+				client.consolePrint("Shortest Path could not fetch its map.")
+			}
+			return
 		}
-		@Suppress("TooGenericExceptionCaught") // a damaged file must leave the plugin without a map, not take the client down
+		val context: PluginContext = this.context ?: return
+		dataState = DATA_DECODING
+		context.startThread("map") { decode(context, collision, table) }
+	}
+
+	/** Off the game thread: the map and table decoded into locals, then handed over together, or not at all. */
+	@Suppress("TooGenericExceptionCaught") // a damaged file must leave the plugin without a map, not take the client down
+	private fun decode(context: PluginContext, collision: ByteArray, table: ByteArray) {
 		try {
-			grid = ShortestPathGrid.decode(collision)
-			transports = ShortestPathTransport.decode(table)
-			staves = ShortestPathRules.staves(transports)
+			val decodedGrid: ShortestPathGrid = ShortestPathGrid.decode(collision)
+			val rows: List<ShortestPathTransport> = ShortestPathTransport.decode(table)
 			val byName = HashMap<String, ArrayList<Int>>()
-			for (row in transports) {
+			var area: ShortestPathArea? = null
+			for (row in rows) {
 				if (row.type == "DEST") {
 					byName.getOrPut(row.label) { ArrayList() }.add(ShortestPathFinder.pack(row.srcX, row.srcY, row.srcLevel))
+				} else if (row.type == "AREA" && row.label == "wilderness") {
+					area = ShortestPathArea.of(row)
 				}
 			}
-			destinations = byName.mapValues { (_, tiles) -> IntArray(tiles.size) { tiles[it] } }
+			val names: List<String> = byName.keys.sorted()
+			val chunks: List<List<String>> = names.chunked(SUBMENU_ENTRIES)
+			val menus: List<Pair<String, List<String>>> = chunks.map { chunk ->
+				val label: String = if (chunks.size == 1) "Find closest" else "Find closest (" + chunk.first().first() + "-" + chunk.last().first() + ")"
+				label to chunk
+			}
+			val icons: Map<String, IntArray> = byName.mapValues { (_, tiles) -> IntArray(tiles.size) { tiles[it] } }
+			val runes: Map<Int, Set<Int>> = ShortestPathRules.staves(rows)
+			context.invokeLater {
+				if (dataState == DATA_DECODING) {
+					grid = decodedGrid
+					transports = rows
+					destinations = icons
+					destinationMenus = menus
+					wilderness = area
+					staves = runes
+					dataState = DATA_READY
+					if (enabled && targets.isNotEmpty()) {
+						restart(context.client())
+					}
+				} else {
+					dataState = DATA_NONE // switched off while it was decoded
+				}
+			}
 		} catch (error: Exception) {
-			dataFailed = true
-			client.consolePrint("Shortest Path could not read its map: " + error.message)
-			return false
+			context.invokeLater {
+				dataState = DATA_FAILED
+				context.client().consolePrint("Shortest Path could not read its map: " + error.message)
+			}
 		}
-		return true
+	}
+
+	/** Says once that the map is still on its way, when a target is set before it is ready. */
+	private fun tellLoading(client: ClientApi) {
+		if (!toldLoading && dataState != DATA_READY) {
+			toldLoading = true
+			client.chatMessage(if (dataState == DATA_FAILED) "Shortest Path has no map: it could not be read." else "Shortest Path is loading its map: the path shows in a moment.")
+		}
 	}
 
 	@JvmStatic
@@ -552,7 +684,8 @@ object ShortestPath : Plugin {
 	/** RuneLite's Find closest: every map icon called [name] a target, the nearest found. */
 	@JvmStatic
 	fun findClosest(client: ClientApi, name: String): Boolean {
-		if (!loadData(client)) {
+		if (!loaded()) {
+			requestData()
 			return false
 		}
 		val tiles: IntArray = destinations.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value ?: return false
@@ -570,6 +703,7 @@ object ShortestPath : Plugin {
 		start = -1
 		finder = null
 		shown = null
+		pickups = emptyList()
 		drawnCounts.fill(0)
 	}
 
@@ -586,10 +720,18 @@ object ShortestPath : Plugin {
 	/** Starts the search again from [origin], with what the player has now. */
 	private fun restart(client: ClientApi) {
 		val origin: Int = origin(client)
-		if (targets.isEmpty() || origin == -1 || !loadData(client)) {
+		if (targets.isEmpty() || origin == -1) {
 			finder = null
 			return
 		}
+		if (!loaded()) {
+			// found once the map is read (decode() restarts it)
+			finder = null
+			requestData()
+			tellLoading(client)
+			return
+		}
+		loadBank(client)
 		val items: String = useTeleportationItems
 		val rules = ShortestPathRules(
 			ShortestPathPlayer.read(client),
@@ -606,6 +748,7 @@ object ShortestPath : Plugin {
 		val anywhere = ArrayList<ShortestPathTransport>()
 		val bankAnywhere = ArrayList<ShortestPathTransport>()
 		val banking: Boolean = includeBankPath && bank.isNotEmpty()
+		// the bank's layer only when the bank holds something the path could use: otherwise it doubles the search for nothing
 		for (transport in transports) {
 			if (!usable(transport)) {
 				continue
@@ -625,15 +768,17 @@ object ShortestPath : Plugin {
 		options.anywhere = anywhere
 		options.bankTransports = fromBank
 		options.bankAnywhere = bankAnywhere
-		if (banking) {
+		if (banking && (fromBank.isNotEmpty() || bankAnywhere.isNotEmpty())) {
 			options.banks = destinations["Bank"]?.toHashSet() ?: emptySet()
 			options.bankCost = costBankVisit
 		}
 		options.avoidWilderness = avoidWilderness
+		options.wilderness = wilderness
 		options.maxNodes = MAX_NODES
 		// RuneLite's cutoff is in game ticks of no progress; the search runs a slice a client cycle (30 a tick)
 		options.cutoffSteps = calculationCutoff * 30
-		finder = ShortestPathFinder(grid!!, origin, targets.toIntArray(), options)
+		val map: ShortestPathGrid = grid ?: return
+		finder = ShortestPathFinder(map, origin, targets.toIntArray(), options)
 		searchCycles = 0
 	}
 
@@ -658,8 +803,29 @@ object ShortestPath : Plugin {
 		else -> kindName(transport.type)?.let { uses[it] } ?: false // STAFF and DEST rows are data, not a way across
 	}
 
-	/** The bank's items, remembered for a path that fetches a teleport from the bank. */
+	/** The config key the bank of the account logged in is kept under, null before a name is known. */
+	private fun bankKey(client: ClientApi): String? {
+		val name: String = client.localPlayer()?.name()?.lowercase()?.takeIf { it.isNotEmpty() } ?: return null
+		return "bankItems." + name.replace(' ', '_')
+	}
+
+	/** The bank remembered for the account logged in, read when the account is not the one [bank] is of. */
+	private fun loadBank(client: ClientApi) {
+		val key: String = bankKey(client) ?: return
+		if (key == bankAccount) {
+			return
+		}
+		bankAccount = key
+		bank = context?.config()?.get(key, "")?.split(',')?.mapNotNull { pair ->
+			val id: Int? = pair.substringBefore(':').toIntOrNull()
+			val amount: Int? = pair.substringAfter(':', "").toIntOrNull()
+			if (id == null || amount == null) null else id to amount
+		}?.toMap() ?: emptyMap()
+	}
+
+	/** The bank's items, remembered for this account for a path that fetches a teleport from the bank. */
 	private fun readBank(client: ClientApi) {
+		val key: String = bankKey(client) ?: return
 		val container = client.itemContainer(BANK) ?: return
 		val items = HashMap<Int, Int>()
 		for (slot in 0 until container.size()) {
@@ -668,12 +834,13 @@ object ShortestPath : Plugin {
 				items[id] = (items[id] ?: 0) + container.amount(slot)
 			}
 		}
-		if (items == bank) {
+		if (key == bankAccount && items == bank) {
 			return
 		}
+		bankAccount = key
 		bank = items
 		context?.config()?.let { config ->
-			config.set("bankItems", items.entries.joinToString(",") { "${it.key}:${it.value}" })
+			config.set(key, items.entries.joinToString(",") { "${it.key}:${it.value}" })
 			config.save()
 		}
 	}
@@ -691,7 +858,9 @@ object ShortestPath : Plugin {
 		}
 		val finder: ShortestPathFinder? = this.finder
 		if (finder == null) {
-			restart(client) // the data had not come yet
+			if (loaded()) {
+				restart(client)
+			}
 			return
 		}
 		if (!finder.done || start != -1 || recalculateDistance < 0) {

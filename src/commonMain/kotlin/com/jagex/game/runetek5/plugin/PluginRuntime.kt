@@ -1399,6 +1399,7 @@ object PluginRuntime {
 		if (!PluginWorldMap.tileAt(mouse.getMouseX(), mouse.getMouseY(), worldMapTile)) {
 			return
 		}
+		val before: Int = MiniMenu.entryCount
 		menuBuilding = true
 		menuKind = MenuTarget.WORLD_MAP.kind
 		menuParam0Low = worldMapTile[0]
@@ -1413,14 +1414,34 @@ object PluginRuntime {
 		menuEntryAddedEvent.widgetId = 0
 		menuEntryAddedEvent.slot = -1
 		menuEntryAddedEvent.itemId = -1
-		bus.post(Events.MENU_ENTRY_ADDED, menuEntryAddedEvent)
+		postSince(API_WORLD_MAP)
 		menuBuilding = false
+		// the game puts no entry of its own over the map: a left click (a drag) must not take a plugin's
+		worldMapEntries = MiniMenu.entryCount > before
+	}
+
+	/** Whether plugins added entries over the world map this cycle: the left click is then Cancel's. */
+	private var worldMapEntries: Boolean = false
+
+	/** The API versions that brought the world map's and the minimap's menu targets: older plugins never see them. */
+	private const val API_WORLD_MAP: Int = 37
+	private const val API_MINIMAP: Int = 38
+
+	/** MenuEntryAdded to the plugins that declare API [since] or later only. */
+	private fun postSince(since: Int) {
+		bus.listenerFilter = EventBusImpl.ListenerFilter { owner -> owner == null || owner.descriptor.apiVersion >= since }
+		bus.post(Events.MENU_ENTRY_ADDED, menuEntryAddedEvent)
+		bus.listenerFilter = null
 	}
 
 	private val worldMapTile: IntArray = IntArray(3)
 
-	/** The mouse is over the minimap: the plugins' MenuEntryAdded for it. Since API 38. */
+	/** The mouse is over the minimap's map (inside its round mask, the map drawn this frame): the plugins' MenuEntryAdded for it. Since API 38. */
 	private fun menuTargetMinimap() {
+		val mouse = MouseRecord.mouseRecorder ?: return
+		if (SceneDrawer.timesSceneRendered - minimapFrame > 2 || minimapRowStart == null || !onMinimap(mouse.getMouseX(), mouse.getMouseY())) {
+			return // the loading minimap, the box's corners, or no minimap drawn
+		}
 		menuBuilding = true
 		menuKind = MenuTarget.MINIMAP.kind
 		menuParam0Low = 0
@@ -1435,7 +1456,7 @@ object PluginRuntime {
 		menuEntryAddedEvent.widgetId = 0
 		menuEntryAddedEvent.slot = -1
 		menuEntryAddedEvent.itemId = -1
-		bus.post(Events.MENU_ENTRY_ADDED, menuEntryAddedEvent)
+		postSince(API_MINIMAP)
 		menuBuilding = false
 	}
 
@@ -1528,6 +1549,11 @@ object PluginRuntime {
 	@JvmStatic
 	fun menuBuilt(): Boolean {
 		promotedDefault = null
+		if (worldMapEntries) {
+			// only plugins' entries over the world map: Cancel takes the left click, which stays the map's drag
+			worldMapEntries = false
+			promotedDefault = MiniMenu.cancelOption
+		}
 		if (!started || MiniMenu.isOpen) {
 			return false
 		}

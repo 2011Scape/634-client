@@ -303,7 +303,8 @@ tasks.named("checkClasses") {
 /*
  * The SMAA shader and lookup textures (src/jvmMain/resources/smaa) go beside the browser bundle too:
  * with client.smaa the page fetches them before the client starts (main.js.kt). So do Shortest Path's
- * map and transports (src/jvmMain/resources/shortest-path), fetched the first time the plugin needs them.
+ * map and transports (src/jvmMain/resources/shortest-path), fetched the first time the plugin needs them
+ * (lang.requestResource).
  */
 tasks.named<ProcessResources>("jsProcessResources") {
     from("src/jvmMain/resources") {
