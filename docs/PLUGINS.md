@@ -24,8 +24,9 @@ aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implin
 inventory grid (`InventoryGrid`), the examine (`Examine`), the entity hider (`EntityHider`), the
 animation smoothing (`AnimationSmoothing`), the screenshot (`Screenshot`), the Grand Exchange
 (`GrandExchange`), the time tracking (`TimeTracking`), the screen markers (`ScreenMarkers`), the
-hiscore (`Hiscore`), the friend notes (`FriendNotes`) and the interact highlight (`InteractHighlight`) are
-sixty-five, built in, so the client's own code shows the way.
+hiscore (`Hiscore`), the friend notes (`FriendNotes`), the interact highlight (`InteractHighlight`), the shortest path
+(`ShortestPath`) and the item prices (`PriceTooltips`) are sixty-seven, built in, so the client's own code
+shows the way.
 
 ## Contents
 
@@ -770,6 +771,15 @@ glider, ship, carpet, portal, obelisk and canoe routes and agility shortcuts, an
 they ship in the jar (`src/jvmMain/resources/shortest-path/`). Not here from RuneLite: the sidebar (its
 switches are the plugin's settings), Old School's own transports (quetzals, minecarts, sailing, leagues,
 house portals) and its messages to other plugins. Off at first.
+
+**Item Prices** is RuneLite's. With the mouse over an item in the backpack, the bank or the bank's backpack,
+a tooltip shows what it is worth: "GE: 30K gp (15K ea)" and "HA: 30.7K gp (15.3K ea)", the stack's
+exchange guide price and High Level Alchemy's value, with one item's after it on a stack of more than one
+(**Show price each on stacks**). **Show High Alchemy profit** adds what alching it would make after the
+item's guide price and a nature rune's, green for a gain and red for a loss. **Hide tooltips on backpack
+items** leaves the backpack out, except while High Level Alchemy is picked (**Show prices while
+alching**). Coins, and an item with neither price, get no tooltip. RuneLite's seed vault, treasure chest
+and explorer's ring are not in 634. `::itemprices` turns it on and off.
 
 ## Writing a plugin
 
