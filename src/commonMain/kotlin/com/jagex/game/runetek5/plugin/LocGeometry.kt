@@ -8,6 +8,7 @@ import com.jagex.game.runetek5.entity.InteractiveEntityContainer
 import com.jagex.game.runetek5.entity.PickableEntity
 import com.jagex.game.runetek5.entity.gameobject.GameObject
 import com.jagex.game.runetek5.graphics.Toolkit
+import com.jagex.game.runetek5.graphics.model.FaceBuffer
 import com.jagex.game.runetek5.scene.Scene
 import com.jagex.game.runetek5.scene.tile.Tile
 import kotlin.jvm.JvmField
@@ -15,10 +16,11 @@ import kotlin.jvm.JvmStatic
 
 /**
  * Not part of the original client: the shapes of a location on the screen for the plugins
- * (ClientApi.locHull, locClickbox, locOutline), as RuneLite's Object Markers draws them. The client
- * keeps no model triangles every toolkit can hand out, but every toolkit can say whether a screen
- * point is on a drawn model, which is how the game picks what is under the mouse (Entity.picked).
- * So the shape is sampled: over the area the location's pick capsules cover this frame (the
+ * (ClientApi.locHull, locClickbox, locOutline), as RuneLite's Object Markers draws them. Where the toolkit
+ * hands out the picking model's triangles (Entity.pickShape: software, GL, 634HD) they are filled into the
+ * mask as an actor's are (ActorGeometry.rasterise). Every toolkit can say whether a screen point is on a
+ * drawn model, which is how the game picks what is under the mouse (Entity.picked), so elsewhere (the SSE
+ * toolkit) the shape is sampled: over the area the location's pick capsules cover this frame (the
  * PickableEntity the scene drew it with, which is also the game's own click box), each sample asks
  * the model; the samples that hit make a mask, whose convex hull is the hull and whose edge is the
  * outline. A mask is kept while the location and its capsules do not move (the camera is still).
@@ -49,6 +51,9 @@ object LocGeometry {
 	private var cachedKey: IntArray = IntArray(0)
 
 	private var cachedMask: Mask? = null
+
+	/** A location's projected triangles (Entity.pickShape). */
+	private val faces: FaceBuffer = FaceBuffer()
 
 	/** The location [baseId] (its base or its current multiloc id) on scene tile ([tileX], [tileY]), or null. */
 	@JvmStatic
@@ -137,7 +142,10 @@ object LocGeometry {
 		if (entity === cachedEntity && key.contentEquals(cachedKey)) {
 			return cachedMask
 		}
-		val mask: Mask = sampleShape(box[0], box[1], width, height, COARSE_SAMPLES, EDGE_SAMPLES) { x, y -> entity.picked(toolkit, y, x) }
+		// the model's own triangles where the toolkit hands them out, filled as an actor's are; else sampled
+		faces.clear()
+		val mask: Mask = (if (entity.pickShape(toolkit, faces)) ActorGeometry.rasterise(faces.points, faces.count, ActorGeometry.MAX_CELLS) else null)
+			?: sampleShape(box[0], box[1], width, height, COARSE_SAMPLES, EDGE_SAMPLES) { x, y -> entity.picked(toolkit, y, x) }
 		cachedEntity = entity
 		cachedKey = key
 		cachedMask = mask

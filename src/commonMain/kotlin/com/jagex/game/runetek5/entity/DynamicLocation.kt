@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.entity
 
+import com.jagex.game.runetek5.graphics.model.FaceBuffer
 import com.jagex.game.runetek5.entity.gameobject.GameObject
 import com.jagex.game.runetek5.config.loctype.LocInteractivity
 import com.jagex.game.runetek5.graphics.model.particle.Silhouette
@@ -57,6 +58,17 @@ class DynamicLocation : AbstractInteractiveEntity, GameObject {
 
 	@OriginalMember(owner = "client!fea", name = "c", descriptor = "(I)V")
 	override fun upload() {
+	}
+
+	/** Not part of the original client: see Entity.pickShape; [picked]'s model and placement. */
+	override fun pickShape(toolkit: Toolkit?, out: FaceBuffer): Boolean {
+		if (toolkit == null || OrthoMode.orthographicProjection) {
+			return false
+		}
+		val model: Model = this.locEntity.getModel(false, false, 131072, toolkit) ?: return false
+		val matrix: Matrix = toolkit!!.scratchMatrix()!!
+		matrix.applyTranslation(this.x, this.y, this.z)
+		return model.projectFaces(matrix, out)
 	}
 
 	@OriginalMember(owner = "client!fea", name = "a", descriptor = "(Lclient!ha;III)Z")
