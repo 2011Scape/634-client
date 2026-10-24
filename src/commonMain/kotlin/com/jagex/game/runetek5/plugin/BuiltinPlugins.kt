@@ -28,6 +28,7 @@ import com.jagex.game.runetek5.client.features.Hiscore
 import com.jagex.game.runetek5.client.features.Hunter
 import com.jagex.game.runetek5.client.features.IdleNotifier
 import com.jagex.game.runetek5.client.features.Implings
+import com.jagex.game.runetek5.client.features.InteractHighlight
 import com.jagex.game.runetek5.client.features.InventoryGrid
 import com.jagex.game.runetek5.client.features.InventoryTags
 import com.jagex.game.runetek5.client.features.InventoryValue
@@ -144,6 +145,7 @@ object BuiltinPlugins {
 			builtIn(ScreenMarkers.DESCRIPTOR, ScreenMarkers),
 			builtIn(Hiscore.DESCRIPTOR, Hiscore),
 			builtIn(FriendNotes.DESCRIPTOR, FriendNotes),
+			builtIn(InteractHighlight.DESCRIPTOR, InteractHighlight),
 		)
 	}
 
