@@ -497,6 +497,15 @@ object SmokeTest {
 
 	private var metronomeTicks: Int = 0
 
+	/** client.test.timeTracking: Falador's herb patch set by hand (guam half grown, then grown), Time Tracking's herbs infobox and its "grown" line, then the patch put back. */
+	private val TIME_TRACKING: Boolean = "true" == lang.getProperty("client.test.timeTracking")
+
+	private var timeTrackingStep: Int = 0
+
+	private var timeTrackingFrame: Int = -1
+
+	private var timeTrackingWas: Int = 0
+
 	/** client.test.grandExchange: offer slot 5 sent twice by hand (a buy of 10 rune bars, then 5 of them bought), Grand Exchange's chat line and its offers panel, then the slot put back. */
 	private val GRAND_EXCHANGE: Boolean = "true" == lang.getProperty("client.test.grandExchange")
 
@@ -1749,6 +1758,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 576460752303423488L
+		}
+		if (TIME_TRACKING && (checksDone and 1152921504606846976L) == 0L) {
+			if (!timeTrackingDone()) {
+				return
+			}
+			checksDone = checksDone or 1152921504606846976L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5598,6 +5613,52 @@ object SmokeTest {
 					return true
 				}
 				println("SMOKE animation smoothing: " + animationSmoothingCount + " blended frames in " + MARKER_FRAMES + " frames on, none off")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** Time Tracking: Falador's herb patch (varbit 780) as guam_2, an infobox for the herbs; then guam_life1, told as grown; the patch put back. Frame: frame-timetracking.png. */
+	private fun timeTrackingDone(): Boolean {
+		val vars: PlayerVarDomain = PlayerVarDomain.playerVarProvider ?: return false
+		val herb: Int = FarmingPatchData.PATCHES.indexOfFirst { it.varbit == 780 }
+		when (timeTrackingStep) {
+			0 -> {
+				timeTrackingWas = vars.getVarBitValue(780)
+				TimeTracking.lastMessage = null
+				vars.setVarBitValueFromServer(780, 6) // guam_2
+				timeTrackingFrame = frames
+				timeTrackingStep = 1
+			}
+			1 -> {
+				if (frames - timeTrackingFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-timetracking.png")
+				val left: Long = TimeTracking.secondsLeft(herb, lang.currentTimeMillis() / 1000L)
+				// two 20 minute cycles at most, and one at least
+				if (TimeTracking.values[herb] != 6 || left <= 0L || left > 40L * 60L) {
+					vars.setVarBitValueFromServer(780, timeTrackingWas)
+					fail("Time Tracking: herb patch value " + TimeTracking.values[herb] + ", " + left + " s left")
+					return true
+				}
+				println("SMOKE time tracking: guam_2 at Falador, grown in " + TimeTracking.duration(left))
+				vars.setVarBitValueFromServer(780, 8) // guam_life1
+				timeTrackingFrame = frames
+				timeTrackingStep = 2
+			}
+			2 -> {
+				if (frames - timeTrackingFrame < MARKER_FRAMES / 2) {
+					return false
+				}
+				val told: String? = TimeTracking.lastMessage
+				vars.setVarBitValueFromServer(780, timeTrackingWas)
+				if (told != "Your guam at Falador is grown.") {
+					fail("Time Tracking: told " + told)
+					return true
+				}
+				println("SMOKE time tracking: told \"" + told + "\"")
 				return true
 			}
 		}

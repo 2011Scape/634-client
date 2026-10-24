@@ -55,6 +55,7 @@ import com.jagex.game.runetek5.client.features.Smelting
 import com.jagex.game.runetek5.client.features.SpecialCounter
 import com.jagex.game.runetek5.client.features.StatusBars
 import com.jagex.game.runetek5.client.features.TileIndicators
+import com.jagex.game.runetek5.client.features.TimeTracking
 import com.jagex.game.runetek5.client.features.TimersAndBuffs
 import com.jagex.game.runetek5.client.features.VirtualLevels
 import com.jagex.game.runetek5.client.features.Woodcutting
@@ -136,6 +137,7 @@ object BuiltinPlugins {
 			builtIn(AnimationSmoothing.DESCRIPTOR, AnimationSmoothing),
 			builtIn(Screenshot.DESCRIPTOR, Screenshot),
 			builtIn(GrandExchange.DESCRIPTOR, GrandExchange),
+			builtIn(TimeTracking.DESCRIPTOR, TimeTracking),
 		)
 	}
 
