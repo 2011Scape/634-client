@@ -35,7 +35,10 @@ interface Graphics {
 	/** Whether the font exists yet: false before the first toolkit has loaded its fonts. */
 	fun fontReady(): Boolean
 
-	/** A line [width] pixels wide. */
+	/**
+	 * A line [width] pixels wide, with square ends. Blended by the colour's alpha at every width since API 38 (a
+	 * colour with alpha 0 is drawn solid, as every thick line was before).
+	 */
 	fun thickLine(x1: Int, y1: Int, x2: Int, y2: Int, width: Int, argb: Int)
 
 	/** A filled circle about ([x], [y]), blended by the colour's alpha. */

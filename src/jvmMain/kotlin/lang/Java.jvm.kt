@@ -66,6 +66,10 @@ private object ResourceAnchor
 actual fun readResource(path: String): ByteArray? =
     ResourceAnchor::class.java.getResourceAsStream(path)?.use { it.readBytes() }
 
+actual fun requestResource(path: String) {
+    // on the class path already
+}
+
 @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 actual fun String.javaIntern(): String = (this as java.lang.String).intern()
 

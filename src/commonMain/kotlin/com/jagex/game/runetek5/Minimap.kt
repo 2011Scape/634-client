@@ -483,7 +483,7 @@ object Minimap {
 			toolkit.A(-16777216, clippingMask, clipLeft, clipTop)
 			return
 		}
-		PluginRuntime.minimapDrawn(clipLeft, clipTop, component.width, component.height) // Not part of the original client: the plugins' minimap projection, only while a map is drawn.
+		PluginRuntime.minimapDrawn(clipLeft, clipTop, component.width, component.height, component.rowStartX, component.rowWidth) // Not part of the original client: the plugins' minimap projection, only while a map is drawn.
 		@Pc(64) val cameraTargetAbsX: Int
 		@Pc(52) val cameraTargetAbsZ: Int
 		@Pc(61) val rotation: Int

@@ -68,6 +68,13 @@ expect fun Throwable.printStackTraceTo(writer: io.PrintWriter?)
 /* The bytes of the class path resource at `path` (from the root, as "/dir/name"), or null. */
 expect fun readResource(path: String): ByteArray?
 
+/*
+ * Asks for the class path resource at `path` to be ready for readResource: the desktop has it already; the
+ * browser fetches it from beside the page, and readResource gives null until it has come (or for good, if
+ * it cannot be fetched).
+ */
+expect fun requestResource(path: String)
+
 /* java.lang.String.intern. */
 expect fun String.javaIntern(): String
 

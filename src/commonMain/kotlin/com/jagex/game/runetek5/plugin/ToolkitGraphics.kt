@@ -126,8 +126,41 @@ object ToolkitGraphics : Graphics {
 
 	override fun thickLine(x1: Int, y1: Int, x2: Int, y2: Int, width: Int, argb: Int) {
 		val toolkit: Toolkit = ClientState.activeToolkit ?: return
-		toolkit.strongLine(x1 + tx, y1 + ty, x2 + tx, y2 + ty, argb, if (width < 1) 1 else width)
+		// an alpha of 0 was always drawn solid (strongLine ignored alpha): keep that for the plugins that pass RGB alone
+		val colour: Int = if (argb ushr 24 == 0) argb or (0xFF shl 24) else argb
+		val dx: Double = (x2 - x1).toDouble()
+		val dy: Double = (y2 - y1).toDouble()
+		val length: Double = kotlin.math.sqrt(dx * dx + dy * dy)
+		if (width <= 1 || length < 1.0) {
+			// as Graphics.line: blended by its alpha
+			toolkit.line(x1 + tx, y1 + ty, x2 + tx, y2 + ty, colour, 1)
+			return
+		}
+		// Not part of the original client: a wide line as a filled quad with square ends half its width past each
+		// point, so the corners of an outline meet. OpenGL's core profile (634HD) draws glLineWidth wider than 1 as
+		// 1, so strongLine's width is lost there; a quad is the same on every toolkit, and blends by its alpha.
+		val half: Double = width / 2.0
+		val ux: Double = dx / length * half
+		val uy: Double = dy / length * half
+		val nx: Double = -uy
+		val ny: Double = ux
+		val ax: Double = x1 - ux
+		val ay: Double = y1 - uy
+		val bx: Double = x2 + ux
+		val by: Double = y2 + uy
+		lineXs[0] = kotlin.math.round(ax + nx).toInt()
+		lineYs[0] = kotlin.math.round(ay + ny).toInt()
+		lineXs[1] = kotlin.math.round(bx + nx).toInt()
+		lineYs[1] = kotlin.math.round(by + ny).toInt()
+		lineXs[2] = kotlin.math.round(bx - nx).toInt()
+		lineYs[2] = kotlin.math.round(by - ny).toInt()
+		lineXs[3] = kotlin.math.round(ax - nx).toInt()
+		lineYs[3] = kotlin.math.round(ay - ny).toInt()
+		fillPolygon(lineXs, lineYs, 4, colour)
 	}
+
+	private val lineXs: IntArray = IntArray(4)
+	private val lineYs: IntArray = IntArray(4)
 
 	override fun fillCircle(x: Int, y: Int, radius: Int, argb: Int) {
 		val toolkit: Toolkit = ClientState.activeToolkit ?: return

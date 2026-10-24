@@ -16,7 +16,7 @@ import com.jagex.game.runetek5.plugin.api.SettingsSchema
 import com.jagex.game.runetek5.plugin.api.Viewport
 import com.jagex.game.runetek5.plugin.api.events.EventListener
 import com.jagex.game.runetek5.plugin.api.events.Events
-import com.jagex.game.runetek5.plugin.api.events.FrameDraw
+import com.jagex.game.runetek5.plugin.api.events.MinimapDraw
 import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
@@ -97,7 +97,8 @@ object Implings : Plugin {
 	private val overlay: Overlay = Overlay { g, view -> if (enabled) context?.client()?.let { draw(g, view, it) } }
 
 	/** The names on the minimap, over it. */
-	private val frameListener: EventListener<FrameDraw> = EventListener { event -> if (enabled) context?.client()?.let { drawMinimap(event.graphics, it) } }
+	// on the minimap as it is drawn: under the orbs, as the game's own dots are (API 38)
+	private val minimapListener: EventListener<MinimapDraw> = EventListener { event -> if (enabled) context?.client()?.let { drawMinimap(event.graphics, it) } }
 
 	private val spawnListener: EventListener<Npc> = EventListener { npc -> if (enabled) context?.client()?.let { spawned(it, npc) } }
 
@@ -144,7 +145,7 @@ object Implings : Plugin {
 		readSettings(context.config())
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
 		context.events().subscribe(Events.NPC_SPAWNED, spawnListener)
-		context.events().subscribe(Events.FRAME_DRAW, frameListener)
+		context.events().subscribe(Events.MINIMAP_DRAW, minimapListener)
 		context.addOverlay(overlay)
 		context.registerCommand("implings", toggle)
 	}

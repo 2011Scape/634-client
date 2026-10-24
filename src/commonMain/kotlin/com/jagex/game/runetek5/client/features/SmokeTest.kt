@@ -5216,16 +5216,94 @@ object SmokeTest {
 				} else {
 					println("SMOKE shortest path: " + ShortestPath.drawnCounts[2] + " segments on the world map; its centre is tile " + tile[0] + "," + tile[1] + "," + tile[2])
 				}
+				// the mouse on the map: Set Target in its right-click menu, and a left click left to the map (Cancel's)
+				(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(box[0] + box[2] / 2, box[1] + box[3] / 2)
+				shortestPathFrame = frames
+				shortestPathStep = 21
+			}
+			21 -> {
+				if (frames - shortestPathFrame < 10) {
+					return false
+				}
+				val setTarget: Boolean = findEntry("Set Target") != null
+				val leftClick: Boolean = PluginRuntime.promotedDefault() === MiniMenu.cancelOption
+				(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(-1, -1)
+				if (shortestPathFailure == null && (!setTarget || !leftClick)) {
+					shortestPathFailure = "Shortest Path: over the world map Set Target " + (if (setTarget) "offered" else "missing") + ", the left click " + (if (leftClick) "Cancel's" else "a plugin entry's")
+				} else if (shortestPathFailure == null) {
+					println("SMOKE shortest path: over the world map Set Target is in the menu and the left click stays the map's")
+				}
 				clickComponent(WORLD_MAP, WORLD_MAP_CLOSE)
 				shortestPathFrame = frames
 				shortestPathStep = 3
 			}
-			else -> {
+			3 -> {
 				if (api.worldMapArea(IntArray(4)) && frames - shortestPathFrame < BANK_WAIT_FRAMES) {
 					return false
 				}
+				// Find closest: every bank a target, the nearest found, drawn as an arrow line
+				ShortestPath.pathStyle = "Arrow line"
+				if (shortestPathFailure == null && !ShortestPath.findClosest(api, "Bank")) {
+					shortestPathFailure = "Shortest Path: no banks to find (" + ShortestPath.destinations.size + " kinds of map icon)"
+				}
+				shortestPathFrame = frames
+				shortestPathStep = 4
+			}
+			4 -> {
+				val finder: ShortestPathFinder? = ShortestPath.finder
+				if (shortestPathFailure == null && (finder == null || !finder.done || ShortestPath.drawnCounts[0] == 0) && frames - shortestPathFrame < BANK_WAIT_FRAMES * 4) {
+					return false
+				}
+				if (finder != null && finder.done && shortestPathFound < shortestPathFrame) {
+					shortestPathFound = frames
+				}
+				if (shortestPathFailure == null && finder != null && finder.done && frames - shortestPathFound < MARKER_FRAMES) {
+					return false
+				}
+				if (shortestPathFailure == null) {
+					val banks: IntArray = ShortestPath.destinations["Bank"] ?: IntArray(0)
+					if (finder == null || !finder.done || !finder.reached || finder.path.last() !in banks) {
+						shortestPathFailure = "Shortest Path: Find closest bank " + (if (finder == null) "never searched" else "done " + finder.done + ", reached " + finder.reached)
+					} else {
+						saveFrame("build/smoke/frame-shortestpath-bank.png")
+						val end: Int = finder.path.last()
+						println("SMOKE shortest path: the closest of " + banks.size + " banks is " + ShortestPathFinder.x(end) + "," + ShortestPathFinder.y(end) + "," + ShortestPathFinder.level(end) + ", " + finder.path.size + " tiles, " + finder.pathTransports.count { it != null } + " transports, drawn as an arrow line")
+					}
+				}
+				// a far target with every teleport item taken as carried: the path starts with a teleport, which pulses
+				ShortestPath.pathStyle = "Tiles"
+				ShortestPath.useTeleportationItems = ShortestPath.ITEMS_ALL
+				ShortestPath.setTarget(api, 3212, 3440, 0)
+				shortestPathFrame = frames
+				shortestPathFound = -1
+				shortestPathStep = 5
+			}
+			5 -> {
+				val finder: ShortestPathFinder? = ShortestPath.finder
+				if (shortestPathFailure == null && (finder == null || !finder.done) && frames - shortestPathFrame < BANK_WAIT_FRAMES * 4) {
+					return false
+				}
+				if (finder != null && finder.done && shortestPathFound < shortestPathFrame) {
+					shortestPathFound = frames
+				}
+				if (shortestPathFailure == null && finder != null && finder.done && frames - shortestPathFound < MARKER_FRAMES) {
+					return false
+				}
+				if (shortestPathFailure == null) {
+					val first: ShortestPathTransport? = finder?.pathTransports?.getOrNull(1)
+					if (finder == null || !finder.reached || first == null || !first.anywhere) {
+						shortestPathFailure = "Shortest Path: the way to Varrock with every teleport item does not start with a teleport (" + (first?.label ?: "none") + ")"
+					} else {
+						saveFrame("build/smoke/frame-shortestpath-teleport.png")
+						println("SMOKE shortest path: to Varrock by " + first.label + " (" + first.hint + "), " + finder.path.size + " tiles")
+					}
+				}
+				shortestPathStep = 6
+			}
+			else -> {
 				ShortestPath.clearTarget()
-				ShortestPath.enabled = false
+				// the settings as the player has them, not the step's
+				ShortestPath.context?.config()?.let { ShortestPath.readSettings(it) }
 				shortestPathFailure?.let {
 					fail(it)
 					return true
