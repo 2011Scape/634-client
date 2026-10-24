@@ -266,4 +266,21 @@ class ShortestPathTest {
 		assertFalse(ShortestPathRules(player(1, emptyMap()), emptyMap(), true, 100_000).meets(tablet, true))
 		assertTrue(ShortestPathRules(player(1, emptyMap()), emptyMap(), true, 100_000, bank = carried).meets(tablet, true), "in the bank")
 	}
+
+	/** The shipped map keeps a guarded door shut: the Crafting Guild (south of its door) lets in Crafting 40 with a brown apron worn, as Void does. */
+	@Test
+	fun theShippedMapKeepsGuardedDoorsToTheirRules() {
+		val grid = ShortestPathGrid.decode(lang.readResource("/shortest-path/collision.gz")!!)
+		val table = ShortestPathTransport.decode(lang.readResource("/shortest-path/transports.tsv.gz")!!).filter { it.type == "OBJECT" }
+		val outside: Int = pack(2933, 3292, 0)
+		val inside: Int = pack(2933, 3285, 0)
+		fun way(crafting: Int, worn: Set<Int>): ShortestPathFinder {
+			val player = ShortestPathPlayer(IntArray(25) { if (it == 12) crafting else 1 }, emptyMap(), worn, "modern") { _, _ -> 0 }
+			val rules = ShortestPathRules(player, emptyMap(), true, 100_000)
+			return search(grid, outside, inside, table.filter { rules.meets(it) }) { it.maxNodes = 200_000 }
+		}
+		assertFalse(way(1, emptySet()).reached, "Crafting 1")
+		assertFalse(way(40, emptySet()).reached, "no apron")
+		assertTrue(way(40, setOf(1757)).reached, "Crafting 40 and the brown apron")
+	}
 }

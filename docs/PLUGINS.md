@@ -762,8 +762,10 @@ search that stops making progress for the calculation cutoff, or runs past its l
 tile it reached, and a path that ends further than the unreachable distance from every target is drawn
 in the unreachable colour, with text over you. The debug settings draw every transport and the map's
 walls near you, and a panel of the search's numbers. Old School's map files are another world, so the
-map, the transports and the map icons are 634's, made from the Void server's own collision (every ordinary
-door and gate counted open), its object teleports, spells, jewellery, fairy ring codes, spirit tree,
+map, the transports and the map icons are 634's, made from the Void server's own collision (every step out
+of a tile by the server's own rules, one way and the other, every ordinary door and gate counted open and
+the guarded ones kept to their conditions: guild doors, God Wars chambers, toll gates and the like), its
+object teleports and the dungeon entrances, holes, ropes and passages its scripts move you through, spells, jewellery, fairy ring codes, spirit tree,
 glider, ship, carpet, portal, obelisk and canoe routes and agility shortcuts, and the cache's map icons;
 they ship in the jar (`src/jvmMain/resources/shortest-path/`). Not here from RuneLite: the sidebar (its
 switches are the plugin's settings), Old School's own transports (quetzals, minecarts, sailing, leagues,
