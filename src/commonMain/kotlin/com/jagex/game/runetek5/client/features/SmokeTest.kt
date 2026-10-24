@@ -75,6 +75,12 @@ import com.jagex.game.runetek5.plugin.Tooltips
 import com.jagex.game.runetek5.plugin.InfoBoxes
 import com.jagex.game.runetek5.plugin.OverlayLayout
 import com.jagex.game.runetek5.plugin.api.PanelOverlay
+import com.jagex.game.runetek5.entity.PathingEntity
+import com.jagex.game.runetek5.plugin.api.LocVisitor
+import com.jagex.game.runetek5.plugin.api.Npc
+import com.jagex.game.runetek5.plugin.api.HoveredTarget
+import com.jagex.game.runetek5.plugin.LocGeometry
+import com.jagex.game.runetek5.plugin.ActorGeometry
 import com.jagex.game.runetek5.plugin.api.Widget
 import com.jagex.game.runetek5.interaction.FriendList
 import com.jagex.game.runetek5.plugin.api.QuestState
@@ -499,6 +505,15 @@ object SmokeTest {
 	private var metronomeStart: Long = -1L
 
 	private var metronomeTicks: Int = 0
+
+	/** client.test.interactHighlight: Interact Highlight with a nearby npc, then a nearby location, standing in for the mouse; each outlined by its silhouette, not its box. */
+	private val INTERACT_HIGHLIGHT: Boolean = "true" == lang.getProperty("client.test.interactHighlight")
+
+	private var interactStep: Int = 0
+
+	private var interactFrame: Int = -1
+
+	private var interactNpc: Int = -1
 
 	/** client.test.friendNotes: browsertest added as a friend (through the client, as the friends list's Add Friend does), its row on the Friends tab found and named, a note kept and shown over it, then the note and the friend removed. */
 	private val FRIEND_NOTES: Boolean = "true" == lang.getProperty("client.test.friendNotes")
@@ -1158,6 +1173,9 @@ object SmokeTest {
 	/** The checks done so far, one bit each in the order frame() runs them. */
 	private var checksDone: Long = 0L
 
+	/** The checks done past the 64 [checksDone] holds. */
+	private var checksDone2: Long = 0L
+
 	private var startToolkit: Int = -1
 
 	private var toolkitSwitched: Boolean = false
@@ -1804,6 +1822,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or Long.MIN_VALUE
+		}
+		if (INTERACT_HIGHLIGHT && (checksDone2 and 1L) == 0L) {
+			if (!interactHighlightDone(player)) {
+				return
+			}
+			checksDone2 = checksDone2 or 1L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5659,6 +5683,187 @@ object SmokeTest {
 					return true
 				}
 				println("SMOKE animation smoothing: " + animationSmoothingCount + " blended frames in " + MARKER_FRAMES + " frames on, none off")
+				return true
+			}
+		}
+		return false
+	}
+
+	/** The share of [mask]'s cells that are hits: a silhouette fills well under its box, a box fills all of it. */
+	private fun filled(mask: LocGeometry.Mask): Double = mask.hits.count { it }.toDouble() / mask.hits.size
+
+	/**
+	 * Interact Highlight: the nearest npc drawn this frame hovered (by the plugin's test hook), outlined by its
+	 * silhouette (ActorGeometry); then a location by the player hovered, outlined (LocGeometry). Frames:
+	 * frame-interacthighlight-npc.png, frame-interacthighlight-loc.png.
+	 */
+	private fun interactHighlightDone(player: PlayerEntity): Boolean {
+		when (interactStep) {
+			0 -> {
+				var best: Int = Int.MAX_VALUE
+				for (i in 0 until ClientApiImpl.npcCount()) {
+					val npc: Npc = ClientApiImpl.npc(i) ?: continue
+					val d: Int = kotlin.math.abs(npc.tileX() - player.movementBaseX[0]) + kotlin.math.abs(npc.tileY() - player.movementBaseY[0])
+					if (npc.isDrawnThisFrame() && d < best) {
+						best = d
+						interactNpc = npc.index()
+					}
+				}
+				if (interactNpc < 0) {
+					fail("Interact Highlight: no npc drawn near the player")
+					return true
+				}
+				val hover: HoveredTarget = HoveredTarget()
+				hover.kind = MenuTarget.NPC
+				hover.id = interactNpc
+				hover.option = "Talk-to"
+				InteractHighlight.testHover = hover
+				interactFrame = frames
+				interactStep = 1
+			}
+			1 -> {
+				if (frames - interactFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-interacthighlight-npc.png")
+				val entity: PathingEntity? = ClientApiImpl.npcByIndex(interactNpc) as? PathingEntity
+				val mask: LocGeometry.Mask? = if (entity == null) null else ActorGeometry.current(entity)
+				if (InteractHighlight.lastNpc != interactNpc || mask == null || filled(mask) <= 0.02 || filled(mask) >= 0.9) {
+					InteractHighlight.testHover = null
+					fail("Interact Highlight: npc " + interactNpc + " outlined " + InteractHighlight.lastNpc + ", silhouette " + (if (mask == null) "none" else "filling " + filled(mask)))
+					return true
+				}
+				val drawStart: Long = lang.nanoTime()
+				ClientApiImpl.actorOutline(entity!!, InteractHighlight.borderWidth, InteractHighlight.feather, InteractHighlight.hoverColour)
+				val drawMicros: Long = (lang.nanoTime() - drawStart) / 1000L
+				println("SMOKE interact highlight: npc " + interactNpc + " outlined, silhouette " + mask.columns + "x" + mask.rows + " cells of " + mask.step + " px, filling " + (filled(mask) * 100).toInt() + "% of its box; taken in " + ActorGeometry.lastCaptureNanos / 1000L + " us, drawn in " + drawMicros + " us")
+				// a location: the first with a pick shape on the tiles around the player
+				val base: Int = player.movementBaseX[0]
+				val baseY: Int = player.movementBaseY[0]
+				var found: IntArray? = null
+				for (r in 1..6) {
+					for (dx in -r..r) {
+						for (dy in -r..r) {
+							if (found == null && (kotlin.math.abs(dx) == r || kotlin.math.abs(dy) == r)) {
+								ClientApiImpl.locsAt(base + dx, baseY + dy, player.level.toInt(), LocVisitor { id, _, _, _ ->
+									if (found == null && LocGeometry.find(base + dx, baseY + dy, player.level.toInt(), id)?.let { LocGeometry.mask(it) } != null) {
+										found = intArrayOf(base + dx, baseY + dy, id)
+									}
+								})
+							}
+						}
+					}
+				}
+				val loc: IntArray = found ?: run {
+					InteractHighlight.testHover = null
+					fail("Interact Highlight: no location on the screen near the player")
+					return true
+				}
+				val hover: HoveredTarget = InteractHighlight.testHover!!
+				hover.kind = MenuTarget.LOC
+				hover.id = loc[2]
+				hover.sceneX = loc[0]
+				hover.sceneY = loc[1]
+				hover.option = "Examine"
+				interactFrame = frames
+				interactStep = 2
+			}
+			3 -> {
+				if (frames - interactFrame < MARKER_FRAMES / 2) {
+					return false
+				}
+				saveFrame("build/smoke/frame-interacthighlight-interact.png")
+				val hover: HoveredTarget = InteractHighlight.testHover!!
+				InteractHighlight.testHover = null
+				val colour: Int = InteractHighlight.lastLocColour
+				InteractHighlight.clickedLocId = -1
+				InteractHighlight.idleTicks = 0
+				if (InteractHighlight.lastLoc != hover.id || colour != InteractHighlight.objectInteractColour) {
+					fail("Interact Highlight: the clicked, hovered location " + hover.id + " outlined in " + colour.toUInt().toString(16) + ", not the interact colour")
+					return true
+				}
+				println("SMOKE interact highlight: clicked location " + hover.id + " kept the interact colour while hovered")
+				// the npc again, now as the one the player faces (talks to, fights): the interact colour while hovered
+				val npcHover: HoveredTarget = HoveredTarget()
+				npcHover.kind = MenuTarget.NPC
+				npcHover.id = interactNpc
+				npcHover.option = "Talk-to"
+				InteractHighlight.testHover = npcHover
+				player.faceEntity = interactNpc
+				interactFrame = frames
+				interactStep = 4
+				return false
+			}
+			4 -> {
+				if (frames - interactFrame < MARKER_FRAMES / 2) {
+					return false
+				}
+				saveFrame("build/smoke/frame-interacthighlight-npc-interact.png")
+				InteractHighlight.testHover = null
+				val faced: Boolean = player.interacting() === ClientApiImpl.npcByIndex(interactNpc)
+				player.faceEntity = -1
+				val colour: Int = InteractHighlight.lastNpcColour
+				if (!faced || InteractHighlight.lastNpc != interactNpc || (colour != InteractHighlight.interactColour && colour != InteractHighlight.attackInteractColour)) {
+					fail("Interact Highlight: the faced, hovered npc " + interactNpc + " (faced " + faced + ") outlined " + InteractHighlight.lastNpc + " in " + colour.toUInt().toString(16) + ", not the interact colour")
+					return true
+				}
+				println("SMOKE interact highlight: faced npc " + interactNpc + " kept the interact colour while hovered")
+				// last, a real hover: the pointer held on the npc's silhouette, the game's own picking and menu deciding
+				interactFrame = frames
+				interactStep = 5
+				return false
+			}
+			5 -> {
+				val entity: PathingEntity? = ClientApiImpl.npcByIndex(interactNpc) as? PathingEntity
+				val mask: LocGeometry.Mask? = if (entity == null) null else ActorGeometry.current(entity)
+				val hit: Int = mask?.hits?.indexOfFirst { it } ?: -1
+				if (mask != null && hit >= 0) {
+					// the middle of the silhouette's middle row, kept on the npc as it walks
+					val row: Int = mask.rows / 2
+					var column: Int = (0 until mask.columns).firstOrNull { mask.hit(it, row) } ?: (hit % mask.columns)
+					while (column + 1 < mask.columns && mask.hit(column + 1, row)) {
+						column++
+						if (column - ((0 until mask.columns).firstOrNull { mask.hit(it, row) } ?: 0) >= 2) {
+							break
+						}
+					}
+					(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(PluginRuntime.viewX() + mask.x + column * mask.step + mask.step / 2, PluginRuntime.viewY() + mask.y + row * mask.step + mask.step / 2)
+				}
+				if (frames - interactFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-interacthighlight-hover.png")
+				(MouseRecord.mouseRecorder as MouseManager).smokeMoveTo(-1, -1)
+				val colour: Int = InteractHighlight.lastNpcColour
+				if (InteractHighlight.lastNpc != interactNpc || (colour != InteractHighlight.hoverColour && colour != InteractHighlight.attackHoverColour)) {
+					fail("Interact Highlight: the pointer on npc " + interactNpc + " outlined " + InteractHighlight.lastNpc + " in " + colour.toUInt().toString(16) + "; menu top " + PluginRuntime.topClickType + " " + PluginRuntime.topOption)
+					return true
+				}
+				println("SMOKE interact highlight: the pointer on npc " + interactNpc + " outlined it in the hover colour (menu top \"" + PluginRuntime.topOption + "\")")
+				return true
+			}
+			else -> {
+				if (frames - interactFrame < MARKER_FRAMES) {
+					return false
+				}
+				saveFrame("build/smoke/frame-interacthighlight-loc.png")
+				val hover: HoveredTarget = InteractHighlight.testHover!!
+				if (InteractHighlight.lastLoc != hover.id || InteractHighlight.lastLocColour != InteractHighlight.objectHoverColour) {
+					InteractHighlight.testHover = null
+					fail("Interact Highlight: location " + hover.id + " at " + hover.sceneX + "," + hover.sceneY + " not outlined in the hover colour")
+					return true
+				}
+				println("SMOKE interact highlight: location " + hover.id + " at " + hover.sceneX + "," + hover.sceneY + " outlined")
+				if (interactStep == 2) {
+					// clicked, still hovered: the interact colour wins (the plugin's idle rule is left alone: no ticks pass in a frame)
+					InteractHighlight.clickedLocX = hover.sceneX
+					InteractHighlight.clickedLocY = hover.sceneY
+					InteractHighlight.clickedLocId = hover.id
+					InteractHighlight.idleTicks = -1000
+					interactFrame = frames
+					interactStep = 3
+					return false
+				}
 				return true
 			}
 		}

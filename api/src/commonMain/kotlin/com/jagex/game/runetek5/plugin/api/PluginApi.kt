@@ -68,9 +68,11 @@ package com.jagex.game.runetek5.plugin.api
  * - 34: animation smoothing ([PluginContext.setAnimationFilter]).
  * - 35: Grand Exchange offers ([com.jagex.game.runetek5.plugin.api.events.Events.GRAND_EXCHANGE_OFFER_CHANGED],
  *   [ClientApi.grandExchangeOffer]).
+ * - 36: actor silhouettes ([ClientApi.actorOutline], [ClientApi.actorShape]) and what a left click would act on
+ *   ([ClientApi.hoveredTarget], [HoveredTarget]).
  * - 31: the drag ([ClientApi.isDraggingWidget], [ClientApi.draggedWidget], [ClientApi.draggedOnWidget], [ClientApi.itemPressedDuration]) and [Graphics.itemIconAlpha].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 35
+	const val VERSION: Int = 36
 }

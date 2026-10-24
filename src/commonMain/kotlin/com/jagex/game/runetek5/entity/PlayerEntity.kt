@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.entity
 
+import com.jagex.game.runetek5.plugin.ActorGeometry
 import com.jagex.game.runetek5.plugin.api.Player
 import com.jagex.game.runetek5.client.features.SmokeTest
 import com.jagex.game.runetek5.buffer.Packet
@@ -283,6 +284,9 @@ class PlayerEntity : PathingEntity(), Player {
 		super.movementQueueSpeed[0] = moveSpeed
 		super.movementBaseY[0] = baseY
 	}
+
+	/** Not part of the original client: see PathingEntity.pickModels. */
+	override fun pickModels(toolkit: Toolkit?): Boolean = this.playerModel != null && this.getAnimatedBodyModel(131072, toolkit)
 
 	@OriginalMember(owner = "client!ke", name = "a", descriptor = "(Lclient!ha;III)Z")
 	override fun picked(@OriginalArg(0) toolkit: Toolkit?, @OriginalArg(1) mouseY: Int, @OriginalArg(2) mouseX: Int): Boolean {
@@ -654,6 +658,7 @@ class PlayerEntity : PathingEntity(), Player {
 		}
 		// Not part of the original client: the smoke test (client.test=smoke) sees which models were drawn.
 		SmokeTest.drawn(this, super.models)
+		ActorGeometry.capture(this, super.models, matrix, pickableEntity, toolkit) // Not part of the original client: a plugin's actor outline (ActorGeometry)
 		super.models[2] = null
 		super.models[1] = null
 		super.models[0] = null

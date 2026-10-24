@@ -1426,9 +1426,44 @@ object PluginRuntime {
 	@JvmStatic
 	fun menuBuilt(): Boolean {
 		promotedDefault = null
-		if (!started || MiniMenu.isOpen || !bus.hasListeners(Events.MENU_BUILT)) {
+		if (!started || MiniMenu.isOpen) {
 			return false
 		}
+		val edited: Boolean = bus.hasListeners(Events.MENU_BUILT) && postMenuBuilt()
+		recordTopEntry()
+		return edited
+	}
+
+	/** What the left click would do, as the menu was last built (ClientApi.hoveredTarget): the top entry, or the one a plugin promoted. */
+	@JvmField var topClickType: Int = -1
+	@JvmField var topParam0: Int = 0
+	@JvmField var topParam1: Int = 0
+	@JvmField var topUid: Long = 0L
+	@JvmField var topOption: String? = null
+	@JvmField var topCycle: Int = -1
+
+	private fun recordTopEntry() {
+		var entry: MiniMenuEntry? = promotedDefault
+		var node: Node? = MiniMenu.entryList.sentinel.previous
+		while (entry == null && node != null && node !== MiniMenu.entryList.sentinel) {
+			entry = node as? MiniMenuEntry
+			node = node.previous
+		}
+		topCycle = ClientState.clientCycle
+		if (entry == null) {
+			topClickType = -1
+			return
+		}
+		val view: MenuEntry = entry
+		topClickType = view.clickType()
+		topParam0 = view.param0()
+		topParam1 = view.param1()
+		topUid = view.entityUid()
+		topOption = view.option()
+	}
+
+	/** The plugins' MenuBuilt, on the finished menu; true when a listener took an entry out or moved one. */
+	private fun postMenuBuilt(): Boolean {
 		// the entries from the top: the last of the list draws first and takes the left click
 		menuEntryTotal = 0
 		var node: Node? = MiniMenu.entryList.sentinel.previous

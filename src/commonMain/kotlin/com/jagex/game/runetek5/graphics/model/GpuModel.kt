@@ -1101,6 +1101,67 @@ class GpuModel : Model {
 		return this.maxY
 	}
 
+	/** Not part of the original client: see Model.projectFaces; [pick]'s projection, every face kept. */
+	override fun projectFaces(matrix: Matrix?, out: FaceBuffer): Boolean {
+		// a model whose vertices were let go once uploaded has nothing to project: the caller samples picking
+		if (matrix == null || this.verticesX == null || this.verticesY == null || this.verticesZ == null || this.triangles == null || this.vertexNormalIndices == null || this.facesA == null || this.facesB == null || this.facesC == null) {
+			return false
+		}
+		val modelMatrix: NativeMatrix = matrix as NativeMatrix
+		val viewMatrix43: NativeMatrix? = this.nativeToolkit.viewMatrix43
+		val translateX: Float = viewMatrix43!!.xD + viewMatrix43!!.xA * modelMatrix.xD + viewMatrix43!!.xB * modelMatrix.yD + viewMatrix43!!.xC * modelMatrix.zD
+		val translateY: Float = viewMatrix43!!.yC * modelMatrix.zD + modelMatrix.yD * viewMatrix43!!.yB + modelMatrix.xD * viewMatrix43!!.yA + viewMatrix43!!.yD
+		GpuModel.modelViewXC = viewMatrix43!!.xC * modelMatrix.zC + modelMatrix.xC * viewMatrix43!!.xA + modelMatrix.yC * viewMatrix43!!.xB
+		GpuModel.modelViewZA = modelMatrix.zA * viewMatrix43!!.zC + viewMatrix43!!.zB * modelMatrix.yA + modelMatrix.xA * viewMatrix43!!.zA
+		GpuModel.modelViewYB = modelMatrix.yB * viewMatrix43!!.yB + viewMatrix43!!.yA * modelMatrix.xB + viewMatrix43!!.yC * modelMatrix.zB
+		GpuModel.modelViewZC = modelMatrix.xC * viewMatrix43!!.zA + viewMatrix43!!.zB * modelMatrix.yC + modelMatrix.zC * viewMatrix43!!.zC
+		GpuModel.modelViewXB = modelMatrix.zB * viewMatrix43!!.xC + viewMatrix43!!.xA * modelMatrix.xB + viewMatrix43!!.xB * modelMatrix.yB
+		GpuModel.modelViewYA = viewMatrix43!!.yC * modelMatrix.zA + modelMatrix.xA * viewMatrix43!!.yA + modelMatrix.yA * viewMatrix43!!.yB
+		GpuModel.modelViewXA = viewMatrix43!!.xC * modelMatrix.zA + viewMatrix43!!.xB * modelMatrix.yA + modelMatrix.xA * viewMatrix43!!.xA
+		val translateZ: Float = viewMatrix43!!.zD + viewMatrix43!!.zC * modelMatrix.zD + viewMatrix43!!.zA * modelMatrix.xD + modelMatrix.yD * viewMatrix43!!.zB
+		GpuModel.modelViewYC = viewMatrix43!!.yB * modelMatrix.yC + modelMatrix.xC * viewMatrix43!!.yA + modelMatrix.zC * viewMatrix43!!.yC
+		GpuModel.modelViewZB = viewMatrix43!!.zB * modelMatrix.yB + modelMatrix.xB * viewMatrix43!!.zA + modelMatrix.zB * viewMatrix43!!.zC
+		val scaleX: Float = this.nativeToolkit.projectionScaleX.toFloat()
+		val scaleY: Float = this.nativeToolkit.projectionScaleY.toFloat()
+		val centerX: Float = this.nativeToolkit.projectionCenterX.toFloat()
+		val centerY: Float = this.nativeToolkit.projectionCenterY.toFloat()
+		val zNear: Float = this.nativeToolkit.camNear.toFloat()
+		if (GpuModel.projectedVerticesX.size < this.numNormals) {
+			GpuModel.projectedVerticesY = IntArray(this.numNormals)
+			GpuModel.projectedVerticesX = IntArray(this.numNormals)
+		}
+		val projectedX: IntArray = GpuModel.projectedVerticesX
+		val projectedY: IntArray = GpuModel.projectedVerticesY
+		for (j in 0 until this.maxDepth) {
+			val pointX: Float = this.verticesX!![j].toFloat()
+			val pointY: Float = this.verticesY!![j].toFloat()
+			val pointZ: Float = this.verticesZ!![j].toFloat()
+			val viewZ: Float = GpuModel.modelViewZC * pointZ + pointX * GpuModel.modelViewZA + GpuModel.modelViewZB * pointY + translateZ
+			val viewX: Float = translateX + GpuModel.modelViewXB * pointY + GpuModel.modelViewXA * pointX + pointZ * GpuModel.modelViewXC
+			val viewY: Float = GpuModel.modelViewYC * pointZ + pointX * GpuModel.modelViewYA + GpuModel.modelViewYB * pointY + translateY
+			val visible: Boolean = viewZ >= zNear
+			val screenX: Int = if (visible) (centerX + viewX * scaleX / viewZ).toInt() else -999999
+			val screenY: Int = if (visible) (centerY + viewY * scaleY / viewZ).toInt() else 0
+			for (k in this.triangles!![j] until this.triangles!![j + 1]) {
+				val normalIndex: Int = this.vertexNormalIndices!![k] - 1
+				if (normalIndex == -1) {
+					break
+				}
+				projectedX[normalIndex] = screenX
+				projectedY[normalIndex] = screenY
+			}
+		}
+		for (f in 0 until this.numFaces) {
+			val a: Int = this.facesA!![f].toInt()
+			val b: Int = this.facesB!![f].toInt()
+			val c: Int = this.facesC!![f].toInt()
+			if (projectedX[a] != -999999 && projectedX[b] != -999999 && projectedX[c] != -999999) {
+				out.add(projectedX[a], projectedY[a], projectedX[b], projectedY[b], projectedX[c], projectedY[c])
+			}
+		}
+		return true
+	}
+
 	@OriginalMember(owner = "client!nca", name = "a", descriptor = "(IIIIIZLclient!bca;)Z")
 	private fun pick(@OriginalArg(0) x: Int, @OriginalArg(1) sizeShift: Int, @OriginalArg(2) zoom: Int, @OriginalArg(4) y: Int, @OriginalArg(5) quick: Boolean, @OriginalArg(6) matrix: Matrix?): Boolean {
 		@Pc(8) val modelMatrix: NativeMatrix = matrix as NativeMatrix

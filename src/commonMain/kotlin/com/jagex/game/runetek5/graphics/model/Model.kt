@@ -529,6 +529,13 @@ abstract class Model @OriginalMember(owner = "client!ka", name = "<init>", descr
 		}
 	}
 
+	/**
+	 * Not part of the original client: the model's triangles as drawn with [matrix] this frame, projected as
+	 * [picked] projects them, appended to [out]. False for a toolkit that cannot (the native SSE one), whose
+	 * caller samples [picked] instead.
+	 */
+	open fun projectFaces(matrix: Matrix?, out: FaceBuffer): Boolean = false
+
 	@OriginalMember(owner = "client!ka", name = "a", descriptor = "(IILclient!bca;ZI)Z")
 	abstract fun picked(@OriginalArg(0) x: Int, @OriginalArg(1) y: Int, @OriginalArg(2) matrix: Matrix?, @OriginalArg(3) quick: Boolean, @OriginalArg(4) sizeShift: Int): Boolean
 

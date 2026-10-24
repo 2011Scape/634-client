@@ -24,7 +24,8 @@ aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implin
 inventory grid (`InventoryGrid`), the examine (`Examine`), the entity hider (`EntityHider`), the
 animation smoothing (`AnimationSmoothing`), the screenshot (`Screenshot`), the Grand Exchange
 (`GrandExchange`), the time tracking (`TimeTracking`), the screen markers (`ScreenMarkers`), the
-hiscore (`Hiscore`) and the friend notes (`FriendNotes`) are sixty-four, built in, so the client's own code shows the way.
+hiscore (`Hiscore`), the friend notes (`FriendNotes`) and the interact highlight (`InteractHighlight`) are
+sixty-five, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -55,8 +56,9 @@ the game for you.
   on the screen; what an item fetches on the Grand Exchange (the guide prices the game's website
   publishes, fetched in the background) and from High Level Alchemy, and whether it can be traded;
   whether an item on the ground is another player's drop made public, and how high its pile lies;
-  the shape of a location on the screen (its hull, its click box, its outline drawn) and what a
-  location that changes with the player's variables is now.
+  the shape of a location on the screen (its hull, its click box, its outline drawn), the silhouette
+  of a player or an npc (its hull and its outline drawn), what a left click would act on now, and what
+  a location that changes with the player's variables is now.
 - Draw: on the game view every frame (under the interfaces), or over the whole frame: lines, boxes,
   circles, polygons, text in the client's three fonts, the cache's sprites, the icons of items and
   pictures of its own (a PNG), within a clip of its own choosing; panels the client places in a corner
@@ -714,6 +716,16 @@ Note** and **Delete Note** once it has one): type the note, Enter keeps it and E
 With the mouse over the name the note shows as a tooltip. Notes are kept by name, up to 128 characters;
 `::friendnote <name> [note]` sets one, or clears it with no note (`_` for a space in the name). RuneLite's
 note icon beside the name, and notes on the ignore list, are not here.
+
+**Interact Highlight** is RuneLite's. The npc or object a left click would act on is outlined by its own
+shape in the hover colour (an npc whose top option is Attack in the attack colour), and the npc you are
+fighting or talking to, and the object you last clicked, in the interact colours until you are done with
+them (the object once you have stood idle for two ticks, or clicked something else), also while the mouse
+is still over them. Each of npcs, objects
+and players (off at first) can be switched off, as can hovering and interacting, and the colours, the
+border width and the outline's feather are RuneLite's settings. An npc's or a player's outline comes from
+its models' triangles as the toolkit draws them; the SSE toolkit cannot hand them out, so there the shape
+is sampled with the game's own picking, coarser and refreshed every other frame.
 
 ## Writing a plugin
 

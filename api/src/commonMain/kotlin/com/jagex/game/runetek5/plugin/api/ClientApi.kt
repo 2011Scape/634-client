@@ -536,4 +536,26 @@ interface ClientApi {
 	 * slot out of range. [GrandExchangeOffer.EMPTY] until the server sends the slot. Since API 35.
 	 */
 	fun grandExchangeOffer(slot: Int, out: GrandExchangeOffer): Boolean
+
+	/**
+	 * Draws [actor]'s outline this frame, as [locOutline] draws a location's: its models' own silhouette as
+	 * drawn (not the bounding box [actorHull] goes round), the pixels within [width] (1 to 16) outside it in
+	 * [argb], the outer [feather] (0 to 4) of them fading out. The silhouette is taken while the scene draws
+	 * the actor, so the first call for an actor draws nothing and returns false, and the frames after draw it
+	 * while the plugin keeps asking; false too when the actor was not drawn this frame. Since API 36.
+	 */
+	fun actorOutline(actor: Actor, width: Int, feather: Int, argb: Int): Boolean
+
+	/**
+	 * The convex hull of [actor]'s silhouette (see [actorOutline]) this frame, view-relative like
+	 * [actorHull], into [xs] and [ys]; the point count, 0 when there is none yet. Since API 36.
+	 */
+	fun actorShape(actor: Actor, xs: IntArray, ys: IntArray): Int
+
+	/**
+	 * What a left click would act on now: the top entry of the right-click menu as built this frame, when it
+	 * is on an npc, a player, a location or a ground item, into [out]; false for anything else (a walk, an
+	 * interface, nothing) and while a menu is open. Since API 36.
+	 */
+	fun hoveredTarget(out: HoveredTarget): Boolean
 }

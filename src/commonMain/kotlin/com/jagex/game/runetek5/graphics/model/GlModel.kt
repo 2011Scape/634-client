@@ -1232,6 +1232,67 @@ class GlModel : Model {
 		return this.maxY.toInt()
 	}
 
+	/** Not part of the original client: see Model.projectFaces; [pick]'s projection, every face kept. */
+	override fun projectFaces(matrix: Matrix?, out: FaceBuffer): Boolean {
+		// a model whose vertices were let go once uploaded has nothing to project: the caller samples picking
+		if (matrix == null || this.verticesX == null || this.verticesY == null || this.verticesZ == null || this.triangles == null || this.vertexNormalIndices == null || this.facesA == null || this.facesB == null || this.facesC == null) {
+			return false
+		}
+		val modelMatrix: Matrix43? = matrix as Matrix43? ?: return false
+		val viewMatrix: Matrix43 = this.glToolkit!!.viewMatrix43
+		val translateX: Float = viewMatrix.xD + modelMatrix!!.zD * viewMatrix.xC + viewMatrix.xA * modelMatrix.xD + modelMatrix.yD * viewMatrix.xB
+		val translateY: Float = viewMatrix.yD + modelMatrix.zD * viewMatrix.yC + modelMatrix.xD * viewMatrix.yA + modelMatrix.yD * viewMatrix.yB
+		GlModel.modelViewXY = viewMatrix.xC * modelMatrix.zB + modelMatrix.yB * viewMatrix.xB + viewMatrix.xA * modelMatrix.xB
+		GlModel.modelViewYZ = modelMatrix.xC * viewMatrix.yA + viewMatrix.yB * modelMatrix.yC + viewMatrix.yC * modelMatrix.zC
+		GlModel.modelViewZX = viewMatrix.zB * modelMatrix.yA + modelMatrix.xA * viewMatrix.zA + modelMatrix.zA * viewMatrix.zC
+		GlModel.modelViewZZ = modelMatrix.xC * viewMatrix.zA + modelMatrix.yC * viewMatrix.zB + viewMatrix.zC * modelMatrix.zC
+		val translateZ: Float = viewMatrix.zA * modelMatrix.xD + viewMatrix.zB * modelMatrix.yD + modelMatrix.zD * viewMatrix.zC + viewMatrix.zD
+		GlModel.modelViewYY = viewMatrix.yA * modelMatrix.xB + viewMatrix.yB * modelMatrix.yB + viewMatrix.yC * modelMatrix.zB
+		GlModel.modelViewYX = modelMatrix.zA * viewMatrix.yC + modelMatrix.yA * viewMatrix.yB + viewMatrix.yA * modelMatrix.xA
+		GlModel.modelViewXZ = viewMatrix.xB * modelMatrix.yC + viewMatrix.xA * modelMatrix.xC + modelMatrix.zC * viewMatrix.xC
+		GlModel.modelViewXX = modelMatrix.zA * viewMatrix.xC + modelMatrix.xA * viewMatrix.xA + modelMatrix.yA * viewMatrix.xB
+		GlModel.modelViewZY = viewMatrix.zC * modelMatrix.zB + modelMatrix.yB * viewMatrix.zB + modelMatrix.xB * viewMatrix.zA
+		val scaleX: Float = this.glToolkit.projectionScaleX.toFloat()
+		val scaleY: Float = this.glToolkit.projectionScaleY.toFloat()
+		val centerX: Float = this.glToolkit.projectionCenterX.toFloat()
+		val centerY: Float = this.glToolkit.projectionCenterY.toFloat()
+		val zNear: Float = this.glToolkit.zNear.toFloat()
+		if (this.glToolkit.scratchVerticesX.size < this.numNormals) {
+			this.glToolkit.scratchVerticesY = IntArray(this.numNormals)
+			this.glToolkit.scratchVerticesX = IntArray(this.numNormals)
+		}
+		val projectedX: IntArray = this.glToolkit.scratchVerticesX
+		val projectedY: IntArray = this.glToolkit.scratchVerticesY
+		for (j in 0 until this.maxDepth) {
+			val pointX: Float = this.verticesX!![j].toFloat()
+			val pointY: Float = this.verticesY!![j].toFloat()
+			val pointZ: Float = this.verticesZ!![j].toFloat()
+			val viewZ: Float = translateZ + pointZ * GlModel.modelViewZZ + GlModel.modelViewZX * pointX + pointY * GlModel.modelViewZY
+			val viewX: Float = translateX + pointY * GlModel.modelViewXY + pointX * GlModel.modelViewXX + GlModel.modelViewXZ * pointZ
+			val viewY: Float = translateY + GlModel.modelViewYY * pointY + pointX * GlModel.modelViewYX + pointZ * GlModel.modelViewYZ
+			val visible: Boolean = viewZ >= zNear
+			val screenX: Int = if (visible) (centerX + viewX * scaleX / viewZ).toInt() else -999999
+			val screenY: Int = if (visible) (centerY + viewY * scaleY / viewZ).toInt() else 0
+			for (k in this.triangles!![j] until this.triangles!![j + 1]) {
+				val normalIndex: Int = this.vertexNormalIndices!![k] - 1
+				if (normalIndex == -1) {
+					break
+				}
+				projectedX[normalIndex] = screenX
+				projectedY[normalIndex] = screenY
+			}
+		}
+		for (f in 0 until this.numFaces) {
+			val a: Int = this.facesA!![f].toInt()
+			val b: Int = this.facesB!![f].toInt()
+			val c: Int = this.facesC!![f].toInt()
+			if (projectedX[a] != -999999 && projectedX[b] != -999999 && projectedX[c] != -999999) {
+				out.add(projectedX[a], projectedY[a], projectedX[b], projectedY[b], projectedX[c], projectedY[c])
+			}
+		}
+		return true
+	}
+
 	@OriginalMember(owner = "client!paa", name = "a", descriptor = "(ZIIIIILclient!bca;)Z")
 	private fun pick(@OriginalArg(0) quick: Boolean, @OriginalArg(2) zoom: Int, @OriginalArg(3) y: Int, @OriginalArg(4) sizeShift: Int, @OriginalArg(5) x: Int, @OriginalArg(6) matrix: Matrix?): Boolean {
 		@Pc(8) val modelMatrix: Matrix43? = matrix as Matrix43?
