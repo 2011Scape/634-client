@@ -58,6 +58,7 @@ import com.jagex.game.runetek5.client.features.Slayer
 import com.jagex.game.runetek5.client.features.Smelting
 import com.jagex.game.runetek5.client.features.SpecialCounter
 import com.jagex.game.runetek5.client.features.StatusBars
+import com.jagex.game.runetek5.client.features.ShortestPath
 import com.jagex.game.runetek5.client.features.TileIndicators
 import com.jagex.game.runetek5.client.features.TimeTracking
 import com.jagex.game.runetek5.client.features.TimersAndBuffs
@@ -146,6 +147,7 @@ object BuiltinPlugins {
 			builtIn(Hiscore.DESCRIPTOR, Hiscore),
 			builtIn(FriendNotes.DESCRIPTOR, FriendNotes),
 			builtIn(InteractHighlight.DESCRIPTOR, InteractHighlight),
+			builtIn(ShortestPath.DESCRIPTOR, ShortestPath),
 		)
 	}
 
