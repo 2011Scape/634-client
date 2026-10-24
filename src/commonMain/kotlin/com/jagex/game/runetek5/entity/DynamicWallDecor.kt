@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.entity
 
+import com.jagex.game.runetek5.graphics.model.FaceBuffer
 import com.jagex.game.runetek5.entity.gameobject.GameObject
 import com.jagex.game.runetek5.config.loctype.LocInteractivity
 import com.jagex.game.runetek5.graphics.model.particle.Silhouette
@@ -134,6 +135,17 @@ class DynamicWallDecor : WallDecor, GameObject {
 	@OriginalMember(owner = "client!pw", name = "b", descriptor = "(B)Z")
 	override fun hasAlpha(): Boolean {
 		return this.transparent
+	}
+
+	/** Not part of the original client: see Entity.pickShape; [picked]'s model and placement. */
+	override fun pickShape(toolkit: Toolkit?, out: FaceBuffer): Boolean {
+		if (toolkit == null || OrthoMode.orthographicProjection) {
+			return false
+		}
+		val model: Model = this.locEntity.getModel(false, false, 131072, toolkit) ?: return false
+		val matrix: Matrix = toolkit!!.scratchMatrix()!!
+		matrix.applyTranslation(this.offsetX + this.x, this.y, this.offsetZ + this.z)
+		return model.projectFaces(matrix, out)
 	}
 
 	@OriginalMember(owner = "client!pw", name = "a", descriptor = "(Lclient!ha;III)Z")

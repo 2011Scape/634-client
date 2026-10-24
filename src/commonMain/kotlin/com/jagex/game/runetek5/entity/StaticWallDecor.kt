@@ -1,5 +1,6 @@
 package com.jagex.game.runetek5.entity
 
+import com.jagex.game.runetek5.graphics.model.FaceBuffer
 import com.jagex.game.runetek5.entity.gameobject.GameObject
 import com.jagex.game.runetek5.graphics.model.particle.Silhouette
 import com.jagex.game.runetek5.scene.ground.Ground
@@ -115,6 +116,17 @@ class StaticWallDecor : WallDecor, GameObject {
 			this.model = null
 		}
 		return if (this.model == null) 0 else this.model!!.ma()
+	}
+
+	/** Not part of the original client: see Entity.pickShape; [picked]'s model and placement. */
+	override fun pickShape(toolkit: Toolkit?, out: FaceBuffer): Boolean {
+		if (toolkit == null || OrthoMode.orthographicProjection) {
+			return false
+		}
+		val model: Model = this.getModel(131072, toolkit) ?: return false
+		val matrix: Matrix = toolkit!!.scratchMatrix()!!
+		matrix.applyTranslation(this.x, this.y, this.z)
+		return model.projectFaces(matrix, out)
 	}
 
 	@OriginalMember(owner = "client!co", name = "a", descriptor = "(Lclient!ha;III)Z")

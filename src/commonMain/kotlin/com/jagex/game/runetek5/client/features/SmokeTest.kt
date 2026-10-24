@@ -5689,6 +5689,40 @@ object SmokeTest {
 		return false
 	}
 
+	/** The empty cells of [mask] no path of empty cells joins to its border: holes inside the shape. */
+	private fun enclosedGaps(mask: LocGeometry.Mask): Int {
+		val outside: BooleanArray = BooleanArray(mask.columns * mask.rows)
+		val queue: ArrayDeque<Int> = ArrayDeque()
+		for (row in 0 until mask.rows) {
+			for (column in 0 until mask.columns) {
+				if ((row == 0 || column == 0 || row == mask.rows - 1 || column == mask.columns - 1) && !mask.hit(column, row)) {
+					outside[row * mask.columns + column] = true
+					queue.add(row * mask.columns + column)
+				}
+			}
+		}
+		while (queue.isNotEmpty()) {
+			val at: Int = queue.removeFirst()
+			val column: Int = at % mask.columns
+			for (d in intArrayOf(-1, 1, -mask.columns, mask.columns)) {
+				val next: Int = at + d
+				val nc: Int = next % mask.columns
+				if (next < 0 || next >= outside.size || (d == -1 && column == 0) || (d == 1 && nc == 0) || outside[next] || mask.hit(nc, next / mask.columns)) {
+					continue
+				}
+				outside[next] = true
+				queue.add(next)
+			}
+		}
+		var gaps: Int = 0
+		for (i in outside.indices) {
+			if (!outside[i] && !mask.hits[i]) {
+				gaps++
+			}
+		}
+		return gaps
+	}
+
 	/** The share of [mask]'s cells that are hits: a silhouette fills well under its box, a box fills all of it. */
 	private fun filled(mask: LocGeometry.Mask): Double = mask.hits.count { it }.toDouble() / mask.hits.size
 
@@ -5853,7 +5887,16 @@ object SmokeTest {
 					fail("Interact Highlight: location " + hover.id + " at " + hover.sceneX + "," + hover.sceneY + " not outlined in the hover colour")
 					return true
 				}
-				println("SMOKE interact highlight: location " + hover.id + " at " + hover.sceneX + "," + hover.sceneY + " outlined")
+				val locMask: LocGeometry.Mask? = LocGeometry.find(hover.sceneX, hover.sceneY, player.level.toInt(), hover.id)?.let { LocGeometry.mask(it) }
+				val holes: Int = if (locMask == null) -1 else enclosedGaps(locMask)
+				println("SMOKE interact highlight: location " + hover.id + " at " + hover.sceneX + "," + hover.sceneY + " outlined, its shape " + (if (locMask == null) "none" else locMask.columns.toString() + "x" + locMask.rows + " cells of " + locMask.step + " px, " + holes + " enclosed gaps"))
+				// software and 634HD fill the model's own triangles: pixel cells, no gaps in a solid object
+				val active: Int = ClientState.activeToolkit?.index ?: -1
+				if (locMask != null && active != 2 && (locMask.step != 1 || holes > 0)) {
+					InteractHighlight.testHover = null
+					fail("Interact Highlight: location " + hover.id + "'s shape is " + locMask.step + " px cells with " + holes + " enclosed gaps on toolkit " + active)
+					return true
+				}
 				if (interactStep == 2) {
 					// clicked, still hovered: the interact colour wins (the plugin's idle rule is left alone: no ticks pass in a frame)
 					InteractHighlight.clickedLocX = hover.sceneX

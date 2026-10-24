@@ -3,6 +3,7 @@ package com.jagex.game.runetek5.entity
 import com.jagex.game.runetek5.graphics.model.particle.Silhouette
 import com.jagex.game.runetek5.cache.node.PointLight
 import com.jagex.game.runetek5.graphics.Toolkit
+import com.jagex.game.runetek5.graphics.model.FaceBuffer
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalClass
 import org.openrs2.deob.annotation.OriginalMember
@@ -120,6 +121,12 @@ abstract class Entity : EntityNode {
 
 	@OriginalMember(owner = "client!ga", name = "a", descriptor = "(Lclient!ha;III)Z")
 	abstract fun picked(@OriginalArg(0) toolkit: Toolkit?, @OriginalArg(1) mouseY: Int, @OriginalArg(2) mouseX: Int): Boolean
+
+	/**
+	 * Not part of the original client: the triangles [picked] tests, projected into [out] (Model.projectFaces), for a
+	 * plugin's outline of a location (plugin.LocGeometry). False when this kind of entity or its toolkit cannot.
+	 */
+	open fun pickShape(toolkit: Toolkit?, out: FaceBuffer): Boolean = false
 
 	@OriginalMember(owner = "client!ga", name = "b", descriptor = "(Z)V")
 	abstract fun removeTileShadow()
