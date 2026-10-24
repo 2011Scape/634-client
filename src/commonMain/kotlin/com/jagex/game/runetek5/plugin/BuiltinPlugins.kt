@@ -19,6 +19,7 @@ import com.jagex.game.runetek5.client.features.DiscordPresence
 import com.jagex.game.runetek5.client.features.Emojis
 import com.jagex.game.runetek5.client.features.EntityHider
 import com.jagex.game.runetek5.client.features.Examine
+import com.jagex.game.runetek5.client.features.FairyRings
 import com.jagex.game.runetek5.client.features.Fishing
 import com.jagex.game.runetek5.client.features.FriendNotes
 import com.jagex.game.runetek5.client.features.GrandExchange
@@ -150,6 +151,7 @@ object BuiltinPlugins {
 			builtIn(InteractHighlight.DESCRIPTOR, InteractHighlight),
 			builtIn(ShortestPath.DESCRIPTOR, ShortestPath),
 			builtIn(PriceTooltips.DESCRIPTOR, PriceTooltips),
+			builtIn(FairyRings.DESCRIPTOR, FairyRings),
 		)
 	}
 

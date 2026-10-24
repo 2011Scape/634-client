@@ -25,8 +25,8 @@ inventory grid (`InventoryGrid`), the examine (`Examine`), the entity hider (`En
 animation smoothing (`AnimationSmoothing`), the screenshot (`Screenshot`), the Grand Exchange
 (`GrandExchange`), the time tracking (`TimeTracking`), the screen markers (`ScreenMarkers`), the
 hiscore (`Hiscore`), the friend notes (`FriendNotes`), the interact highlight (`InteractHighlight`), the shortest path
-(`ShortestPath`) and the item prices (`PriceTooltips`) are sixty-seven, built in, so the client's own code
-shows the way.
+(`ShortestPath`), the item prices (`PriceTooltips`) and the fairy rings (`FairyRings`) are sixty-eight,
+built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -780,6 +780,15 @@ item's guide price and a nature rune's, green for a gain and red for a loss. **H
 items** leaves the backpack out, except while High Level Alchemy is picked (**Show prices while
 alching**). Coins, and an item with neither price, get no tooltip. RuneLite's seed vault, treasure chest
 and explorer's ring are not in 634. `::itemprices` turns it on and off.
+
+**Fairy Rings** is RuneLite's. With a fairy ring's dial open, the teleport button says where the dialled
+code goes ("Kandarin: Piscatoris Hunter area"), or "Invalid location". The travel log beside it, which in
+634 lists only the codes you have been to, lists all 43 of Void's codes with their destinations, laid out
+and sorted by the log itself (**Re-sort list** still works); clicking one dials it, as the log's own
+entries do. Searching keeps the codes whose letters or destination hold what you type: it opens with the
+log when **Open search automatically** is on, or with **Search** on a code's right-click; type at the top
+of the game view, Enter keeps the search and Escape clears it. `::fairyring <text>` lists the matching
+codes in the console. RuneLite's tags (extra search words for a place) are not here.
 
 ## Writing a plugin
 
