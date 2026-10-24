@@ -730,11 +730,21 @@ is sampled with the game's own picking, coarser and refreshed every other frame.
 **Shortest Path** is from RuneLite's plugin hub (Skretzo's). Right-click the world map, or hold Shift and
 right-click a tile in the game, for **Set target** (and **Clear target**), or type `::path <x> <y> [level]`
 (`::path` alone clears it): the shortest way there is drawn on the tiles, as dots on the minimap and as a
-line on the world map, the tiles where it takes stairs or a ladder in their own colour with the
-transport's name. It is found again when you stray more than the recalculate distance from it, and goes
-when you come within the reached distance of the target. Old School's map files are another world, so
-the map and transports are 634's, made from the Void server's own collision (every ordinary door and gate
-counted open) and its stairs, ladders, trapdoors and shortcuts; they ship in the jar
+line on the world map, the tiles where it takes a transport in their own colour with the transport's
+name. Besides stairs, ladders and trapdoors it takes agility shortcuts your level allows, the
+teleport spells of the spellbook you have open when you have the Magic level and the runes (a worn
+elemental staff counts for its runes), teleport tablets and jewellery you carry or wear (or all of them,
+or none: a setting), fairy rings with a Dramen or Lunar staff worn, spirit trees, gnome gliders, charter
+ships up to the currency threshold, and canoes by your Woodcutting level, each with its own switch.
+Quests are checked as Void checks them, from the varps and varbits it keeps them in and sends to the
+client (Priest in Peril for Port Phasmatys, Fairy Tale II started for the rings, Plague City for Ardougne
+Teleport); a quest Void has not written counts as done, as its `quests.requirements.skipMissing` has it.
+It is found again when you stray more than the recalculate
+distance from it or your backpack or worn items change (the old path shows in the calculating colour
+meanwhile), and goes when you come within the reached distance of the target. Old School's map files are
+another world, so the map and transports are 634's, made from the Void server's own collision (every
+ordinary door and gate counted open), its object teleports, spells, jewellery, fairy ring codes, spirit
+tree, glider, ship and canoe routes and agility shortcuts; they ship in the jar
 (`src/jvmMain/resources/shortest-path/`). A search too long for its limit goes to the nearest tile it
 reached. Off at first.
 
