@@ -437,4 +437,20 @@ class ShortestPathTest {
 		java.util.zip.GZIPOutputStream(out).use { it.write(body.toByteArray()) }
 		return out.toByteArray()
 	}
+
+	/** A transport's dashed line with one end off the shown map (zoomed in) is cut to the map's box, not dropped. */
+	@Test
+	fun aJumpWithAnEndOffTheMapIsClipped() {
+		val box = intArrayOf(100, 100, 400, 300) // x 100..499, y 100..399
+		val out = DoubleArray(2)
+		// from inside the box to far off its right: kept up to the edge
+		assertTrue(com.jagex.game.runetek5.client.features.ShortestPathOverlay.clipSegment(300.0, 250.0, 2000.0, 0.0, box, out))
+		assertEquals(0.0, out[0])
+		assertEquals((499.0 - 300.0) / 2000.0, out[1], 1e-9)
+		// both ends off the map, the line through it: the middle kept
+		assertTrue(com.jagex.game.runetek5.client.features.ShortestPathOverlay.clipSegment(-1000.0, 250.0, 3000.0, 0.0, box, out))
+		assertTrue(out[0] > 0.0 && out[1] < 1.0)
+		// off the map altogether: nothing
+		assertFalse(com.jagex.game.runetek5.client.features.ShortestPathOverlay.clipSegment(-1000.0, 50.0, 3000.0, 0.0, box, out))
+	}
 }

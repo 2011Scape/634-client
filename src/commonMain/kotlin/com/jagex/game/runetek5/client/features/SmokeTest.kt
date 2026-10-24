@@ -5351,6 +5351,45 @@ object SmokeTest {
 						println("SMOKE shortest path: to Varrock by " + first.label + " (" + first.hint + "), " + finder.path.size + " tiles")
 					}
 				}
+				// the teleport's dashed line on the world map zoomed all the way in, Varrock far off its edge: still drawn
+				if (shortestPathFailure == null && openTab("World Map", "View World Map")) {
+					shortestPathFrame = frames
+					shortestPathStep = 51
+					return false
+				}
+				shortestPathStep = 6
+			}
+			51 -> {
+				if (!api.worldMapArea(IntArray(4)) && frames - shortestPathFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
+				com.jagex.game.runetek5.graphics.map.worldmap.WorldMap.mapZoom = 16.0f
+				com.jagex.game.runetek5.statics.WorldMapRenderer.requestedMapZoom = 16.0f
+				com.jagex.game.runetek5.graphics.map.worldmap.WorldMapDisplay.mapCenterX = api.sceneBaseX() + player.movementBaseX[0] - com.jagex.game.runetek5.graphics.map.worldmap.WorldMap.mapSquareAbsX
+				com.jagex.game.runetek5.graphics.map.worldmap.WorldMapDisplay.mapCenterY = api.sceneBaseY() + player.movementBaseY[0] - com.jagex.game.runetek5.graphics.map.worldmap.WorldMap.mapSquareAbsY
+				shortestPathFrame = frames
+				shortestPathStep = 52
+			}
+			52 -> {
+				if (frames - shortestPathFrame < 20) {
+					return false
+				}
+				saveFrame("build/smoke/frame-shortestpath-map-zoomed.png")
+				val varrock = IntArray(2)
+				val offMap: Boolean = !api.projectWorldMap(3212, 3428, 0, varrock)
+				if (ShortestPathOverlay.drawnJumps == 0) {
+					shortestPathFailure = "Shortest Path: zoomed in (" + com.jagex.game.runetek5.graphics.map.worldmap.WorldMap.mapZoom + "), the teleport's line to Varrock " + (if (offMap) "(off the map) " else "") + "was not drawn"
+				} else {
+					println("SMOKE shortest path: zoomed in to " + com.jagex.game.runetek5.graphics.map.worldmap.WorldMap.mapZoom + ", Varrock " + (if (offMap) "off the map" else "on the map") + ", the teleport's dashed line still drawn")
+				}
+				clickComponent(WORLD_MAP, WORLD_MAP_CLOSE)
+				shortestPathFrame = frames
+				shortestPathStep = 53
+			}
+			53 -> {
+				if (api.worldMapArea(IntArray(4)) && frames - shortestPathFrame < BANK_WAIT_FRAMES) {
+					return false
+				}
 				shortestPathStep = 6
 			}
 			else -> {
