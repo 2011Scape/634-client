@@ -22,8 +22,8 @@ the chat history (`ChatHistory`), the combat level (`CombatLevel`), the virtual 
 aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implings`), the cooking
 (`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`), the inventory tags (`InventoryTags`), the
 inventory grid (`InventoryGrid`), the examine (`Examine`), the entity hider (`EntityHider`), the
-animation smoothing (`AnimationSmoothing`), the screenshot (`Screenshot`) and the Grand Exchange
-(`GrandExchange`) are sixty, built in, so the client's own code shows the way.
+animation smoothing (`AnimationSmoothing`), the screenshot (`Screenshot`), the Grand Exchange
+(`GrandExchange`) and the time tracking (`TimeTracking`) are sixty-one, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -680,6 +680,19 @@ desktop. The offers are remembered for each account, so offers that traded while
 are told once at your next login. **Offers panel** (or `::geoffers`) shows your offers with a bar of how
 far along each is, for watching them away from the exchange. RuneLite's offer search, buy limit timers
 and its price website are left out.
+
+**Time Tracking** is RuneLite's, its farming part. Each kind of patch you have something growing in
+(herbs, allotments, flowers, hops, bushes, trees, fruit trees, spirit trees, cactus, belladonna) gets an
+infobox with the time until all of its crops are grown, "Done" once they are; hovering it lists each
+patch with its crop and time, or grown, diseased or dead. A crop that finishes while you play is told in
+the chat and on the desktop (**Notify when crops are grown**), and the ones that finished while you were
+logged out are told together at login. `::farming` prints every patch. The patches are read from the
+farming variables Void sends and kept for each account. Void grows a stage every **Growth cycle**
+minutes (its `farming.growth.mins`, 5) times the patch's multiple, on minutes that depend on an offset
+of your own it keeps to itself: the plugin learns it from the first stage it sees grow while you play,
+and until then its times can be up to a cycle out. Void's patches without growth (the Herblore Habitat,
+Harmony Island, the Canifis mushrooms, the jade vine and the calquat) are left out, as are RuneLite's
+bird houses, farming contracts and clocks.
 
 ## Writing a plugin
 
