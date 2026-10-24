@@ -10,7 +10,8 @@ import withLock
  * Not part of the original client: a player's hiscores, RuneLite's HiscoreManager.lookupAsync. The first
  * ask for a name starts a fetch from the website's `index_lite.json` and answers null; later asks answer
  * the result once it is in. A name the website does not know, or a failed fetch, answers null and is asked
- * again after a minute. Used by Opponent Information for a player's lifepoints and its stat comparison.
+ * again after a minute. Used by Opponent Information for a player's lifepoints and its stat comparison,
+ * and by the Hiscore panel.
  */
 object HiscoreLookup {
 
@@ -18,8 +19,20 @@ object HiscoreLookup {
 
 	private const val RETRY_MILLIS: Long = 60_000L
 
-	/** A player's levels by skill, -1 for a skill without a rank. */
-	class Result(@JvmField val player: String, @JvmField val levels: IntArray)
+	/**
+	 * A player's levels by skill, -1 for a skill without a rank; with each skill's [ranks] and [xp] (-1
+	 * without a rank) and the overall rank, total level and experience (-1 when the answer has none).
+	 */
+	class Result(
+		@JvmField val player: String,
+		@JvmField val levels: IntArray,
+		@JvmField val ranks: IntArray = IntArray(levels.size).also { it.fill(-1) },
+		@JvmField val xp: LongArray = LongArray(levels.size).also { it.fill(-1L) },
+	) {
+		@JvmField var overallRank: Int = -1
+		@JvmField var overallLevel: Int = -1
+		@JvmField var overallXp: Long = -1L
+	}
 
 	private val lock: Any = Any()
 
@@ -71,6 +84,10 @@ object HiscoreLookup {
 		return known
 	}
 
+	/** Whether the last fetch for [name] failed (not known to the website, or no answer), until it is asked again. */
+	@JvmStatic
+	fun notFound(name: String): Boolean = withLock(lock) { results[key(name)] == null && (tried[key(name)] ?: 0L) != 0L }
+
 	/** Puts [result] in as if fetched: the smoke test's player, whose hiscores are not on the website. */
 	@JvmStatic
 	fun put(name: String, result: Result) {
@@ -116,18 +133,28 @@ object HiscoreLookup {
 	fun parse(body: String): Result? {
 		val player: String = stringField(body, "player") ?: return null
 		val levels: IntArray = IntArray(Skill.COUNT) { -1 }
+		val result: Result = Result(player, levels)
 		for (skill in 0 until Skill.COUNT) {
-			val entry: String = skillEntry(body, skill) ?: continue
-			if (numberField(entry, "rank") != -1L) {
+			val entry: String = skillEntry(body, Skill.NAMES[skill].lowercase()) ?: continue
+			val rank: Long? = numberField(entry, "rank")
+			if (rank != -1L) {
 				levels[skill] = numberField(entry, "level")?.toInt() ?: -1
+				result.ranks[skill] = rank?.toInt() ?: -1
+				result.xp[skill] = numberField(entry, "xp") ?: -1L
 			}
 		}
-		return Result(player, levels)
+		val overall: String? = skillEntry(body, "overall")
+		if (overall != null && numberField(overall, "rank") != -1L) {
+			result.overallRank = numberField(overall, "rank")?.toInt() ?: -1
+			result.overallLevel = numberField(overall, "level")?.toInt() ?: -1
+			result.overallXp = numberField(overall, "xp") ?: -1L
+		}
+		return result
 	}
 
-	/** The `{"rank":..,"level":..,"xp":..}` of [skill] in the answer, or null when it is not there. */
-	private fun skillEntry(body: String, skill: Int): String? {
-		val at: Int = body.indexOf("\"" + Skill.NAMES[skill].lowercase() + "\":{")
+	/** The `{"rank":..,"level":..,"xp":..}` of skill [name] ("attack", "overall") in the answer, or null when it is not there. */
+	private fun skillEntry(body: String, name: String): String? {
+		val at: Int = body.indexOf("\"" + name + "\":{")
 		if (at < 0) {
 			return null
 		}

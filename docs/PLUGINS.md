@@ -23,8 +23,8 @@ aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implin
 (`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`), the inventory tags (`InventoryTags`), the
 inventory grid (`InventoryGrid`), the examine (`Examine`), the entity hider (`EntityHider`), the
 animation smoothing (`AnimationSmoothing`), the screenshot (`Screenshot`), the Grand Exchange
-(`GrandExchange`), the time tracking (`TimeTracking`) and the screen markers (`ScreenMarkers`) are
-sixty-two, built in, so the client's own code shows the way.
+(`GrandExchange`), the time tracking (`TimeTracking`), the screen markers (`ScreenMarkers`) and the
+hiscore (`Hiscore`) are sixty-three, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -701,6 +701,13 @@ border width**. Each box is a panel of its own: hold Alt to move it or drag its 
 panel. Shift-right-click a box for **Colour** (the next of six), **Label** (its name in its top left) and
 **Delete**; `::marker clear` deletes them all. The boxes are kept between runs. RuneLite's side panel for
 editing them is not in 634: the menu and the settings stand in for it.
+
+**Hiscore** is RuneLite's. `::hiscore <name>`, or **Lookup** on a player's right-click menu (**Lookup on
+players**), looks the player up on the game's website and shows a panel with their levels laid out as
+the Stats tab has them, their total level and overall rank; the mouse over a skill shows its rank and
+experience. `::hiscore` alone, or **Close** on shift-right-clicking the panel, closes it. The lookups are
+the same ones Opponent Information makes, from the website's `index_lite.json`. RuneLite's side panel
+search box and its other hiscore boards (ironman, seasonal) are not in 634.
 
 ## Writing a plugin
 
