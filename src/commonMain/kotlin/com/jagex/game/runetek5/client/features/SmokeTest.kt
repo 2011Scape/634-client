@@ -498,6 +498,11 @@ object SmokeTest {
 
 	private var metronomeTicks: Int = 0
 
+	/** client.test.hiscore: the Hiscore panel shown for a player put in as if the website had answered (the smoke test asks no website), then closed. */
+	private val HISCORE: Boolean = "true" == lang.getProperty("client.test.hiscore")
+
+	private var hiscoreFrame: Int = -1
+
 	/** client.test.screenMarkers: a box drawn by Screen Markers (as a drag would end), placed by the overlay layout where it was drawn, then deleted from its own menu. */
 	private val SCREEN_MARKERS: Boolean = "true" == lang.getProperty("client.test.screenMarkers")
 
@@ -1778,6 +1783,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 2305843009213693952L
+		}
+		if (HISCORE && (checksDone and 4611686018427387904L) == 0L) {
+			if (!hiscoreDone()) {
+				return
+			}
+			checksDone = checksDone or 4611686018427387904L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5631,6 +5642,39 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** Hiscore: "Smoke Hiscore" with 99 Attack (rank 3) put in, its panel drawn. Frame: frame-hiscore.png. */
+	private fun hiscoreDone(): Boolean {
+		if (hiscoreFrame == -1) {
+			val levels: IntArray = IntArray(Skill.COUNT)
+			levels.fill(50)
+			levels[0] = 99
+			val result: HiscoreLookup.Result = HiscoreLookup.Result("Smoke Hiscore", levels)
+			result.ranks.fill(100)
+			result.ranks[0] = 3
+			result.xp.fill(101333L)
+			result.xp[0] = 13034431L
+			result.overallLevel = 1299
+			result.overallRank = 42
+			HiscoreLookup.put("Smoke Hiscore", result)
+			Hiscore.show("Smoke Hiscore")
+			hiscoreFrame = frames
+			return false
+		}
+		val panel: PanelOverlay = Hiscore.panel
+		if (frames - hiscoreFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-hiscore.png")
+		val where: String = panel.boundsWidth.toString() + "x" + panel.boundsHeight
+		Hiscore.shown = null
+		if (panel.boundsWidth < 150 || panel.boundsHeight < 200) {
+			fail("Hiscore: the panel is " + where)
+			return true
+		}
+		println("SMOKE hiscore: panel " + where + " for Smoke Hiscore")
+		return true
 	}
 
 	/** Screen Markers: a 120 by 80 box at (60, 70) on the screen, drawn there by the layout; deleted by its menu's Delete. Frame: frame-screenmarkers.png. */

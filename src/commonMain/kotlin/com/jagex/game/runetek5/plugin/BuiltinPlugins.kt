@@ -23,6 +23,7 @@ import com.jagex.game.runetek5.client.features.Fishing
 import com.jagex.game.runetek5.client.features.GrandExchange
 import com.jagex.game.runetek5.client.features.GroundItems
 import com.jagex.game.runetek5.client.features.GroundTiles
+import com.jagex.game.runetek5.client.features.Hiscore
 import com.jagex.game.runetek5.client.features.Hunter
 import com.jagex.game.runetek5.client.features.IdleNotifier
 import com.jagex.game.runetek5.client.features.Implings
@@ -140,6 +141,7 @@ object BuiltinPlugins {
 			builtIn(GrandExchange.DESCRIPTOR, GrandExchange),
 			builtIn(TimeTracking.DESCRIPTOR, TimeTracking),
 			builtIn(ScreenMarkers.DESCRIPTOR, ScreenMarkers),
+			builtIn(Hiscore.DESCRIPTOR, Hiscore),
 		)
 	}
 
