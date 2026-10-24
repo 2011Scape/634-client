@@ -1316,6 +1316,10 @@ object PluginRuntime {
 		if (!started || component == null || !bus.hasListeners(Events.MENU_ENTRY_ADDED)) {
 			return
 		}
+		if (component.contentType == Component.CONTENT_TYPE_WORLDMAP) {
+			menuTargetWorldMap()
+			return
+		}
 		if (component.containerItemId == -1 && !hasOption(component) && !isText(component)) {
 			return // a layer or a picture under the mouse: no entries of the client's, none of the plugins' either
 		}
@@ -1336,6 +1340,32 @@ object PluginRuntime {
 		bus.post(Events.MENU_ENTRY_ADDED, menuEntryAddedEvent)
 		menuBuilding = false
 	}
+
+	/** The mouse is over the world map: the plugins' MenuEntryAdded for the world tile under it. Since API 37. */
+	private fun menuTargetWorldMap() {
+		val mouse = MouseRecord.mouseRecorder ?: return
+		if (!PluginWorldMap.tileAt(mouse.getMouseX(), mouse.getMouseY(), worldMapTile)) {
+			return
+		}
+		menuBuilding = true
+		menuKind = MenuTarget.WORLD_MAP.kind
+		menuParam0Low = worldMapTile[0]
+		menuParam1 = worldMapTile[1]
+		menuEntityUid = worldMapTile[2].toLong()
+		menuItemId = -1
+		menuEntryAddedEvent.target = MenuTarget.WORLD_MAP
+		menuEntryAddedEvent.sceneX = worldMapTile[0]
+		menuEntryAddedEvent.sceneY = worldMapTile[1]
+		menuEntryAddedEvent.level = worldMapTile[2]
+		menuEntryAddedEvent.id = worldMapTile[2]
+		menuEntryAddedEvent.widgetId = 0
+		menuEntryAddedEvent.slot = -1
+		menuEntryAddedEvent.itemId = -1
+		bus.post(Events.MENU_ENTRY_ADDED, menuEntryAddedEvent)
+		menuBuilding = false
+	}
+
+	private val worldMapTile: IntArray = IntArray(3)
 
 	/** Adds a plugin's entry for the target being built: the tile's y in param1, and [menuParam0] in param0. */
 	fun addMenuEntry(label: String, clickType: Int) {

@@ -7,7 +7,8 @@ package com.jagex.game.runetek5.plugin.api
  * what it is: an npc's index for [MenuTarget.NPC], a player's index for [MenuTarget.PLAYER], an
  * item id for [MenuTarget.GROUND_ITEM], a location id for [MenuTarget.LOC], 0 for [MenuTarget.TILE].
  * For [MenuTarget.WIDGET] the three are the component's slot (-1 for none), its [Widget.id] and the
- * item it shows (-1 for none).
+ * item it shows (-1 for none). For [MenuTarget.WORLD_MAP] (since API 37) they are the world tile's x and y
+ * and its level.
  */
 fun interface MenuAction {
 	/** The player clicked the plugin's entry. */
