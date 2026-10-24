@@ -3,6 +3,8 @@ package com.jagex.game.runetek5.plugin
 import com.jagex.game.runetek5.client.features.ShortestPathFinder
 import com.jagex.game.runetek5.client.features.ShortestPathFinder.Companion.pack
 import com.jagex.game.runetek5.client.features.ShortestPathGrid
+import com.jagex.game.runetek5.client.features.ShortestPathPlayer
+import com.jagex.game.runetek5.client.features.ShortestPathRules
 import com.jagex.game.runetek5.client.features.ShortestPathTransport
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -139,5 +141,58 @@ class ShortestPathTest {
 		val upstairs = search(grid, pack(3222, 3218, 0), pack(3207, 3220, 2), objects)
 		assertTrue(upstairs.reached, "the castle's top floor is reachable by its stairs")
 		assertTrue(upstairs.pathTransports.count { it != null } >= 2, "two flights of stairs")
+	}
+
+	private fun player(magic: Int, items: Map<Int, Int>, worn: Set<Int> = emptySet(), book: String? = "modern"): ShortestPathPlayer =
+		ShortestPathPlayer(IntArray(25) { if (it == 6) magic else 1 }, items, worn, book)
+
+	private val varrockTeleport: ShortestPathTransport = ShortestPathTransport.parse(
+		"TELEPORT_SPELL\t\t3212 3428 0\t5\tVarrock Teleport\tmagic=25;book=modern;items=554x1,556x3,563x1\n",
+	)[0]
+
+	@Test
+	fun aSpellNeedsTheLevelTheBookAndTheRunes() {
+		val runes: Map<Int, Int> = mapOf(554 to 1, 556 to 3, 563 to 1)
+		assertTrue(ShortestPathRules(player(25, runes), emptyMap(), true, true, 100_000).meets(varrockTeleport))
+		assertFalse(ShortestPathRules(player(24, runes), emptyMap(), true, true, 100_000).meets(varrockTeleport), "magic 24")
+		assertFalse(ShortestPathRules(player(25, runes, book = "ancient"), emptyMap(), true, true, 100_000).meets(varrockTeleport), "ancient book")
+		assertFalse(ShortestPathRules(player(25, mapOf(554 to 1, 563 to 1)), emptyMap(), true, true, 100_000).meets(varrockTeleport), "no air runes")
+		// a staff of air worn stands in for the air runes
+		val staves: Map<Int, Set<Int>> = mapOf(556 to setOf(1381))
+		assertTrue(ShortestPathRules(player(25, mapOf(554 to 1, 563 to 1, 1381 to 1), setOf(1381)), staves, true, true, 100_000).meets(varrockTeleport))
+	}
+
+	@Test
+	fun itemsShipsAndQuests() {
+		val table = ShortestPathTransport.parse(
+			"TELEPORT_ITEM\t\t3087 3496 0\t5\tAmulet of glory: Edgeville\titems=1706|1708|1710|1712;equipped\n" +
+				"SHIP\t2760 3239 0\t2792 3417 1\t10\tCharter ship to Catherby\titems=995x480\n" +
+				"GLIDER\t2464 3501 3\t2548 2970 0\t10\tGnome glider: Lemantolly Undri\tquest=one_small_favour\n",
+		)
+		val glory = table[0]
+		assertTrue(ShortestPathRules(player(1, mapOf(1710 to 1), setOf(1710)), emptyMap(), true, true, 100_000).meets(glory))
+		assertFalse(ShortestPathRules(player(1, emptyMap()), emptyMap(), true, true, 100_000).meets(glory))
+		assertTrue(ShortestPathRules(player(1, emptyMap()), emptyMap(), false, true, 100_000).meets(glory), "all teleport items taken as carried")
+		val ship = table[1]
+		assertTrue(ShortestPathRules(player(1, mapOf(995 to 1000)), emptyMap(), true, true, 100_000).meets(ship))
+		assertFalse(ShortestPathRules(player(1, mapOf(995 to 100)), emptyMap(), true, true, 100_000).meets(ship), "too few coins")
+		assertFalse(ShortestPathRules(player(1, mapOf(995 to 1000)), emptyMap(), true, true, 400).meets(ship), "over the currency threshold")
+		assertTrue(ShortestPathRules(player(1, emptyMap()), emptyMap(), true, true, 100_000).meets(table[2]))
+		assertFalse(ShortestPathRules(player(1, emptyMap()), emptyMap(), true, false, 100_000).meets(table[2]), "quest-locked off")
+	}
+
+	/** With the runes and the level, Varrock from Lumbridge is a teleport and a short walk, not the road. */
+	@Test
+	fun theShippedTableTeleportsWhenItCan() {
+		val grid = ShortestPathGrid.decode(lang.readResource("/shortest-path/collision.gz")!!)
+		val table = ShortestPathTransport.decode(lang.readResource("/shortest-path/transports.tsv.gz")!!)
+		val rules = ShortestPathRules(player(25, mapOf(554 to 1, 556 to 3, 563 to 1)), ShortestPathRules.staves(table), true, true, 100_000)
+		val spells = table.filter { it.anywhere && it.type == "TELEPORT_SPELL" && rules.meets(it) }
+		assertTrue(spells.any { it.label == "Varrock Teleport" })
+		assertFalse(spells.any { it.label == "Falador Teleport" }, "Falador needs magic 37")
+		val walk = search(grid, pack(3222, 3218, 0), pack(3212, 3440, 0), anywhere = spells)
+		assertTrue(walk.reached)
+		assertEquals("Varrock Teleport", walk.pathTransports[1]?.label)
+		assertTrue(walk.path.size < 40, "teleported, not walked: ${walk.path.size}")
 	}
 }

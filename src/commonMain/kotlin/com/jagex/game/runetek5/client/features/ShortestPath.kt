@@ -21,6 +21,7 @@ import com.jagex.game.runetek5.plugin.api.events.EventListener
 import com.jagex.game.runetek5.plugin.api.events.Events
 import com.jagex.game.runetek5.plugin.api.events.FrameDraw
 import com.jagex.game.runetek5.plugin.api.events.GameTick
+import com.jagex.game.runetek5.plugin.api.events.ItemContainerChanged
 import com.jagex.game.runetek5.plugin.api.events.MenuEntryAdded
 import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import kotlin.jvm.JvmField
@@ -29,14 +30,15 @@ import kotlin.jvm.JvmStatic
 /**
  * Not part of the original client: RuneLite's Shortest Path (Skretzo's plugin hub plugin), recreated on
  * 634's map. Right-click the world map, or Shift and right-click a tile in the game, for **Set target**: the way there over
- * the paths, doors, stairs and ladders is drawn on the tiles, the minimap and the world map, and found
- * again when the player strays from it. The map and the transports come from Void (ShortestPathData),
+ * the paths, doors, stairs, ladders and shortcuts, by the teleports the player can cast or carries, and by
+ * fairy rings, spirit trees, gliders, charter ships and canoes, is drawn on the tiles, the minimap and the
+ * world map, and found again when the player strays from it or the backpack changes. The map and the transports come from Void (ShortestPathData),
  * not Old School's files, which are another world.
  */
 object ShortestPath : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("shortestpath", "Shortest Path", "1", PluginApi.VERSION, "Draws the shortest path to a chosen tile, over doors, stairs and ladders, on the game, the minimap and the world map.", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("shortestpath", "Shortest Path", "1", PluginApi.VERSION, "Draws the shortest path to a chosen tile, over doors, stairs, shortcuts, teleports, fairy rings and ships, on the game, the minimap and the world map.", "Pixel")
 
 	/** RuneLite's colours: the path red, a path still being found yellow, the transports' tiles cyan. */
 	const val RED: Int = 0xFFFF0000.toInt()
@@ -44,6 +46,11 @@ object ShortestPath : Plugin {
 	const val CYAN: Int = 0xFF00FFFF.toInt()
 	private const val BLACK: Int = 0xFF000000.toInt()
 	private const val WHITE: Int = -1
+
+	/** The teleport items setting: none, the ones carried (or worn), or all of them as if carried. */
+	const val ITEMS_NONE: String = "None"
+	const val ITEMS_CARRIED: String = "Inventory"
+	const val ITEMS_ALL: String = "All"
 
 	/** Tiles the search visits in a client cycle (50 a second): a cross-country path takes a few. */
 	private const val NODES_PER_CYCLE: Int = 40_000
@@ -54,6 +61,15 @@ object ShortestPath : Plugin {
 	@JvmField var enabled: Boolean = false
 	@JvmField var useTransports: Boolean = true
 	@JvmField var useAgilityShortcuts: Boolean = true
+	@JvmField var useTeleportationSpells: Boolean = true
+	@JvmField var useTeleportationItems: String = ITEMS_CARRIED
+	@JvmField var useFairyRings: Boolean = true
+	@JvmField var useSpiritTrees: Boolean = true
+	@JvmField var useGnomeGliders: Boolean = true
+	@JvmField var useCharterShips: Boolean = true
+	@JvmField var useCanoes: Boolean = true
+	@JvmField var useQuestLocked: Boolean = true
+	@JvmField var currencyThreshold: Int = 100_000
 	@JvmField var drawTiles: Boolean = true
 	@JvmField var drawMinimap: Boolean = true
 	@JvmField var drawMap: Boolean = true
@@ -68,11 +84,17 @@ object ShortestPath : Plugin {
 	@JvmField var grid: ShortestPathGrid? = null
 	@JvmField var transports: List<ShortestPathTransport> = emptyList()
 
+	/** Rune id to the staves that stand in for it, from the table. */
+	private var staves: Map<Int, Set<Int>> = emptyMap()
+
 	/** The world tile the path goes to ([ShortestPathFinder.pack]ed), -1 for none. */
 	@JvmField var target: Int = -1
 
 	/** The search running or finished for [target]. */
 	@JvmField var finder: ShortestPathFinder? = null
+
+	/** The last search that finished, drawn (in the calculating colour) while a new one runs. */
+	@JvmField var shown: ShortestPathFinder? = null
 
 	/** For the smoke test: what the last frame drew (scene tiles, minimap dots, world map segments). */
 	@JvmField val drawnCounts: IntArray = IntArray(3)
@@ -117,8 +139,17 @@ object ShortestPath : Plugin {
 
 	private val clientTickListener: EventListener<ClientTick> = EventListener { _ ->
 		val finder: ShortestPathFinder = this.finder ?: return@EventListener
-		if (enabled && !finder.done) {
-			finder.step(NODES_PER_CYCLE)
+		if (enabled && !finder.done && finder.step(NODES_PER_CYCLE)) {
+			shown = finder
+		}
+	}
+
+	/** RuneLite's: the backpack or the worn items changed what may be taken, so the way is found again. */
+	private val itemListener: EventListener<ItemContainerChanged> = EventListener { event ->
+		val finder: ShortestPathFinder? = this.finder
+		val id: Int = event.containerId
+		if (enabled && target != -1 && finder != null && finder.done && (id == ShortestPathPlayer.INVENTORY || id == ShortestPathPlayer.EQUIPMENT)) {
+			context?.client()?.let { restart(it) }
 		}
 	}
 
@@ -159,6 +190,7 @@ object ShortestPath : Plugin {
 		context.events().subscribe(Events.MENU_ENTRY_ADDED, menuListener)
 		context.events().subscribe(Events.CLIENT_TICK, clientTickListener)
 		context.events().subscribe(Events.GAME_TICK, gameTickListener)
+		context.events().subscribe(Events.ITEM_CONTAINER_CHANGED, itemListener)
 		context.events().subscribe(Events.FRAME_DRAW, frameListener)
 		context.addOverlay(overlay)
 		context.registerCommand("path", command)
@@ -174,6 +206,15 @@ object ShortestPath : Plugin {
 		s.toggle("enabled", "Shortest Path", false)
 		s.toggle("useTransports", "Use transports (stairs, ladders)", true)
 		s.toggle("useAgilityShortcuts", "Use agility shortcuts", true)
+		s.toggle("useTeleportationSpells", "Use teleportation spells", true)
+		s.choice("useTeleportationItems", "Use teleportation items", ITEMS_CARRIED, arrayOf(ITEMS_NONE, ITEMS_CARRIED, ITEMS_ALL))
+		s.toggle("useFairyRings", "Use fairy rings", true)
+		s.toggle("useSpiritTrees", "Use spirit trees", true)
+		s.toggle("useGnomeGliders", "Use gnome gliders", true)
+		s.toggle("useCharterShips", "Use charter ships", true)
+		s.toggle("useCanoes", "Use canoes", true)
+		s.toggle("useQuestLocked", "Use transports behind quests", true)
+		s.number("currencyThreshold", "Currency threshold", 100_000, 0, 10_000_000, 1000)
 		s.toggle("drawTiles", "Draw path on tiles", true)
 		s.toggle("drawMinimap", "Draw path on minimap", true)
 		s.toggle("drawMap", "Draw path on world map", true)
@@ -190,6 +231,15 @@ object ShortestPath : Plugin {
 		enabled = config.getBoolean("enabled", false)
 		useTransports = config.getBoolean("useTransports", true)
 		useAgilityShortcuts = config.getBoolean("useAgilityShortcuts", true)
+		useTeleportationSpells = config.getBoolean("useTeleportationSpells", true)
+		useTeleportationItems = config.get("useTeleportationItems", ITEMS_CARRIED).takeIf { it == ITEMS_NONE || it == ITEMS_ALL } ?: ITEMS_CARRIED
+		useFairyRings = config.getBoolean("useFairyRings", true)
+		useSpiritTrees = config.getBoolean("useSpiritTrees", true)
+		useGnomeGliders = config.getBoolean("useGnomeGliders", true)
+		useCharterShips = config.getBoolean("useCharterShips", true)
+		useCanoes = config.getBoolean("useCanoes", true)
+		useQuestLocked = config.getBoolean("useQuestLocked", true)
+		currencyThreshold = config.getInt("currencyThreshold", 100_000).coerceIn(0, 10_000_000)
 		drawTiles = config.getBoolean("drawTiles", true)
 		drawMinimap = config.getBoolean("drawMinimap", true)
 		drawMap = config.getBoolean("drawMap", true)
@@ -227,6 +277,7 @@ object ShortestPath : Plugin {
 		try {
 			grid = ShortestPathGrid.decode(collision)
 			transports = ShortestPathTransport.decode(table)
+			staves = ShortestPathRules.staves(transports)
 		} catch (error: Exception) {
 			dataFailed = true
 			client.consolePrint("Shortest Path could not read its map: " + error.message)
@@ -245,6 +296,7 @@ object ShortestPath : Plugin {
 	fun clearTarget() {
 		target = -1
 		finder = null
+		shown = null
 		drawnCounts.fill(0)
 	}
 
@@ -256,25 +308,33 @@ object ShortestPath : Plugin {
 			return
 		}
 		val start: Int = ShortestPathFinder.pack(client.sceneBaseX() + player.serverTileX(), client.sceneBaseY() + player.serverTileY(), player.level())
-		finder = ShortestPathFinder(grid!!, usableTransports(), emptyList(), start, target, MAX_NODES)
-	}
-
-	/** The transports this search may take, by the tile they start from. */
-	private fun usableTransports(): Map<Int, List<ShortestPathTransport>> {
-		val map = HashMap<Int, MutableList<ShortestPathTransport>>()
+		val rules = ShortestPathRules(ShortestPathPlayer.read(client), staves, useTeleportationItems != ITEMS_ALL, useQuestLocked, currencyThreshold)
+		val bySource = HashMap<Int, MutableList<ShortestPathTransport>>()
+		val anywhere = ArrayList<ShortestPathTransport>()
 		for (transport in transports) {
-			if (transport.anywhere || !usable(transport)) {
-				continue
+			if (usable(transport) && rules.meets(transport)) {
+				if (transport.anywhere) {
+					anywhere.add(transport)
+				} else {
+					bySource.getOrPut(ShortestPathFinder.pack(transport.srcX, transport.srcY, transport.srcLevel)) { ArrayList() }.add(transport)
+				}
 			}
-			map.getOrPut(ShortestPathFinder.pack(transport.srcX, transport.srcY, transport.srcLevel)) { ArrayList() }.add(transport)
 		}
-		return map
+		finder = ShortestPathFinder(grid!!, bySource, anywhere, start, target, MAX_NODES)
 	}
 
+	/** RuneLite's switches, one for each kind of transport. */
 	private fun usable(transport: ShortestPathTransport): Boolean = when (transport.type) {
 		"OBJECT" -> useTransports
 		"SHORTCUT" -> useAgilityShortcuts
-		else -> false
+		"TELEPORT_SPELL" -> useTeleportationSpells
+		"TELEPORT_ITEM" -> useTeleportationItems != ITEMS_NONE
+		"FAIRY_RING" -> useFairyRings
+		"SPIRIT_TREE" -> useSpiritTrees
+		"GLIDER" -> useGnomeGliders
+		"SHIP" -> useCharterShips
+		"CANOE" -> useCanoes
+		else -> false // STAFF rows are data, not a way across
 	}
 
 	/** RuneLite's onGameTick: the target reached clears it, a player off the path finds it again. */
@@ -308,14 +368,15 @@ object ShortestPath : Plugin {
 		}
 	}
 
-	private fun colour(): Int = if (finder?.done == true) colourPath else colourCalculating
+	/** The path colour, or the calculating one while a new search runs and the last path still shows. */
+	private fun colour(): Int = if (finder === shown) colourPath else colourCalculating
 
 	/** The path's tiles on the game view, the transports' in their own colour with their names. */
 	private fun drawScene(g: Graphics, view: Viewport) {
 		drawnCounts[0] = 0
 		val client: ClientApi = context?.client() ?: return
-		val finder: ShortestPathFinder = this.finder ?: return
-		if (!enabled || !finder.done || client.gameState() !== GameState.LOGGED_IN) {
+		val finder: ShortestPathFinder = shown ?: return
+		if (!enabled || client.gameState() !== GameState.LOGGED_IN) {
 			return
 		}
 		val player: Player = client.localPlayer() ?: return
@@ -350,8 +411,8 @@ object ShortestPath : Plugin {
 	private fun drawWorldMap(g: Graphics, client: ClientApi) {
 		drawnCounts[1] = 0
 		drawnCounts[2] = 0
-		val finder: ShortestPathFinder = this.finder ?: return
-		if (!finder.done || client.gameState() !== GameState.LOGGED_IN) {
+		val finder: ShortestPathFinder = shown ?: return
+		if (client.gameState() !== GameState.LOGGED_IN) {
 			return
 		}
 		if (drawMinimap) {
@@ -369,7 +430,7 @@ object ShortestPath : Plugin {
 				}
 				// a transport is a jump, not a line across the map
 				if (havePrevious && finder.pathTransports[i] == null) {
-					g.thickLine(previous[0], previous[1], point[0], point[1], 2, colourPath)
+					g.thickLine(previous[0], previous[1], point[0], point[1], 2, colour())
 					drawnCounts[2]++
 				}
 				previous[0] = point[0]
@@ -395,7 +456,7 @@ object ShortestPath : Plugin {
 		g.clip(area[0], area[1], area[2], area[3])
 		for (node in finder.path) {
 			if (inScene(node, level, baseX, baseY, size) && client.projectMinimap(ShortestPathFinder.x(node) - baseX, ShortestPathFinder.y(node) - baseY, point)) {
-				g.fillRect(point[0] - 1, point[1] - 1, 2, 2, colourPath)
+				g.fillRect(point[0] - 1, point[1] - 1, 2, 2, colour())
 				drawnCounts[1]++
 			}
 		}
