@@ -280,7 +280,11 @@ interface ClientApi {
 	/** The minimap's place on the screen, x, y, width and height into [out] (four ints); false while no minimap is drawn. */
 	fun minimapArea(out: IntArray): Boolean
 
-	/** Where the middle of scene tile ([tileX], [tileY]) is on the minimap: the screen x and y into [out]; false when off the minimap or no minimap is drawn. */
+	/**
+	 * Where the middle of scene tile ([tileX], [tileY]) is on the minimap: the screen x and y into [out]; false
+	 * when off the minimap or no minimap is drawn. Since API 38 "off the minimap" is outside its round mask, as
+	 * the game clips its own dots, not only outside its box.
+	 */
 	fun projectMinimap(tileX: Int, tileY: Int, out: IntArray): Boolean
 
 	/** Run energy, 0 to 100. */

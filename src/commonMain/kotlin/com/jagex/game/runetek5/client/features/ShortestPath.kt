@@ -23,6 +23,7 @@ import com.jagex.game.runetek5.plugin.api.events.ItemContainerChanged
 import com.jagex.game.runetek5.plugin.api.events.KeyPressed
 import com.jagex.game.runetek5.plugin.api.events.MenuEntryAdded
 import com.jagex.game.runetek5.plugin.api.events.MenuOptionClicked
+import com.jagex.game.runetek5.plugin.api.events.MinimapDraw
 import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
@@ -250,6 +251,8 @@ object ShortestPath : Plugin {
 
 	private val frameListener: EventListener<FrameDraw> = EventListener { event -> if (enabled) context?.client()?.let { ShortestPathOverlay.drawInterfaces(event.graphics, it) } }
 
+	private val minimapListener: EventListener<MinimapDraw> = EventListener { event -> if (enabled) context?.client()?.let { ShortestPathOverlay.drawMinimapPath(event.graphics, it) } }
+
 	/** RuneLite's: the backpack or the worn items changed what may be taken, so the way is found again; the bank is remembered. */
 	private val itemListener: EventListener<ItemContainerChanged> = EventListener { event ->
 		val client: ClientApi = context?.client() ?: return@EventListener
@@ -290,6 +293,7 @@ object ShortestPath : Plugin {
 		events.subscribe(Events.GAME_TICK, gameTickListener)
 		events.subscribe(Events.ITEM_CONTAINER_CHANGED, itemListener)
 		events.subscribe(Events.FRAME_DRAW, frameListener)
+		events.subscribe(Events.MINIMAP_DRAW, minimapListener)
 		events.subscribe(Events.KEY_PRESSED, keyListener)
 		context.addOverlay(overlay)
 		context.registerCommand("path", command)

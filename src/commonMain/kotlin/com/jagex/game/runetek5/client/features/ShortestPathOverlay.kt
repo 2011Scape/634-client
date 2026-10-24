@@ -40,6 +40,7 @@ object ShortestPathOverlay {
 	private val other: IntArray = IntArray(2)
 	private val previous: IntArray = IntArray(2)
 	private val area: IntArray = IntArray(4)
+	private val edge: IntArray = IntArray(2)
 
 	/** The path on the game view. */
 	fun drawScene(g: Graphics, view: Viewport, client: ClientApi) {
@@ -369,18 +370,23 @@ object ShortestPathOverlay {
 		}
 	}
 
-	/** Over the interfaces: the minimap's dots, the world map's line and targets, and the highlights. */
+	/** On the minimap as it is drawn (Events.MINIMAP_DRAW): under the orbs, as the game's own dots are. */
+	fun drawMinimapPath(g: Graphics, client: ClientApi) {
+		ShortestPath.drawnCounts[1] = 0
+		val finder: ShortestPathFinder = ShortestPath.shown ?: return
+		if (ShortestPath.drawMinimap && client.gameState() === GameState.LOGGED_IN) {
+			drawMinimap(g, client, finder)
+		}
+	}
+
+	/** Over the interfaces: the world map's path and targets, and the highlights. */
 	fun drawInterfaces(g: Graphics, client: ClientApi) {
 		val plugin = ShortestPath
-		plugin.drawnCounts[1] = 0
 		plugin.drawnCounts[2] = 0
 		if (client.gameState() !== GameState.LOGGED_IN) {
 			return
 		}
 		val finder: ShortestPathFinder = plugin.shown ?: return
-		if (plugin.drawMinimap) {
-			drawMinimap(g, client, finder)
-		}
 		if (plugin.drawMap) {
 			drawWorldMap(g, client, finder)
 		}
@@ -410,11 +416,16 @@ object ShortestPathOverlay {
 		g.unclip()
 	}
 
-	/** A tile on the minimap: its centre and the steps to the tiles east and north give the square's sides. */
+	/**
+	 * A tile on the minimap: its centre and the steps to the tiles east and north give the square's sides.
+	 * Drawn only when the tiles on all four sides are on the minimap too, so no square crosses its round edge.
+	 */
 	private fun minimapSquare(g: Graphics, client: ClientApi, scene: Scene, node: Int, colour: Int): Boolean {
 		val sx: Int = scene.x(node)
 		val sy: Int = scene.y(node)
-		if (!client.projectMinimap(sx, sy, point) || !client.projectMinimap(sx + 1, sy, other) || !client.projectMinimap(sx, sy + 1, previous)) {
+		if (!client.projectMinimap(sx, sy, point) || !client.projectMinimap(sx + 1, sy, other) || !client.projectMinimap(sx, sy + 1, previous) ||
+			!client.projectMinimap(sx - 1, sy, edge) || !client.projectMinimap(sx, sy - 1, edge)
+		) {
 			return false
 		}
 		val ex: Int = other[0] - point[0]

@@ -60,6 +60,7 @@ import com.jagex.game.runetek5.plugin.api.events.KeyTyped
 import com.jagex.game.runetek5.plugin.api.events.MenuBuilt
 import com.jagex.game.runetek5.plugin.api.events.MenuEntryAdded
 import com.jagex.game.runetek5.plugin.api.events.MenuOptionClicked
+import com.jagex.game.runetek5.plugin.api.events.MinimapDraw
 import com.jagex.game.runetek5.plugin.api.events.MouseClicked
 import com.jagex.game.runetek5.plugin.api.events.MouseWheel
 import com.jagex.game.runetek5.plugin.api.events.OverheadTextChanged
@@ -134,6 +135,11 @@ object PluginRuntime {
 	private val viewportDrawEvent: ViewportDraw = ViewportDraw(ToolkitGraphics, viewport)
 
 	private val frameDrawEvent: FrameDraw = FrameDraw(ToolkitGraphics)
+
+	private val minimapDrawEvent: MinimapDraw = MinimapDraw(ToolkitGraphics)
+
+	/** Whether the minimap's map (not its black loading face) was drawn since the last MinimapDraw. */
+	private var minimapPending: Boolean = false
 
 	private val clientTickEvent: ClientTick = ClientTick()
 
@@ -1070,14 +1076,56 @@ object PluginRuntime {
 		hoveredTileY = tileY
 	}
 
-	/** The minimap is being drawn at ([x], [y]), [width] by [height]. */
+	/**
+	 * The minimap is being drawn at ([x], [y]), [width] by [height], inside the mask its sprite makes: on
+	 * each row from its top, [rowStart] pixels in for [rowWidth] pixels (Component.getClippingMask).
+	 */
 	@JvmStatic
-	fun minimapDrawn(x: Int, y: Int, width: Int, height: Int) {
+	fun minimapDrawn(x: Int, y: Int, width: Int, height: Int, rowStart: IntArray?, rowWidth: IntArray?) {
 		minimapX = x
 		minimapY = y
 		minimapWidth = width
 		minimapHeight = height
+		minimapRowStart = rowStart
+		minimapRowWidth = rowWidth
 		minimapFrame = SceneDrawer.timesSceneRendered
+		minimapPending = true
+	}
+
+	/** The minimap component was drawn: the plugins' MinimapDraw, while its box is the clip. Since API 38. */
+	@JvmStatic
+	fun drawMinimap() {
+		if (!started || !minimapPending) {
+			return
+		}
+		minimapPending = false
+		if (!bus.hasListeners(Events.MINIMAP_DRAW)) {
+			return
+		}
+		minimapDrawEvent.x = minimapX
+		minimapDrawEvent.y = minimapY
+		minimapDrawEvent.width = minimapWidth
+		minimapDrawEvent.height = minimapHeight
+		bus.afterListener = resetGraphics
+		bus.post(Events.MINIMAP_DRAW, minimapDrawEvent)
+		bus.afterListener = null
+	}
+
+	/** The minimap's mask rows, null for none (all of its box shows). */
+	private var minimapRowStart: IntArray? = null
+	private var minimapRowWidth: IntArray? = null
+
+	/** Whether screen pixel ([x], [y]) is inside the minimap's mask: where the game draws the map, not its box's corners. Since API 38. */
+	@JvmStatic
+	fun onMinimap(x: Int, y: Int): Boolean {
+		val start: IntArray = minimapRowStart ?: return true
+		val width: IntArray = minimapRowWidth ?: return true
+		val row: Int = y - minimapY
+		if (row < 0 || row >= start.size || row >= width.size) {
+			return false
+		}
+		val column: Int = x - minimapX
+		return column >= start[row] && column < start[row] + width[row]
 	}
 
 	/** An npc entered the scene, with its type set. */

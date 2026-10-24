@@ -853,7 +853,9 @@ and the font go back to the client's after each overlay. World to screen: `Clien
 `projectPoint` (scene units, 512 a tile) and `projectActor` write the view-relative point into an
 `IntArray(2)` and say whether it is on screen, and `tilePolygon` gives a tile's four corners for
 `polygon` and `fillPolygon` (view-relative too: add the viewport's `x` and `y` before drawing, as the recipes do);
-`projectMinimap` places a tile on the minimap, in screen coordinates already, and `projectWorldMap` on
+`projectMinimap` places a tile on the minimap, in screen coordinates already (since API 38 only inside
+its round mask; draw minimap marks at `MINIMAP_DRAW` to have them under the orbs, as the game's own dots
+are), and `projectWorldMap` on
 the world map while it is open (with a level since API 37, so a dungeon lands where the map draws it);
 `worldMapTile` goes the other way, from a pixel on the world map to the world tile, and a
 `MenuEntryAdded` for `MenuTarget.WORLD_MAP` lets a plugin add right-click entries there (and, since API 38,
