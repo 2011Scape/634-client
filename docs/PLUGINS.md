@@ -728,25 +728,48 @@ its models' triangles as the toolkit draws them; the SSE toolkit cannot hand the
 is sampled with the game's own picking, coarser and refreshed every other frame.
 
 **Shortest Path** is from RuneLite's plugin hub (Skretzo's). Right-click the world map, or hold Shift and
-right-click a tile in the game, for **Set target** (and **Clear target**), or type `::path <x> <y> [level]`
-(`::path` alone clears it): the shortest way there is drawn on the tiles, as dots on the minimap and as a
-line on the world map, the tiles where it takes a transport in their own colour with the transport's
-name. Besides stairs, ladders and trapdoors it takes agility shortcuts your level allows, the
-teleport spells of the spellbook you have open when you have the Magic level and the runes (a worn
-elemental staff counts for its runes), teleport tablets and jewellery you carry or wear (or all of them,
-or none: a setting), fairy rings with a Dramen or Lunar staff worn, spirit trees, gnome gliders, charter
-ships up to the currency threshold, and canoes by your Woodcutting level, each with its own switch.
-Quests are checked as Void checks them, from the varps and varbits it keeps them in and sends to the
-client (Priest in Peril for Port Phasmatys, Fairy Tale II started for the rings, Plague City for Ardougne
-Teleport); a quest Void has not written counts as done, as its `quests.requirements.skipMissing` has it.
-It is found again when you stray more than the recalculate
-distance from it or your backpack or worn items change (the old path shows in the calculating colour
-meanwhile), and goes when you come within the reached distance of the target. Old School's map files are
-another world, so the map and transports are 634's, made from the Void server's own collision (every
-ordinary door and gate counted open), its object teleports, spells, jewellery, fairy ring codes, spirit
-tree, glider, ship and canoe routes and agility shortcuts; they ship in the jar
-(`src/jvmMain/resources/shortest-path/`). A search too long for its limit goes to the nearest tile it
-reached. Off at first.
+right-click a tile in the game, for **Set Target**; with a path up, **Set Target 2** (3...) adds places it
+may end (the nearest is taken), **Set Start** draws it from there instead of from you, and **Clear Path**
+(also on the minimap's right-click, or a hotkey of your choice) takes it away. The world map's
+**Find closest** lists its icons (bank, altar, anvil, fishing spot...) and goes to the nearest of them.
+`::path <x> <y> [level]`, `::path add|start <x> <y> [level]`, `::path closest <icon>` and `::path` alone
+do the same from the console. The way is drawn on the tiles in one of RuneLite's styles (tiles, lines,
+arrow line, turn markers, a tracer or markers), as dots on the minimap and as a line on the world map;
+a tile where a transport is taken is in its own colour with what to click ("Rub Amulet of glory >
+Edgeville"), a teleport to cast now pulses under you, and a tile counter (travelled or remaining) can be
+added. The spell to cast is outlined in the spellbook, the teleport item in the backpack, and the items
+to take out of the bank in the bank.
+
+Besides stairs, ladders and trapdoors it takes agility and grapple shortcuts your levels (and a worn
+crossbow and mithril grapple) allow, the teleport spells of the spellbook you have open when you have the
+Magic level and the runes (a worn elemental staff counts for its runes), teleport tablets and jewellery you
+carry or wear (or all of them, or only those never used up, RuneLite's "(perm)"; any item id in the
+blocked list is never used), Lumbridge Home Teleport if you switch it on (the client cannot see its 30
+minute wait), fairy rings, spirit trees (the ones you grew too), gnome gliders, charter ships, passenger
+ships, boats and carts, magic carpets, teleporting wizards and portals, wilderness levers and obelisks,
+and canoes by your Woodcutting level, each kind with its own switch and its own threshold: how many tiles
+it must save over walking to be taken. **Include path to bank** lets the path fetch a teleport from the
+bank (as it was when you last opened it) on the way. **Avoid wilderness** keeps the path out of it unless
+you start or end there. Quests are checked as Void checks them, from the varps and varbits it keeps them
+in and sends to the client (Priest in Peril for Port Phasmatys, Fairy Tale II started for the rings,
+Plague City for Ardougne Teleport, Lunar Diplomacy for Lunar Isle...); a quest Void has not written
+counts as done, as its `quests.requirements.skipMissing` has it.
+
+The path is found again when you stray more than the recalculate distance from it (or cancelled, if you
+choose) and when your backpack or worn items change, the old path showing in the calculating colour
+meanwhile; it ends when you come within the finish distance of a target (-1 for never, for either). A
+search that stops making progress for the calculation cutoff, or runs past its limit, goes to the nearest
+tile it reached, and a path that ends further than the unreachable distance from every target is drawn
+in the unreachable colour, with text over you. The debug settings draw every transport and the map's
+walls near you, and a panel of the search's numbers. Old School's map files are another world, so the
+map, the transports and the map icons are 634's, made from the Void server's own collision (every step out
+of a tile by the server's own rules, one way and the other, every ordinary door and gate counted open and
+the guarded ones kept to their conditions: guild doors, God Wars chambers, toll gates and the like), its
+object teleports and the dungeon entrances, holes, ropes and passages its scripts move you through, spells, jewellery, fairy ring codes, spirit tree,
+glider, ship, carpet, portal, obelisk and canoe routes and agility shortcuts, and the cache's map icons;
+they ship in the jar (`src/jvmMain/resources/shortest-path/`). Not here from RuneLite: the sidebar (its
+switches are the plugin's settings), Old School's own transports (quetzals, minecarts, sailing, leagues,
+house portals) and its messages to other plugins. Off at first.
 
 ## Writing a plugin
 
@@ -830,10 +853,13 @@ and the font go back to the client's after each overlay. World to screen: `Clien
 `projectPoint` (scene units, 512 a tile) and `projectActor` write the view-relative point into an
 `IntArray(2)` and say whether it is on screen, and `tilePolygon` gives a tile's four corners for
 `polygon` and `fillPolygon` (view-relative too: add the viewport's `x` and `y` before drawing, as the recipes do);
-`projectMinimap` places a tile on the minimap, in screen coordinates already, and `projectWorldMap` on
+`projectMinimap` places a tile on the minimap, in screen coordinates already (since API 38 only inside
+its round mask; draw minimap marks at `MINIMAP_DRAW` to have them under the orbs, as the game's own dots
+are), and `projectWorldMap` on
 the world map while it is open (with a level since API 37, so a dungeon lands where the map draws it);
 `worldMapTile` goes the other way, from a pixel on the world map to the world tile, and a
-`MenuEntryAdded` for `MenuTarget.WORLD_MAP` lets a plugin add right-click entries there. Text's `y` is its
+`MenuEntryAdded` for `MenuTarget.WORLD_MAP` lets a plugin add right-click entries there (and, since API 38,
+`MenuTarget.MINIMAP` on the minimap). Text's `y` is its
 baseline, and `fontHeight()` is the font's line height: a panel's first baseline sits one of them
 below its top.
 

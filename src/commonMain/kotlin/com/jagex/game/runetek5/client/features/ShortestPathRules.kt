@@ -65,6 +65,8 @@ class ShortestPathPlayer(
  * switches and the requirements the generator wrote for it (levels by skill name, a spellbook, items
  * with their amounts where `a|b` is either one, a worn item, and quests as the varps and varbits Void
  * keeps them in: `var=varp:302:60|61,varbit:2326:!0`, each var one of the values, or with `!` none of them).
+ * Worn items are `a|b` groups joined by `,` (a grapple and a crossbow). With [bank] given, the items kept
+ * in the bank count as carried too: [meets] with `banked` true is a transport usable after a bank visit.
  */
 class ShortestPathRules(
 	@JvmField val player: ShortestPathPlayer,
@@ -74,25 +76,37 @@ class ShortestPathRules(
 	@JvmField val checkItems: Boolean,
 	/** The most coins a transport may cost. */
 	@JvmField val coinLimit: Int,
+	/** Whether only teleport items that are never used up (no charges, not a tablet) may be taken: RuneLite's "(perm)". */
+	@JvmField val permanentOnly: Boolean = false,
+	/** Teleport items the player has blocked. */
+	@JvmField val blocked: Set<Int> = emptySet(),
+	/** The bank's items as last seen, item id to amount. */
+	@JvmField val bank: Map<Int, Int> = emptyMap(),
 ) {
-	fun meets(transport: ShortestPathTransport): Boolean {
+	fun meets(transport: ShortestPathTransport): Boolean = meets(transport, false)
+
+	/** Whether [transport] may be taken, with the bank's items as carried when [banked]. */
+	fun meets(transport: ShortestPathTransport, banked: Boolean): Boolean {
+		if (transport.type == "TELEPORT_ITEM" && (permanentOnly && isUsedUp(transport) || itemIds(transport).any { it in blocked })) {
+			return false
+		}
 		for ((key, value) in transport.requirements) {
-			if (!meets(transport, key, value)) {
+			if (!meets(transport, key, value, banked)) {
 				return false
 			}
 		}
 		return true
 	}
 
-	private fun meets(transport: ShortestPathTransport, key: String, value: String): Boolean {
+	private fun meets(transport: ShortestPathTransport, key: String, value: String, banked: Boolean): Boolean {
 		val skill: Int = SKILLS.indexOf(key)
 		return when {
 			skill >= 0 -> player.levels[skill] >= (value.toIntOrNull() ?: 0)
 			key == "book" -> player.spellbook == null || player.spellbook == value
-			key == "items" -> items(value, transport.type == "TELEPORT_ITEM" && !checkItems)
-			key == "equipped" -> value.isEmpty() || value.split('|').any { (it.toIntOrNull() ?: -1) in player.worn }
+			key == "items" -> items(value, transport.type == "TELEPORT_ITEM" && !checkItems, banked)
+			key == "equipped" -> value.isEmpty() || value.split(',').all { group -> group.split('|').any { (it.toIntOrNull() ?: -1) in player.worn } }
 			key == "var" -> value.split(',').all { varTest(it) }
-			else -> true // "consumed" and other notes
+			else -> true // "consumed", "charged" and other notes
 		}
 	}
 
@@ -108,30 +122,41 @@ class ShortestPathRules(
 	}
 
 	/** Every group of `ids x amount` carried, a rune also covered by a worn staff; coins up to [coinLimit]. */
-	private fun items(value: String, assumeHad: Boolean): Boolean {
+	private fun items(value: String, assumeHad: Boolean, banked: Boolean): Boolean {
 		for (group in value.split(',')) {
 			val x: Int = group.lastIndexOf('x')
 			val amount: Int = if (x < 0) 1 else group.substring(x + 1).toIntOrNull() ?: 1
 			val ids: List<Int> = (if (x < 0) group else group.substring(0, x)).split('|').mapNotNull { it.toIntOrNull() }
-			if (!group(ids, amount, assumeHad)) {
+			if (!group(ids, amount, assumeHad, banked)) {
 				return false
 			}
 		}
 		return true
 	}
 
-	private fun group(ids: List<Int>, amount: Int, assumeHad: Boolean): Boolean {
+	private fun group(ids: List<Int>, amount: Int, assumeHad: Boolean, banked: Boolean): Boolean {
 		if (COINS in ids) {
-			return amount <= coinLimit && (assumeHad || (player.items[COINS] ?: 0) >= amount)
+			return amount <= coinLimit && (assumeHad || have(COINS, banked) >= amount)
 		}
-		if (assumeHad || ids.any { (player.items[it] ?: 0) >= amount }) {
+		if (assumeHad || ids.any { have(it, banked) >= amount }) {
 			return true
 		}
 		return ids.any { rune -> staves[rune]?.any { it in player.worn } == true }
 	}
 
+	private fun have(id: Int, banked: Boolean): Int = (player.items[id] ?: 0) + if (banked) bank[id] ?: 0 else 0
+
 	companion object {
 		const val COINS: Int = 995
+
+		/** A teleport item that runs out: a tablet broken, jewellery whose charges go. */
+		@JvmStatic
+		fun isUsedUp(transport: ShortestPathTransport): Boolean = transport.requirements.containsKey("consumed") || transport.requirements.containsKey("charged")
+
+		/** The item ids a transport's `items` requirement names. */
+		@JvmStatic
+		fun itemIds(transport: ShortestPathTransport): List<Int> =
+			transport.requirements["items"].orEmpty().split(',', '|').mapNotNull { it.substringBefore('x').toIntOrNull() }
 
 		/** The generator's skill names, in Skill's order. */
 		@JvmField

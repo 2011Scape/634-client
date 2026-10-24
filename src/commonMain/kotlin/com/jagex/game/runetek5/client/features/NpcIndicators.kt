@@ -18,11 +18,11 @@ import com.jagex.game.runetek5.plugin.api.PluginContext
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
 import com.jagex.game.runetek5.plugin.api.Viewport
 import com.jagex.game.runetek5.plugin.api.events.EventListener
-import com.jagex.game.runetek5.plugin.api.events.FrameDraw
 import com.jagex.game.runetek5.plugin.api.events.Events
 import com.jagex.game.runetek5.plugin.api.events.GameStateChanged
 import com.jagex.game.runetek5.plugin.api.events.MenuBuilt
 import com.jagex.game.runetek5.plugin.api.events.MenuEntryAdded
+import com.jagex.game.runetek5.plugin.api.events.MinimapDraw
 import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
@@ -187,7 +187,8 @@ object NpcIndicators : Plugin {
 	private val overlay: Overlay = Overlay { g, view -> draw(g, view) }
 
 	/** The minimap is an interface drawn over the game view: its names go on at the end of the frame, over everything. */
-	private val frameListener: EventListener<FrameDraw> = EventListener { event -> drawMinimapNames(event.graphics) }
+	// on the minimap as it is drawn: under the orbs, as the game's own dots are (API 38)
+	private val minimapListener: EventListener<MinimapDraw> = EventListener { event -> drawMinimapNames(event.graphics) }
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
@@ -289,7 +290,7 @@ object NpcIndicators : Plugin {
 		context.events().subscribe(Events.NPC_SPAWNED, spawnListener)
 		context.events().subscribe(Events.NPC_DESPAWNED, despawnListener)
 		context.events().subscribe(Events.GAME_STATE_CHANGED, stateListener)
-		context.events().subscribe(Events.FRAME_DRAW, frameListener)
+		context.events().subscribe(Events.MINIMAP_DRAW, minimapListener)
 		context.addOverlay(overlay)
 		context.registerCommand("tag", tagCommand)
 		context.registerCommand("untag", untagCommand)

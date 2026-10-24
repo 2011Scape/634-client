@@ -332,7 +332,8 @@ object ClientApiImpl : ClientApi {
 		}
 		out[0] = out[0] + width / 2 + PluginRuntime.minimapX
 		out[1] = PluginRuntime.minimapY + height / 2 - out[1]
-		return true
+		// the game clips its own dots to the minimap's round mask; a plugin's tile off it is off the minimap
+		return PluginRuntime.onMinimap(out[0], out[1])
 	}
 
 	override fun projectActor(actor: Actor, heightOffset: Int, out: IntArray): Boolean {
@@ -674,7 +675,8 @@ object ClientApiImpl : ClientApi {
 		}
 		out[0] = out[0] + width / 2 + PluginRuntime.minimapX
 		out[1] = PluginRuntime.minimapY + height / 2 - out[1]
-		return true
+		// the game clips its own dots to the minimap's round mask; a plugin's tile off it is off the minimap
+		return PluginRuntime.onMinimap(out[0], out[1])
 	}
 
 	override fun runEnergy(): Int {

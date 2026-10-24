@@ -72,9 +72,11 @@ package com.jagex.game.runetek5.plugin.api
  *   ([ClientApi.hoveredTarget], [HoveredTarget]).
  * - 37: the world map's own areas ([ClientApi.projectWorldMap] with a level, [ClientApi.worldMapTile]) and
  *   right-click entries on it ([MenuTarget.WORLD_MAP]).
+ * - 38: right-click entries on the minimap ([MenuTarget.MINIMAP]), [ClientApi.projectMinimap] keeping to the
+ *   minimap's round mask, and drawing under the orbs ([com.jagex.game.runetek5.plugin.api.events.Events.MINIMAP_DRAW]).
  * - 31: the drag ([ClientApi.isDraggingWidget], [ClientApi.draggedWidget], [ClientApi.draggedOnWidget], [ClientApi.itemPressedDuration]) and [Graphics.itemIconAlpha].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 37
+	const val VERSION: Int = 38
 }

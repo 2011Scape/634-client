@@ -1,4 +1,5 @@
 import com.jagex.game.runetek5.config.rsinterface.MediaType
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.TextureCombineSource
 import com.jagex.game.runetek5.InterfaceRectangles
@@ -168,6 +169,7 @@ object InterfaceComponentDraw {
 								if (component.getClippingMask(ClientState.activeToolkit) != null) {
 									SoundEffectPlayer.updatePlayers()
 									Minimap.drawMinimap(component, ClientState.activeToolkit, startX, startY)
+									PluginRuntime.drawMinimap() // Not part of the original client: the plugins' MinimapDraw, under the orbs as the game's dots are.
 									InterfaceRectangles.RECTANGLE_NEEDS_FLIP[componentReference] = true
 									ClientState.activeToolkit!!.KA(clippingLeft, clippingTop, clippingRight, clippingBottom)
 									if (OrthoMode.orthoEnabled) {

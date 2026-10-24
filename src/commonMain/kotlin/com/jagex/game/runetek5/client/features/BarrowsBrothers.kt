@@ -26,6 +26,7 @@ import com.jagex.game.runetek5.plugin.api.events.GameStateChanged
 import com.jagex.game.runetek5.plugin.api.events.GameTick
 import com.jagex.game.runetek5.plugin.api.events.InterfaceChanged
 import com.jagex.game.runetek5.plugin.api.events.MenuOptionClicked
+import com.jagex.game.runetek5.plugin.api.events.MinimapDraw
 import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
@@ -178,6 +179,8 @@ object BarrowsBrothers : Plugin {
 	/** The minimap and the puzzle's outline go on at the end of the frame, over the interfaces. */
 	private val frameListener: EventListener<FrameDraw> = EventListener { event -> context?.client()?.let { BarrowsOverlay.drawFrame(event.graphics, it) } }
 
+	private val minimapListener: EventListener<MinimapDraw> = EventListener { event -> context?.client()?.let { BarrowsOverlay.drawMinimap(event.graphics, it) } }
+
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
 		if (event.pluginId == DESCRIPTOR.id) {
 			context?.config()?.let { readSettings(it) }
@@ -223,6 +226,7 @@ object BarrowsBrothers : Plugin {
 		context.events().subscribe(Events.MENU_OPTION_CLICKED, clickListener)
 		context.events().subscribe(Events.CHAT_MESSAGE, chatListener)
 		context.events().subscribe(Events.FRAME_DRAW, frameListener)
+		context.events().subscribe(Events.MINIMAP_DRAW, minimapListener)
 		context.addOverlay(BarrowsOverlay.panel)
 		context.registerCommand("barrows", toggle)
 	}
