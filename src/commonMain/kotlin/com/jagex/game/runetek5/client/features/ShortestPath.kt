@@ -43,15 +43,15 @@ object ShortestPath : Plugin {
 	@JvmField
 	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("shortestpath", "Shortest Path", "1", PluginApi.VERSION, "Draws the shortest path to a chosen tile, over doors, stairs, shortcuts, teleports, fairy rings and ships, on the game, the minimap and the world map.", "Pixel")
 
-	/** RuneLite's colours: the path red, a path still being found yellow, the transports' tiles cyan. */
+	/** RuneLite's colours (ShortestPathConfig): the path red, a path being found blue, an unreachable one purple. */
 	const val RED: Int = 0xFFFF0000.toInt()
-	const val YELLOW: Int = 0xFFFFFF00.toInt()
-	const val CYAN: Int = 0xFF00FFFF.toInt()
-	const val ORANGE: Int = 0xFFFF8000.toInt()
-	const val GREEN: Int = 0xFF00FF00.toInt()
-	const val MAGENTA: Int = 0xFFFF00FF.toInt()
+	const val BLUE: Int = 0xFF0000FF.toInt()
+	const val PURPLE: Int = 0xFFC828F0.toInt()
+	const val TRANSPORTS: Int = 0x8000FF00.toInt()
+	const val COLLISION: Int = 0x800080FF.toInt()
 	const val WHITE: Int = -1
-	const val COLLISION: Int = 0x80FF0000.toInt()
+	const val PULSE: Int = 0xFFFFAA00.toInt()
+	const val BANK_PICKUP: Int = 0xFF00FFFF.toInt()
 
 	/** The teleport items setting: none, those carried, those carried that are never used up, or all of them as if carried. */
 	const val ITEMS_NONE: String = "None"
@@ -135,13 +135,13 @@ object ShortestPath : Plugin {
 
 	// colours
 	@JvmField var colourPath: Int = RED
-	@JvmField var colourCalculating: Int = YELLOW
-	@JvmField var colourUnreachable: Int = ORANGE
-	@JvmField var colourTransports: Int = CYAN
+	@JvmField var colourCalculating: Int = BLUE
+	@JvmField var colourUnreachable: Int = PURPLE
+	@JvmField var colourTransports: Int = TRANSPORTS
 	@JvmField var colourCollisionMap: Int = COLLISION
 	@JvmField var colourText: Int = WHITE
-	@JvmField var colourTeleportPulse: Int = MAGENTA
-	@JvmField var colourBankPickup: Int = GREEN
+	@JvmField var colourTeleportPulse: Int = PULSE
+	@JvmField var colourBankPickup: Int = BANK_PICKUP
 
 	// hotkey and debug
 	@JvmField var clearPathHotkey: Int = 0
@@ -320,13 +320,13 @@ object ShortestPath : Plugin {
 		s.toggle("highlightInventoryItems", "Highlight inventory items", true)
 		// colours
 		s.colour("colourPath", "Path colour", RED, true)
-		s.colour("colourPathCalculating", "Calculating colour", YELLOW, true)
-		s.colour("colourPathUnreachable", "Unreachable colour", ORANGE, true)
-		s.colour("colourTransports", "Transports colour", CYAN, true)
+		s.colour("colourPathCalculating", "Calculating colour", BLUE, true)
+		s.colour("colourPathUnreachable", "Unreachable colour", PURPLE, true)
+		s.colour("colourTransports", "Transports colour", TRANSPORTS, true)
 		s.colour("colourCollisionMap", "Collision map colour", COLLISION, true)
 		s.colour("colourText", "Text colour", WHITE, true)
-		s.colour("colourTeleportPulse", "Teleport pulse colour", MAGENTA, true)
-		s.colour("colourBankPickupHighlight", "Bank pickup highlight colour", GREEN, true)
+		s.colour("colourTeleportPulse", "Teleport pulse colour", PULSE, true)
+		s.colour("colourBankPickupHighlight", "Bank pickup highlight colour", BANK_PICKUP, true)
 		s.keybind("clearPathHotkey", "Clear current path", 0)
 		// routing
 		s.toggle("avoidWilderness", "Avoid wilderness", true)
@@ -373,13 +373,13 @@ object ShortestPath : Plugin {
 		highlightSpellbookSpells = config.getBoolean("highlightSpellbookSpells", true)
 		highlightInventoryItems = config.getBoolean("highlightInventoryItems", true)
 		colourPath = config.getColour("colourPath", RED)
-		colourCalculating = config.getColour("colourPathCalculating", YELLOW)
-		colourUnreachable = config.getColour("colourPathUnreachable", ORANGE)
-		colourTransports = config.getColour("colourTransports", CYAN)
+		colourCalculating = config.getColour("colourPathCalculating", BLUE)
+		colourUnreachable = config.getColour("colourPathUnreachable", PURPLE)
+		colourTransports = config.getColour("colourTransports", TRANSPORTS)
 		colourCollisionMap = config.getColour("colourCollisionMap", COLLISION)
 		colourText = config.getColour("colourText", WHITE)
-		colourTeleportPulse = config.getColour("colourTeleportPulse", MAGENTA)
-		colourBankPickup = config.getColour("colourBankPickupHighlight", GREEN)
+		colourTeleportPulse = config.getColour("colourTeleportPulse", PULSE)
+		colourBankPickup = config.getColour("colourBankPickupHighlight", BANK_PICKUP)
 		clearPathHotkey = config.getInt("clearPathHotkey", 0)
 		drawTransports = config.getBoolean("drawTransports", false)
 		drawCollisionMap = config.getBoolean("drawCollisionMap", false)

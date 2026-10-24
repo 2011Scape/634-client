@@ -83,36 +83,53 @@ object ShortestPathOverlay {
 		fun y(node: Int): Int = ShortestPathFinder.y(node) - baseY
 	}
 
+	/**
+	 * RuneLite's PathTileOverlay: each tile filled in the path's colour at half its alpha, no border (lines 4
+	 * pixels wide in the line styles), the transports' tiles the same, with what to click written above them
+	 * in white once the path is found and reaches its target.
+	 */
 	private fun drawPath(g: Graphics, view: Viewport, client: ClientApi, scene: Scene, finder: ShortestPathFinder) {
 		val plugin = ShortestPath
 		val path: IntArray = finder.path
-		val colour: Int = ShortestPath.colour()
+		val colour: Int = halfAlpha(ShortestPath.colour())
 		val style: String = plugin.pathStyle
 		val lines: Boolean = style == "Lines" || style == "Arrow line" || style == "Tracer"
+		val labels: Boolean = plugin.showTransportInfo && finder === plugin.finder && !ShortestPath.unreachable(finder)
+		var pulsed = false
 		for (i in path.indices) {
 			val node: Int = path[i]
+			// the tile a transport leaves from is the one before the transport's own
+			val leaving: ShortestPathTransport? = if (i + 1 < path.size) finder.pathTransports[i + 1] else null
+			if (!pulsed && leaving != null && plugin.showTeleportPulse && isTeleport(leaving)) {
+				// RuneLite pulses only the first teleport of the path: the next "teleport now"
+				pulsed = true
+				if (scene.contains(node)) {
+					pulse(g, view, client, scene.x(node), scene.y(node), scene.level)
+				}
+			}
 			if (!scene.contains(node)) {
 				continue
 			}
 			val sx: Int = scene.x(node)
 			val sy: Int = scene.y(node)
-			// the tile a transport leaves from is the one before the transport's own
-			val leaving: ShortestPathTransport? = if (i + 1 < path.size) finder.pathTransports[i + 1] else null
-			val transport: Boolean = leaving != null
 			if (plugin.drawTiles) {
-				when {
-					transport -> outline(g, view, client, sx, sy, scene.level, plugin.colourTransports)
-					style == "Tiles" || style == "Turn markers" && isTurn(path, finder, i) -> outline(g, view, client, sx, sy, scene.level, colour)
-					style == "Sprite markers" && client.projectTile(sx, sy, scene.level, 0, point) -> g.fillCircle(view.x + point[0], view.y + point[1], 3, colour)
+				val filled: Boolean = style == "Tiles" || style == "Turn markers" && isTurn(path, finder, i)
+				if (filled && client.tilePolygon(sx, sy, scene.level, 1, xs, ys)) {
+					for (c in 0 until 4) {
+						xs[c] += view.x
+						ys[c] += view.y
+					}
+					g.fillPolygon(xs, ys, 4, colour)
+				} else if (style == "Sprite markers" && client.projectTile(sx, sy, scene.level, 0, point)) {
+					g.fillCircle(view.x + point[0], view.y + point[1], 3, colour)
 				}
-				if (lines && i + 1 < path.size && !transport && scene.contains(path[i + 1])) {
+				if (lines && i + 1 < path.size && leaving == null && scene.contains(path[i + 1])) {
 					segment(g, view, client, scene, path[i], path[i + 1], colour, style == "Arrow line" && (i % 5 == 4 || i + 2 == path.size))
 				}
 				plugin.drawnCounts[0]++
 			}
-			if (transport && plugin.showTransportInfo && g.fontReady() && client.projectTile(sx, sy, scene.level, 0, point)) {
-				val text: String = leaving!!.hint.ifEmpty { leaving.label }
-				g.textCentered(view.x + point[0], view.y + point[1], text, plugin.colourText, BLACK)
+			if (leaving != null && labels && g.fontReady() && client.projectTile(sx, sy, scene.level, 0, point)) {
+				label(g, view.x + point[0], view.y + point[1], leaving.hint.ifEmpty { leaving.label }, 0)
 			}
 			counter(g, view, client, scene, i, path.size)
 		}
@@ -120,14 +137,59 @@ object ShortestPathOverlay {
 			// a dot running along the path, a tile every 4 client cycles
 			val node: Int = path[(client.clientCycle() / 4) % path.size]
 			if (scene.contains(node) && client.projectTile(scene.x(node), scene.y(node), scene.level, 0, point)) {
-				g.fillCircle(view.x + point[0], view.y + point[1], 4, colour)
+				g.fillCircle(view.x + point[0], view.y + point[1], 4, ShortestPath.colour())
 			}
 		}
 	}
 
-	private fun outline(g: Graphics, view: Viewport, client: ClientApi, sx: Int, sy: Int, level: Int, colour: Int) {
-		TileOutline.draw(g, view, client, sx, sy, level, 1, colour, (0x40 shl 24) or (colour and 0xFFFFFF), 1, xs, ys)
+	/** RuneLite's drawLabel: white text with a black shadow, its bottom a line above the point, [offset] higher again. */
+	private fun label(g: Graphics, x: Int, y: Int, text: String, offset: Int): Int {
+		g.textCentered(x, y - g.fontHeight() - offset, text, ShortestPath.colourText, BLACK)
+		return g.fontHeight() + LABEL_GAP
 	}
+
+	private const val LABEL_GAP: Int = 2
+
+	/** A colour at half its alpha, as RuneLite fills the path's tiles. */
+	private fun halfAlpha(argb: Int): Int = (((argb ushr 24) / 2) shl 24) or (argb and 0xFFFFFF)
+
+	/** A teleport (a spell, an item, a wizard, a portal): what RuneLite's pulse marks. */
+	private fun isTeleport(transport: ShortestPathTransport): Boolean = transport.anywhere || transport.type.startsWith("TELEPORT") || transport.type == "PORTAL"
+
+	private val ringX: IntArray = IntArray(4)
+	private val ringY: IntArray = IntArray(4)
+
+	/**
+	 * RuneLite's teleport pulse: two tile-shaped rings growing from the tile to 3.6 times its size and fading
+	 * from alpha 170, half a period apart, a period every 1.4 seconds.
+	 */
+	private fun pulse(g: Graphics, view: Viewport, client: ClientApi, sx: Int, sy: Int, level: Int) {
+		if (!client.tilePolygon(sx, sy, level, 1, xs, ys)) {
+			return
+		}
+		val cx: Double = xs.average()
+		val cy: Double = ys.average()
+		val now: Long = lang.currentTimeMillis()
+		for (r in 0 until 2) {
+			val phase: Double = ((now + r * PULSE_PERIOD / 2) % PULSE_PERIOD).toDouble() / PULSE_PERIOD
+			val scale: Double = 1.0 + phase * 2.6
+			val alpha: Int = (170 * (1.0 - phase)).toInt()
+			if (alpha <= 0) {
+				continue
+			}
+			for (v in 0 until 4) {
+				ringX[v] = view.x + (cx + (xs[v] - cx) * scale).toInt()
+				ringY[v] = view.y + (cy + (ys[v] - cy) * scale).toInt()
+			}
+			val argb: Int = (alpha shl 24) or (ShortestPath.colourTeleportPulse and 0xFFFFFF)
+			for (v in 0 until 4) {
+				val w: Int = (v + 1) % 4
+				g.thickLine(ringX[v], ringY[v], ringX[w], ringY[w], 2, argb)
+			}
+		}
+	}
+
+	private const val PULSE_PERIOD: Long = 1400L
 
 	/** Whether the path turns on tile [i] (or starts, ends or takes a transport there). */
 	private fun isTurn(path: IntArray, finder: ShortestPathFinder, i: Int): Boolean {
@@ -150,12 +212,12 @@ object ShortestPathOverlay {
 		val y1: Int = view.y + point[1]
 		val x2: Int = view.x + other[0]
 		val y2: Int = view.y + other[1]
-		g.thickLine(x1, y1, x2, y2, 2, colour)
+		g.thickLine(x1, y1, x2, y2, 4, colour)
 		if (arrow) {
 			val angle: Double = atan2((y2 - y1).toDouble(), (x2 - x1).toDouble())
 			for (side in intArrayOf(-1, 1)) {
 				val a2: Double = angle + PI + side * 0.5
-				g.thickLine(x2, y2, x2 + (cos(a2) * 8).toInt(), y2 + (sin(a2) * 8).toInt(), 2, colour)
+				g.thickLine(x2, y2, x2 + (cos(a2) * 10).toInt(), y2 + (sin(a2) * 10).toInt(), 4, colour)
 			}
 		}
 	}
@@ -206,47 +268,20 @@ object ShortestPathOverlay {
 	/** Over the player: the teleport pulse, the unreachable text and the bank pickup hint. */
 	private fun drawPlayerTexts(g: Graphics, view: Viewport, client: ClientApi, scene: Scene, player: Player, finder: ShortestPathFinder) {
 		val plugin = ShortestPath
-		val sx: Int = player.serverTileX()
-		val sy: Int = player.serverTileY()
-		if (!client.projectTile(sx, sy, scene.level, 0, point)) {
-			return
-		}
-		val x: Int = view.x + point[0]
-		val y: Int = view.y + point[1]
-		val next: Pair<Int, ShortestPathTransport>? = nextTransport(client, finder)
-		if (plugin.showTeleportPulse && next != null && next.first <= progress(client, finder) + 1 && (next.second.anywhere || next.second.type.startsWith("TELEPORT"))) {
-			// RuneLite's pulse: a ring that grows and fades on the tile to teleport from
-			val phase: Int = client.clientCycle() % 30
-			val alpha: Int = 255 - phase * 8
-			g.polygon(circle(x, y, 6 + phase), circle(x, y, 6 + phase, true), 16, (alpha.coerceIn(0, 255) shl 24) or (plugin.colourTeleportPulse and 0xFFFFFF))
-		}
 		if (!g.fontReady()) {
 			return
 		}
-		var line: Int = y - 40
-		if (plugin.showUnreachableText && ShortestPath.unreachable(finder)) {
-			g.textCentered(x, line, plugin.unreachableText, plugin.colourUnreachable, BLACK)
-			line -= g.fontHeight()
+		if (plugin.showUnreachableText && ShortestPath.unreachable(finder) && client.projectTile(player.serverTileX(), player.serverTileY(), scene.level, 0, point)) {
+			label(g, view.x + point[0], view.y + point[1], plugin.unreachableText, 0)
 		}
+		// RuneLite's bank pickup: what to take out, written over the bank's tile
 		val bank: Int = finder.pathTransports.indexOfFirst { it === ShortestPathFinder.BANK }
-		if (plugin.showBankPickupInfo && bank >= 0 && ShortestPathFinder.distance(ShortestPath.origin(client), finder.path[bank]) <= 3) {
+		if (bank >= 0 && scene.contains(finder.path[bank]) && client.projectTile(scene.x(finder.path[bank]), scene.y(finder.path[bank]), scene.level, 0, point)) {
 			val names: List<String> = pickups(client, finder).mapNotNull { client.item(it)?.name() }
 			if (names.isNotEmpty()) {
-				g.textCentered(x, line, "Withdraw: " + names.joinToString(", "), plugin.colourBankPickup, BLACK)
+				label(g, view.x + point[0], view.y + point[1], "Pick up: " + names.joinToString(", "), 0)
 			}
 		}
-	}
-
-	private val circleX: IntArray = IntArray(16)
-	private val circleY: IntArray = IntArray(16)
-
-	private fun circle(x: Int, y: Int, radius: Int, ys: Boolean = false): IntArray {
-		for (i in 0 until 16) {
-			val a: Double = i * PI / 8
-			circleX[i] = x + (cos(a) * radius).toInt()
-			circleY[i] = y + (sin(a) * radius / 2).toInt()
-		}
-		return if (ys) circleY else circleX
 	}
 
 	/** The items to take out of the bank: those the transports after the bank visit need and the player lacks. */
@@ -270,15 +305,19 @@ object ShortestPathOverlay {
 		return wanted.toList()
 	}
 
-	/** Every transport leaving from a tile of the scene, in the transports' colour with its name. */
+	/** RuneLite's debug view: every transport leaving from a tile of the scene, its tile filled in the transports' colour. */
 	private fun drawAllTransports(g: Graphics, view: Viewport, client: ClientApi, scene: Scene) {
 		for (transport in ShortestPath.transports) {
 			if (transport.anywhere || transport.type == "DEST" || transport.type == "STAFF") {
 				continue
 			}
 			val node: Int = ShortestPathFinder.pack(transport.srcX, transport.srcY, transport.srcLevel)
-			if (scene.contains(node)) {
-				outline(g, view, client, scene.x(node), scene.y(node), scene.level, ShortestPath.colourTransports)
+			if (scene.contains(node) && client.tilePolygon(scene.x(node), scene.y(node), scene.level, 1, xs, ys)) {
+				for (c in 0 until 4) {
+					xs[c] += view.x
+					ys[c] += view.y
+				}
+				g.fillPolygon(xs, ys, 4, ShortestPath.colourTransports)
 			}
 		}
 	}
@@ -348,6 +387,7 @@ object ShortestPathOverlay {
 		drawHighlights(g, client, finder)
 	}
 
+	/** RuneLite's PathMinimapOverlay: each tile a filled square a tile across, turned with the camera; targets not reached in the calculating colour. */
 	private fun drawMinimap(g: Graphics, client: ClientApi, finder: ShortestPathFinder) {
 		val player: Player = client.localPlayer() ?: return
 		if (!client.minimapArea(area)) {
@@ -355,15 +395,49 @@ object ShortestPathOverlay {
 		}
 		val scene = Scene(client, player.level())
 		g.clip(area[0], area[1], area[2], area[3])
+		val colour: Int = ShortestPath.colour()
 		for (node in finder.path) {
-			if (scene.contains(node) && client.projectMinimap(scene.x(node), scene.y(node), point)) {
-				g.fillRect(point[0] - 1, point[1] - 1, 2, 2, ShortestPath.colour())
+			if (scene.contains(node) && minimapSquare(g, client, scene, node, colour)) {
 				ShortestPath.drawnCounts[1]++
+			}
+		}
+		val end: Int = finder.path.lastOrNull() ?: -1
+		for (target in ShortestPath.targets) {
+			if (target != end && scene.contains(target)) {
+				minimapSquare(g, client, scene, target, ShortestPath.colourCalculating)
 			}
 		}
 		g.unclip()
 	}
 
+	/** A tile on the minimap: its centre and the steps to the tiles east and north give the square's sides. */
+	private fun minimapSquare(g: Graphics, client: ClientApi, scene: Scene, node: Int, colour: Int): Boolean {
+		val sx: Int = scene.x(node)
+		val sy: Int = scene.y(node)
+		if (!client.projectMinimap(sx, sy, point) || !client.projectMinimap(sx + 1, sy, other) || !client.projectMinimap(sx, sy + 1, previous)) {
+			return false
+		}
+		val ex: Int = other[0] - point[0]
+		val ey: Int = other[1] - point[1]
+		val nx: Int = previous[0] - point[0]
+		val ny: Int = previous[1] - point[1]
+		// the corners at half a tile each way from the centre
+		xs[0] = point[0] - (ex + nx) / 2
+		ys[0] = point[1] - (ey + ny) / 2
+		xs[1] = xs[0] + ex
+		ys[1] = ys[0] + ey
+		xs[2] = xs[1] + nx
+		ys[2] = ys[1] + ny
+		xs[3] = xs[0] + nx
+		ys[3] = ys[0] + ny
+		g.fillPolygon(xs, ys, 4, colour)
+		return true
+	}
+
+	/**
+	 * RuneLite's PathMapOverlay: each tile a filled square a tile across, a transport's jump a dashed line,
+	 * and targets not reached in the calculating colour.
+	 */
 	private fun drawWorldMap(g: Graphics, client: ClientApi, finder: ShortestPathFinder) {
 		if (!client.worldMapArea(area)) {
 			return
@@ -371,28 +445,53 @@ object ShortestPathOverlay {
 		g.clip(area[0], area[1], area[2], area[3])
 		val path: IntArray = finder.path
 		val colour: Int = ShortestPath.colour()
-		var havePrevious = false
 		for (i in path.indices) {
 			val node: Int = path[i]
-			if (!client.projectWorldMap(ShortestPathFinder.x(node), ShortestPathFinder.y(node), ShortestPathFinder.level(node), point)) {
-				havePrevious = false
-				continue
-			}
-			// a transport is a jump, not a line across the map
-			if (havePrevious && finder.pathTransports[i] == null) {
-				g.thickLine(previous[0], previous[1], point[0], point[1], 2, colour)
+			if (i > 0 && ShortestPathFinder.distance(path[i - 1], node) > 1 && mapPoint(client, path[i - 1], previous) && mapPoint(client, node, point)) {
+				dashed(g, previous[0], previous[1], point[0], point[1], colour)
 				ShortestPath.drawnCounts[2]++
 			}
-			previous[0] = point[0]
-			previous[1] = point[1]
-			havePrevious = true
+			if (mapSquare(g, client, node, colour)) {
+				ShortestPath.drawnCounts[2]++
+			}
 		}
+		val end: Int = path.lastOrNull() ?: -1
 		for (target in ShortestPath.targets) {
-			if (client.projectWorldMap(ShortestPathFinder.x(target), ShortestPathFinder.y(target), ShortestPathFinder.level(target), point)) {
-				g.fillCircle(point[0], point[1], 3, colour)
+			if (target != end) {
+				mapSquare(g, client, target, ShortestPath.colourCalculating)
 			}
 		}
 		g.unclip()
+	}
+
+	private fun mapPoint(client: ClientApi, node: Int, out: IntArray): Boolean =
+		client.projectWorldMap(ShortestPathFinder.x(node), ShortestPathFinder.y(node), ShortestPathFinder.level(node), out)
+
+	/** A tile on the world map, as wide as the map draws a tile (at least a pixel). */
+	private fun mapSquare(g: Graphics, client: ClientApi, node: Int, colour: Int): Boolean {
+		if (!mapPoint(client, node, point)) {
+			return false
+		}
+		val corner: Int = ShortestPathFinder.pack(ShortestPathFinder.x(node) + 1, ShortestPathFinder.y(node) - 1, ShortestPathFinder.level(node))
+		val size: Int = if (mapPoint(client, corner, other)) maxOf(1, other[0] - point[0]) else 2
+		g.fillRect(point[0] - size / 2, point[1] - size / 2, size, size, colour)
+		return true
+	}
+
+	/** RuneLite's jump stroke: a one-pixel line, nine on and nine off. */
+	private fun dashed(g: Graphics, x1: Int, y1: Int, x2: Int, y2: Int, colour: Int) {
+		val dx: Double = (x2 - x1).toDouble()
+		val dy: Double = (y2 - y1).toDouble()
+		val length: Double = kotlin.math.sqrt(dx * dx + dy * dy)
+		if (length < 1.0) {
+			return
+		}
+		var t = 0.0
+		while (t < length) {
+			val t2: Double = minOf(length, t + 9.0)
+			g.line(x1 + (dx * t / length).toInt(), y1 + (dy * t / length).toInt(), x1 + (dx * t2 / length).toInt(), y1 + (dy * t2 / length).toInt(), colour)
+			t += 18.0
+		}
 	}
 
 	/** RuneLite's highlight overlays: the spell to cast, the backpack's item to use, the bank's items to take. */

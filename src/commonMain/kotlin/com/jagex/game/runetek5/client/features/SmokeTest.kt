@@ -5253,9 +5253,38 @@ object SmokeTest {
 						println("SMOKE shortest path: the closest of " + banks.size + " banks is " + ShortestPathFinder.x(end) + "," + ShortestPathFinder.y(end) + "," + ShortestPathFinder.level(end) + ", " + finder.path.size + " tiles, " + finder.pathTransports.count { it != null } + " transports, drawn as an arrow line")
 					}
 				}
+				// a far target with every teleport item taken as carried: the path starts with a teleport, which pulses
+				ShortestPath.pathStyle = "Tiles"
+				ShortestPath.useTeleportationItems = ShortestPath.ITEMS_ALL
+				ShortestPath.setTarget(api, 3212, 3440, 0)
+				shortestPathFrame = frames
+				shortestPathFound = -1
 				shortestPathStep = 5
 			}
+			5 -> {
+				val finder: ShortestPathFinder? = ShortestPath.finder
+				if (shortestPathFailure == null && (finder == null || !finder.done) && frames - shortestPathFrame < BANK_WAIT_FRAMES * 4) {
+					return false
+				}
+				if (finder != null && finder.done && shortestPathFound < shortestPathFrame) {
+					shortestPathFound = frames
+				}
+				if (shortestPathFailure == null && finder != null && finder.done && frames - shortestPathFound < MARKER_FRAMES) {
+					return false
+				}
+				if (shortestPathFailure == null) {
+					val first: ShortestPathTransport? = finder?.pathTransports?.getOrNull(1)
+					if (finder == null || !finder.reached || first == null || !first.anywhere) {
+						shortestPathFailure = "Shortest Path: the way to Varrock with every teleport item does not start with a teleport (" + (first?.label ?: "none") + ")"
+					} else {
+						saveFrame("build/smoke/frame-shortestpath-teleport.png")
+						println("SMOKE shortest path: to Varrock by " + first.label + " (" + first.hint + "), " + finder.path.size + " tiles")
+					}
+				}
+				shortestPathStep = 6
+			}
 			else -> {
+				ShortestPath.useTeleportationItems = ShortestPath.ITEMS_CARRIED
 				ShortestPath.pathStyle = "Tiles"
 				ShortestPath.clearTarget()
 				ShortestPath.enabled = false
