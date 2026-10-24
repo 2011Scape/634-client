@@ -23,7 +23,8 @@ aggression timer (`NpcAggression`), the hunter (`Hunter`), the implings (`Implin
 (`Cooking`), the smelting (`Smelting`), the prayer (`Prayer`), the inventory tags (`InventoryTags`), the
 inventory grid (`InventoryGrid`), the examine (`Examine`), the entity hider (`EntityHider`), the
 animation smoothing (`AnimationSmoothing`), the screenshot (`Screenshot`), the Grand Exchange
-(`GrandExchange`) and the time tracking (`TimeTracking`) are sixty-one, built in, so the client's own code shows the way.
+(`GrandExchange`), the time tracking (`TimeTracking`) and the screen markers (`ScreenMarkers`) are
+sixty-two, built in, so the client's own code shows the way.
 
 ## Contents
 
@@ -693,6 +694,13 @@ of your own it keeps to itself: the plugin learns it from the first stage it see
 and until then its times can be up to a cycle out. Void's patches without growth (the Herblore Habitat,
 Harmony Island, the Canifis mushrooms, the jade vine and the calquat) are left out, as are RuneLite's
 bird houses, farming contracts and clocks.
+
+**Screen Markers** is RuneLite's. Type `::marker` (or `::marker <name>`) and drag with the left button
+to draw a box on the screen, in the **Default border colour**, **Default fill colour** and **Default
+border width**. Each box is a panel of its own: hold Alt to move it or drag its edges, as with every
+panel. Shift-right-click a box for **Colour** (the next of six), **Label** (its name in its top left) and
+**Delete**; `::marker clear` deletes them all. The boxes are kept between runs. RuneLite's side panel for
+editing them is not in 634: the menu and the settings stand in for it.
 
 ## Writing a plugin
 

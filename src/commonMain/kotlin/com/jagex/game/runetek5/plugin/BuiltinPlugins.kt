@@ -49,6 +49,7 @@ import com.jagex.game.runetek5.client.features.Prayer
 import com.jagex.game.runetek5.client.features.RegenMeter
 import com.jagex.game.runetek5.client.features.ReportButton
 import com.jagex.game.runetek5.client.features.RunEnergy
+import com.jagex.game.runetek5.client.features.ScreenMarkers
 import com.jagex.game.runetek5.client.features.Screenshot
 import com.jagex.game.runetek5.client.features.Slayer
 import com.jagex.game.runetek5.client.features.Smelting
@@ -138,6 +139,7 @@ object BuiltinPlugins {
 			builtIn(Screenshot.DESCRIPTOR, Screenshot),
 			builtIn(GrandExchange.DESCRIPTOR, GrandExchange),
 			builtIn(TimeTracking.DESCRIPTOR, TimeTracking),
+			builtIn(ScreenMarkers.DESCRIPTOR, ScreenMarkers),
 		)
 	}
 

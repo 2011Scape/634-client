@@ -74,6 +74,7 @@ import com.jagex.game.runetek5.plugin.api.OverlayPosition
 import com.jagex.game.runetek5.plugin.Tooltips
 import com.jagex.game.runetek5.plugin.InfoBoxes
 import com.jagex.game.runetek5.plugin.OverlayLayout
+import com.jagex.game.runetek5.plugin.api.PanelOverlay
 import com.jagex.game.runetek5.plugin.api.QuestState
 import com.jagex.game.runetek5.plugin.api.Skill
 import kotlin.jvm.JvmStatic
@@ -496,6 +497,13 @@ object SmokeTest {
 	private var metronomeStart: Long = -1L
 
 	private var metronomeTicks: Int = 0
+
+	/** client.test.screenMarkers: a box drawn by Screen Markers (as a drag would end), placed by the overlay layout where it was drawn, then deleted from its own menu. */
+	private val SCREEN_MARKERS: Boolean = "true" == lang.getProperty("client.test.screenMarkers")
+
+	private var screenMarkersFrame: Int = -1
+
+	private var screenMarker: ScreenMarkers.Marker? = null
 
 	/** client.test.timeTracking: Falador's herb patch set by hand (guam half grown, then grown), Time Tracking's herbs infobox and its "grown" line, then the patch put back. */
 	private val TIME_TRACKING: Boolean = "true" == lang.getProperty("client.test.timeTracking")
@@ -1764,6 +1772,12 @@ object SmokeTest {
 				return
 			}
 			checksDone = checksDone or 1152921504606846976L
+		}
+		if (SCREEN_MARKERS && (checksDone and 2305843009213693952L) == 0L) {
+			if (!screenMarkersDone()) {
+				return
+			}
+			checksDone = checksDone or 2305843009213693952L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5617,6 +5631,38 @@ object SmokeTest {
 			}
 		}
 		return false
+	}
+
+	/** Screen Markers: a 120 by 80 box at (60, 70) on the screen, drawn there by the layout; deleted by its menu's Delete. Frame: frame-screenmarkers.png. */
+	private fun screenMarkersDone(): Boolean {
+		if (screenMarkersFrame == -1) {
+			ScreenMarkers.drawing = true
+			screenMarker = ScreenMarkers.finish(60, 70, 180, 150)
+			screenMarkersFrame = frames
+			return false
+		}
+		if (frames - screenMarkersFrame < MARKER_FRAMES) {
+			return false
+		}
+		saveFrame("build/smoke/frame-screenmarkers.png")
+		val marker: ScreenMarkers.Marker? = screenMarker
+		val panel: PanelOverlay? = OverlayLayout.entries.firstOrNull { it.overlay.name == "ScreenMarker" + marker?.id }?.overlay
+		if (marker == null || panel == null) {
+			fail("Screen Markers: no marker panel")
+			return true
+		}
+		val where: String = panel.boundsX.toString() + "," + panel.boundsY + " " + panel.boundsWidth + "x" + panel.boundsHeight
+		panel.menuEntries().first { it.option == "Delete" }.action.run()
+		if (where != "60,70 120x80") {
+			fail("Screen Markers: the box drawn at " + where + ", not 60,70 120x80")
+			return true
+		}
+		if (ScreenMarkers.markers.contains(marker) || OverlayLayout.entries.any { it.overlay === panel }) {
+			fail("Screen Markers: Delete left the box")
+			return true
+		}
+		println("SMOKE screen markers: box drawn at " + where + ", deleted from its menu")
+		return true
 	}
 
 	/** Time Tracking: Falador's herb patch (varbit 780) as guam_2, an infobox for the herbs; then guam_life1, told as grown; the patch put back. Frame: frame-timetracking.png. */
