@@ -547,6 +547,9 @@ object SmokeTest {
 
 	private var chatCommandsFrame: Int = 0
 
+	/** Game lines written between a command and its late hiscores: more than the 30 lines the plugin once looked through. */
+	private const val CHAT_COMMANDS_SPAM: Int = 40
+
 	private var shortestPathFrame: Int = -1
 
 	private var shortestPathFailure: String? = null
@@ -5556,23 +5559,27 @@ object SmokeTest {
 					fail("Chat Commands: \"!total\" did not come back as typed")
 					return true
 				}
-				// the website's answer coming in now (the smoke test's hiscores are nowhere): the line waits for it
-				HiscoreLookup.put(USER, smokeHiscores())
+				// the website's answer coming in now (the smoke test's hiscores are nowhere): the line waits for it,
+				// pushed back by a fight's worth of game lines meanwhile (the Ancient Cavern's dragons)
 				ChatCommands.pending.add(ChatCommands.Pending(line.id(), USER, line.name()?.let { OpponentInfo.removeTags(it) }, "!total", lang.currentTimeMillis()))
+				for (k in 0 until CHAT_COMMANDS_SPAM) {
+					api.chatMessage("The dragon's fiery breath hits you (" + k + ").")
+				}
+				HiscoreLookup.put(USER, smokeHiscores())
 				chatCommandsFrame = frames
 				chatCommandsStep = 4
 			}
 			4 -> {
-				val line: String? = (0 until 5).mapNotNull { api.chatLine(it)?.message() }.firstOrNull { it.startsWith("Level " + ChatCommands.HIGHLIGHT + "Overall") }
+				val line: String? = (0 until api.chatLineCount()).mapNotNull { api.chatLine(it)?.message() }.firstOrNull { it.startsWith("Level " + ChatCommands.HIGHLIGHT + "Overall") }
 				if (line == null || frames - chatCommandsFrame < MARKER_FRAMES) {
 					if (frames - chatCommandsFrame < 300) {
 						return false
 					}
-					fail("Chat Commands: \"!total\" was not answered in place once the hiscores came; the newest line is \"" + api.chatLine(0)?.message() + "\"")
+					fail("Chat Commands: \"!total\" was not answered in place once the hiscores came, " + CHAT_COMMANDS_SPAM + " game lines after it")
 					return true
 				}
 				saveFrame("build/smoke/frame-chatcommands-late.png")
-				println("SMOKE chat commands: \"!total\" answered in place when the hiscores came: \"" + OpponentInfo.removeTags(line) + "\"")
+				println("SMOKE chat commands: \"!total\" answered in place when the hiscores came, " + CHAT_COMMANDS_SPAM + " game lines after it: \"" + OpponentInfo.removeTags(line) + "\"")
 				chatCommandsHome?.let { sendCommand("tele " + it[0] + " " + it[1] + " " + it[2]) }
 				chatCommandsFrame = frames
 				chatCommandsStep = 5

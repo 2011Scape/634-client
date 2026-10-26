@@ -58,9 +58,6 @@ object ChatCommands : Plugin {
 	/** Item types read into the name index each client cycle (about 20 microseconds each). */
 	const val INDEX_STEP: Int = 250
 
-	/** How many newest lines are looked through for a waiting line that has moved. */
-	const val LINES_SEARCHED: Int = 30
-
 	/** The answers kept for the smoke test. */
 	const val ANSWERS_KEPT: Int = 20
 
@@ -382,11 +379,12 @@ object ChatCommands : Plugin {
 	/**
 	 * The line [p] waits on as it stands now: the foreseen id while that line still says the command, else the
 	 * newest line from the same name that does (a plugin after this one may have taken it out and put it back),
-	 * else null: the line was dropped, and no other line is touched.
+	 * else null: the line was dropped, and no other line is touched. The whole chat box is looked through: in a
+	 * fight the game's lines push the command back past dozens of others while its hiscores are fetched.
 	 */
 	@JvmStatic
 	fun waitingLine(client: ClientApi, p: Pending): Int? {
-		val saying: List<ChatLineView> = (0 until minOf(client.chatLineCount(), LINES_SEARCHED)).mapNotNull { client.chatLine(it) }
+		val saying: List<ChatLineView> = (0 until client.chatLineCount()).mapNotNull { client.chatLine(it) }
 			.filter { OpponentInfo.removeTags(it.message() ?: "").trim() == p.text }
 		val line: ChatLineView? = saying.firstOrNull { it.id() == p.lineId } ?: saying.firstOrNull { OpponentInfo.removeTags(it.name() ?: "") == (p.lineName ?: "") }
 		return line?.id()
