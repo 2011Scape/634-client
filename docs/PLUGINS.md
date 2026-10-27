@@ -815,7 +815,8 @@ actions, both ways) in blue with an arrow each way, action edges (one way, such 
 orange with what they do written by them (`Climb-over -> Stile (3197, 3276, 0)`), an edge to another level
 ending in a diamond, and the named areas as green dashed outlines, pink with their name when under the
 mouse or selected; the minimap and the world map show them too. The Overlay opacity setting fades the
-lines, nodes and outlines (not the text) where they cover what you want to read. Hold Shift and right-click a tile for its
+lines, nodes and outlines (not the text) where they cover what you want to read, and Panel background
+opacity sets how solid the panel's background is (the panel colour of the Overlays settings). Hold Shift and right-click a tile for its
 *Bot nav* submenu: add a node, start an edge and finish it as a walk or an action edge, move or delete a
 node, edit, reverse or delete the edge under the mouse, start a rectangle or polygon area, move an area's
 corner. With an edge selected, Shift and right-click an object to make its option the edge's action (Void's

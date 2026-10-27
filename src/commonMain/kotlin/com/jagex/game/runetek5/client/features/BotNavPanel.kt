@@ -66,15 +66,24 @@ object BotNavPanel {
 			if (!BotNavEditor.active(client) || !g.fontReady()) {
 				return null
 			}
+			// the background first, as tall as the last frame's panel: the layout learns its height as it draws
+			g.fillRect(0, 0, WIDTH, lastHeight, background(backgroundColour))
 			val layout = Layout(g, client, boundsX, boundsY)
 			layout.draw()
-			g.drawRect(0, 0, WIDTH, layout.y + PAD, BUTTON_EDGE)
-			return size.set(WIDTH, layout.y + PAD)
+			lastHeight = layout.y + PAD
+			g.drawRect(0, 0, WIDTH, lastHeight, BUTTON_EDGE)
+			return size.set(WIDTH, lastHeight)
 		}
 	}
 
-	init {
-		panel.backgroundColour = 0xD0101010.toInt()
+	/** The panel's height last frame. */
+	private var lastHeight: Int = 0
+
+	/** The panel colour of the Overlays settings ([standard]) at the plugin's own background opacity (0 to 100 %). */
+	@JvmStatic
+	fun background(standard: Int): Int {
+		val alpha: Int = (255 * BotNavEditor.panelOpacity + 50) / 100
+		return (alpha shl 24) or (standard and 0xFFFFFF)
 	}
 
 	@JvmStatic

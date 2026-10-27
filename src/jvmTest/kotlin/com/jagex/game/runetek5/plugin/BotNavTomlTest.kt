@@ -187,6 +187,19 @@ class BotNavTomlTest {
 	}
 
 	@Test
+	fun thePanelBackgroundTakesTheOverlaysColourAtItsOwnOpacity() {
+		val was: Int = BotNavEditor.panelOpacity
+		try {
+			BotNavEditor.panelOpacity = 100
+			assertEquals(0xFF463D32.toInt(), BotNavPanel.background(0x9C463D32.toInt()))
+			BotNavEditor.panelOpacity = 0
+			assertEquals(0x00463D32, BotNavPanel.background(0x9C463D32.toInt()))
+		} finally {
+			BotNavEditor.panelOpacity = was
+		}
+	}
+
+	@Test
 	fun badTomlSaysWhere() {
 		val error = assertFailsWith<TomlException> { BotNavToml.parseValue("[{ object = { id = \"x\" }") }
 		assertTrue(error.message!!.contains("line 1"), error.message)
