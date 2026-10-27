@@ -3,6 +3,7 @@ package com.jagex.game.runetek5.plugin
 import com.jagex.game.runetek5.client.menu.ColoredMiniMenuEntry
 import com.jagex.game.runetek5.client.menu.MiniMenu
 import com.jagex.game.runetek5.client.menu.MiniMenuEntry
+import com.jagex.game.runetek5.graphics.MiniMenuReset
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
 import com.jagex.game.runetek5.plugin.api.KeyCode
 import com.jagex.game.runetek5.plugin.api.MenuAction
@@ -156,6 +157,12 @@ class PluginApiNineTest {
 			assertEquals(9, clicked, "the tile's x, as a main menu entry gives it")
 			MiniMenu.reset()
 			assertNull(PluginRuntime.submenuOf(parent), "gone with the menu")
+			// the menu is built again every client cycle while it is closed: the submenu must be there each time
+			repeat(40) {
+				MiniMenuReset.resetEntries()
+				PluginRuntime.menuTarget(MenuTarget.TILE, 9, 4, 0, 0, 0L)
+			}
+			assertNotNull(PluginRuntime.submenuOf(MiniMenu.entryList.sentinel.previous as MiniMenuEntry), "still there after 40 builds")
 		} finally {
 			PluginRuntime.started = wasStarted
 			PluginRuntime.release(plugin)
