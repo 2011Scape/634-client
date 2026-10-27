@@ -547,6 +547,17 @@ object SmokeTest {
 
 	private var chatCommandsFrame: Int = 0
 
+	/** client.test.botNav (with client.devCommands): the Bot Nav Editor's graph drawn at Fred's farm stile, an edge selected in its panel, an edit undone. */
+	private val BOT_NAV: Boolean = "true" == lang.getProperty("client.test.botNav")
+
+	private var botNavStep: Int = -1
+
+	private var botNavHome: IntArray? = null
+
+	private var botNavFrame: Int = 0
+
+	private var botNavFailure: String? = null
+
 	private var shortestPathFrame: Int = -1
 
 	private var shortestPathFailure: String? = null
@@ -1894,6 +1905,12 @@ object SmokeTest {
 				return
 			}
 			checksDone2 = checksDone2 or 16L
+		}
+		if (BOT_NAV && (checksDone2 and 32L) == 0L) {
+			if (!botNavDone()) {
+				return
+			}
+			checksDone2 = checksDone2 or 32L
 		}
 		passLine = "SMOKE PASS in game as " + USER + " at scene tile " + player.movementBaseX[0] + "," + player.movementBaseY[0] + " after " + elapsed() + "s, " + gameFrames + " frames in game, " + frames + " in all; " + firstImage
 		if (toolkitSwitched && startToolkit != TOOLKIT) {
@@ -5582,6 +5599,113 @@ object SmokeTest {
 				if (com.jagex.game.runetek5.MapRegion.inTutorialIsland == 0 && frames - chatCommandsFrame < 600) {
 					return false
 				}
+				return true
+			}
+		}
+		return false
+	}
+
+	/** A failure after the teleport: the player goes home first (fail ends the run at once, and the save would keep them in Lumbridge). */
+	private fun botNavFail(why: String): Boolean {
+		botNavFailure = why
+		BotNavEditor.select(-1, null, null)
+		BotNavEditor.enabled = false
+		botNavHome?.let { sendCommand("tele " + it[0] + " " + it[1] + " " + it[2]) }
+		botNavFrame = frames
+		botNavStep = 2
+		return false
+	}
+
+	private fun botNavDone(): Boolean {
+		val api = ClientApiImpl
+		when (botNavStep) {
+			-1 -> {
+				if (!ClientFeatures.DEV_COMMANDS) {
+					fail("Bot Nav Editor: it is only there with the developer commands (-Pclient.devCommands=true)")
+					return true
+				}
+				// Fred's farm stile, by Lumbridge's sheep pen: walks, a one-way stile each way, the pen's area
+				if (botNavFrame == 0) {
+					val here: com.jagex.game.runetek5.plugin.api.Player? = api.localPlayer()
+					botNavHome = intArrayOf(api.sceneBaseX() + (here?.serverTileX() ?: 0), api.sceneBaseY() + (here?.serverTileY() ?: 0), here?.level() ?: 0)
+					sendCommand("tele 3199 3274 0")
+					BotNavEditor.switchOn()
+					botNavFrame = frames
+					return false
+				}
+				if (com.jagex.game.runetek5.MapRegion.inTutorialIsland != 0 || frames - botNavFrame < 150 || !BotNavEditor.loaded()) {
+					if (frames - botNavFrame < 900) {
+						return false
+					}
+					return botNavFail("Bot Nav Editor: " + (if (BotNavEditor.loaded()) "the player did not reach Lumbridge (admin ::tele)" else "its data did not load"))
+				}
+				botNavFrame = frames
+				botNavStep = 0
+			}
+			0 -> {
+				if (BotNavOverlay.drawnEdges == 0 || BotNavOverlay.drawnNodes == 0 || BotNavOverlay.drawnAreas == 0 || frames - botNavFrame < MARKER_FRAMES) {
+					if (frames - botNavFrame < 300) {
+						return false
+					}
+					return botNavFail("Bot Nav Editor: drew " + BotNavOverlay.drawnEdges + " edges, " + BotNavOverlay.drawnNodes + " nodes and " + BotNavOverlay.drawnAreas + " areas at the stile")
+				}
+				saveFrame("build/smoke/frame-botnav.png")
+				println("SMOKE bot nav: " + BotNavOverlay.drawnEdges + " edges, " + BotNavOverlay.drawnNodes + " nodes, " + BotNavOverlay.drawnAreas + " areas, " + BotNavOverlay.drawnLabels + " labels, " + BotNavOverlay.drawnMinimap + " minimap lines")
+				val graph: BotNavGraph = BotNavEditor.graph ?: return false
+				val stile: BotNavEdge? = graph.edges().firstOrNull { it.state.comment == "freds_farm_stile_north_to_south" }
+				if (stile == null) {
+					return botNavFail("Bot Nav Editor: no freds_farm_stile_north_to_south edge in the bundled data")
+				}
+				BotNavEditor.select(-1, stile, null)
+				botNavFrame = frames
+				botNavStep = 1
+			}
+			1 -> {
+				if (BotNavPanel.panel.boundsWidth == 0 || frames - botNavFrame < MARKER_FRAMES) {
+					if (frames - botNavFrame < 300) {
+						return false
+					}
+					return botNavFail("Bot Nav Editor: the panel did not show the selected edge")
+				}
+				saveFrame("build/smoke/frame-botnav-edge.png")
+				val graph: BotNavGraph = BotNavEditor.graph ?: return false
+				val stile: BotNavEdge = BotNavEditor.selectedEdge ?: return false
+				val before: String = stile.file.render()
+				graph.changeEdge(stile, stile.state.with(cost = stile.state.cost + 1))
+				val after: List<String> = stile.file.render().lines()
+				val changed: Int = before.lines().indices.count { it >= after.size || before.lines()[it] != after[it] }
+				graph.undo()
+				if (changed != 1 || stile.file.render() != before) {
+					return botNavFail("Bot Nav Editor: a cost edit changed $changed lines of " + stile.file.path + (if (stile.file.render() != before) " and the undo did not put it back" else ""))
+				}
+				// with a plugin home: an export writes the edited file and clears what the last export left
+				val root: io.File? = com.jagex.game.runetek5.plugin.PluginPaths.root()
+				if (root != null) {
+					val stale = io.File(root.getPath() + "/bot-nav/export/bot/stale.nav-edges.toml")
+					com.jagex.game.runetek5.plugin.PluginPaths.writeText(stale, "edges = [\n]\n")
+					graph.changeEdge(stile, stile.state.with(cost = stile.state.cost + 1))
+					BotNavEditor.export(api)
+					graph.undo()
+					val exported = io.File(root.getPath() + "/bot-nav/export/" + stile.file.path)
+					if (stale.exists() || !exported.exists()) {
+						return botNavFail("Bot Nav Editor: export " + (if (stale.exists()) "left the last export's file" else "did not write " + stile.file.path))
+					}
+					io.File(root.getPath() + "/bot-nav/work/" + stile.file.path).delete()
+					println("SMOKE bot nav: export wrote " + stile.file.path + " and cleared the last export's file")
+				}
+				println("SMOKE bot nav: the stile edge in its panel (" + BotNavPanel.panel.boundsWidth + "x" + BotNavPanel.panel.boundsHeight + "), a cost edit rewrote one line of " + stile.file.path + " and the undo put it back")
+				BotNavEditor.select(-1, null, null)
+				BotNavEditor.enabled = false
+				botNavHome?.let { sendCommand("tele " + it[0] + " " + it[1] + " " + it[2]) }
+				botNavFrame = frames
+				botNavStep = 2
+			}
+			else -> {
+				// home again before the run ends, or the next run starts away from Tutorial Island's guide
+				if (com.jagex.game.runetek5.MapRegion.inTutorialIsland == 0 && frames - botNavFrame < 600) {
+					return false
+				}
+				botNavFailure?.let { fail(it) }
 				return true
 			}
 		}

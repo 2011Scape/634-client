@@ -7,11 +7,13 @@ import com.jagex.game.runetek5.client.features.AttackStyles
 import com.jagex.game.runetek5.client.features.BankOrganizer
 import com.jagex.game.runetek5.client.features.BarrowsBrothers
 import com.jagex.game.runetek5.client.features.Boosts
+import com.jagex.game.runetek5.client.features.BotNavEditor
 import com.jagex.game.runetek5.client.features.Cannon
 import com.jagex.game.runetek5.client.features.ChatCommands
 import com.jagex.game.runetek5.client.features.ChatFilter
 import com.jagex.game.runetek5.client.features.ChatHistory
 import com.jagex.game.runetek5.client.features.ChatNotifications
+import com.jagex.game.runetek5.client.features.ClientFeatures
 import com.jagex.game.runetek5.client.features.CombatLevel
 import com.jagex.game.runetek5.client.features.Cooking
 import com.jagex.game.runetek5.client.features.CustomCursor
@@ -83,6 +85,12 @@ object BuiltinPlugins {
 
 	@JvmStatic
 	fun all(): Array<PluginRegistration> {
+		val all: Array<PluginRegistration> = everyone()
+		// a tool for the server's developers: only with the developer commands (--dev-commands)
+		return if (ClientFeatures.DEV_COMMANDS) all + builtIn(BotNavEditor.DESCRIPTOR, BotNavEditor) else all
+	}
+
+	private fun everyone(): Array<PluginRegistration> {
 		return arrayOf(
 			builtIn(XpDrops.DESCRIPTOR, XpDrops),
 			builtIn(IdleNotifier.DESCRIPTOR, IdleNotifier),

@@ -107,6 +107,7 @@ are off unless the client is started with `--dev-commands`.
 | | Item prices, as RuneLite's: hover an item in the backpack or the bank for its Grand Exchange price and High Level Alchemy value, for the stack and each, and (if you like) what alching it would make. | `::itemprices` |
 | | Fairy rings, as RuneLite's: the dial's teleport button names where the code goes, and the travel log lists and searches every code (click one to dial it). | `::fairyring <text>` |
 | | Chat commands, as RuneLite's: `!lvl <skill>`, `!total` and `!cmb` answered from the sender's hiscores, `!price <item>` from the Grand Exchange guide prices, and `!qp` for your own quest points, in place in the chat. | |
+| | Bot nav editor, for Void's developers (only with `--dev-commands`): Void's bot navigation graph and areas drawn over the game, edited from the Shift right-click menu and its panel, and exported as Void's TOML files. | `::botnav`, `::botnav export` |
 | | Discord presence, as RuneLite's: the Discord desktop app shows the skill you train, where you are (bosses, cities, dungeons, minigames, regions) and for how long, each a setting in the plugin manager. Discord must be running on the same computer. | `::discord`, `::discord status` |
 | | The plugin manager: every plugin with its switch and its settings, from the Plugins button in the Settings tab. | `::pluginmanager` |
 | `--no-shift-drop` | Turn off dropping an item with Shift and a left click. | `::shiftdrop` |

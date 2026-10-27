@@ -26,7 +26,9 @@ animation smoothing (`AnimationSmoothing`), the screenshot (`Screenshot`), the G
 (`GrandExchange`), the time tracking (`TimeTracking`), the screen markers (`ScreenMarkers`), the
 hiscore (`Hiscore`), the friend notes (`FriendNotes`), the interact highlight (`InteractHighlight`), the shortest path
 (`ShortestPath`), the item prices (`PriceTooltips`), the fairy rings (`FairyRings`) and the chat commands
-(`ChatCommands`) are sixty-nine, built in, so the client's own code shows the way.
+(`ChatCommands`) are sixty-nine, built in, so the client's own code shows the way. A seventieth, the bot
+nav editor (`BotNavEditor`), is a tool for the server's developers and is there only with the developer
+commands (`--dev-commands`).
 
 ## Contents
 
@@ -806,6 +808,28 @@ dropped the line. `!price` reads the item names a few hundred a frame after you 
 stall the game for a moment); one asked before that is done is answered in place the same way. Each command has
 its own switch. 634's hiscores have no kill counts, clue scrolls or minigames, so RuneLite's `!kc`, `!pb`,
 `!clues` and the like are not here; the client shows no public chat on Tutorial Island.
+
+**Bot Nav Editor** is for Void's developers, and only there with `--dev-commands` (off until switched on,
+`::botnav`). It draws Void's bot navigation graph over the game: each node a ring under a pin, walks (no
+actions, both ways) in blue with an arrow each way, action edges (one way, such as a stile's Climb-over) in
+orange with what they do written by them (`Climb-over -> Stile (3197, 3276, 0)`), an edge to another level
+ending in a diamond, and the named areas as green dashed outlines, pink with their name when under the
+mouse or selected; the minimap and the world map show them too. The Overlay opacity setting fades the
+lines, nodes and outlines (not the text) where they cover what you want to read, and Panel background
+opacity sets how solid the panel's background is (the panel colour of the Overlays settings). Hold Shift and right-click a tile for its
+*Bot nav* submenu: add a node, start an edge and finish it as a walk or an action edge, move or delete a
+node, edit, reverse or delete the edge under the mouse, start a rectangle or polygon area, move an area's
+corner. With an edge selected, Shift and right-click an object to make its option the edge's action (Void's
+name for the object comes from its object list). The panel at the top left shows the edge, area or node
+selected; click a field to type it (an edge's actions and requirements as Void's TOML, Ctrl+V pastes, Enter
+keeps it, Escape leaves it), or a button to reverse it, make it one way or both ways, or add a door,
+stairs, object or walk action as Void's files write them; Undo and Redo are also Ctrl+Z and Ctrl+Y. It
+starts from a copy of Void's `*.nav-edges.toml` and `*.areas.toml` bundled with the client; files you edit
+are kept in `.634-client/bot-nav/work` (only the edges and areas changed are rewritten, so comments and
+layout stay), and `::botnav export` writes them to `.634-client/bot-nav/export` laid out as Void's `data/`
+folder, with the changed lines on the clipboard: copy them into Void's `data/` and restart the server. `::botnav
+files` lists the files edited, `::botnav revert <path>|all` puts them back, `::botnav import <path>` takes
+a newer file from the clipboard and `::botnav find <area>` points at an area.
 
 ## Writing a plugin
 
