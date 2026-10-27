@@ -513,6 +513,8 @@ class HdShadows {
         val attrStride: IntArray = IntArray(MAX_CASTERS * 3)
         val attrNormalized: BooleanArray = BooleanArray(MAX_CASTERS * 3)
         val texture: IntArray = IntArray(MAX_CASTERS)
+        // the texture's alpha is not its opacity (GlState.hdOpaqueTexture): it leaves no holes in the shadow
+        val opaqueTexture: BooleanArray = BooleanArray(MAX_CASTERS)
         val lit: BooleanArray = BooleanArray(MAX_CASTERS)
         // an effect whose faces are solid to a depth pass but not to the eye, so it casts no shadow: drawn
         // blended other than by its alpha (additive GL_ONE,GL_ONE; modulating GL_DST_COLOR,GL_ONE), or
@@ -975,6 +977,7 @@ class HdShadows {
         }
         val bound = if (state != null && state.texturingEnabled[0]) state.boundTexture2D[0] else null
         list.texture[i] = bound?.id ?: 0
+        list.opaqueTexture[i] = bound != null && bound.id == state?.hdOpaqueTexture
         list.lit[i] = state != null && state.lightingEnabled
         list.effect[i] = state != null && (state.hdWater != 0 || state.blendEnabled && !(state.blendSrc == GL33C.GL_SRC_ALPHA && state.blendDst == GL33C.GL_ONE_MINUS_SRC_ALPHA))
         list.retained[i] = state != null && state.hdRetainedDraw
@@ -998,6 +1001,7 @@ class HdShadows {
         val uModelView: Int = GL33C.glGetUniformLocation(program.id, "uModelView")
         val uModelWorld: Int = GL33C.glGetUniformLocation(program.id, "uModelWorld")
         val uTextured: Int = GL33C.glGetUniformLocation(program.id, "uTextured")
+        val uOpaqueTexture: Int = GL33C.glGetUniformLocation(program.id, "uOpaqueTexture")
         val uLit: Int = GL33C.glGetUniformLocation(program.id, "uLit")
         val uPlane: Int = GL33C.glGetUniformLocation(program.id, "uPlane")
         GL33C.glUniform1i(GL33C.glGetUniformLocation(program.id, "uTexture"), textureUnit)
@@ -1062,6 +1066,7 @@ class HdShadows {
                 if (!have[0]) noColour++
                 val textured: Boolean = list.texture[i] != 0 && have[1]
                 GL33C.glUniform1i(uTextured, if (textured) 1 else 0)
+                GL33C.glUniform1i(uOpaqueTexture, if (list.opaqueTexture[i]) 1 else 0)
                 GL33C.glUniform1i(uLit, if (list.lit[i] && have[2]) 1 else 0)
                 if (textured) GL33C.glBindTexture(GL33C.GL_TEXTURE_2D, list.texture[i])
                 GL33C.glBindBuffer(GL33C.GL_ELEMENT_ARRAY_BUFFER, if (list.elementBuffer[i] == -1) list.indexBuffer else list.elementBuffer[i])
@@ -1123,7 +1128,7 @@ class HdShadows {
             // that shadow_dynamic.frag leaves out what is less than half opaque and what faces the
             // ground; an attribute whose buffer was rewritten since falls back to opaque, untextured
             // and no normal
-            var textured: Boolean = list.texture[i] != 0
+            var textured: Boolean = list.texture[i] != 0 && !list.opaqueTexture[i]
             var haveNormal: Boolean = true
             for (k in 0 until 3) {
                 val at: Int = i * 3 + k
@@ -1154,7 +1159,7 @@ class HdShadows {
                         org.lwjgl.system.MemoryUtil.memFree(bb)
                         println("HDDEBUG caster " + (if (list === previous) "late" else "now") + " #" + i + " first vertex colour " + (rgba[0].toInt() and 0xFF) + "," + (rgba[1].toInt() and 0xFF) + "," + (rgba[2].toInt() and 0xFF) + " alpha " + (rgba[3].toInt() and 0xFF) + " stride " + list.attrStride[at])
                     }
-                    println("HDDEBUG caster " + (if (list === previous) "late" else "now") + " #" + i + " at " + matrix[12].toInt() + "," + matrix[13].toInt() + "," + matrix[14].toInt() + " elements " + list.elements[i] + " texture " + list.texture[i] + " colour " + (list.attrBuffer[at] != 0 && !stale(list.attrBuffer[at], list.attrVersion[at])) + " texcoord " + (list.attrBuffer[at + 1] != 0 && !stale(list.attrBuffer[at + 1], list.attrVersion[at + 1])) + " lit " + list.lit[i] + " normal " + haveNormal + " effect " + list.effect[i] + " atPlayer " + list.atPlayer[i] + " retained " + list.retained[i] + (if (textured) " alpha " + textureAlphaRange(list.texture[i]) else ""))
+                    println("HDDEBUG caster " + (if (list === previous) "late" else "now") + " #" + i + " at " + matrix[12].toInt() + "," + matrix[13].toInt() + "," + matrix[14].toInt() + " elements " + list.elements[i] + " texture " + list.texture[i] + " colour " + (list.attrBuffer[at] != 0 && !stale(list.attrBuffer[at], list.attrVersion[at])) + " texcoord " + (list.attrBuffer[at + 1] != 0 && !stale(list.attrBuffer[at + 1], list.attrVersion[at + 1])) + " lit " + list.lit[i] + " normal " + haveNormal + " effect " + list.effect[i] + " atPlayer " + list.atPlayer[i] + " retained " + list.retained[i] + " opaqueTexture " + list.opaqueTexture[i] + (if (textured) " alpha " + textureAlphaRange(list.texture[i]) else ""))
                 }
             }
             GL33C.glBindBuffer(GL33C.GL_ELEMENT_ARRAY_BUFFER, if (list.elementBuffer[i] == -1) list.indexBuffer else list.elementBuffer[i])

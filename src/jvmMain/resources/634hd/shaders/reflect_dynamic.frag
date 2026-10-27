@@ -11,6 +11,8 @@ in vec3 vViewPos;
 in vec3 vMirroredViewPos;
 
 uniform int uTextured;
+// the texture's alpha is not its opacity (an opaque material's specular or reflection mask)
+uniform int uOpaqueTexture;
 uniform sampler2D uTexture;
 // the draw's fixed-function fog, for hdFog as ff.frag fogs the view
 uniform vec4 uFogColor;
@@ -22,7 +24,8 @@ out vec4 fragColor;
 void main() {
     vec4 color = vColor;
     if (uTextured != 0) {
-        color *= texture(uTexture, vTexCoord);
+        vec4 texel = texture(uTexture, vTexCoord);
+        color *= vec4(texel.rgb, uOpaqueTexture != 0 ? 1.0 : texel.a);
     }
     if (color.a < 0.5) {
         discard;

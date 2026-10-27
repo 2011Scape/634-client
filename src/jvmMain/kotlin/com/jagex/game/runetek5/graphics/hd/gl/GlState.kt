@@ -96,6 +96,13 @@ class GlState(val gl: WebGL2RenderingContext) {
 
     // 634HD: the drawn texture's id (the debug panel's texture overlay), -1 for none
     var hdTexture: Int = -1
+
+    /**
+     * 634HD: the GL name of the drawn material's texture when its alpha is not its opacity (an opaque
+     * material, effectCombiner 0, whose effect keeps a strength there: a specular or reflection mask,
+     * the King Black Dragon's scales); 0 otherwise. HdShadows' casters ignore that texture's alpha.
+     */
+    var hdOpaqueTexture: Int = 0
     val hdDepthParams: FloatArray = FloatArray(4)
 
     /** The vertex array the emulator draws with (HdGl.createState); other renderers bind it back. */
