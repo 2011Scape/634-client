@@ -200,6 +200,32 @@ class BotNavTomlTest {
 	}
 
 	@Test
+	fun onlyPathsUnderVoidsDataFolderAreTaken() {
+		assertTrue(BotNavEditor.isDataPath("bot/lumbridge.nav-edges.toml"))
+		assertTrue(BotNavEditor.isDataPath("area/misthalin/lumbridge/lumbridge.areas.toml"))
+		for (bad in listOf("../x.nav-edges.toml", "bot/../../x.nav-edges.toml", "/etc/x.areas.toml", "bot//x.nav-edges.toml", "C:/x.areas.toml", "bot\\x.areas.toml", "bot/x.toml")) {
+			assertFalse(BotNavEditor.isDataPath(bad), bad)
+		}
+	}
+
+	@Test
+	fun movingAnAreaPointLeavesTheOldStateForUndo() {
+		val graph = BotNavGraph()
+		val file = BotNavFile("area/test.areas.toml", areas)
+		graph.files.add(file)
+		val polygon = file.areas[1]
+		BotNavEditor.graph = graph
+		try {
+			graph.changeArea(polygon, polygon.state.withPoints(polygon.state.xs().copyOf().also { it[0] = 3250 }, polygon.state.ys()))
+			assertEquals(3250, polygon.state.xs()[0])
+			graph.undo()
+			assertEquals(3252, polygon.state.xs()[0], "the old state's points are untouched")
+		} finally {
+			BotNavEditor.graph = null
+		}
+	}
+
+	@Test
 	fun badTomlSaysWhere() {
 		val error = assertFailsWith<TomlException> { BotNavToml.parseValue("[{ object = { id = \"x\" }") }
 		assertTrue(error.message!!.contains("line 1"), error.message)

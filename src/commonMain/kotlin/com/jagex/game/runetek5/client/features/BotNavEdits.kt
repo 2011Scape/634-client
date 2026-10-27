@@ -288,8 +288,8 @@ object BotNavEdits {
 		val area: BotNavArea = BotNavEditor.selectedArea ?: return
 		val i: Int = BotNavEditor.movingPoint
 		BotNavEditor.cancelMode()
-		val xs: IntArray = area.state.xs()
-		val ys: IntArray = area.state.ys()
+		val xs: IntArray = area.state.xs().copyOf()
+		val ys: IntArray = area.state.ys().copyOf()
 		if (area.state.isRectangle()) {
 			xs[if (i == 1 || i == 2) 1 else 0] = BotNavTile.x(tile)
 			ys[if (i >= 2) 1 else 0] = BotNavTile.y(tile)

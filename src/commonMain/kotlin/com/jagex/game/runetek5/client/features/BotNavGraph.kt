@@ -144,10 +144,15 @@ class BotNavEdge(@JvmField val file: BotNavFile, @JvmField var state: BotNavEdge
 
 /** What an area holds: its name and its table (x, y, level, tags and the rest). */
 class BotNavAreaState(@JvmField val name: String, @JvmField val table: TomlTable) {
-	/** The x of each point: two for a rectangle (its corners), more for a polygon. */
-	fun xs(): IntArray = ints("x")
+	/** The x of each point: two for a rectangle (its corners), more for a polygon. Shared: copy it to change it. */
+	fun xs(): IntArray = xsCache
 
-	fun ys(): IntArray = ints("y")
+	fun ys(): IntArray = ysCache
+
+	// read once: drawing asks every area for its points every frame; the arrays are shared, never changed
+	private val xsCache: IntArray by lazy { ints("x") }
+
+	private val ysCache: IntArray by lazy { ints("y") }
 
 	/** The area's level, or -1 when it covers every level. */
 	fun level(): Int = (table.int("level") ?: -1L).toInt()

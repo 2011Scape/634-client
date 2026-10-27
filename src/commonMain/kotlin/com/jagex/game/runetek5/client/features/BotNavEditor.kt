@@ -460,13 +460,22 @@ object BotNavEditor : Plugin {
 			report(client, "No folder to export to: " + edited.size + " file(s) changed, the changed lines are on the clipboard.")
 			return
 		}
+		// made afresh: a file reverted since the last export must not be copied into Void again
+		var cleared = 0
+		val old: HashMap<String, String> = HashMap()
+		collect(export, "", old, 0)
+		for (path in old.keys) {
+			if (io.File(export.getPath() + "/" + path).delete()) {
+				cleared++
+			}
+		}
 		var written = 0
 		for (file in edited) {
 			if (PluginPaths.writeText(io.File(export.getPath() + "/" + file.path), file.render())) {
 				written++
 			}
 		}
-		report(client, "Exported $written file(s) to " + export.getPath() + " (copy into Void's data folder, then ::reload nav).")
+		report(client, "Exported $written file(s) to " + export.getPath() + (if (cleared > written) " (the last export's other files removed)" else "") + ": copy them into Void's data folder, then ::reload nav.")
 		for (file in edited) {
 			client.consolePrint("  " + file.path)
 		}
@@ -498,11 +507,23 @@ object BotNavEditor : Plugin {
 		report(client, if (reverted == 0) "No edited file $path (::botnav files lists them)." else "Reverted $reverted file(s).")
 	}
 
+	/** A path under Void's data folder of a file the editor keeps: written under its own folders, so nothing may climb out of them. */
+	@JvmStatic
+	fun isDataPath(path: String): Boolean {
+		if (!path.endsWith(BotNavFile.EDGES_SUFFIX) && !path.endsWith(BotNavFile.AREAS_SUFFIX)) {
+			return false
+		}
+		if (path.startsWith("/") || path.contains('\\') || path.contains(':')) {
+			return false
+		}
+		return path.split('/').none { it.isEmpty() || it == "." || it == ".." }
+	}
+
 	/** Replaces a file with the clipboard's TOML (a newer copy from Void). */
 	private fun import(client: ClientApi, path: String) {
 		val graph: BotNavGraph = graph ?: return
-		if (!path.endsWith(BotNavFile.EDGES_SUFFIX) && !path.endsWith(BotNavFile.AREAS_SUFFIX)) {
-			report(client, "The path must end " + BotNavFile.EDGES_SUFFIX + " or " + BotNavFile.AREAS_SUFFIX + ", as under Void's data folder.")
+		if (!isDataPath(path)) {
+			report(client, "The path must be under Void's data folder (no .., no leading /) and end " + BotNavFile.EDGES_SUFFIX + " or " + BotNavFile.AREAS_SUFFIX + ".")
 			return
 		}
 		val text: String = client.clipboard() ?: return report(client, "The clipboard is empty.")
