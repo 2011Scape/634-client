@@ -1268,6 +1268,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 			var effectParam1: Byte = 0
 			var effectParam2: Int = 0
 			var effectType: Int = if (this.stillWaterToggled) 3 else 0
+			var opaque: Boolean = false
 			if (materialId < 0) {
 				this.renderStationaryTexture()
 				this.setSceneAlphaToCoverage(false) // Not part of the original client: see setSceneAlphaToCoverage.
@@ -1290,6 +1291,7 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 					effectParam1 = textureMetrics.effectParam1
 				}
 				combineMode = textureMetrics.combineMode
+				opaque = textureMetrics.effectCombiner == 0
 			}
 			this.effectManager.loadEffect(effectParam1.toInt(), hasLight, effectType, effectParam2, allowStillWater)
 			// 634HD: the texture's material maps (client.hd.materials)
@@ -1309,6 +1311,8 @@ class HdToolkit : Toolkit, SceneTargetToolkit {
 				this.setActiveTexture(texture)
 				this.setColourOp(combineMode)
 			}
+			// 634HD: an opaque material's texture alpha is no cut-out for the shadow casters (HdShadows)
+			HdGl.state.hdOpaqueTexture = if (opaque && texture != null) HdGl.state.textures[texture.getId()]?.id ?: 0 else 0
 			this.renderStillWater = this.stillWaterToggled
 			this.lastMaterialId = materialId
 		}
