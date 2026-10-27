@@ -114,6 +114,10 @@ object BotNavEditor : Plugin {
 	@JvmField
 	var drawOnWorldMap: Boolean = true
 
+	/** The overlay's lines, nodes and outlines, in percent (BotNavOverlay.fade); text stays solid. */
+	@JvmField
+	var opacity: Int = 100
+
 	@JvmField
 	var colourWalk: Int = 0xFF4CB8FF.toInt()
 
@@ -220,6 +224,7 @@ object BotNavEditor : Plugin {
 		context.settings().number("labelDistance", "Label distance (tiles)", 20, 1, 104, 1)
 		context.settings().toggle("drawOnMinimap", "Draw on the minimap", true)
 		context.settings().toggle("drawOnWorldMap", "Draw on the world map", true)
+		context.settings().number("opacity", "Overlay opacity (%)", 100, 10, 100, 5)
 		context.settings().colour("colourWalk", "Walk edge colour", 0xFF4CB8FF.toInt(), false)
 		context.settings().colour("colourAction", "Action edge colour", 0xFFFF9A3C.toInt(), false)
 		context.settings().colour("colourArea", "Area colour", 0xFF3CE05A.toInt(), false)
@@ -259,6 +264,7 @@ object BotNavEditor : Plugin {
 		labelDistance = config.getInt("labelDistance", 20).coerceIn(1, 104)
 		drawOnMinimap = config.getBoolean("drawOnMinimap", true)
 		drawOnWorldMap = config.getBoolean("drawOnWorldMap", true)
+		opacity = config.getInt("opacity", 100).coerceIn(10, 100)
 		colourWalk = config.getColour("colourWalk", 0xFF4CB8FF.toInt())
 		colourAction = config.getColour("colourAction", 0xFFFF9A3C.toInt())
 		colourArea = config.getColour("colourArea", 0xFF3CE05A.toInt())

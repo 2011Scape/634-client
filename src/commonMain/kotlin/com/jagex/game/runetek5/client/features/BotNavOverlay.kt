@@ -175,7 +175,8 @@ object BotNavOverlay {
 	private fun drawEdge(g: Graphics, view: Viewport, client: ClientApi, scene: Scene, edge: BotNavEdge): Boolean {
 		val state: BotNavEdgeState = edge.state
 		val selected: Boolean = edge === BotNavEditor.selectedEdge
-		val colour: Int = if (selected) SELECTED else if (state.isWalk) BotNavEditor.colourWalk else BotNavEditor.colourAction
+		val textColour: Int = if (selected) SELECTED else if (state.isWalk) BotNavEditor.colourWalk else BotNavEditor.colourAction
+		val colour: Int = fade(textColour)
 		// an edge to another level ends at the stairs on this one
 		val start: Int = if (scene.has(state.from)) state.from else state.to
 		var end: Int = if (start == state.from) state.to else state.from
@@ -213,7 +214,7 @@ object BotNavOverlay {
 			if (g.fontReady()) {
 				val there: Int = BotNavTile.level(if (start == state.from) state.to else state.from)
 				val text: String = (if (start == state.from) "to " else "from ") + "level " + there
-				g.textCentered(x2, y2 - 8, text, colour, BLACK)
+				g.textCentered(x2, y2 - 8, text, textColour, BLACK)
 			}
 		}
 		if (state.requires != null && state.requires.items.isNotEmpty() && g.fontReady()) {
@@ -246,7 +247,17 @@ object BotNavOverlay {
 		ringX[3] = x - 6
 		ringY[3] = y
 		g.fillPolygon(ringX, ringY, 4, colour)
-		g.polygon(ringX, ringY, 4, BLACK)
+		g.polygon(ringX, ringY, 4, fade(BLACK))
+	}
+
+	/**
+	 * [argb] at the settings' overlay opacity: the lines, nodes and outlines fade, the text drawn over
+	 * them does not. Never below an alpha of 1, which the toolkit would draw solid.
+	 */
+	@JvmStatic
+	fun fade(argb: Int): Int {
+		val alpha: Int = ((argb ushr 24) * BotNavEditor.opacity + 50) / 100
+		return (alpha.coerceIn(1, 255) shl 24) or (argb and 0xFFFFFF)
 	}
 
 	/** The tile of the edge's first object action, when it has one with x and y. */
@@ -323,11 +334,13 @@ object BotNavOverlay {
 		}
 		val x: Int = BotNavTile.x(tile) - scene.baseX
 		val y: Int = BotNavTile.y(tile) - scene.baseY
-		val colour: Int = when {
-			tile == BotNavEditor.selectedNode -> SELECTED
-			pending -> WHITE
-			else -> BotNavEditor.colourNode
-		}
+		val colour: Int = fade(
+			when {
+				tile == BotNavEditor.selectedNode -> SELECTED
+				pending -> WHITE
+				else -> BotNavEditor.colourNode
+			},
+		)
 		// the ring: a circle on the ground, a third of a tile across
 		var count = 0
 		for (i in 0 until RING_POINTS) {
@@ -351,9 +364,9 @@ object BotNavOverlay {
 		}
 		g.thickLine(point[0], point[1], other[0], other[1], 2, colour)
 		// a filled polygon, not fillCircle: the HD toolkit draws no small circles
-		head(g, other[0], other[1], 6, BLACK)
+		head(g, other[0], other[1], 6, fade(BLACK))
 		head(g, other[0], other[1], 5, colour)
-		head(g, other[0] - 1, other[1] - 2, 2, WHITE)
+		head(g, other[0] - 1, other[1] - 2, 2, fade(WHITE))
 		drawnNodes++
 	}
 
@@ -383,7 +396,7 @@ object BotNavOverlay {
 				continue
 			}
 			val highlighted: Boolean = area === BotNavEditor.selectedArea || area === under
-			if (outline(g, view, client, scene, state, if (highlighted) HIGHLIGHT else BotNavEditor.colourArea, highlighted)) {
+			if (outline(g, view, client, scene, state, fade(if (highlighted) HIGHLIGHT else BotNavEditor.colourArea), highlighted)) {
 				drawnAreas++
 				if (highlighted) {
 					nameTag(g, view, client, scene, state)
@@ -470,22 +483,22 @@ object BotNavOverlay {
 		when (BotNavEditor.mode) {
 			BotNavEditor.MODE_EDGE, BotNavEditor.MODE_MOVE_NODE -> {
 				if (project(client, view, scene, BotNavEditor.modeTile, 0, point) && project(client, view, scene, hovered, 0, other)) {
-					g.thickLine(point[0], point[1], other[0], other[1], 2, PREVIEW)
-					arrow(g, point[0], point[1], other[0], other[1], 0.6, PREVIEW)
+					g.thickLine(point[0], point[1], other[0], other[1], 2, fade(PREVIEW))
+					arrow(g, point[0], point[1], other[0], other[1], 0.6, fade(PREVIEW))
 				}
 			}
 			BotNavEditor.MODE_AREA_RECT -> {
 				val first: Int = BotNavEditor.modeTile
 				val xs = intArrayOf(minOf(BotNavTile.x(first), BotNavTile.x(hovered)), maxOf(BotNavTile.x(first), BotNavTile.x(hovered)))
 				val ys = intArrayOf(minOf(BotNavTile.y(first), BotNavTile.y(hovered)), maxOf(BotNavTile.y(first), BotNavTile.y(hovered)))
-				outline(g, view, client, scene, BotNavAreaState("", TomlTable(LinkedHashMap())).withPoints(xs, ys), PREVIEW, true)
+				outline(g, view, client, scene, BotNavAreaState("", TomlTable(LinkedHashMap())).withPoints(xs, ys), fade(PREVIEW), true)
 			}
 			BotNavEditor.MODE_AREA_POLYGON -> {
 				val points: ArrayList<Int> = ArrayList(BotNavEditor.polygon)
 				points.add(hovered)
 				for (i in 0 until points.size - 1) {
 					if (project(client, view, scene, points[i], 0, point) && project(client, view, scene, points[i + 1], 0, other)) {
-						g.thickLine(point[0], point[1], other[0], other[1], 2, PREVIEW)
+						g.thickLine(point[0], point[1], other[0], other[1], 2, fade(PREVIEW))
 					}
 				}
 			}
@@ -510,13 +523,13 @@ object BotNavOverlay {
 				continue
 			}
 			if (minimapPoint(client, scene, state.from, point) && minimapPoint(client, scene, state.to, other)) {
-				g.line(point[0], point[1], other[0], other[1], if (state.isWalk) BotNavEditor.colourWalk else BotNavEditor.colourAction)
+				g.line(point[0], point[1], other[0], other[1], fade(if (state.isWalk) BotNavEditor.colourWalk else BotNavEditor.colourAction))
 				drawnMinimap++
 			}
 		}
 		for (tile in graph.nodes().keys) {
 			if (scene.has(tile) && minimapPoint(client, scene, tile, point)) {
-				g.fillRect(point[0] - 1, point[1] - 1, 3, 3, BotNavEditor.colourNode)
+				g.fillRect(point[0] - 1, point[1] - 1, 3, 3, fade(BotNavEditor.colourNode))
 			}
 		}
 		g.unclip()
@@ -540,13 +553,13 @@ object BotNavOverlay {
 				continue
 			}
 			if (clipLine(point[0], point[1], other[0], other[1])) {
-				g.line(clipped[0], clipped[1], clipped[2], clipped[3], if (state.isWalk) BotNavEditor.colourWalk else BotNavEditor.colourAction)
+				g.line(clipped[0], clipped[1], clipped[2], clipped[3], fade(if (state.isWalk) BotNavEditor.colourWalk else BotNavEditor.colourAction))
 				drawnWorldMap++
 			}
 		}
 		if (BotNavEditor.showAreas) {
 			for (a in graph.areas()) {
-				worldMapArea(g, a.state, if (a === BotNavEditor.selectedArea) HIGHLIGHT else BotNavEditor.colourArea)
+				worldMapArea(g, a.state, fade(if (a === BotNavEditor.selectedArea) HIGHLIGHT else BotNavEditor.colourArea))
 			}
 		}
 		g.unclip()

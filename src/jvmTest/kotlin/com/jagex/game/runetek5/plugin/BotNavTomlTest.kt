@@ -2,9 +2,11 @@ package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.client.features.BotNavAreaState
 import com.jagex.game.runetek5.client.features.BotNavEdgeState
+import com.jagex.game.runetek5.client.features.BotNavEditor
 import com.jagex.game.runetek5.client.features.BotNavEdits
 import com.jagex.game.runetek5.client.features.BotNavFile
 import com.jagex.game.runetek5.client.features.BotNavGraph
+import com.jagex.game.runetek5.client.features.BotNavOverlay
 import com.jagex.game.runetek5.client.features.BotNavPanel
 import com.jagex.game.runetek5.client.features.BotNavTile
 import com.jagex.game.runetek5.client.features.BotNavToml
@@ -167,6 +169,21 @@ class BotNavTomlTest {
 		assertEquals("[{ tile = { x = 3205, y = 3209, level = 1 } }]", BotNavEdits.template("walk", from, up).format())
 		assertEquals(BotNavTile.pack(3197, 3276, 2), BotNavPanel.tile("(3197, 3276, 2)"))
 		assertEquals(null, BotNavPanel.tile("3197"))
+	}
+
+	@Test
+	fun theOpacityFadesColoursButNeverToAlphaNought() {
+		val was: Int = BotNavEditor.opacity
+		try {
+			BotNavEditor.opacity = 100
+			assertEquals(0xFF4CB8FF.toInt(), BotNavOverlay.fade(0xFF4CB8FF.toInt()))
+			BotNavEditor.opacity = 40
+			assertEquals(0x664CB8FF, BotNavOverlay.fade(0xFF4CB8FF.toInt()))
+			BotNavEditor.opacity = 10
+			assertEquals(0x01FFFFFF, BotNavOverlay.fade(0x05FFFFFF), "an alpha of 0 would draw solid")
+		} finally {
+			BotNavEditor.opacity = was
+		}
 	}
 
 	@Test
