@@ -827,7 +827,7 @@ stairs, object or walk action as Void's files write them; Undo and Redo are also
 starts from a copy of Void's `*.nav-edges.toml` and `*.areas.toml` bundled with the client; files you edit
 are kept in `.634-client/bot-nav/work` (only the edges and areas changed are rewritten, so comments and
 layout stay), and `::botnav export` writes them to `.634-client/bot-nav/export` laid out as Void's `data/`
-folder, with the changed lines on the clipboard: copy them into Void and `::reload nav` there. `::botnav
+folder, with the changed lines on the clipboard: copy them into Void's `data/` and restart the server. `::botnav
 files` lists the files edited, `::botnav revert <path>|all` puts them back, `::botnav import <path>` takes
 a newer file from the clipboard and `::botnav find <area>` points at an area.
 

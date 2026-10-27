@@ -37,7 +37,7 @@ import kotlin.jvm.JvmStatic
  * It starts from a copy of Void's `*.nav-edges.toml` and `*.areas.toml` bundled with the client
  * (made by ~/634-bot-nav-tools/sync.py); the files edited are kept in `.634-client/bot-nav/work` and
  * `::botnav export` writes them to `.634-client/bot-nav/export`, laid out as Void's `data/` folder, to
- * be copied into a Void checkout (and `::reload nav` there). Only with the developer commands on
+ * be copied into a Void checkout (the server reads them when it starts). Only with the developer commands on
  * (`--dev-commands`), and off until switched on.
  */
 object BotNavEditor : Plugin {
@@ -475,7 +475,7 @@ object BotNavEditor : Plugin {
 				written++
 			}
 		}
-		report(client, "Exported $written file(s) to " + export.getPath() + (if (cleared > written) " (the last export's other files removed)" else "") + ": copy them into Void's data folder, then ::reload nav.")
+		report(client, "Exported $written file(s) to " + export.getPath() + (if (cleared > written) " (the last export's other files removed)" else "") + ": copy them into Void's data folder and restart the server.")
 		for (file in edited) {
 			client.consolePrint("  " + file.path)
 		}
