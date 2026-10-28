@@ -72,8 +72,8 @@ the game for you.
   own to the chat icons (`<img=N>`); set a component's text and the client variables (the chat box's
   typed line); remap the player's own keys before the client reads them (`KeyInput`); and set the
   mouse cursor, from a picture or an item's icon; smooth animations, blending them between their keyframes
-  (`setAnimationFilter`); and hear when the server changes a location (`LocChanged`) or a Grand Exchange offer
-  (`GrandExchangeOfferChanged`).
+  (`setAnimationFilter`); and hear when the server changes a location (`LocChanged`), plays an animation on
+  one (`LocAnimationChanged`) or changes a Grand Exchange offer (`GrandExchangeOfferChanged`).
 - Add: entries to the right-click menu of a tile, npc, player, ground item, location or interface
   component (an inventory slot included), with an action of its own, and entries that open a
   submenu of its own beside the menu; console commands (`::name`); lines in the chat box and the

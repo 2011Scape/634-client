@@ -5,6 +5,13 @@ import com.jagex.game.runetek5.network.packet.StockMarketOffer
 import com.jagex.game.runetek5.plugin.api.AnimationFilter
 import com.jagex.game.runetek5.plugin.api.ProjectileFilter
 import com.jagex.game.runetek5.plugin.api.events.LocChanged
+import com.jagex.game.runetek5.plugin.api.events.LocAnimationChanged
+import com.jagex.game.runetek5.core.constants.LocLayer
+import com.jagex.game.runetek5.entity.gameobject.GameObject
+import com.jagex.game.runetek5.scene.Scene
+import lang.jClass
+import com.jagex.game.runetek5.MapRegion
+import com.jagex.game.runetek5.scene.tile.Tile
 import com.jagex.game.runetek5.client.input.keyboard.KeyRecordEntry
 import com.jagex.game.runetek5.plugin.api.events.KeyInput
 import com.jagex.game.runetek5.ChatLineWriter
@@ -1266,6 +1273,46 @@ object PluginRuntime {
 		locChangedEvent.shape = shape
 		locChangedEvent.rotation = rotation
 		bus.post(Events.LOC_CHANGED, locChangedEvent)
+	}
+
+	private val locAnimationEvent: LocAnimationChanged = LocAnimationChanged()
+
+	/**
+	 * The server played [animationId] (-1 stops it) on the location in [layer] of scene tile ([x], [y]) of
+	 * [level], placed with [shape] and [rotation] (OBJ_ANIM): the plugins' LocAnimationChanged.
+	 */
+	@JvmStatic
+	fun locAnimationChanged(x: Int, y: Int, level: Int, layer: Int, shape: Int, rotation: Int, animationId: Int) {
+		if (!started || !bus.hasListeners(Events.LOC_ANIMATION_CHANGED)) {
+			return
+		}
+		if (x < 0 || y < 0 || x >= MapRegion.sceneSizeX || y >= MapRegion.sceneSizeY) {
+			return
+		}
+		locAnimationEvent.sceneX = x
+		locAnimationEvent.sceneY = y
+		locAnimationEvent.level = level
+		locAnimationEvent.layer = layer
+		locAnimationEvent.shape = shape
+		locAnimationEvent.rotation = rotation
+		locAnimationEvent.locId = locIdAt(level, x, y, layer)
+		locAnimationEvent.animationId = animationId
+		bus.post(Events.LOC_ANIMATION_CHANGED, locAnimationEvent)
+	}
+
+	/** The id of the location in [layer] of scene tile ([x], [y]) of [level], as Scene.animateObject finds it; -1 for none, or no scene. */
+	private fun locIdAt(level: Int, x: Int, y: Int, layer: Int): Int {
+		val levels: Array<Array<Array<Tile?>?>?> = Scene.aClass100ArrayArrayArray3 ?: return -1
+		if (level < 0 || level >= levels.size) {
+			return -1
+		}
+		val loc: Any? = when (layer) {
+			LocLayer.WALL -> Scene.getWall(level, x, y)
+			LocLayer.WALLDECOR -> Scene.getWallDecoration(level, x, y)
+			LocLayer.GROUND -> Scene.getInteractiveOfType(level, x, y, GameObject::class.jClass)
+			else -> Scene.getGroundDecoration(level, x, y)
+		}
+		return (loc as? GameObject)?.getId() ?: -1
 	}
 
 	/** The server sent Grand Exchange offer [slot] (UPDATE_GE_SLOT): the plugins' GrandExchangeOfferChanged. */
