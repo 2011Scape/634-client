@@ -142,6 +142,7 @@ object UpdateZonePacketDecoder {
 			val rotation: Int = shapeAndRotation and 0x3
 			val layer: Int = LocLayer.OBJECT_TYPE_SLOTS[shape]
 			Scene.animateObject(sceneY, animationId, shape, sceneX, rotation, UpdateZonePacketDecoder.updateZonePlane, layer)
+			PluginRuntime.locAnimationChanged(sceneX, sceneY, UpdateZonePacketDecoder.updateZonePlane, layer, shape, rotation, animationId) // Not part of the original client: the plugins' LocAnimationChanged.
 		} else {
 			@Pc(655) var local655: Int
 			@Pc(659) var local659: Int

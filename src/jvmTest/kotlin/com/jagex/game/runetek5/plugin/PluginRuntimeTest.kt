@@ -16,6 +16,7 @@ import com.jagex.game.runetek5.plugin.api.Task
 import com.jagex.game.runetek5.plugin.api.events.EventListener
 import com.jagex.game.runetek5.plugin.api.events.AnimationChanged
 import com.jagex.game.runetek5.plugin.api.events.Events
+import com.jagex.game.runetek5.scene.Scene
 import com.jagex.game.runetek5.plugin.api.events.GroundItem
 import com.jagex.game.runetek5.plugin.api.events.HitsplatApplied
 import com.jagex.game.runetek5.plugin.api.events.OverheadTextChanged
@@ -374,6 +375,32 @@ class PluginRuntimeTest {
 			PluginRuntime.groundItemSpawned(995, 1, 0, 0, 0)
 			assertEquals(1, spawned.size, "nothing before the plugins start")
 		} finally {
+			PluginRuntime.started = wasStarted
+			PluginRuntime.release(plugin)
+		}
+	}
+
+	@Test
+	fun locAnimationHookPostsWhatTheServerSentOnTheScene() {
+		val plugin: PluginRegistration = registration("loc-animations")
+		val wasStarted: Boolean = PluginRuntime.started
+		val scene = Scene.aClass100ArrayArrayArray3
+		PluginRuntime.started = true
+		// no scene: the event still says what the server sent, with no location found there
+		Scene.aClass100ArrayArrayArray3 = null
+		val seen: ArrayList<String> = ArrayList()
+		try {
+			PluginRuntime.bus.subscribe(Events.LOC_ANIMATION_CHANGED, EventListener { e -> seen.add("" + e.sceneX + "," + e.sceneY + " " + e.level + " " + e.layer + " " + e.shape + " " + e.rotation + " " + e.locId + " " + e.animationId) }, plugin)
+			PluginRuntime.locAnimationChanged(12, 34, 1, 2, 10, 3, 1219)
+			PluginRuntime.locAnimationChanged(12, 34, 1, 0, 0, 1, -1)
+			PluginRuntime.locAnimationChanged(-1, 34, 0, 2, 10, 0, 1219)
+			PluginRuntime.locAnimationChanged(12, 104, 0, 2, 10, 0, 1219)
+			assertEquals(listOf("12,34 1 2 10 3 -1 1219", "12,34 1 0 0 1 -1 -1"), seen, "off the scene is dropped")
+			PluginRuntime.started = false
+			PluginRuntime.locAnimationChanged(12, 34, 1, 2, 10, 3, 1219)
+			assertEquals(2, seen.size, "nothing before the plugins start")
+		} finally {
+			Scene.aClass100ArrayArrayArray3 = scene
 			PluginRuntime.started = wasStarted
 			PluginRuntime.release(plugin)
 		}
