@@ -153,8 +153,21 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
     /** Each object's plane (Entity.level) and loc shape (GameObject.getShape, -1 for none): the occlusion bake leaves out roofs and the floors above the player. */
     private var objectLevel: ByteArray = ByteArray(4096)
     private var objectShape: ByteArray = ByteArray(4096)
+    /** Each object's tiles (scene tiles, a byte each): first x, first z, last x, last z, for the roof rule. */
+    private var objectTiles: IntArray = IntArray(4096)
+    private var buildingTiles: Int = 0
+    /** Objects the client's roof rule hides now (updateRoofHidden): they cast no sun shadow. */
+    private var objectRoofHidden: BooleanArray = BooleanArray(4096)
+    private var roofHiddenCount: Int = 0
+    private var roofHiddenHash: Long = 0L
+
+    /** Changes when the set of objects the roof rule hides changes: the sun's static casters are drawn again. */
+    var roofHiddenVersion: Int = 0
+        private set
     /** Below this height (scene units, 512 a tile) a retained model is flat and casts no shadow. */
     private val FLAT_CASTER_HEIGHT: Int = 24
+    /** The first world tile row of the game's underground areas (dungeons and caves sit 6400 tiles north). */
+    private val UNDERGROUND_Z: Int = 6400
 
     /** Objects a model override keeps from casting shadows or occluding (castShadows false), and flat ones. */
     private var objectNoShadow: BooleanArray = BooleanArray(4096)
@@ -460,6 +473,7 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             captureCount = 0
             windFor(entities[i]!!)
             buildingLevel = entities[i]!!.level.toInt()
+            buildingTiles = tilesOf(entities[i]!!)
             buildingShape = if (entities[i] is com.jagex.game.runetek5.entity.gameobject.GameObject) (entities[i] as com.jagex.game.runetek5.entity.gameobject.GameObject).getShape() else -1
             val entity: Entity = entities[i]!!
             buildingOverride = if (entity is com.jagex.game.runetek5.entity.gameobject.GameObject) toolkit.hdContent.overrideFor((entity as com.jagex.game.runetek5.entity.gameobject.GameObject).getId(), (entity.x shr 9) + com.jagex.game.runetek5.MapRegion.sceneBaseX, (entity.z shr 9) + com.jagex.game.runetek5.MapRegion.sceneBaseY) else null
@@ -709,6 +723,118 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
 
     private fun isRoof(shape: Int): Boolean = shape >= 12 && shape <= 21
 
+    /** [entity]'s tiles as objectTiles keeps them: the area of a loc that covers several, else its own tile. */
+    private fun tilesOf(entity: Entity): Int {
+        var minX: Int = entity.x shr com.jagex.game.runetek5.scene.Scene.tileUnits
+        var minZ: Int = entity.z shr com.jagex.game.runetek5.scene.Scene.tileUnits
+        var maxX: Int = minX
+        var maxZ: Int = minZ
+        if (entity is com.jagex.game.runetek5.entity.AbstractInteractiveEntity) {
+            minX = entity.startX.toInt()
+            minZ = entity.startZ.toInt()
+            maxX = entity.endX.toInt()
+            maxZ = entity.endZ.toInt()
+        }
+        return (minX and 0xFF) or ((minZ and 0xFF) shl 8) or ((maxX and 0xFF) shl 16) or ((maxZ and 0xFF) shl 24)
+    }
+
+    /**
+     * Marks the underground retained objects the client hides this frame by its roof rule
+     * (SceneDrawer.roofStamps, as isEntityCulled applies it). A cave's upper plane is never seen, but
+     * its objects sat in the sun's static map: the wall caps of the Kalphite Queen's chamber (loc 23597,
+     * flat quads high over the walls) striped the floor with the shadows of the walls' outline. Above
+     * ground the hidden floors and roofs over the player keep casting: they shade the rooms under them.
+     */
+    fun updateRoofHidden() {
+        val stamps: Array<Array<ByteArray?>?>? = com.jagex.game.runetek5.SceneDrawer.roofStamps
+        val lowest: Int = com.jagex.game.runetek5.SceneDrawer.roofLowestPlane
+        val setting: Byte = com.jagex.game.runetek5.SceneDrawer.roofSetting
+        var count: Int = 0
+        var hash: Long = 0L
+        for (i in 0 until objectCount) {
+            var hidden: Boolean = false
+            val level: Int = objectLevel[i].toInt()
+            val tiles: Int = objectTiles[i]
+            if (stamps != null && level >= lowest && level < stamps.size && objectModels[i] != null && com.jagex.game.runetek5.MapRegion.sceneBaseY + ((tiles ushr 8) and 0xFF) >= UNDERGROUND_Z) {
+                val plane: Array<ByteArray?>? = stamps[level]
+                if (plane != null) {
+                    hidden = true
+                    var x: Int = tiles and 0xFF
+                    tiles@ while (x <= ((tiles ushr 16) and 0xFF)) {
+                        val column: ByteArray? = if (x < plane.size) plane[x] else null
+                        var z: Int = (tiles ushr 8) and 0xFF
+                        while (z <= (tiles ushr 24)) {
+                            if (column == null || z >= column.size || column[z] != setting) {
+                                hidden = false
+                                break@tiles
+                            }
+                            z++
+                        }
+                        x++
+                    }
+                }
+            }
+            objectRoofHidden[i] = hidden
+            if (hidden) {
+                count++
+                hash = hash * 31L + i
+            }
+        }
+        if (count != roofHiddenCount || hash != roofHiddenHash) {
+            roofHiddenCount = count
+            roofHiddenHash = hash
+            roofHiddenVersion++
+        }
+    }
+
+    /**
+     * The sun's static casters: [drawRegion] for the chunks from ([minChunkX], [minChunkZ]) to
+     * ([maxChunkX], [maxChunkZ]), less the objects the roof rule hides (updateRoofHidden).
+     */
+    fun drawSunCasters(program: WebGLProgram, unit: Int, minChunkX: Int, minChunkZ: Int, maxChunkX: Int, maxChunkZ: Int) {
+        if (roofHiddenCount == 0) {
+            drawRegion(program, unit, minChunkX, minChunkZ, maxChunkX, maxChunkZ)
+            return
+        }
+        if (objectCount == 0) return
+        // the object matrices' texture and the geometry, as drawRegion leaves them
+        drawRegion(program, unit, -1, -1, -1, -1)
+        GL33C.glActiveTexture(GL33C.GL_TEXTURE0 + unit)
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_BUFFER, bakeTexture)
+        var draws: Int = 0
+        var triangles: Int = 0
+        var runStart: Int = -1
+        var runEnd: Int = -1
+        for (i in 0 until objectCount) {
+            val chunk: Int = objectChunk[i]
+            val cx: Int = chunk / CHUNK_GRID
+            val cz: Int = chunk % CHUNK_GRID
+            val keep: Boolean = objectModels[i] != null && !objectRoofHidden[i] && cx >= minChunkX && cx <= maxChunkX && cz >= minChunkZ && cz <= maxChunkZ
+            if (keep && objectIndexCount[i] > 0) {
+                if (runStart >= 0 && objectIndexStart[i] == runEnd) {
+                    runEnd += objectIndexCount[i]
+                    continue
+                }
+                if (runStart >= 0) {
+                    draws = addFilteredRange(draws, runStart, runEnd)
+                    triangles += (runEnd - runStart) / 3
+                }
+                runStart = objectIndexStart[i]
+                runEnd = runStart + objectIndexCount[i]
+            }
+        }
+        if (runStart >= 0) {
+            draws = addFilteredRange(draws, runStart, runEnd)
+            triangles += (runEnd - runStart) / 3
+        }
+        if (draws > 0) {
+            filteredCounts.position(0).limit(draws)
+            filteredOffsets.position(0).limit(draws)
+            CoreGl.multiDrawElements(GL33C.GL_TRIANGLES, filteredCounts, GL33C.GL_UNSIGNED_INT, filteredOffsets, triangles)
+        }
+        GL33C.glBindTexture(GL33C.GL_TEXTURE_BUFFER, 0)
+    }
+
     /**
      * The retained objects of the chunks from ([minChunkX], [minChunkZ]) to ([maxChunkX],
      * [maxChunkZ]) with [program] (ao_bake.vert: each object by its captured model matrix), seen this
@@ -772,6 +898,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
             objectAlpha = objectAlpha.copyOf(size)
             objectLevel = objectLevel.copyOf(size)
             objectShape = objectShape.copyOf(size)
+            objectTiles = objectTiles.copyOf(size)
+            objectRoofHidden = objectRoofHidden.copyOf(size)
             objectNoShadow = objectNoShadow.copyOf(size)
             objectIndexStart = objectIndexStart.copyOf(size)
             objectIndexCount = objectIndexCount.copyOf(size)
@@ -796,6 +924,8 @@ class HdSceneRenderer(private val toolkit: HdToolkit) {
         objectAlpha[objectId] = buildingAlpha
         objectLevel[objectId] = buildingLevel.toByte()
         objectShape[objectId] = buildingShape.toByte()
+        objectTiles[objectId] = buildingTiles
+        objectRoofHidden[objectId] = false
         // a flat model (a decal on the ground or the water, e.g. the ripple loc at a fishing spot) casts no
         // shadow either: drawn solid into the static map it cast a square the size of its quad
         objectNoShadow[objectId] = buildingNoShadow || model.hdHeight() < FLAT_CASTER_HEIGHT
