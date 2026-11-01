@@ -29,6 +29,11 @@ object SceneDrawer {
 		SceneCullingActive.cullingActive = true
 		SceneDrawer.copyLights = Scene.toolkit!!.getMaxLights() > 0
 		SceneDrawer.calculateTilesOnScreen = true
+		// Not part of the original client: the roof rule drawTiles hides entities by (isEntityCulled), for
+		// 634HD's sun shadows, which draw the retained scene's casters whether on screen or not.
+		SceneDrawer.roofStamps = settingBits
+		SceneDrawer.roofLowestPlane = lowestRenderedPlane
+		SceneDrawer.roofSetting = roofPreference
 		SceneDrawer.cameraGridPositionX = cameraX shr Scene.tileUnits
 		Scene.cameraTileZ = cameraZ shr Scene.tileUnits
 		WorldMapDisplay.sceneCameraX = cameraX
@@ -463,6 +468,18 @@ object SceneDrawer {
 	@OriginalMember(owner = "client!pj", name = "T", descriptor = "Z")
 	@JvmField
 	var calculateTilesOnScreen: Boolean = false
+
+	/**
+	 * Not part of the original client: the last drawScene's roof rule. An entity on plane
+	 * [roofLowestPlane] or above whose every tile has [roofSetting] in [roofStamps] is hidden (the
+	 * roof and floors above the player, or a cave's upper plane).
+	 */
+	@JvmField
+	var roofStamps: Array<Array<ByteArray?>?>? = null
+	@JvmField
+	var roofLowestPlane: Int = Int.MAX_VALUE
+	@JvmField
+	var roofSetting: Byte = 0
 
 	@OriginalMember(owner = "client!hn", name = "N", descriptor = "Z")
 	@JvmField

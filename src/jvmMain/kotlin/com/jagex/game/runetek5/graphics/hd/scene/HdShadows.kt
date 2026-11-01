@@ -245,6 +245,7 @@ class HdShadows {
     }
 
     private var staticCutout: Boolean = false
+    private var staticRoofVersion: Int = -1
     private var cutoutProgram: WebGLProgram? = null
 
     private fun ensureCutoutProgram(): WebGLProgram {
@@ -1325,10 +1326,13 @@ class HdShadows {
                 // from there every frame (the height map of moving models has no static scene: it is baked)
                 staticMap.ensure(sun.size)
                 val cutout: Boolean = HdSettings.cutoutShadows
-                if (staticKey != staticWanted || staticVersion != scene.bakeVersion || staticCutout != cutout) {
+                // what the client hides under roofs casts nothing; a change (indoors, outdoors) draws the map again
+                scene.updateRoofHidden()
+                if (staticKey != staticWanted || staticVersion != scene.bakeVersion || staticCutout != cutout || staticRoofVersion != scene.roofHiddenVersion) {
                     staticKey = staticWanted
                     staticVersion = scene.bakeVersion
                     staticCutout = cutout
+                    staticRoofVersion = scene.roofHiddenVersion
                     GL33C.glBindFramebuffer(GL33C.GL_DRAW_FRAMEBUFFER, staticMap.framebuffer)
                     GL33C.glClear(GL33C.GL_DEPTH_BUFFER_BIT)
                     ensureBakeProgram()
@@ -1342,7 +1346,7 @@ class HdShadows {
                     map.viewToClipBuffer.put(map.worldToClip).flip()
                     GL33C.glUniformMatrix4fv(GL33C.glGetUniformLocation(program.id, "uWorldToClip"), false, map.viewToClipBuffer)
                     val reach: Int = ((HALF_EXTENT / 512.0f).toInt() + 6) / 8 + 1
-                    scene.drawRegion(program, 23, sunChunkX - reach, sunChunkZ - reach, sunChunkX + reach, sunChunkZ + reach)
+                    scene.drawSunCasters(program, 23, sunChunkX - reach, sunChunkZ - reach, sunChunkX + reach, sunChunkZ + reach)
                     staticRedraws++
                 }
                 GL33C.glBindFramebuffer(GL33C.GL_READ_FRAMEBUFFER, staticMap.framebuffer)
