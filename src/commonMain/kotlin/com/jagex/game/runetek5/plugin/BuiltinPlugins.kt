@@ -72,6 +72,7 @@ import com.jagex.game.runetek5.client.features.Woodcutting
 import com.jagex.game.runetek5.client.features.XpDrops
 import com.jagex.game.runetek5.client.features.XpGlobes
 import com.jagex.game.runetek5.client.features.XpTracker
+import com.jagex.game.runetek5.client.features.OwnedBots
 import com.jagex.game.runetek5.plugin.api.Plugin
 import com.jagex.game.runetek5.plugin.api.PluginDescriptor
 import kotlin.jvm.JvmStatic
@@ -93,6 +94,7 @@ object BuiltinPlugins {
 	private fun everyone(): Array<PluginRegistration> {
 		return arrayOf(
 			builtIn(XpDrops.DESCRIPTOR, XpDrops),
+			builtIn(OwnedBots.DESCRIPTOR, OwnedBots),
 			builtIn(IdleNotifier.DESCRIPTOR, IdleNotifier),
 			builtIn(MenuEntrySwapper.DESCRIPTOR, MenuEntrySwapper),
 			builtIn(InventoryValue.DESCRIPTOR, InventoryValue),
