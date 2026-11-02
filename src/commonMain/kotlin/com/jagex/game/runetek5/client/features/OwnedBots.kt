@@ -503,6 +503,9 @@ object OwnedBots : Plugin {
 			}
 			entries.add(OverlayMenuEntry("Save as preset...", bot.name + "'s gear", Task { command("bot loadout save $slot") }))
 			entries.add(OverlayMenuEntry("Save as preset...", "my gear", Task { command("bot loadout save") }))
+			for (preset in presets) {
+				entries.add(OverlayMenuEntry("Delete preset", "<col=ff9040>" + preset.first, Task { command("bot loadout delete " + preset.first) }))
+			}
 			entries.add(OverlayMenuEntry("Close", "Loadout", Task { loadoutOpen = false }))
 			return entries
 		}
