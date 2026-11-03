@@ -50,9 +50,17 @@ object MiniMenuInputTick {
 		MiniMenu.aClass341_36.transferAllTo(MiniMenu.entryList)
 		// Not part of the original client: over a plugin's panel (with Shift held, or one with its own right-click menu), its entries (OverlayLayout)
 		val panelMenu: Boolean = OverlayLayout.menuBuilt()
-		if (PluginRuntime.menuBuilt() || panelMenu) {
-			// Not part of the original client: the plugins' MenuBuilt, where they read and edit the finished menu; one they shortened may fit uncollapsed
-			MiniMenu.isCollapsed = MiniMenu.maxVisibleEntries != -1 && MiniMenu.entryCount >= MiniMenu.maxVisibleEntries || GameShell.screenCanvasHeight < MiniMenu.entryCount * 16 + (if (FontMetrics.useBoldFont) 26 else 22)
+		// Not part of the original client: the plugins' MenuBuilt, where they read and edit the finished menu
+		val pluginMenu: Boolean = PluginRuntime.menuBuilt()
+		if (!MiniMenu.isOpen) {
+			// A panel's menu is never collapsed into target groups (the resizable layout's row cap would group it, and its
+			// submenus cannot nest); one the plugins shortened may fit uncollapsed. Never re-decided while the menu is open:
+			// openContextMenu sized it for one or the other, and the clicks are matched against that size.
+			if (panelMenu) {
+				MiniMenu.isCollapsed = false
+			} else if (pluginMenu) {
+				MiniMenu.isCollapsed = MiniMenu.maxVisibleEntries != -1 && MiniMenu.entryCount >= MiniMenu.maxVisibleEntries || GameShell.screenCanvasHeight < MiniMenu.entryCount * 16 + (if (FontMetrics.useBoldFont) 26 else 22)
+			}
 		}
 		if (MiniMenu.entryCount > 1) {
 			if (MiniMenu.shiftClickEnabled && KeyRecorder.keyRecorder!!.isPressed(SimpleKeyboardMonitorConstants.KEY_CODE_SHIFT) && MiniMenu.entryCount > 2) {
