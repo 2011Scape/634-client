@@ -1029,7 +1029,9 @@ object OverlayLayout {
 						continue
 					}
 					if (existing == null) {
-						val submenu: Int = PluginRuntime.clientSubmenu(item.submenu, MENU_TARGET + item.target, entry.serial)
+						// the submenu's own target is the first grouped entry's, in the plugin's order
+						val first: OverlayMenuEntry = menu.first { it.submenu == item.submenu }
+						val submenu: Int = PluginRuntime.clientSubmenu(item.submenu, MENU_TARGET + first.target, entry.serial)
 						submenus[item.submenu] = submenu
 						if (submenu >= 0) {
 							for (child in menu) {
@@ -1057,12 +1059,12 @@ object OverlayLayout {
 		return true
 	}
 
-	/** Drops the game's entries (not a plugin's, whose click types are 1000 up) other than [top], the left click. */
+	/** Drops the game's entries (everything that is not a plugin's) other than [top], the left click. */
 	private fun hideGameEntries(top: MiniMenuEntry?) {
 		val game: ArrayList<MiniMenuEntry> = ArrayList()
 		var item: MiniMenuEntry? = MiniMenu.entryList.first() as MiniMenuEntry?
 		while (item != null) {
-			if (item !== top && item.clickType < 1000) {
+			if (item !== top && !pluginEntry(item.clickType)) {
 				game.add(item)
 			}
 			item = MiniMenu.entryList.next() as MiniMenuEntry?
@@ -1070,6 +1072,12 @@ object OverlayLayout {
 		for (entry in game) {
 			MiniMenu.removeEntry(entry)
 		}
+	}
+
+	/** Whether [clickType] (2000 up while an item is selected) is one of the plugins' own: a submenu, a panel's entry or a plugin's menu entry. */
+	private fun pluginEntry(clickType: Int): Boolean {
+		val type: Int = clickType % 2000
+		return type == MiniMenuAction.PLUGIN_SUBMENU || type == MiniMenuAction.OVERLAY_MENU || type in MiniMenuAction.PLUGIN_FIRST..MiniMenuAction.PLUGIN_LAST
 	}
 
 	/** RuneLite's addOriginMenu options, and the origins they choose. */
