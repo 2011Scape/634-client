@@ -1,6 +1,9 @@
 package com.jagex.game.runetek5.client.features
 
 import ClientCommandProcessor
+import com.jagex.game.runetek5.client.menu.MiniMenu
+import com.jagex.game.runetek5.config.TypeLists
+import com.jagex.game.runetek5.config.objtype.ObjTypeList
 import com.jagex.game.runetek5.plugin.api.ChatType
 import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.CommandHandler
@@ -28,6 +31,7 @@ import com.jagex.game.runetek5.plugin.api.events.FrameDraw
 import com.jagex.game.runetek5.plugin.api.events.GameStateChanged
 import com.jagex.game.runetek5.plugin.api.events.GameTick
 import com.jagex.game.runetek5.plugin.api.events.MenuEntryAdded
+import com.jagex.game.runetek5.plugin.api.events.MouseClicked
 import com.jagex.game.runetek5.plugin.api.events.ServerTick
 import com.jagex.game.runetek5.plugin.api.events.SettingChanged
 import com.jagex.game.runetek5.plugin.api.events.ViewportDraw
@@ -152,6 +156,9 @@ object OwnedBots : Plugin {
 	/** The slot whose loadout and task picker show. */
 	@JvmField var selected: Int = 0
 	@JvmField var loadoutOpen: Boolean = false
+
+	/** The carried item (inventory index) picked with Use in the loadout window, waiting for what it goes on; -1 none. */
+	@JvmField var useFrom: Int = -1
 	@JvmField var tasksOpen: Boolean = false
 
 	private var context: PluginContext? = null
@@ -320,6 +327,56 @@ object OwnedBots : Plugin {
 		context?.client()?.consolePrint(if (enabled) "Owned bots enabled." else "Owned bots disabled.")
 	}
 
+	/**
+	 * A left click in the loadout window: the close button shuts it, a worn item comes off, a carried one is
+	 * worn or gets its first option (Eat, Drink...), as the game's left click does; with an item picked by Use,
+	 * it goes on the clicked one. Every left click inside the window stays out of the game (no walking).
+	 */
+	private val clickListener: EventListener<MouseClicked> = EventListener { event ->
+		// with a menu open the click is on one of its entries (even over the window): the game runs it
+		if (event.button != 0 || !enabled || !loadoutOpen || MiniMenu.isOpen || !inside(loadout, event.x, event.y)) {
+			return@EventListener
+		}
+		event.consume()
+		if (onCloseButton(loadout, event.x, event.y)) {
+			loadoutOpen = false
+			useFrom = -1
+			return@EventListener
+		}
+		val bot: Bot = state.bot(selected) ?: return@EventListener
+		val hovered: Int = itemAt(loadout, event.x, event.y)
+		if (hovered < 0) {
+			useFrom = -1
+			return@EventListener
+		}
+		if (hovered < EQUIPMENT) {
+			useFrom = -1
+			if (itemId(bot.equipment[hovered]) >= 0) {
+				command("bot unequip " + (bot.slot + 1) + " " + EQUIPMENT_NAMES[hovered])
+			}
+			return@EventListener
+		}
+		val carried: Int = hovered - EQUIPMENT
+		val id: Int = itemId(bot.inventory[carried])
+		if (useFrom >= 0) {
+			if (carried != useFrom && id >= 0) {
+				useOn(bot, carried)
+			}
+			useFrom = -1
+			return@EventListener
+		}
+		if (id < 0) {
+			return@EventListener
+		}
+		val name: String = context?.client()?.itemName(id) ?: return@EventListener
+		val option: String? = leftClickOption(inventoryOptions(id))
+		if (option == null) {
+			useFrom = carried
+		} else {
+			itemOption(bot, carried, option, commandName(name))
+		}
+	}
+
 	private val stateListener: EventListener<GameStateChanged> = EventListener { event ->
 		if (event.state === GameState.LOGGED_IN) {
 			// a couple of ticks in, so the login has settled and the chat box is there for the task list
@@ -467,7 +524,7 @@ object OwnedBots : Plugin {
 					entries.add(OverlayMenuEntry("Stop", target, Task { command("bot stop $slot") }))
 					entries.add(OverlayMenuEntry("Call", target, Task { command("bot call $slot") }))
 					entries.add(OverlayMenuEntry("Task...", target, Task { selected = bot.slot; tasksOpen = true }))
-					entries.add(OverlayMenuEntry("Loadout", target, Task { selected = bot.slot; loadoutOpen = true }))
+					entries.add(OverlayMenuEntry("Loadout", target, Task { selected = bot.slot; loadoutOpen = true; useFrom = -1 }))
 					for (preset in presets) {
 						entries.add(OverlayMenuEntry(preset.first, target, Task { command("bot loadout load $slot " + preset.first) }, LOAD_PRESET))
 					}
@@ -512,10 +569,27 @@ object OwnedBots : Plugin {
 					val name: String = client.itemName(id) ?: id.toString()
 					val arg: String = commandName(name)
 					val target: String = "<col=ff9040>" + name
+					val carried: Int = hovered - EQUIPMENT
 					if (worn) {
-						entries.add(OverlayMenuEntry("Take off", target, Task { command("bot unequip $slot " + EQUIPMENT_NAMES[hovered]) }))
+						entries.add(OverlayMenuEntry("Remove", target, Task { command("bot unequip $slot " + EQUIPMENT_NAMES[hovered]) }))
+					} else if (useFrom >= 0) {
+						// an item picked with Use goes on this one, as in the game's inventory
+						val from: Int = itemId(bot.inventory.getOrElse(useFrom) { -1 })
+						if (carried != useFrom && from >= 0) {
+							val fromName: String = client.itemName(from) ?: from.toString()
+							entries.add(OverlayMenuEntry("Use", "<col=ff9040>$fromName<col=ffffff> -> $target", Task { useOn(bot, carried) }))
+						}
+						entries.add(OverlayMenuEntry("Cancel", "Use", Task { useFrom = -1 }))
 					} else {
-						entries.add(OverlayMenuEntry("Wear", target, Task { command("bot equip $slot $arg") }))
+						// the game's inventory order: options 1-3, Use, options 4-5
+						val options: Array<String?> = inventoryOptions(id)
+						for (k in options.indices) {
+							if (k == USE_AFTER) {
+								entries.add(OverlayMenuEntry("Use", target, Task { useFrom = carried }))
+							}
+							val option: String = options[k] ?: continue
+							entries.add(OverlayMenuEntry(option, target, Task { itemOption(bot, carried, option, arg) }))
+						}
 						entries.add(OverlayMenuEntry("Take", target, Task { command("bot take $slot $arg") }))
 						entries.add(OverlayMenuEntry("Bank", target, Task { command("bot take $slot $arg bank") }))
 					}
@@ -530,7 +604,7 @@ object OwnedBots : Plugin {
 			for (preset in presets) {
 				entries.add(OverlayMenuEntry(preset.first, "", Task { command("bot loadout delete " + preset.first) }, DELETE_PRESET))
 			}
-			entries.add(OverlayMenuEntry("Close", "Loadout", Task { loadoutOpen = false }))
+			entries.add(OverlayMenuEntry("Close", "Loadout", Task { loadoutOpen = false; useFrom = -1 }))
 			return entries
 		}
 
@@ -581,6 +655,7 @@ object OwnedBots : Plugin {
 		context.events().subscribe(Events.VIEWPORT_DRAW, viewportListener)
 		context.events().subscribe(Events.FRAME_DRAW, frameListener)
 		context.events().subscribe(Events.MENU_ENTRY_ADDED, menuListener)
+		context.events().subscribe(Events.MOUSE_CLICKED, clickListener)
 		context.addOverlay(panel)
 		context.addOverlay(loadout)
 		context.addOverlay(picker)
@@ -709,7 +784,7 @@ object OwnedBots : Plugin {
 	}
 
 	/**
-	 * The game's stone window: the side panels' stone (297) under everything, the worn-equipment screen's
+	 * The game's stone window: the resizable side tabs' see-through stone (1131) under everything, the worn-equipment screen's
 	 * frame (corners 1123/1125/826/827, the title band 1124, edges 821/823/822) over it, and [title] in the band.
 	 */
 	private fun window(g: Graphics, width: Int, height: Int, title: String) {
@@ -748,11 +823,62 @@ object OwnedBots : Plugin {
 		g.font(Font.SMALL)
 	}
 
+	/** Whether screen point [x], [y] is on [overlay]'s close button (top right, where [drawLoadout] puts it). */
+	private fun onCloseButton(overlay: PanelOverlay, x: Int, y: Int): Boolean {
+		val left: Int = overlay.boundsX + overlay.boundsWidth - CLOSE_RIGHT - CLOSE_SIZE
+		val top: Int = overlay.boundsY + CLOSE_TOP
+		return overlay.boundsWidth > 0 && x >= left && x < left + CLOSE_SIZE && y >= top && y < top + CLOSE_SIZE
+	}
+
+	private fun inside(overlay: PanelOverlay, x: Int, y: Int): Boolean =
+		x >= overlay.boundsX && y >= overlay.boundsY && x < overlay.boundsX + overlay.boundsWidth && y < overlay.boundsY + overlay.boundsHeight
+
+	/** An item's five inventory options from its type ("Eat", "Wield", null, null, "Drop"...). */
+	private fun inventoryOptions(id: Int): Array<String?> {
+		val list: ObjTypeList = TypeLists.OBJ ?: return NO_OPTIONS
+		return list.list(id).inventoryActions ?: NO_OPTIONS
+	}
+
+	/** The game's left click on a carried item: its first option among 1-3, Use (null) when it has none. */
+	@JvmStatic
+	fun leftClickOption(options: Array<String?>): String? {
+		for (k in 0 until minOf(USE_AFTER, options.size)) {
+			val option: String? = options[k]
+			if (option != null) {
+				return option
+			}
+		}
+		return null
+	}
+
+	/** The bot clicks [option] on its carried item [index]; wearing goes through `bot equip` for its messages. */
+	private fun itemOption(bot: Bot, index: Int, option: String, arg: String) {
+		val slot: Int = bot.slot + 1
+		if (option.lowercase() in EQUIP_OPTIONS) {
+			command("bot equip $slot $arg")
+		} else {
+			command("bot item $slot $index $option")
+		}
+	}
+
+	private fun useOn(bot: Bot, to: Int) {
+		val from: Int = useFrom
+		useFrom = -1
+		if (from >= 0 && from != to) {
+			command("bot use " + (bot.slot + 1) + " $from $to")
+		}
+	}
+
 	/** The item cell under the mouse: 0-13 worn (by equipment index), 14-41 carried, -1 none. */
 	private fun hoveredItem(overlay: PanelOverlay): Int {
 		val client: ClientApi = context?.client() ?: return -1
-		val x: Int = client.mouseX() - overlay.boundsX
-		val y: Int = client.mouseY() - overlay.boundsY
+		return itemAt(overlay, client.mouseX(), client.mouseY())
+	}
+
+	/** The item cell at screen point [screenX], [screenY]: as [hoveredItem]. */
+	private fun itemAt(overlay: PanelOverlay, screenX: Int, screenY: Int): Int {
+		val x: Int = screenX - overlay.boundsX
+		val y: Int = screenY - overlay.boundsY
 		for (index in 0 until EQUIPMENT) {
 			val sx: Int = SLOT_X[index]
 			if (sx < 0) {
@@ -779,7 +905,10 @@ object OwnedBots : Plugin {
 		}
 		val width: Int = CARRIED_X + INV_COLUMNS * INV_W + PAD + EDGE
 		val height: Int = CONTENT_Y + INV_ROWS * INV_H + PAD + EDGE
-		window(g, width, height, bot.name + "'s equipment")
+		window(g, width, height, bot.name + "'s Equipment & Inventory")
+		val client: ClientApi? = context?.client()
+		val overClose: Boolean = client != null && onCloseButton(overlay, client.mouseX(), client.mouseY())
+		g.sprite(if (overClose) CLOSE_HOVER else CLOSE, width - CLOSE_RIGHT - CLOSE_SIZE, CLOSE_TOP)
 		val hovered: Int = hoveredItem(overlay)
 		// the worn-equipment screen's layout: its connectors, then a slot sprite and the item in each
 		for (i in LINK_X.indices) {
@@ -799,6 +928,9 @@ object OwnedBots : Plugin {
 			val id: Int = itemId(bot.equipment[index])
 			if (id >= 0) {
 				g.itemIcon(id, itemAmount(bot.equipment[index]), x, y + 2)
+			} else {
+				// an empty slot shows its outline, as the equipment tab does
+				g.sprite(SLOT_PLACEHOLDER[index], x + (SLOT - PLACEHOLDER_SIZE) / 2, y + (SLOT - PLACEHOLDER_SIZE) / 2)
 			}
 		}
 		for (index in 0 until INVENTORY) {
@@ -808,6 +940,14 @@ object OwnedBots : Plugin {
 				g.fillRect(x, y, INV_W, INV_H, HOVER)
 			}
 			val id: Int = itemId(bot.inventory[index])
+			if (index == useFrom) {
+				if (id < 0) {
+					useFrom = -1
+				} else {
+					// picked with Use: outlined, as the game outlines a selected item
+					g.drawRect(x + 2, y + 1, INV_W - 5, INV_H - 3, WHITE)
+				}
+			}
 			if (id >= 0) {
 				g.itemIcon(id, itemAmount(bot.inventory[index]), x + (INV_W - 36) / 2, y + (INV_H - 32) / 2)
 			}
@@ -910,9 +1050,10 @@ object OwnedBots : Plugin {
 	private const val TASK_COLUMN: Int = 222
 
 	// the game's stone window (the worn-equipment screen's, interface 549)
-	private const val STONE: Int = 297
-	private const val STONE_W: Int = 88
-	private const val STONE_H: Int = 60
+	// the resizable side tabs' see-through stone (746's tab backgrounds), alpha 153 in the sprite itself
+	private const val STONE: Int = 1131
+	private const val STONE_W: Int = 190
+	private const val STONE_H: Int = 261
 	private const val FRAME_TOP_LEFT: Int = 1123
 	private const val FRAME_TOP: Int = 1124
 	private const val FRAME_TOP_RIGHT: Int = 1125
@@ -928,6 +1069,12 @@ object OwnedBots : Plugin {
 	private const val TITLE_BASELINE: Int = 17
 	private const val PAD: Int = 8
 	private const val CONTENT_Y: Int = TOP + PAD
+	// the worn-equipment screen's close button (667:74): 16 by 16, 10 in from the right and 3 down, 832 on hover
+	private const val CLOSE: Int = 831
+	private const val CLOSE_HOVER: Int = 832
+	private const val CLOSE_SIZE: Int = 16
+	private const val CLOSE_RIGHT: Int = 10
+	private const val CLOSE_TOP: Int = 3
 
 	// the worn-equipment screen's slot layout (sprite 170 at each, 841/828 linking them), by equipment index
 	private const val SLOT_SPRITE: Int = 170
@@ -941,6 +1088,15 @@ object OwnedBots : Plugin {
 	private val LINK_X: IntArray = intArrayOf(120, 66, 11, 59, 43)
 	private val LINK_Y: IntArray = intArrayOf(116, 35, 116, 44, 82)
 	private val LINK_VERTICAL: BooleanArray = booleanArrayOf(true, true, true, false, false)
+
+	// the equipment tab's outlines for empty slots (32 by 32), by equipment index; -1 where no slot is drawn
+	private const val PLACEHOLDER_SIZE: Int = 32
+	private val SLOT_PLACEHOLDER: IntArray = intArrayOf(156, 157, 158, 159, 161, 162, -1, 163, -1, 164, 165, -1, 160, 166)
+
+	// the game's inventory menu puts Use after an item's third option
+	private const val USE_AFTER: Int = 3
+	private val NO_OPTIONS: Array<String?> = arrayOfNulls(5)
+	private val EQUIP_OPTIONS: Set<String> = setOf("wield", "wear", "equip")
 
 	// the inventory's 4 by 7 grid, 42 by 36 a slot (interface 149)
 	private const val INV_COLUMNS: Int = 4

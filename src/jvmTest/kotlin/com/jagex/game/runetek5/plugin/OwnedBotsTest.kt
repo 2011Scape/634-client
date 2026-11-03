@@ -159,4 +159,12 @@ class OwnedBotsTest {
 		assertEquals("bronze_sword", OwnedBots.commandName("Bronze sword"))
 		assertEquals("monks_robe", OwnedBots.commandName("Monk's robe"))
 	}
+
+	@Test
+	fun leftClickIsTheFirstOfTheFirstThreeOptions() {
+		assertEquals("Eat", OwnedBots.leftClickOption(arrayOf("Eat", null, null, null, "Drop")))
+		assertEquals("Wield", OwnedBots.leftClickOption(arrayOf(null, "Wield", null, null, "Drop")))
+		// only options 4 and 5 (Drop): the game's left click is Use
+		assertNull(OwnedBots.leftClickOption(arrayOf(null, null, null, "Empty", "Drop")))
+	}
 }
