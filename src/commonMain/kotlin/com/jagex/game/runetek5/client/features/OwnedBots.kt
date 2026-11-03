@@ -574,23 +574,15 @@ object OwnedBots : Plugin {
 	}
 
 	/**
-	 * Makes [itemId] a bot's special attack weapon (`::bot spec`); a bot that does not carry it is given it first,
-	 * from the bank by a booth errand when it came from the bank.
+	 * Tags [itemId] as a bot's special attack weapon (`::bot spec`): the bot switches to it for its special when it
+	 * carries or wears one; otherwise the tag does nothing until it does.
 	 */
-	private fun specialAttack(itemId: Int, bank: Boolean) {
+	private fun specialAttack(itemId: Int) {
 		val target: String = orderTarget
 		orderTarget = ""
 		val client: ClientApi = context?.client() ?: return
 		val name: String = client.itemName(itemId) ?: return
-		val arg: String = commandName(name)
-		val bots: List<Bot> = if (target == "all") state.bots.filter { it.online } else state.bots.filter { it.online && (it.slot + 1).toString() == target }
-		for (bot in bots) {
-			val carries: Boolean = bot.inventory.any { itemId(it) == itemId } || bot.equipment.any { itemId(it) == itemId }
-			if (!carries) {
-				command("bot give " + (bot.slot + 1) + " " + arg + (if (bank) " bank" else ""))
-			}
-			command("bot spec " + (bot.slot + 1) + " " + arg)
-		}
+		command("bot spec " + (if (target == "all") "all" else target) + " " + commandName(name))
 	}
 
 	/** The amount on a give entry's label is read just before the entry's action runs with only the item id. */
@@ -787,7 +779,7 @@ object OwnedBots : Plugin {
 		sendAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, _ -> worldOrder("goto", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY())) })
 		attackAction = context.registerMenuAction(MenuAction { _, _, _, id -> worldOrder("attack", id.toString()) })
 		pickupAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, id -> worldOrder("pickup", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY()) + " " + commandName(context.client().itemName(id) ?: return@MenuAction)) })
-		specAction = context.registerMenuAction(MenuAction { _, _, widgetId, id -> specialAttack(id, widgetId ushr 16 == BANK_INTERFACE) })
+		specAction = context.registerMenuAction(MenuAction { _, _, _, id -> specialAttack(id) })
 		context.events().subscribe(Events.KEY_PRESSED, keyListener)
 		context.registerCommand("ownedbots", toggle)
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
