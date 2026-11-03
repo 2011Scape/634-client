@@ -152,6 +152,9 @@ object CompanionsLoadout {
 				}
 			}
 		}
+		if (bot.spell != 0) {
+			entries.add(OverlayMenuEntry("Clear autocast", "<col=ff9040>" + (Companions.spellName(client, bot.spell) ?: "spell"), Task { command("bot spell $slot none") }))
+		}
 		entries.add(OverlayMenuEntry("Bank everything", bot.name, Task { command("bot bank $slot") }))
 		for (preset in Companions.presets) {
 			entries.add(OverlayMenuEntry(preset.first, bot.name, Task { command("bot loadout load $slot " + preset.first) }, Companions.LOAD_PRESET))

@@ -114,6 +114,10 @@ object Companions : Plugin {
 	/** The 634 inventory and the bank's item components, for Give entries. */
 	const val INVENTORY_INTERFACE: Int = 149
 	const val BANK_INTERFACE: Int = 762
+
+	/** The spellbook tabs: modern, ancient, lunar, dungeoneering. */
+	@JvmField
+	val SPELLBOOKS: IntArray = intArrayOf(192, 193, 430, 950)
 	const val BANK_ITEMS: Int = 93
 
 	@JvmField var enabled: Boolean = false
@@ -142,6 +146,8 @@ object Companions : Plugin {
 		@JvmField val run: Int,
 		/** The item id of the weapon it switches to for its special attack, 0 for none. */
 		@JvmField val spec: Int,
+		/** The component id, in its spellbook, of the spell it autocasts, 0 for none. */
+		@JvmField val spell: Int,
 		@JvmField val equipment: IntArray,
 		@JvmField val inventory: IntArray,
 	) {
@@ -183,6 +189,9 @@ object Companions : Plugin {
 	private val flash: IntArray = IntArray(SLOTS)
 	private val giveActions: IntArray = IntArray(SLOTS) { -1 }
 	private val giveBankActions: IntArray = IntArray(SLOTS) { -1 }
+
+	/** One a slot: the spell right-clicked becomes that bot's autocast (or stops being it). */
+	private val spellActions: IntArray = IntArray(SLOTS) { -1 }
 	private var giveAmount: String = ""
 	private var sendAction: Int = -1
 	private var attackAction: Int = -1
@@ -241,10 +250,10 @@ object Companions : Plugin {
 			val inventory = IntArray(INVENTORY) { varc(base + INV + it) }
 			bots.add(
 				Bot(
-					slot, name, alive, online, hp ushr 16, hp and 0xFFFF, prayer ushr 16, prayer and 0xFFFF, varc(base + STATUS),
+					slot, name, alive, online, hp ushr 16, hp and 0xFFFF, prayer ushr 16, prayer and 0xFFFF, varc(base + STATUS) and 0xFF,
 					order and 0xFF, order ushr 8 and 0xF, order ushr 12 and 0xF == 1,
 					if (hidden) -1 else tile ushr 14 and 0x3FFF, if (hidden) -1 else tile and 0x3FFF, if (hidden) 0 else tile ushr 28 and 0x3,
-					varc(base + ENERGY) and 0xFF, varc(base + ENERGY) ushr 8, equipment, inventory,
+					varc(base + ENERGY) and 0xFF, varc(base + ENERGY) ushr 8, varc(base + STATUS) ushr 8, equipment, inventory,
 				),
 			)
 		}
@@ -455,6 +464,10 @@ object Companions : Plugin {
 			worldEntries(client, event)
 			return@EventListener
 		}
+		if (event.target === MenuTarget.WIDGET && (event.widgetId ushr 16) in SPELLBOOKS) {
+			spellEntries(client, event)
+			return@EventListener
+		}
 		if (event.target !== MenuTarget.WIDGET || event.itemId < 0) {
 			return@EventListener
 		}
@@ -499,6 +512,58 @@ object Companions : Plugin {
 				client.addSubmenuEntry(submenu, if (online.size == 1) label else bot.name + ": " + label, action)
 			}
 		}
+	}
+
+	/**
+	 * On a spell of the player's own spellbook that can be autocast: "Autocast for <bot>" for one bot out, a
+	 * submenu of the bots for more; a bot already on that spell gets "Clear" instead.
+	 */
+	private fun spellEntries(client: ClientApi, event: MenuEntryAdded) {
+		val widget = client.widgetById(event.widgetId) ?: return
+		var autocast = false
+		for (i in 0 until widget.actionCount()) {
+			if (widget.action(i)?.contains("Autocast", ignoreCase = true) == true) {
+				autocast = true
+			}
+		}
+		if (!autocast) {
+			return
+		}
+		val online: List<Bot> = state.bots.filter { it.online }
+		if (online.isEmpty()) {
+			return
+		}
+		val component: Int = event.widgetId and 0xFFFF
+		if (online.size == 1) {
+			val bot: Bot = online[0]
+			val action: Int = spellActions[bot.slot]
+			if (action >= 0) {
+				client.addMenuEntry((if (bot.spell == component) "Clear spell for " else "Autocast for ") + bot.name, action)
+			}
+			return
+		}
+		val submenu: Int = client.addSubmenu("Autocast for companion")
+		if (submenu < 0) {
+			return
+		}
+		for (bot in online) {
+			val action: Int = spellActions[bot.slot]
+			if (action >= 0) {
+				client.addSubmenuEntry(submenu, if (bot.spell == component) bot.name + " (clear)" else bot.name, action)
+			}
+		}
+	}
+
+	/** The name of the spell with [component] in whichever spellbook the client has it, or null. */
+	@JvmStatic
+	fun spellName(client: ClientApi, component: Int): String? {
+		for (book in SPELLBOOKS) {
+			val name: String? = client.widgetById((book shl 16) or component)?.name()
+			if (!name.isNullOrEmpty()) {
+				return ClientFeatures.plainText(name)
+			}
+		}
+		return null
 	}
 
 	/**
@@ -799,6 +864,8 @@ object Companions : Plugin {
 		for (slot in 0 until SLOTS) {
 			giveActions[slot] = context.registerMenuAction(MenuAction { _, _, _, id -> give(slot, id, false) })
 			giveBankActions[slot] = context.registerMenuAction(MenuAction { _, _, _, id -> give(slot, id, true) })
+			// a widget click carries the component's packed id as its second coordinate
+			spellActions[slot] = context.registerMenuAction(MenuAction { _, _, widget, _ -> command("bot spell " + (slot + 1) + " " + (widget and 0xFFFF)) })
 		}
 		// one action a kind of world order: which bot (or all) comes from the entry's label, read as the click arrives
 		sendAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, _ -> worldOrder("goto", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY())) })
