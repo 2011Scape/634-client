@@ -669,6 +669,7 @@ object Companions : Plugin {
 		add("Stop", Task { command("bot stop $slot") })
 		add("Guard", Task { command("bot guard $slot") })
 		add("Call", Task { command("bot call $slot") })
+		add("Recover", Task { command("bot recover $slot") })
 		add("Task...", Task { selected = bot.slot; tasksOpen = true; CompanionsLoadout.useFrom = -1 })
 		add("Loadout", Task { CompanionsLoadout.show(bot.slot) })
 		for (preset in presets) {
@@ -721,6 +722,7 @@ object Companions : Plugin {
 				entries.add(OverlayMenuEntry("Stop all", "Bots", Task { command("bot stop all") }))
 				entries.add(OverlayMenuEntry("Guard all", "Bots", Task { command("bot guard all") }))
 				entries.add(OverlayMenuEntry("Call all", "Bots", Task { command("bot call all") }))
+				entries.add(OverlayMenuEntry("Recover all", "Bots", Task { command("bot recover all") }))
 			}
 			entries.add(OverlayMenuEntry("Refresh", "Companions", Task { handshake() }))
 			entries.add(OverlayMenuEntry("Configure", "Companions", Task { PluginManagerScreen.openSettings(DESCRIPTOR.id) }))
