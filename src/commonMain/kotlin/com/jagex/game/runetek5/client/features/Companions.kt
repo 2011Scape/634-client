@@ -47,10 +47,10 @@ import kotlin.jvm.JvmStatic
  *
  * Off by default, as Party was: on a server without the feature `::bot` is an unknown command.
  */
-object OwnedBots : Plugin {
+object Companions : Plugin {
 
 	@JvmField
-	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("owned-bots", "Owned Bots", "1", PluginApi.VERSION, "Shows the bots you own, their health and orders, and lets you command them, give them items and see where they are.", "Pixel")
+	val DESCRIPTOR: PluginDescriptor = PluginDescriptor("companions", "Companions", "1", PluginApi.VERSION, "Shows your companions, their health and orders, and lets you command them, give them items and see where they are.", "Pixel")
 
 	/** The first of the server's variables (owned_bots_meta). */
 	const val BASE: Int = 2000
@@ -102,7 +102,7 @@ object OwnedBots : Plugin {
 	@JvmField
 	val ORDER_PREFIXES: Array<String> = arrayOf("Send ", "Attack with ", "Pick up with ")
 	const val HERE: String = " here"
-	const val BOT_PREFIX: String = "[Bot "
+	const val BOT_PREFIX: String = "[Companion "
 
 	/** What the plugin sends in `::bot ui`: a character the chat box can't type, so only a plugin opts in. */
 	const val HANDSHAKE: Char = '\u0001'
@@ -281,7 +281,7 @@ object OwnedBots : Plugin {
 		return body.substring(0, bar) to body.substring(bar + 1)
 	}
 
-	/** The slot (0-3) a `[Bot n] ...` line is about, or -1. */
+	/** The slot (0-3) a `[Companion n] ...` line is about, or -1. */
 	@JvmStatic
 	fun alertSlot(text: String): Int {
 		if (!text.startsWith(BOT_PREFIX)) {
@@ -337,7 +337,7 @@ object OwnedBots : Plugin {
 		}
 	}
 
-	/** `::ownedbots [on|off]` turns the plugin on or off (or over), as the other built-in plugins' commands do. */
+	/** `::companions [on|off]` (or `::ownedbots`) turns the plugin on or off (or over), as the other built-in plugins' commands do. */
 	private val toggle: CommandHandler = CommandHandler { _, args ->
 		val config: PluginConfig = context?.config() ?: return@CommandHandler
 		val on: Boolean = when (args.firstOrNull()?.lowercase()) {
@@ -348,7 +348,7 @@ object OwnedBots : Plugin {
 		config.setBoolean("enabled", on)
 		config.save()
 		readSettings(config)
-		context?.client()?.consolePrint(if (enabled) "Owned bots enabled." else "Owned bots disabled.")
+		context?.client()?.consolePrint(if (enabled) "Companions enabled." else "Companions disabled.")
 	}
 
 	private val stateListener: EventListener<GameStateChanged> = EventListener { event ->
@@ -380,12 +380,12 @@ object OwnedBots : Plugin {
 		val client: ClientApi = context?.client() ?: return@EventListener
 		if (enabled && client.gameState() === GameState.LOGGED_IN) {
 			state = read { client.varcInt(it) }
-			OwnedBotsLoadout.tick(state.bot(selected))
+			CompanionsLoadout.tick(state.bot(selected))
 		}
 	}
 
 	private val chatListener: EventListener<ChatMessage> = EventListener { event ->
-		// only the server's own game lines: a player typing "[Bot 1] ..." in public chat is just chat
+		// only the server's own game lines: a player typing "[Companion 1] ..." in public chat is just chat
 		if (!enabled || (event.type != ChatType.GAME && event.type != ChatType.GAME_FILTERED)) {
 			return@EventListener
 		}
@@ -476,7 +476,7 @@ object OwnedBots : Plugin {
 			}
 			return@EventListener
 		}
-		val submenu: Int = client.addSubmenu(if (online.size == 1) "Give to " + online[0].name else "Give to bot")
+		val submenu: Int = client.addSubmenu(if (online.size == 1) "Give to " + online[0].name else "Give to companion")
 		if (submenu < 0) {
 			return@EventListener
 		}
@@ -536,7 +536,7 @@ object OwnedBots : Plugin {
 			client.addMenuEntry(verb + online[0].name + here, action)
 			return
 		}
-		val submenu: Int = client.addSubmenu(verb + "bot" + here)
+		val submenu: Int = client.addSubmenu(verb + "companion" + here)
 		if (submenu < 0) {
 			return
 		}
@@ -548,7 +548,7 @@ object OwnedBots : Plugin {
 		}
 	}
 
-	private fun overPanel(x: Int, y: Int): Boolean = listOf(panel, OwnedBotsLoadout.overlay, picker).any { overlay ->
+	private fun overPanel(x: Int, y: Int): Boolean = listOf(panel, CompanionsLoadout.overlay, picker).any { overlay ->
 		overlay.boundsWidth > 0 && x >= overlay.boundsX && y >= overlay.boundsY && x < overlay.boundsX + overlay.boundsWidth && y < overlay.boundsY + overlay.boundsHeight
 	}
 
@@ -634,7 +634,7 @@ object OwnedBots : Plugin {
 		}
 		if (!bot.alive) {
 			// a dead bot: only where to replace it
-			add("Hire a replacement", Task { context?.client()?.consolePrint("Adventurers for hire wait at the Servants' Guild in East Ardougne.") }, "<col=ff9040>" + bot.name)
+			add("Recruit a replacement", Task { context?.client()?.consolePrint("Adventurers for hire wait at the Servants' Guild in East Ardougne.") }, "<col=ff9040>" + bot.name)
 			return
 		}
 		val slot: Int = bot.slot + 1
@@ -646,8 +646,8 @@ object OwnedBots : Plugin {
 		add("Stop", Task { command("bot stop $slot") })
 		add("Guard", Task { command("bot guard $slot") })
 		add("Call", Task { command("bot call $slot") })
-		add("Task...", Task { selected = bot.slot; tasksOpen = true; OwnedBotsLoadout.useFrom = -1 })
-		add("Loadout", Task { OwnedBotsLoadout.show(bot.slot) })
+		add("Task...", Task { selected = bot.slot; tasksOpen = true; CompanionsLoadout.useFrom = -1 })
+		add("Loadout", Task { CompanionsLoadout.show(bot.slot) })
 		for (preset in presets) {
 			val load = Task { command("bot loadout load $slot " + preset.first) }
 			if (submenu.isEmpty()) {
@@ -670,7 +670,7 @@ object OwnedBots : Plugin {
 
 	/** The roster: one row a slot, with the bot's name, what it is doing and its hitpoints and prayer. */
 	@JvmField
-	val panel: PanelOverlay = object : PanelOverlay("OwnedBotsPanel") {
+	val panel: PanelOverlay = object : PanelOverlay("CompanionsPanel") {
 		init {
 			resizable = true
 			menuOnRightClick = true
@@ -699,8 +699,8 @@ object OwnedBots : Plugin {
 				entries.add(OverlayMenuEntry("Guard all", "Bots", Task { command("bot guard all") }))
 				entries.add(OverlayMenuEntry("Call all", "Bots", Task { command("bot call all") }))
 			}
-			entries.add(OverlayMenuEntry("Refresh", "Bots", Task { handshake() }))
-			entries.add(OverlayMenuEntry("Configure", "Bots", Task { PluginManagerScreen.openSettings(DESCRIPTOR.id) }))
+			entries.add(OverlayMenuEntry("Refresh", "Companions", Task { handshake() }))
+			entries.add(OverlayMenuEntry("Configure", "Companions", Task { PluginManagerScreen.openSettings(DESCRIPTOR.id) }))
 			return entries
 		}
 
@@ -714,7 +714,7 @@ object OwnedBots : Plugin {
 			if (button != 0 || !bot.alive || !bot.online) {
 				return false
 			}
-			OwnedBotsLoadout.show(bot.slot)
+			CompanionsLoadout.show(bot.slot)
 			return true
 		}
 
@@ -723,7 +723,7 @@ object OwnedBots : Plugin {
 
 	/** The task catalogue: hover a task and give it to the selected bot. */
 	@JvmField
-	val picker: PanelOverlay = object : PanelOverlay("OwnedBotsTasks") {
+	val picker: PanelOverlay = object : PanelOverlay("CompanionsTasks") {
 		init {
 			menuOnRightClick = true
 			layer = OverlayLayer.ABOVE_WIDGETS
@@ -759,14 +759,14 @@ object OwnedBots : Plugin {
 	override fun start(context: PluginContext) {
 		this.context = context
 		val s: SettingsSchema = context.settings()
-		s.toggle("enabled", "Owned bots", false)
-		s.toggle("sounds", "Sound when a bot is in trouble", true)
-		s.toggle("showOnMap", "Show bots on the minimap and the world map", true)
-		s.toggle("showTags", "Tag your bots in the world", true)
+		s.toggle("enabled", "Companions", false)
+		s.toggle("sounds", "Sound when a companion is in trouble", true)
+		s.toggle("showOnMap", "Show companions on the minimap and the world map", true)
+		s.toggle("showTags", "Tag your companions in the world", true)
 		s.toggle("hideTaskLines", "Hide the task list lines from the chat", true)
-		s.keybind("callKey", "Call all bots", 0)
-		s.keybind("followKey", "Follow me, all bots", 0)
-		s.keybind("stopKey", "Stop all bots", 0)
+		s.keybind("callKey", "Call all companions", 0)
+		s.keybind("followKey", "Follow me, all companions", 0)
+		s.keybind("stopKey", "Stop all companions", 0)
 		readSettings(context.config())
 		for (slot in 0 until SLOTS) {
 			giveActions[slot] = context.registerMenuAction(MenuAction { _, _, _, id -> give(slot, id, false) })
@@ -777,6 +777,7 @@ object OwnedBots : Plugin {
 		attackAction = context.registerMenuAction(MenuAction { _, _, _, id -> worldOrder("attack", id.toString()) })
 		pickupAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, id -> worldOrder("pickup", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY()) + " " + id) })
 		context.events().subscribe(Events.KEY_PRESSED, keyListener)
+		context.registerCommand("companions", toggle)
 		context.registerCommand("ownedbots", toggle)
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
 		context.events().subscribe(Events.GAME_STATE_CHANGED, stateListener)
@@ -788,7 +789,7 @@ object OwnedBots : Plugin {
 		context.events().subscribe(Events.MENU_ENTRY_ADDED, menuListener)
 		context.events().subscribe(Events.MENU_OPTION_CLICKED, optionListener)
 		context.addOverlay(panel)
-		context.addOverlay(OwnedBotsLoadout.overlay)
+		context.addOverlay(CompanionsLoadout.overlay)
 		context.addOverlay(picker)
 		if (context.client().gameState() === GameState.LOGGED_IN) {
 			handshakeDue = cycle + 1
@@ -886,7 +887,7 @@ object OwnedBots : Plugin {
 		val rows: List<Bot> = current.bots.filter { it.alive || it.name.isNotEmpty() }
 		val hint: Boolean = !current.active() || rows.isEmpty()
 		val height: Int = if (collapsed) COLLAPSED_HEIGHT else TOP + PAD + (if (hint) line else 0) + rows.size * botHeight + PAD + EDGE
-		window(g, width, height, "Bots (" + current.bots.count { it.alive } + "/" + SLOTS + ")")
+		window(g, width, height, "Companions (" + current.bots.count { it.alive } + "/" + SLOTS + ")")
 		val overButton: Boolean = onFoldButton(overlay, client.mouseX() - overlay.boundsX, client.mouseY() - overlay.boundsY)
 		val button: Int = if (collapsed) (if (overButton) EXPAND_HOVER else EXPAND) else (if (overButton) COLLAPSE_HOVER else COLLAPSE)
 		g.sprite(button, width - BUTTON_RIGHT - BUTTON_SIZE, BUTTON_TOP)
@@ -896,7 +897,7 @@ object OwnedBots : Plugin {
 		}
 		var y: Int = TOP + PAD
 		if (hint) {
-			g.text(EDGE + PAD, y + line - 2, if (!current.active()) "No answer from the server" else "Hire an Adventurer at the Servants' Guild", HINT, BLACK)
+			g.text(EDGE + PAD, y + line - 2, if (!current.active()) "No answer from the server" else "Recruit an Adventurer at the Servants' Guild", HINT, BLACK)
 			y += line
 		}
 		for (bot in rows) {

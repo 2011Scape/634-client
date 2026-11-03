@@ -1,12 +1,12 @@
 package com.jagex.game.runetek5.client.features
 
-import com.jagex.game.runetek5.client.features.OwnedBots.Bot
-import com.jagex.game.runetek5.client.features.OwnedBots.EQUIPMENT
-import com.jagex.game.runetek5.client.features.OwnedBots.EQUIPMENT_NAMES
-import com.jagex.game.runetek5.client.features.OwnedBots.INVENTORY
-import com.jagex.game.runetek5.client.features.OwnedBots.command
-import com.jagex.game.runetek5.client.features.OwnedBots.itemAmount
-import com.jagex.game.runetek5.client.features.OwnedBots.itemId
+import com.jagex.game.runetek5.client.features.Companions.Bot
+import com.jagex.game.runetek5.client.features.Companions.EQUIPMENT
+import com.jagex.game.runetek5.client.features.Companions.EQUIPMENT_NAMES
+import com.jagex.game.runetek5.client.features.Companions.INVENTORY
+import com.jagex.game.runetek5.client.features.Companions.command
+import com.jagex.game.runetek5.client.features.Companions.itemAmount
+import com.jagex.game.runetek5.client.features.Companions.itemId
 import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.Graphics
 import com.jagex.game.runetek5.plugin.api.OverlayMenuEntry
@@ -19,13 +19,13 @@ import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
 /**
- * The Owned Bots plugin's Equipment & Inventory window for the selected bot ([OwnedBots.selected]): the worn
+ * The Companions plugin's Equipment & Inventory window for the selected bot ([Companions.selected]): the worn
  * items laid out as the worn-equipment screen does, the carried ones as the inventory, in the game's stone window.
  * A left click does what the game's would (a worn item comes off, a carried one gets its first option or is
  * picked with Use); the right-click menu lists the item's own options with Use in the game's place, and the
  * bank's amounts for a stack. Everything it does is a `::bot` command.
  */
-object OwnedBotsLoadout {
+object CompanionsLoadout {
 
 	@JvmField var open: Boolean = false
 
@@ -38,7 +38,7 @@ object OwnedBotsLoadout {
 	private val size: Size = Size()
 
 	@JvmField
-	val overlay: PanelOverlay = object : PanelOverlay("OwnedBotsLoadout") {
+	val overlay: PanelOverlay = object : PanelOverlay("CompanionsLoadout") {
 		init {
 			menuOnRightClick = true
 			// a window: in front of the bank, so the player sees what is taking their clicks
@@ -55,7 +55,7 @@ object OwnedBotsLoadout {
 	/** Opens the window on bot [slot]. */
 	@JvmStatic
 	fun show(slot: Int) {
-		OwnedBots.selected = slot
+		Companions.selected = slot
 		open = true
 		useFrom = -1
 	}
@@ -94,8 +94,8 @@ object OwnedBotsLoadout {
 
 	private fun entries(overlay: PanelOverlay): List<OverlayMenuEntry> {
 		val entries: ArrayList<OverlayMenuEntry> = ArrayList()
-		val bot: Bot = OwnedBots.state.bot(OwnedBots.selected) ?: return entries
-		val client: ClientApi = OwnedBots.client ?: return entries
+		val bot: Bot = Companions.state.bot(Companions.selected) ?: return entries
+		val client: ClientApi = Companions.client ?: return entries
 		val slot: Int = bot.slot + 1
 		val hovered: Int = hoveredItem(overlay)
 		if (hovered >= 0) {
@@ -113,7 +113,7 @@ object OwnedBotsLoadout {
 					if (bot.spec == id) {
 						entries.add(OverlayMenuEntry("Clear special attack", target, Task { command("bot spec $slot none") }))
 					} else {
-						entries.add(OverlayMenuEntry(OwnedBots.SPECIAL, target, Task { command("bot spec $slot $arg") }))
+						entries.add(OverlayMenuEntry(Companions.SPECIAL, target, Task { command("bot spec $slot $arg") }))
 					}
 				}
 				if (worn) {
@@ -139,8 +139,8 @@ object OwnedBotsLoadout {
 					// a stack: how many, as the bank asks
 					val amount: Int = itemAmount(packed)
 					if (amount > 1) {
-						for (choice in OwnedBots.AMOUNTS) {
-							val label: String = if (choice == OwnedBots.ALL) "$choice ($amount)" else choice
+						for (choice in Companions.AMOUNTS) {
+							val label: String = if (choice == Companions.ALL) "$choice ($amount)" else choice
 							val count: String = choice.lowercase()
 							entries.add(OverlayMenuEntry(label, target, Task { command("bot take $slot $arg $count") }, "Take"))
 							entries.add(OverlayMenuEntry(label, target, Task { command("bot take $slot $arg $count bank") }, "Bank"))
@@ -153,13 +153,13 @@ object OwnedBotsLoadout {
 			}
 		}
 		entries.add(OverlayMenuEntry("Bank everything", bot.name, Task { command("bot bank $slot") }))
-		for (preset in OwnedBots.presets) {
-			entries.add(OverlayMenuEntry(preset.first, bot.name, Task { command("bot loadout load $slot " + preset.first) }, OwnedBots.LOAD_PRESET))
+		for (preset in Companions.presets) {
+			entries.add(OverlayMenuEntry(preset.first, bot.name, Task { command("bot loadout load $slot " + preset.first) }, Companions.LOAD_PRESET))
 		}
 		entries.add(OverlayMenuEntry("Save as preset...", bot.name + "'s gear", Task { command("bot loadout save $slot") }))
 		entries.add(OverlayMenuEntry("Save as preset...", "my gear", Task { command("bot loadout save") }))
-		for (preset in OwnedBots.presets) {
-			entries.add(OverlayMenuEntry(preset.first, "", Task { command("bot loadout delete " + preset.first) }, OwnedBots.DELETE_PRESET))
+		for (preset in Companions.presets) {
+			entries.add(OverlayMenuEntry(preset.first, "", Task { command("bot loadout delete " + preset.first) }, Companions.DELETE_PRESET))
 		}
 		entries.add(OverlayMenuEntry("Close", "Loadout", Task { close() }))
 		return entries
@@ -171,15 +171,15 @@ object OwnedBotsLoadout {
 	 * an item picked by Use, it goes on the clicked one. Every left click inside the window stays out of the game.
 	 */
 	private fun click(overlay: PanelOverlay, x: Int, y: Int, button: Int): Boolean {
-		val client: ClientApi = OwnedBots.client ?: return false
-		if (button != 0 || !OwnedBots.enabled || !open) {
+		val client: ClientApi = Companions.client ?: return false
+		if (button != 0 || !Companions.enabled || !open) {
 			return false
 		}
 		if (onCloseButton(overlay, x, y)) {
 			close()
 			return true
 		}
-		val bot: Bot = OwnedBots.state.bot(OwnedBots.selected) ?: return true
+		val bot: Bot = Companions.state.bot(Companions.selected) ?: return true
 		val hovered: Int = itemAt(x, y)
 		if (hovered < 0) {
 			useFrom = -1
@@ -239,7 +239,7 @@ object OwnedBotsLoadout {
 
 	/** The item cell under the mouse: 0-13 worn (by equipment index), 14-41 carried, -1 none. */
 	private fun hoveredItem(overlay: PanelOverlay): Int {
-		val client: ClientApi = OwnedBots.client ?: return -1
+		val client: ClientApi = Companions.client ?: return -1
 		return itemAt(client.mouseX() - overlay.boundsX, client.mouseY() - overlay.boundsY)
 	}
 
@@ -251,48 +251,48 @@ object OwnedBotsLoadout {
 				continue
 			}
 			val left: Int = WORN_X + sx
-			val top: Int = OwnedBots.CONTENT_Y + SLOT_Y[index]
+			val top: Int = Companions.CONTENT_Y + SLOT_Y[index]
 			if (x >= left && x < left + SLOT && y >= top && y < top + SLOT) {
 				return index
 			}
 		}
 		val column: Int = (x - CARRIED_X) / INV_W
-		val row: Int = (y - OwnedBots.CONTENT_Y) / INV_H
-		if (x < CARRIED_X || y < OwnedBots.CONTENT_Y || column !in 0 until INV_COLUMNS || row !in 0 until INV_ROWS) {
+		val row: Int = (y - Companions.CONTENT_Y) / INV_H
+		if (x < CARRIED_X || y < Companions.CONTENT_Y || column !in 0 until INV_COLUMNS || row !in 0 until INV_ROWS) {
 			return -1
 		}
 		return EQUIPMENT + row * INV_COLUMNS + column
 	}
 
 	private fun draw(g: Graphics, overlay: PanelOverlay): Size? {
-		val bot: Bot = OwnedBots.state.bot(OwnedBots.selected) ?: return null
-		if (!OwnedBots.enabled || !open || !bot.online || !g.fontReady()) {
+		val bot: Bot = Companions.state.bot(Companions.selected) ?: return null
+		if (!Companions.enabled || !open || !bot.online || !g.fontReady()) {
 			return null
 		}
-		val width: Int = CARRIED_X + INV_COLUMNS * INV_W + OwnedBots.PAD + OwnedBots.EDGE
-		val height: Int = OwnedBots.CONTENT_Y + INV_ROWS * INV_H + OwnedBots.PAD + OwnedBots.EDGE
-		OwnedBots.window(g, width, height, bot.name + "'s Equipment & Inventory")
-		val client: ClientApi? = OwnedBots.client
+		val width: Int = CARRIED_X + INV_COLUMNS * INV_W + Companions.PAD + Companions.EDGE
+		val height: Int = Companions.CONTENT_Y + INV_ROWS * INV_H + Companions.PAD + Companions.EDGE
+		Companions.window(g, width, height, bot.name + "'s Equipment & Inventory")
+		val client: ClientApi? = Companions.client
 		val overClose: Boolean = client != null && onCloseButton(overlay, client.mouseX() - overlay.boundsX, client.mouseY() - overlay.boundsY)
 		g.sprite(if (overClose) CLOSE_HOVER else CLOSE, width - CLOSE_RIGHT - CLOSE_SIZE, CLOSE_TOP)
 		val hovered: Int = hoveredItem(overlay)
 		// the equipment tab's layout: its bars behind the slots (only the gaps between slots show them), then a slot sprite and the item in each
 		for (i in BAR_X.indices) {
 			val x: Int = WORN_X + BAR_X[i]
-			val y: Int = OwnedBots.CONTENT_Y + BAR_Y[i]
+			val y: Int = Companions.CONTENT_Y + BAR_Y[i]
 			// the strips are 32 long and carry a 13 pixel offset in the cache: tiled along the bar, clipped to it
 			if (BAR_VERTICAL[i]) {
 				g.clip(x, y, BAR, BAR_LENGTH[i])
 				var at: Int = y
 				while (at < y + BAR_LENGTH[i]) {
-					g.sprite(BAR_V, x - OwnedBots.EDGE_OFFSET, at)
+					g.sprite(BAR_V, x - Companions.EDGE_OFFSET, at)
 					at += BAR_TILE
 				}
 			} else {
 				g.clip(x, y, BAR_LENGTH[i], BAR)
 				var at: Int = x
 				while (at < x + BAR_LENGTH[i]) {
-					g.sprite(BAR_H, at, y - OwnedBots.EDGE_OFFSET)
+					g.sprite(BAR_H, at, y - Companions.EDGE_OFFSET)
 					at += BAR_TILE
 				}
 			}
@@ -304,10 +304,10 @@ object OwnedBotsLoadout {
 				continue
 			}
 			val x: Int = WORN_X + sx
-			val y: Int = OwnedBots.CONTENT_Y + SLOT_Y[index]
+			val y: Int = Companions.CONTENT_Y + SLOT_Y[index]
 			g.sprite(SLOT_SPRITE, x, y)
 			if (index == hovered) {
-				g.fillRect(x + 1, y + 1, SLOT - 2, SLOT - 2, OwnedBots.HOVER)
+				g.fillRect(x + 1, y + 1, SLOT - 2, SLOT - 2, Companions.HOVER)
 			}
 			val id: Int = itemId(bot.equipment[index])
 			if (id >= 0) {
@@ -319,9 +319,9 @@ object OwnedBotsLoadout {
 		}
 		for (index in 0 until INVENTORY) {
 			val x: Int = CARRIED_X + (index % INV_COLUMNS) * INV_W
-			val y: Int = OwnedBots.CONTENT_Y + (index / INV_COLUMNS) * INV_H
+			val y: Int = Companions.CONTENT_Y + (index / INV_COLUMNS) * INV_H
 			if (EQUIPMENT + index == hovered) {
-				g.fillRect(x, y, INV_W, INV_H, OwnedBots.HOVER)
+				g.fillRect(x, y, INV_W, INV_H, Companions.HOVER)
 			}
 			val id: Int = itemId(bot.inventory[index])
 			if (index == useFrom) {
@@ -329,7 +329,7 @@ object OwnedBotsLoadout {
 					useFrom = -1
 				} else {
 					// picked with Use: outlined, as the game outlines a selected item
-					g.drawRect(x + 2, y + 1, INV_W - 5, INV_H - 3, OwnedBots.WHITE)
+					g.drawRect(x + 2, y + 1, INV_W - 5, INV_H - 3, Companions.WHITE)
 				}
 			}
 			if (id >= 0) {
@@ -350,7 +350,7 @@ object OwnedBotsLoadout {
 	// a column 36 wide with 4 between (cape 16, hat 57, ammo 97) and the weapon and shield columns 57 out from the middle
 	private const val SLOT_SPRITE: Int = 170
 	private const val SLOT: Int = 36
-	private const val WORN_X: Int = OwnedBots.EDGE + OwnedBots.PAD
+	private const val WORN_X: Int = Companions.EDGE + Companions.PAD
 	private const val WORN_W: Int = 149
 	private val SLOT_X: IntArray = intArrayOf(57, 16, 57, 0, 57, 113, -1, 57, -1, 0, 57, -1, 113, 97)
 	private val SLOT_Y: IntArray = intArrayOf(0, 38, 38, 78, 78, 78, -1, 117, -1, 157, 157, -1, 157, 38)
