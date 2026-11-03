@@ -634,7 +634,7 @@ object OwnedBots : Plugin {
 		}
 		if (!bot.alive) {
 			// a dead bot: only where to replace it
-			add("Hire a replacement", Task { context?.client()?.consolePrint("Adventurers for hire wait in the general stores of Lumbridge, Varrock, Falador, Al Kharid and Edgeville.") }, "<col=ff9040>" + bot.name)
+			add("Hire a replacement", Task { context?.client()?.consolePrint("Adventurers for hire wait at the Servants' Guild in East Ardougne.") }, "<col=ff9040>" + bot.name)
 			return
 		}
 		val slot: Int = bot.slot + 1
@@ -896,7 +896,7 @@ object OwnedBots : Plugin {
 		}
 		var y: Int = TOP + PAD
 		if (hint) {
-			g.text(EDGE + PAD, y + line - 2, if (!current.active()) "No answer from the server" else "Hire an Adventurer at a general store", HINT, BLACK)
+			g.text(EDGE + PAD, y + line - 2, if (!current.active()) "No answer from the server" else "Hire an Adventurer at the Servants' Guild", HINT, BLACK)
 			y += line
 		}
 		for (bot in rows) {
