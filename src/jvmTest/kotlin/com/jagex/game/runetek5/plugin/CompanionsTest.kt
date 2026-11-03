@@ -179,6 +179,29 @@ class CompanionsTest {
 	}
 
 	@Test
+	fun aLoadoutHotkeyOpensThatCompanionsLoadoutAndClosesItAgain() {
+		Companions.state = Companions.read { vars()[it] ?: 0 }
+		Companions.enabled = true
+		CompanionsLoadout.close()
+		try {
+			Companions.loadoutKeys[0] = 5
+			Companions.loadoutKeys[2] = 7
+			assertFalse(Companions.onKey(6), "an unbound key goes to the game")
+			assertTrue(Companions.onKey(5), "the key is taken")
+			assertTrue(CompanionsLoadout.open)
+			assertEquals(0, Companions.selected)
+			assertTrue(Companions.onKey(5))
+			assertFalse(CompanionsLoadout.open, "the same key again closes it")
+			assertTrue(Companions.onKey(7), "an empty slot's key is swallowed too")
+			assertFalse(CompanionsLoadout.open, "but opens nothing")
+		} finally {
+			Companions.loadoutKeys.fill(0)
+			Companions.enabled = false
+			CompanionsLoadout.close()
+		}
+	}
+
+	@Test
 	fun theFoldedRosterOffersEveryBotUnderItsOwnSubmenu() {
 		Companions.state = Companions.read { vars()[it] ?: 0 }
 		Companions.collapsed = true

@@ -193,6 +193,9 @@ object Companions : Plugin {
 	@JvmField var callKey: Int = 0
 	@JvmField var followKey: Int = 0
 	@JvmField var stopKey: Int = 0
+
+	/** A key a slot: opens that companion's loadout, or closes it when it is the one open. */
+	@JvmField val loadoutKeys: IntArray = IntArray(SLOTS)
 	private val point: IntArray = IntArray(2)
 	private val area: IntArray = IntArray(4)
 	private val size: Size = Size()
@@ -600,19 +603,37 @@ object Companions : Plugin {
 		}
 	}
 
-	/** Hotkeys for the orders that matter mid-fight; a matched key never reaches the game. */
+	/** Hotkeys for the orders that matter mid-fight and for each companion's loadout; a matched key never reaches the game. */
 	private val keyListener: EventListener<KeyPressed> = EventListener { event ->
-		if (!enabled || !state.active() || event.keyCode == 0) {
-			return@EventListener
+		if (onKey(event.keyCode)) {
+			event.consume()
 		}
-		val order: String = when (event.keyCode) {
+	}
+
+	/** A key went down: the order or loadout it is bound to, true when it was one. */
+	@JvmStatic
+	fun onKey(keyCode: Int): Boolean {
+		if (!enabled || !state.active() || keyCode == 0) {
+			return false
+		}
+		for (slot in 0 until SLOTS) {
+			if (loadoutKeys[slot] != keyCode) {
+				continue
+			}
+			if (state.bot(slot)?.alive != true) {
+				return true
+			}
+			if (CompanionsLoadout.open && selected == slot) CompanionsLoadout.close() else CompanionsLoadout.show(slot)
+			return true
+		}
+		val order: String = when (keyCode) {
 			callKey -> "call all"
 			followKey -> "follow all"
 			stopKey -> "stop all"
-			else -> return@EventListener
+			else -> return false
 		}
 		command("bot $order")
-		event.consume()
+		return true
 	}
 
 	/** The amount a give entry's label carries, "5", "all" (from "All (12)" or "Woody: All (12)"), or "" for one. */
@@ -769,6 +790,9 @@ object Companions : Plugin {
 		s.keybind("callKey", "Call all companions", 0)
 		s.keybind("followKey", "Follow me, all companions", 0)
 		s.keybind("stopKey", "Stop all companions", 0)
+		for (slot in 0 until SLOTS) {
+			s.keybind("loadoutKey" + (slot + 1), "Loadout of companion " + (slot + 1), 0)
+		}
 		readSettings(context.config())
 		for (slot in 0 until SLOTS) {
 			giveActions[slot] = context.registerMenuAction(MenuAction { _, _, _, id -> give(slot, id, false) })
@@ -813,6 +837,9 @@ object Companions : Plugin {
 		callKey = config.getInt("callKey", 0)
 		followKey = config.getInt("followKey", 0)
 		stopKey = config.getInt("stopKey", 0)
+		for (slot in 0 until SLOTS) {
+			loadoutKeys[slot] = config.getInt("loadoutKey" + (slot + 1), 0)
+		}
 		collapsed = config.getBoolean("collapsed", false)
 		if (enabled && !was && context?.client()?.gameState() === GameState.LOGGED_IN) {
 			handshakeDue = cycle + 1
