@@ -1012,8 +1012,29 @@ object OverlayLayout {
 		}
 		if (menu.isNotEmpty()) {
 			val top: MiniMenuEntry? = MiniMenu.entryList.last() as MiniMenuEntry?
+			// entries sharing a submenu label go under one entry of that label (API 41); -1 means no room, plain entries then
+			val submenus: HashMap<String, Int> = HashMap()
 			for (i in menu.size - 1 downTo 0) {
 				val item: OverlayMenuEntry = menu[i]
+				if (item.submenu.isNotEmpty()) {
+					val existing: Int? = submenus[item.submenu]
+					if (existing != null && existing >= 0) {
+						continue
+					}
+					if (existing == null) {
+						val submenu: Int = PluginRuntime.clientSubmenu(item.submenu, MENU_TARGET + item.target, entry.serial)
+						submenus[item.submenu] = submenu
+						if (submenu >= 0) {
+							for (child in menu) {
+								if (child.submenu == item.submenu) {
+									offeredEntries.add(child)
+									PluginRuntime.clientSubmenuEntry(submenu, child.option, entry.serial, offeredEntries.size - 1)
+								}
+							}
+							continue
+						}
+					}
+				}
 				offeredEntries.add(item)
 				MiniMenu.addEntry(false, MENU_TARGET + item.target, offeredEntries.size - 1, true, entry.serial, -1, true, MiniMenuAction.OVERLAY_MENU, 0L, item.option, 0L, -1)
 			}

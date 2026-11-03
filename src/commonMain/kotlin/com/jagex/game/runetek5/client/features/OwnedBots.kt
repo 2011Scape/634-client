@@ -81,6 +81,10 @@ object OwnedBots : Plugin {
 	/** The line the server prints for `::bot tasks`, and the prefix of every line about a bot. */
 	const val TASKS_PREFIX: String = "[BotTasks] "
 	const val LOADOUTS_PREFIX: String = "[BotLoadouts] "
+
+	/** Submenus the presets sit under in the roster's and the loadout's menus. */
+	const val LOAD_PRESET: String = "Load preset"
+	const val DELETE_PRESET: String = "Delete preset"
 	const val BOT_PREFIX: String = "[Bot "
 
 	/** What the plugin sends in `::bot ui`: a character the chat box can't type, so only a plugin opts in. */
@@ -449,7 +453,7 @@ object OwnedBots : Plugin {
 					entries.add(OverlayMenuEntry("Task...", target, Task { selected = bot.slot; tasksOpen = true }))
 					entries.add(OverlayMenuEntry("Loadout", target, Task { selected = bot.slot; loadoutOpen = true }))
 					for (preset in presets) {
-						entries.add(OverlayMenuEntry("Load preset " + preset.first, target, Task { command("bot loadout load $slot " + preset.first) }))
+						entries.add(OverlayMenuEntry(preset.first, target, Task { command("bot loadout load $slot " + preset.first) }, LOAD_PRESET))
 					}
 					entries.add(OverlayMenuEntry("Save gear as preset...", target, Task { command("bot loadout save $slot") }))
 					entries.add(OverlayMenuEntry("Bank items", target, Task { command("bot bank $slot") }))
@@ -499,12 +503,12 @@ object OwnedBots : Plugin {
 			}
 			entries.add(OverlayMenuEntry("Bank everything", bot.name, Task { command("bot bank $slot") }))
 			for (preset in presets) {
-				entries.add(OverlayMenuEntry("Load preset", "<col=ff9040>" + preset.first, Task { command("bot loadout load $slot " + preset.first) }))
+				entries.add(OverlayMenuEntry(preset.first, bot.name, Task { command("bot loadout load $slot " + preset.first) }, LOAD_PRESET))
 			}
 			entries.add(OverlayMenuEntry("Save as preset...", bot.name + "'s gear", Task { command("bot loadout save $slot") }))
 			entries.add(OverlayMenuEntry("Save as preset...", "my gear", Task { command("bot loadout save") }))
 			for (preset in presets) {
-				entries.add(OverlayMenuEntry("Delete preset", "<col=ff9040>" + preset.first, Task { command("bot loadout delete " + preset.first) }))
+				entries.add(OverlayMenuEntry(preset.first, "preset", Task { command("bot loadout delete " + preset.first) }, DELETE_PRESET))
 			}
 			entries.add(OverlayMenuEntry("Close", "Loadout", Task { loadoutOpen = false }))
 			return entries

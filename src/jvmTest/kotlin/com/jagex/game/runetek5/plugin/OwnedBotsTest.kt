@@ -1,6 +1,8 @@
 package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.client.features.OwnedBots
+import com.jagex.game.runetek5.plugin.api.OverlayMenuEntry
+import com.jagex.game.runetek5.plugin.api.Task
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -138,6 +140,17 @@ class OwnedBotsTest {
 		assertEquals("iron_full_helm,bronze_sword", preset.second)
 		assertNull(OwnedBots.parsePreset("[BotLoadouts] 2 presets"))
 		assertNull(OwnedBots.parsePreset("[BotTasks] 1|a|b"))
+	}
+
+	@Test
+	fun presetEntriesSitUnderSubmenus() {
+		val plain = OverlayMenuEntry("Close", "Loadout", Task {})
+		assertEquals("", plain.submenu, "an entry is a plain one unless given a submenu")
+		val load = OverlayMenuEntry("melee", "Woody", Task {}, OwnedBots.LOAD_PRESET)
+		val delete = OverlayMenuEntry("melee", "preset", Task {}, OwnedBots.DELETE_PRESET)
+		assertEquals("Load preset", load.submenu)
+		assertEquals("Delete preset", delete.submenu)
+		assertTrue(load.submenu != delete.submenu, "loading and deleting are separate submenus")
 	}
 
 	@Test
