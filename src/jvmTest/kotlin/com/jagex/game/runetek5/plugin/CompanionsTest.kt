@@ -113,9 +113,9 @@ class CompanionsTest {
 
 	@Test
 	fun taskLinesAreParsedAndTheHeadingIsNot() {
-		val task = Companions.parseTask("[BotTasks] 3|seers_village_flax_picking|crafting|1|Seers' Village|1|Pick flax")!!
+		val task = Companions.parseTask("[BotTasks] 3|crafting|1|Seers' Village|1|Pick flax")!!
 		assertEquals(3, task.index)
-		assertEquals("seers_village_flax_picking", task.id)
+		assertEquals("3", task.id, "given back by its index")
 		assertEquals("crafting", task.skill)
 		assertEquals(1, task.level)
 		assertEquals("Seers' Village", task.location)
@@ -125,9 +125,9 @@ class CompanionsTest {
 		assertNull(Companions.parseTask("Welcome to RuneScape."))
 		// the picker's tabs and rows
 		Companions.tasks.clear()
-		Companions.tasks.add(Companions.parseTask("[BotTasks] 0|draynor_north_trees|woodcutting|1|Draynor|0|Chop logs")!!)
-		Companions.tasks.add(Companions.parseTask("[BotTasks] 1|draynor_west_oak_trees|woodcutting|15|Draynor|0|Chop oak logs")!!)
-		Companions.tasks.add(Companions.parseTask("[BotTasks] 2|varrock_palace_yew_trees|woodcutting|60|Varrock|0|Chop yew logs")!!)
+		Companions.tasks.add(Companions.parseTask("[BotTasks] 0|woodcutting|1|Draynor|0|Chop logs")!!)
+		Companions.tasks.add(Companions.parseTask("[BotTasks] 1|woodcutting|15|Draynor|0|Chop oak logs")!!)
+		Companions.tasks.add(Companions.parseTask("[BotTasks] 2|woodcutting|60|Varrock|0|Chop yew logs")!!)
 		Companions.tasks.add(task)
 		assertEquals(listOf("woodcutting", "crafting"), Companions.taskSkills())
 		assertEquals("Woodcutting", Companions.skillName("woodcutting"))

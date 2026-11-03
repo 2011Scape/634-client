@@ -278,19 +278,22 @@ object Companions : Plugin {
 	@JvmStatic
 	fun itemAmount(packed: Int): Int = packed and 0xFFFF
 
-	/** A `[BotTasks] index|id|skill|level|location|members|label` line, or null for the heading and anything else. */
+	/**
+	 * A `[BotTasks] index|skill|level|location|members|label` line, or null for the heading and anything else. The
+	 * server names no id (a chat line wraps at the box's width); the task is given back by its index.
+	 */
 	@JvmStatic
 	fun parseTask(text: String): TaskEntry? {
 		if (!text.startsWith(TASKS_PREFIX)) {
 			return null
 		}
 		val parts: List<String> = text.substring(TASKS_PREFIX.length).split('|')
-		if (parts.size != 7) {
+		if (parts.size != 6) {
 			return null
 		}
 		val index: Int = parts[0].toIntOrNull() ?: return null
-		val level: Int = parts[3].toIntOrNull() ?: return null
-		return TaskEntry(index, parts[1], parts[2], level, parts[4], parts[5] == "1", parts[6])
+		val level: Int = parts[2].toIntOrNull() ?: return null
+		return TaskEntry(index, index.toString(), parts[1], level, parts[3], parts[4] == "1", parts[5])
 	}
 
 	/** The skills with tasks, in the catalogue's order. */
