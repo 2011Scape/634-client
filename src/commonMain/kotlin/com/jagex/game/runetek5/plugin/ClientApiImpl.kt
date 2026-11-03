@@ -31,6 +31,7 @@ import com.jagex.game.runetek5.plugin.api.ChatLineView
 import com.jagex.game.runetek5.client.GameShell
 import com.jagex.game.runetek5.client.input.console.Console
 import com.jagex.game.runetek5.config.TypeLists
+import com.jagex.game.runetek5.config.objtype.ObjTypeList
 import com.jagex.game.runetek5.config.quest.QuestType
 import com.jagex.game.runetek5.config.rsinterface.Component
 import com.jagex.game.runetek5.config.rsinterface.Interface
@@ -231,6 +232,17 @@ object ClientApiImpl : ClientApi {
 		}
 		return TypeLists.OBJ!!.list(id).name
 	}
+
+	override fun itemInventoryOptions(id: Int): Array<String?> {
+		val list: ObjTypeList = TypeLists.OBJ ?: return arrayOfNulls(5)
+		if (id < 0) {
+			return arrayOfNulls(5)
+		}
+		val options: Array<String?> = list.list(id).inventoryActions ?: return arrayOfNulls(5)
+		return options.copyOf(5)
+	}
+
+	override fun isMenuOpen(): Boolean = MiniMenu.isOpen
 
 	override fun npcName(id: Int): String? {
 		if (id < 0 || TypeLists.NPC == null) {

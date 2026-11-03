@@ -1,9 +1,6 @@
 package com.jagex.game.runetek5.client.features
 
 import ClientCommandProcessor
-import com.jagex.game.runetek5.client.menu.MiniMenu
-import com.jagex.game.runetek5.config.TypeLists
-import com.jagex.game.runetek5.config.objtype.ObjTypeList
 import com.jagex.game.runetek5.plugin.api.ChatType
 import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.CommandHandler
@@ -159,6 +156,15 @@ object OwnedBots : Plugin {
 
 	/** The carried item (inventory index) picked with Use in the loadout window, waiting for what it goes on; -1 none. */
 	@JvmField var useFrom: Int = -1
+
+	/** The item id in [useFrom] when it was picked: the pick lapses when the slot comes to hold something else. */
+	@JvmField var useFromItem: Int = -1
+
+	@JvmStatic
+	fun pickForUse(index: Int, itemId: Int) {
+		useFrom = index
+		useFromItem = itemId
+	}
 	@JvmField var tasksOpen: Boolean = false
 
 	private var context: PluginContext? = null
@@ -334,7 +340,8 @@ object OwnedBots : Plugin {
 	 */
 	private val clickListener: EventListener<MouseClicked> = EventListener { event ->
 		// with a menu open the click is on one of its entries (even over the window): the game runs it
-		if (event.button != 0 || !enabled || !loadoutOpen || MiniMenu.isOpen || !inside(loadout, event.x, event.y)) {
+		val client: ClientApi = context?.client() ?: return@EventListener
+		if (event.button != 0 || !enabled || !loadoutOpen || client.isMenuOpen() || !inside(loadout, event.x, event.y)) {
 			return@EventListener
 		}
 		event.consume()
@@ -368,10 +375,10 @@ object OwnedBots : Plugin {
 		if (id < 0) {
 			return@EventListener
 		}
-		val name: String = context?.client()?.itemName(id) ?: return@EventListener
-		val option: String? = leftClickOption(inventoryOptions(id))
+		val name: String = client.itemName(id) ?: return@EventListener
+		val option: String? = leftClickOption(client.itemInventoryOptions(id))
 		if (option == null) {
-			useFrom = carried
+			pickForUse(carried, id)
 		} else {
 			itemOption(bot, carried, option, commandName(name))
 		}
@@ -406,6 +413,10 @@ object OwnedBots : Plugin {
 		val client: ClientApi = context?.client() ?: return@EventListener
 		if (enabled && client.gameState() === GameState.LOGGED_IN) {
 			state = read { client.varcInt(it) }
+			// the pick lapses once the slot holds something else (the bot ate, banked or moved it)
+			if (useFrom >= 0 && itemId(state.bot(selected)?.inventory?.getOrNull(useFrom) ?: 0) != useFromItem) {
+				useFrom = -1
+			}
 		}
 	}
 
@@ -514,6 +525,11 @@ object OwnedBots : Plugin {
 		override fun menuEntries(): List<OverlayMenuEntry> {
 			val entries: ArrayList<OverlayMenuEntry> = ArrayList()
 			val bot: Bot? = hovered(this)
+			if (bot != null && !bot.alive && bot.name.isNotEmpty()) {
+				// a dead bot's row: only where to replace it
+				entries.add(OverlayMenuEntry("Replace at a Bot Broker", "<col=ff9040>" + bot.name, Task { context?.client()?.consolePrint("Bot Brokers stand in Lumbridge, Varrock and Falador; a dead bot's slot is bought again there.") }))
+				return entries
+			}
 			if (bot != null && bot.alive) {
 				val slot: Int = bot.slot + 1
 				val target: String = "<col=" + (colour(bot.slot) and 0xFFFFFF).toString(16) + ">" + bot.name
@@ -523,7 +539,7 @@ object OwnedBots : Plugin {
 					entries.add(OverlayMenuEntry("Follow", target, Task { command("bot follow $slot") }))
 					entries.add(OverlayMenuEntry("Stop", target, Task { command("bot stop $slot") }))
 					entries.add(OverlayMenuEntry("Call", target, Task { command("bot call $slot") }))
-					entries.add(OverlayMenuEntry("Task...", target, Task { selected = bot.slot; tasksOpen = true }))
+					entries.add(OverlayMenuEntry("Task...", target, Task { selected = bot.slot; tasksOpen = true; useFrom = -1 }))
 					entries.add(OverlayMenuEntry("Loadout", target, Task { selected = bot.slot; loadoutOpen = true; useFrom = -1 }))
 					for (preset in presets) {
 						entries.add(OverlayMenuEntry(preset.first, target, Task { command("bot loadout load $slot " + preset.first) }, LOAD_PRESET))
@@ -584,10 +600,10 @@ object OwnedBots : Plugin {
 						entries.add(OverlayMenuEntry("Cancel", "Use", Task { useFrom = -1 }))
 					} else {
 						// the game's inventory order: options 1-3, Use, options 4-5
-						val options: Array<String?> = inventoryOptions(id)
+						val options: Array<String?> = client.itemInventoryOptions(id)
 						for (k in options.indices) {
 							if (k == USE_AFTER) {
-								entries.add(OverlayMenuEntry("Use", target, Task { useFrom = carried }))
+								entries.add(OverlayMenuEntry("Use", target, Task { pickForUse(carried, id) }))
 							}
 							val option: String = options[k] ?: continue
 							entries.add(OverlayMenuEntry(option, target, Task { itemOption(bot, carried, option, arg) }))
@@ -834,12 +850,6 @@ object OwnedBots : Plugin {
 
 	private fun inside(overlay: PanelOverlay, x: Int, y: Int): Boolean =
 		x >= overlay.boundsX && y >= overlay.boundsY && x < overlay.boundsX + overlay.boundsWidth && y < overlay.boundsY + overlay.boundsHeight
-
-	/** An item's five inventory options from its type ("Eat", "Wield", null, null, "Drop"...). */
-	private fun inventoryOptions(id: Int): Array<String?> {
-		val list: ObjTypeList = TypeLists.OBJ ?: return NO_OPTIONS
-		return list.list(id).inventoryActions ?: NO_OPTIONS
-	}
 
 	/** The game's left click on a carried item: its first option among 1-3, Use (null) when it has none. */
 	@JvmStatic
@@ -1097,7 +1107,6 @@ object OwnedBots : Plugin {
 
 	// the game's inventory menu puts Use after an item's third option
 	private const val USE_AFTER: Int = 3
-	private val NO_OPTIONS: Array<String?> = arrayOfNulls(5)
 	private val EQUIP_OPTIONS: Set<String> = setOf("wield", "wear", "equip")
 
 	// the inventory's 4 by 7 grid, 42 by 36 a slot (interface 149)
