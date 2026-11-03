@@ -3,6 +3,7 @@ package com.jagex.game.runetek5.client.features
 import ClientCommandProcessor
 import com.jagex.game.runetek5.plugin.api.ChatType
 import com.jagex.game.runetek5.plugin.api.ClientApi
+import com.jagex.game.runetek5.plugin.api.CommandHandler
 import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.Graphics
 import com.jagex.game.runetek5.plugin.api.MenuAction
@@ -305,6 +306,20 @@ object OwnedBots : Plugin {
 		}
 	}
 
+	/** `::ownedbots [on|off]` turns the plugin on or off (or over), as the other built-in plugins' commands do. */
+	private val toggle: CommandHandler = CommandHandler { _, args ->
+		val config: PluginConfig = context?.config() ?: return@CommandHandler
+		val on: Boolean = when (args.firstOrNull()?.lowercase()) {
+			"on" -> true
+			"off" -> false
+			else -> !enabled
+		}
+		config.setBoolean("enabled", on)
+		config.save()
+		readSettings(config)
+		context?.client()?.consolePrint(if (enabled) "Owned bots enabled." else "Owned bots disabled.")
+	}
+
 	private val stateListener: EventListener<GameStateChanged> = EventListener { event ->
 		if (event.state === GameState.LOGGED_IN) {
 			// a couple of ticks in, so the login has settled and the chat box is there for the task list
@@ -513,7 +528,7 @@ object OwnedBots : Plugin {
 			entries.add(OverlayMenuEntry("Save as preset...", bot.name + "'s gear", Task { command("bot loadout save $slot") }))
 			entries.add(OverlayMenuEntry("Save as preset...", "my gear", Task { command("bot loadout save") }))
 			for (preset in presets) {
-				entries.add(OverlayMenuEntry(preset.first, "preset", Task { command("bot loadout delete " + preset.first) }, DELETE_PRESET))
+				entries.add(OverlayMenuEntry(preset.first, "", Task { command("bot loadout delete " + preset.first) }, DELETE_PRESET))
 			}
 			entries.add(OverlayMenuEntry("Close", "Loadout", Task { loadoutOpen = false }))
 			return entries
@@ -557,6 +572,7 @@ object OwnedBots : Plugin {
 			giveActions[slot] = context.registerMenuAction(MenuAction { _, _, _, id -> give(slot, id, false) })
 			giveBankActions[slot] = context.registerMenuAction(MenuAction { _, _, _, id -> give(slot, id, true) })
 		}
+		context.registerCommand("ownedbots", toggle)
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
 		context.events().subscribe(Events.GAME_STATE_CHANGED, stateListener)
 		context.events().subscribe(Events.GAME_TICK, tickListener)
