@@ -829,8 +829,8 @@ class client : GameShell() {
 					}
 				}
 			} else if (MouseLog.isMousePressType(clickType)) {
-				// Not part of the original client: a press on a panel being managed moves it (OverlayLayout), then the plugins' MouseClicked; a consumed click never reaches the game.
-				if (!OverlayLayout.mousePressed(mouseEvent.getMouseX(), mouseEvent.getMouseY(), clickType) && !PluginRuntime.mouseClicked(mouseEvent, clickType)) {
+				// Not part of the original client: a press on a panel being managed moves it, or the panel under it takes it (OverlayLayout), then the plugins' MouseClicked; a consumed click never reaches the game.
+				if (!OverlayLayout.mousePressed(mouseEvent.getMouseX(), mouseEvent.getMouseY(), clickType) && !OverlayLayout.clicked(mouseEvent.getMouseX(), mouseEvent.getMouseY(), clickType) && !PluginRuntime.mouseClicked(mouseEvent, clickType)) {
 					MouseManager.MOUSE_MOVEMENTS.addLast(mouseEvent)
 					if (MouseManager.MOUSE_MOVEMENTS.size() > 10) {
 						MouseManager.MOUSE_MOVEMENTS.removeFirst()

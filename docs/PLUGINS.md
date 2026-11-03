@@ -949,8 +949,9 @@ null for nothing this frame. Give it a `name` that stays the same between versio
 under the plugin's id and that name. `resizable` panels read `preferredWidth`; `addMenuEntry` adds a
 Shift-right-click entry, and entries given the same `submenu` label sit under one entry of that label
 that opens them as a submenu (API 41); with `menuOnRightClick` a plain right click offers them too, in
-place of the game's entries for what is under the panel (API 42); `backgroundColour` is the one the
-player chose.
+place of the game's entries for what is under the panel (API 42); `onClick(x, y, button)` hears of a
+mouse button going down on the panel, at panel coordinates, and keeps the click from the game by
+returning true (API 44); `backgroundColour` is the one the player chose.
 
 **`OverlayPanel`** is a `PanelOverlay` that is a `PanelComponent`, as RuneLite's: add this frame's
 lines in `render` and return `super.render(g, view)`.

@@ -121,6 +121,14 @@ abstract class PanelOverlay(
 	/** The entries shift-right-clicking the panel shows now; the ones from [addMenuEntry] unless overridden. */
 	open fun menuEntries(): List<OverlayMenuEntry> = menuEntries
 
+	/**
+	 * A mouse button went down on the panel, at ([x], [y]) from its top-left corner, [button] as
+	 * [com.jagex.game.runetek5.plugin.api.events.MouseClicked.button] (0 the left button). True keeps the click
+	 * from the game and from the plugins' MouseClicked. Not called while a right-click menu is open (that click
+	 * is on one of its entries wherever it lands) nor while the player manages panels with Alt. Since API 44.
+	 */
+	open fun onClick(x: Int, y: Int, button: Int): Boolean = false
+
 	/** Another drag-targetable panel [source] was dropped on this one; true when it was taken (and not moved). */
 	open fun onDrag(source: PanelOverlay): Boolean = false
 

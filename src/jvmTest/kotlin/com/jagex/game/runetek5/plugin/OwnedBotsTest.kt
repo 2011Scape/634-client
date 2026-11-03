@@ -1,6 +1,7 @@
 package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.client.features.OwnedBots
+import com.jagex.game.runetek5.client.features.OwnedBotsLoadout
 import com.jagex.game.runetek5.plugin.api.OverlayMenuEntry
 import com.jagex.game.runetek5.plugin.api.Task
 import kotlin.test.Test
@@ -161,10 +162,19 @@ class OwnedBotsTest {
 	}
 
 	@Test
+	fun giveEntryLabelsCarryTheirAmount() {
+		assertEquals("", OwnedBots.amountOf("Give to Woody"))
+		assertEquals("5", OwnedBots.amountOf("5"))
+		assertEquals("all", OwnedBots.amountOf("All (12)"))
+		assertEquals("10", OwnedBots.amountOf("Woody: 10"))
+		assertEquals("all", OwnedBots.amountOf("<col=ff9040>Woody: All (3)"))
+	}
+
+	@Test
 	fun leftClickIsTheFirstOfTheFirstThreeOptions() {
-		assertEquals("Eat", OwnedBots.leftClickOption(arrayOf("Eat", null, null, null, "Drop")))
-		assertEquals("Wield", OwnedBots.leftClickOption(arrayOf(null, "Wield", null, null, "Drop")))
+		assertEquals("Eat", OwnedBotsLoadout.leftClickOption(arrayOf("Eat", null, null, null, "Drop")))
+		assertEquals("Wield", OwnedBotsLoadout.leftClickOption(arrayOf(null, "Wield", null, null, "Drop")))
 		// only options 4 and 5 (Drop): the game's left click is Use
-		assertNull(OwnedBots.leftClickOption(arrayOf(null, null, null, "Empty", "Drop")))
+		assertNull(OwnedBotsLoadout.leftClickOption(arrayOf(null, null, null, "Empty", "Drop")))
 	}
 }

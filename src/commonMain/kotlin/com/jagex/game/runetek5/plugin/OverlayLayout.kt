@@ -729,6 +729,28 @@ object OverlayLayout {
 		return true
 	}
 
+	/**
+	 * A mouse button went down at ([mouseX], [mouseY]) and the game has not had it yet: the panel under it
+	 * hears of it ([PanelOverlay.onClick], API 44). True when the panel kept the click. Not while managing
+	 * (the press moves the panel), nor with a menu open (the press is on one of its entries).
+	 */
+	@JvmStatic
+	fun clicked(mouseX: Int, mouseY: Int, clickType: Int): Boolean {
+		if (editMode || MiniMenu.isOpen || !loggedIn()) {
+			return false
+		}
+		val entry: Entry = lastHovered ?: return false
+		if (!entry.contains(mouseX, mouseY)) {
+			return false
+		}
+		return try {
+			entry.overlay.onClick(mouseX - entry.x, mouseY - entry.y, clickType)
+		} catch (error: Throwable) {
+			PluginRuntime.fail(entry.owner, error)
+			false
+		}
+	}
+
 	/** RuneLite's mouseDragged: the panel follows the mouse, or its edges do. */
 	private fun dragged(mouseX: Int, mouseY: Int) {
 		val entry: Entry = current ?: return
