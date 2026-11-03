@@ -554,7 +554,7 @@ object OwnedBots : Plugin {
 		overlay.boundsWidth > 0 && x >= overlay.boundsX && y >= overlay.boundsY && x < overlay.boundsX + overlay.boundsWidth && y < overlay.boundsY + overlay.boundsHeight
 	}
 
-	/** "Special attack <bot>" (one bot) or a "Special attack" submenu (each bot, All) on a wieldable item. */
+	/** "Special attack <bot>" (one bot) or a "Special attack" submenu (one line a bot) on a wieldable item. */
 	private fun specialAttackEntries(client: ClientApi, online: List<Bot>, suffix: String) {
 		if (specAction < 0) {
 			return
@@ -570,7 +570,6 @@ object OwnedBots : Plugin {
 		for (bot in online) {
 			client.addSubmenuEntry(submenu, bot.name, specAction)
 		}
-		client.addSubmenuEntry(submenu, ALL, specAction)
 	}
 
 	/**
@@ -582,7 +581,10 @@ object OwnedBots : Plugin {
 		orderTarget = ""
 		val client: ClientApi = context?.client() ?: return
 		val name: String = client.itemName(itemId) ?: return
-		command("bot spec " + (if (target == "all") "all" else target) + " " + commandName(name))
+		if (target.isEmpty() || target == "all") {
+			return
+		}
+		command("bot spec $target " + commandName(name))
 	}
 
 	/** The amount on a give entry's label is read just before the entry's action runs with only the item id. */
