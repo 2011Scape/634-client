@@ -85,6 +85,7 @@ object Companions : Plugin {
 
 	/** The line the server prints for `::bot tasks`, and the prefix of every line about a bot. */
 	const val TASKS_PREFIX: String = "[BotTasks] "
+	const val TASK_ITEMS_PREFIX: String = "[BotTaskItems] "
 	const val LOADOUTS_PREFIX: String = "[BotLoadouts] "
 
 	/** Submenus the presets sit under in the roster's and the loadout's menus. */
@@ -172,7 +173,11 @@ object Companions : Plugin {
 		@JvmField val location: String,
 		@JvmField val members: Boolean,
 		@JvmField val label: String,
-	)
+	) {
+		/** What the bot fetches from the owner's bank for it, as the server encodes it: `id/id:amount,id:amount`. */
+		@JvmField
+		var needs: String = ""
+	}
 
 	@JvmField
 	var state: State = State(emptyList(), 0)
@@ -295,6 +300,43 @@ object Companions : Plugin {
 		val index: Int = parts[0].toIntOrNull() ?: return null
 		val level: Int = parts[2].toIntOrNull() ?: return null
 		return TaskEntry(index, index.toString(), parts[1], level, parts[3], parts[4] == "1", parts[5])
+	}
+
+	/** A `[BotTaskItems] index|id/id:amount,...` line as the index and the encoded needs, or null for anything else. */
+	@JvmStatic
+	fun parseTaskItems(text: String): Pair<Int, String>? {
+		if (!text.startsWith(TASK_ITEMS_PREFIX)) {
+			return null
+		}
+		val body: String = text.substring(TASK_ITEMS_PREFIX.length)
+		val bar: Int = body.indexOf('|')
+		if (bar <= 0) {
+			return null
+		}
+		val index: Int = body.substring(0, bar).toIntOrNull() ?: return null
+		return index to body.substring(bar + 1)
+	}
+
+	/**
+	 * The tooltip's lines for [needs] (the server's `id/id:amount,...`), an item a line, "3 x " before more than one
+	 * and the choices joined by " or ", named by [name].
+	 */
+	@JvmStatic
+	fun needLines(needs: String, name: (Int) -> String?): List<String> {
+		val lines: ArrayList<String> = ArrayList()
+		for (need in needs.split(',')) {
+			if (need.isEmpty()) {
+				continue
+			}
+			val ids: String = need.substringBefore(':')
+			val amount: Int = need.substringAfter(':', "1").toIntOrNull() ?: 1
+			val names: List<String> = ids.split('/').mapNotNull { it.toIntOrNull() }.mapNotNull { name(it) }
+			if (names.isEmpty()) {
+				continue
+			}
+			lines.add((if (amount > 1) "$amount x " else "") + names.joinToString(" or "))
+		}
+		return lines
 	}
 
 	/** The skills with tasks, in the catalogue's order. */
@@ -455,6 +497,14 @@ object Companions : Plugin {
 			return@EventListener
 		}
 		val text: String = ClientFeatures.plainText(event.message ?: return@EventListener)
+		val needs: Pair<Int, String>? = parseTaskItems(text)
+		if (needs != null) {
+			tasks.firstOrNull { it.index == needs.first }?.needs = needs.second
+			if (hideTaskLines) {
+				event.consume()
+			}
+			return@EventListener
+		}
 		val task: TaskEntry? = parseTask(text)
 		if (task != null || text.startsWith(TASKS_PREFIX)) {
 			if (task != null) {
@@ -1373,7 +1423,39 @@ object Companions : Plugin {
 			g.fillRect(scrollX + 1, thumbTop + 1, SCROLL_W - 2, thumbHeight - 2, if (overThumb) THUMB_HOVER else THUMB)
 			g.drawRect(scrollX + 1, thumbTop + 1, SCROLL_W - 2, thumbHeight - 2, BAR_LINE)
 		}
+		if (hovered != null && hovered.needs.isNotEmpty() && client != null) {
+			drawNeeds(g, hovered, mouseX, mouseY, width, height, line, client)
+		}
 		return size.set(width, height)
+	}
+
+	/** The tooltip under the mouse: what the bot fetches from the owner's bank for the hovered task. */
+	private fun drawNeeds(g: Graphics, task: TaskEntry, mouseX: Int, mouseY: Int, width: Int, height: Int, line: Int, client: ClientApi) {
+		val lines: List<String> = needLines(task.needs) { client.itemName(it) }
+		if (lines.isEmpty()) {
+			return
+		}
+		var tipWidth: Int = g.textWidth(NEEDS_TITLE)
+		for (text in lines) {
+			tipWidth = maxOf(tipWidth, g.textWidth(text))
+		}
+		tipWidth += TIP_PAD * 2
+		val tipHeight: Int = (lines.size + 1) * line + TIP_PAD * 2
+		// beside the mouse, kept inside the window: left of it when there is no room to the right, above when none below
+		var x: Int = mouseX + TIP_OFFSET
+		if (x + tipWidth > width - EDGE) {
+			x = maxOf(EDGE, mouseX - TIP_OFFSET - tipWidth)
+		}
+		var y: Int = mouseY + TIP_OFFSET
+		if (y + tipHeight > height - EDGE) {
+			y = maxOf(TOP, mouseY - TIP_OFFSET - tipHeight)
+		}
+		g.fillRect(x, y, tipWidth, tipHeight, TIP_BACK)
+		g.drawRect(x, y, tipWidth, tipHeight, BAR_LINE)
+		g.text(x + TIP_PAD, y + TIP_PAD + line - 2, NEEDS_TITLE, TITLE, BLACK)
+		for ((i, text) in lines.withIndex()) {
+			g.text(x + TIP_PAD, y + TIP_PAD + (i + 2) * line - 2, text, WHITE, BLACK)
+		}
 	}
 
 	/** A tag over each of the owner's bots in view, in its slot's colour. */
@@ -1464,6 +1546,10 @@ object Companions : Plugin {
 	private const val CLOSE_SIZE: Int = 16
 	private const val CLOSE_RIGHT: Int = 10
 	private const val CLOSE_TOP: Int = 3
+	private const val NEEDS_TITLE: String = "Needs from your bank:"
+	private const val TIP_PAD: Int = 4
+	private const val TIP_OFFSET: Int = 12
+	private const val TIP_BACK: Int = 0xE0000000.toInt()
 
 	// the game's stone window (the worn-equipment screen's, interface 549)
 	// the resizable side tabs' see-through stone (746's tab backgrounds), alpha 153 in the sprite itself
