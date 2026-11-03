@@ -158,13 +158,6 @@ class OwnedBotsTest {
 	}
 
 	@Test
-	fun itemNamesBecomeCommandArguments() {
-		assertEquals("raw_shark", OwnedBots.commandName("Raw shark"))
-		assertEquals("bronze_sword", OwnedBots.commandName("Bronze sword"))
-		assertEquals("monks_robe", OwnedBots.commandName("Monk's robe"))
-	}
-
-	@Test
 	fun worldOrderLabelsNameTheirBot() {
 		OwnedBots.state = OwnedBots.read { vars()[it] ?: 0 }
 		assertEquals("1", OwnedBots.botOf("Send Woody here"))

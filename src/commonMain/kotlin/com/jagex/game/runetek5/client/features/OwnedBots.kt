@@ -329,8 +329,6 @@ object OwnedBots : Plugin {
 
 	/** An item name as a `::bot` command wants it: Void's string id, near enough ("Raw shark" -> raw_shark). */
 	@JvmStatic
-	fun commandName(name: String): String = name.lowercase().replace(' ', '_').filter { it in 'a'..'z' || it in '0'..'9' || it == '_' }
-
 	// ---- listeners ---------------------------------------------------------------------------------------
 
 	private val settingListener: EventListener<SettingChanged> = EventListener { event ->
@@ -777,7 +775,7 @@ object OwnedBots : Plugin {
 		// one action a kind of world order: which bot (or all) comes from the entry's label, read as the click arrives
 		sendAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, _ -> worldOrder("goto", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY())) })
 		attackAction = context.registerMenuAction(MenuAction { _, _, _, id -> worldOrder("attack", id.toString()) })
-		pickupAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, id -> worldOrder("pickup", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY()) + " " + commandName(context.client().itemName(id) ?: return@MenuAction)) })
+		pickupAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, id -> worldOrder("pickup", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY()) + " " + id) })
 		context.events().subscribe(Events.KEY_PRESSED, keyListener)
 		context.registerCommand("ownedbots", toggle)
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
@@ -830,10 +828,8 @@ object OwnedBots : Plugin {
 	private fun give(slot: Int, itemId: Int, bank: Boolean) {
 		val amount: String = giveAmount
 		giveAmount = ""
-		val client: ClientApi = context?.client() ?: return
-		val name: String = client.itemName(itemId) ?: return
-		// from the bank the bot fetches it at a booth; without an amount the server asks how many of a stack
-		command("bot give " + (slot + 1) + " " + commandName(name) + (if (amount.isNotEmpty()) " $amount" else "") + (if (bank) " bank" else ""))
+		// by cache id (the server takes either); from the bank the bot fetches it at a booth; without an amount the server asks how many of a stack
+		command("bot give " + (slot + 1) + " " + itemId + (if (amount.isNotEmpty()) " $amount" else "") + (if (bank) " bank" else ""))
 	}
 
 	internal fun command(text: String) {

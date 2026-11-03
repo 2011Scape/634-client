@@ -5,7 +5,6 @@ import com.jagex.game.runetek5.client.features.OwnedBots.EQUIPMENT
 import com.jagex.game.runetek5.client.features.OwnedBots.EQUIPMENT_NAMES
 import com.jagex.game.runetek5.client.features.OwnedBots.INVENTORY
 import com.jagex.game.runetek5.client.features.OwnedBots.command
-import com.jagex.game.runetek5.client.features.OwnedBots.commandName
 import com.jagex.game.runetek5.client.features.OwnedBots.itemAmount
 import com.jagex.game.runetek5.client.features.OwnedBots.itemId
 import com.jagex.game.runetek5.plugin.api.ClientApi
@@ -105,7 +104,8 @@ object OwnedBotsLoadout {
 			val id: Int = itemId(packed)
 			if (id >= 0) {
 				val name: String = client.itemName(id) ?: id.toString()
-				val arg: String = commandName(name)
+				// the cache id: a name the client would have to mangle ("Anti-dragon shield", "Monk's robe") is not a key
+				val arg: String = id.toString()
 				val target: String = "<col=ff9040>" + name
 				val carried: Int = hovered - EQUIPMENT
 				val wieldable: Boolean = client.itemInventoryOptions(id).any { it.equals("Wield", ignoreCase = true) }
@@ -204,12 +204,11 @@ object OwnedBotsLoadout {
 		if (id < 0) {
 			return true
 		}
-		val name: String = client.itemName(id) ?: return true
 		val option: String? = leftClickOption(client.itemInventoryOptions(id))
 		if (option == null) {
 			pickForUse(carried, id)
 		} else {
-			itemOption(bot, carried, option, commandName(name))
+			itemOption(bot, carried, option, id.toString())
 		}
 		return true
 	}
