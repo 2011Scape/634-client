@@ -21,6 +21,10 @@ import com.jagex.game.runetek5.plugin.api.OverlayMenuEntry
 import com.jagex.game.runetek5.plugin.api.OverlayOrigin
 import com.jagex.game.runetek5.plugin.api.OverlayOriginX
 import com.jagex.game.runetek5.plugin.api.OverlayOriginY
+import com.jagex.game.runetek5.InterfaceManager
+import com.jagex.game.runetek5.cache.node.HashTableIterator
+import com.jagex.game.runetek5.config.iftype.SubInterfaceType
+import com.jagex.game.runetek5.config.rsinterface.SubInterface
 import com.jagex.game.runetek5.plugin.api.OverlayLayer
 import com.jagex.game.runetek5.plugin.api.OverlayPosition
 import com.jagex.game.runetek5.plugin.api.PanelOverlay
@@ -767,7 +771,7 @@ object OverlayLayout {
 			return false
 		}
 		val entry: Entry = lastHovered ?: return false
-		if (!entry.contains(mouseX, mouseY)) {
+		if (!entry.contains(mouseX, mouseY) || coveredByInterface(entry)) {
 			return false
 		}
 		return try {
@@ -777,6 +781,33 @@ object OverlayLayout {
 			false
 		}
 	}
+
+	/**
+	 * Whether a game interface is drawn over [entry]: a panel under the interfaces ([OverlayLayer.UNDER_WIDGETS])
+	 * while a modal one (the bank, the settings) is open. Such a panel offers no menu and takes no click then, so
+	 * the interface over it keeps them.
+	 */
+	private fun coveredByInterface(entry: Entry): Boolean {
+		if (entry.overlay.layer !== OverlayLayer.UNDER_WIDGETS) {
+			return false
+		}
+		if (testMouse) {
+			return testModal
+		}
+		val open: HashTableIterator = HashTableIterator(InterfaceManager.OPEN_INTERFACES)
+		var sub: SubInterface? = open.first() as SubInterface?
+		while (sub != null) {
+			if (sub.openType === SubInterfaceType.MODAL) {
+				return true
+			}
+			sub = open.next() as SubInterface?
+		}
+		return false
+	}
+
+	/** For the tests, with [testMouse]: whether a modal interface counts as open. */
+	@JvmField
+	var testModal: Boolean = false
 
 	/** RuneLite's mouseDragged: the panel follows the mouse, or its edges do. */
 	private fun dragged(mouseX: Int, mouseY: Int) {
@@ -1052,6 +1083,9 @@ object OverlayLayout {
 		val keys: KeyRecorder = KeyRecorder.keyRecorder ?: return false
 		val shift: Boolean = if (testMouse) testShift else keys.isPressed(KeyCode.SHIFT)
 		if (!shift && !entry.overlay.menuOnRightClick) {
+			return false
+		}
+		if (!shift && coveredByInterface(entry)) {
 			return false
 		}
 		offeredEntries.clear()
