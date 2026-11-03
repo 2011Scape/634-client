@@ -21,6 +21,7 @@ import com.jagex.game.runetek5.plugin.api.OverlayMenuEntry
 import com.jagex.game.runetek5.plugin.api.OverlayOrigin
 import com.jagex.game.runetek5.plugin.api.OverlayOriginX
 import com.jagex.game.runetek5.plugin.api.OverlayOriginY
+import com.jagex.game.runetek5.plugin.api.OverlayLayer
 import com.jagex.game.runetek5.plugin.api.OverlayPosition
 import com.jagex.game.runetek5.plugin.api.PanelOverlay
 import com.jagex.game.runetek5.plugin.api.Size
@@ -131,6 +132,9 @@ object OverlayLayout {
 	private var dragTarget: Entry? = null
 	private var hovered: Entry? = null
 	private var lastHovered: Entry? = null
+
+	/** The panels of this frame drawn over the interfaces, in order, between [draw] and [drawAboveInterfaces]. */
+	private val above: ArrayList<Entry> = ArrayList()
 	private var offsetX: Int = 0
 	private var offsetY: Int = 0
 	private var resizeEdges: Int = 0
@@ -263,9 +267,31 @@ object OverlayLayout {
 			}
 		}
 		sortEntries()
+		above.clear()
 		for (entry in entries) {
+			if (entry.overlay.layer === OverlayLayer.ABOVE_WIDGETS) {
+				above.add(entry)
+			} else {
+				drawEntry(entry, mouseX, mouseY)
+			}
+		}
+		if (above.isEmpty()) {
+			hovered?.overlay?.onMouseOver()
+		}
+	}
+
+	/** The panels over the game's interfaces ([OverlayLayer.ABOVE_WIDGETS]), after [draw] and the interfaces, before the menu. */
+	@JvmStatic
+	fun drawAboveInterfaces() {
+		if (above.isEmpty() || !loggedIn()) {
+			return
+		}
+		val mouseX: Int = mouseX()
+		val mouseY: Int = mouseY()
+		for (entry in above) {
 			drawEntry(entry, mouseX, mouseY)
 		}
+		above.clear()
 		hovered?.overlay?.onMouseOver()
 	}
 
@@ -351,8 +377,9 @@ object OverlayLayout {
 			ToolkitGraphics.drawRect(entry.x, entry.y, entry.width + 1, entry.height + 1, colour)
 		}
 		if (!MiniMenu.isOpen && !MiniMenu.interfaceSelectionActive && entry.contains(mouseX, mouseY)) {
+			// the smallest panel under the mouse, a panel over the interfaces before any under them
 			val h: Entry? = hovered
-			if (h == null || entry.width * entry.height <= h.width * h.height) {
+			if (h == null || h.overlay.layer.ordinal < overlay.layer.ordinal || (h.overlay.layer === overlay.layer && entry.width * entry.height <= h.width * h.height)) {
 				hovered = entry
 			}
 		}

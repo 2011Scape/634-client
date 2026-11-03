@@ -52,6 +52,10 @@ abstract class PanelOverlay(
 	@JvmField
 	var menuOnRightClick: Boolean = false
 
+	/** When in the frame it is drawn: under the game's interfaces (the default) or over them. Since API 45. */
+	@JvmField
+	var layer: OverlayLayer = OverlayLayer.UNDER_WIDGETS
+
 	/** Whether another drag-targetable panel can be dropped on it ([onDrag]). */
 	@JvmField
 	var dragTargetable: Boolean = false

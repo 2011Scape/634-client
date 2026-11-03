@@ -10,6 +10,7 @@ import com.jagex.game.runetek5.plugin.api.Graphics
 import com.jagex.game.runetek5.plugin.api.MenuAction
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.plugin.api.OverlayMenuEntry
+import com.jagex.game.runetek5.plugin.api.OverlayLayer
 import com.jagex.game.runetek5.plugin.api.PanelOverlay
 import com.jagex.game.runetek5.plugin.api.Player
 import com.jagex.game.runetek5.plugin.api.Plugin
@@ -726,6 +727,7 @@ object OwnedBots : Plugin {
 	val picker: PanelOverlay = object : PanelOverlay("OwnedBotsTasks") {
 		init {
 			menuOnRightClick = true
+			layer = OverlayLayer.ABOVE_WIDGETS
 		}
 
 		override fun menuEntries(): List<OverlayMenuEntry> {

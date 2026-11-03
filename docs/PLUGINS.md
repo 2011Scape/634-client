@@ -951,7 +951,9 @@ Shift-right-click entry, and entries given the same `submenu` label sit under on
 that opens them as a submenu (API 41); with `menuOnRightClick` a plain right click offers them too, in
 place of the game's entries for what is under the panel (API 42); `onClick(x, y, button)` hears of a
 mouse button going down on the panel, at panel coordinates, and keeps the click from the game by
-returning true (API 44); `backgroundColour` is the one the player chose.
+returning true (API 44); `backgroundColour` is the one the player chose. A panel draws in the game view,
+under the game's interfaces: `layer = OverlayLayer.ABOVE_WIDGETS` draws it after them and before the
+right-click menu instead, for a window that must stay in front of the bank (API 45).
 
 **`OverlayPanel`** is a `PanelOverlay` that is a `PanelComponent`, as RuneLite's: add this frame's
 lines in `render` and return `super.render(g, view)`.

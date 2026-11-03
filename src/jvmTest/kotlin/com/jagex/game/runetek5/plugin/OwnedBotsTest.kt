@@ -2,6 +2,7 @@ package com.jagex.game.runetek5.plugin
 
 import com.jagex.game.runetek5.client.features.OwnedBots
 import com.jagex.game.runetek5.client.features.OwnedBotsLoadout
+import com.jagex.game.runetek5.plugin.api.OverlayLayer
 import com.jagex.game.runetek5.plugin.api.OverlayMenuEntry
 import com.jagex.game.runetek5.plugin.api.Task
 import kotlin.test.Test
@@ -199,6 +200,13 @@ class OwnedBotsTest {
 			OwnedBots.collapsed = false
 			OwnedBots.state = OwnedBots.State(emptyList(), 0)
 		}
+	}
+
+	@Test
+	fun theWindowsDrawOverTheGamesInterfacesAndTheRosterUnderThem() {
+		assertEquals(OverlayLayer.ABOVE_WIDGETS, OwnedBotsLoadout.overlay.layer, "the loadout window stays in front of the bank")
+		assertEquals(OverlayLayer.ABOVE_WIDGETS, OwnedBots.picker.layer)
+		assertEquals(OverlayLayer.UNDER_WIDGETS, OwnedBots.panel.layer, "the roster is a HUD panel")
 	}
 
 	@Test

@@ -11,6 +11,7 @@ import com.jagex.game.runetek5.client.features.OwnedBots.itemId
 import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.Graphics
 import com.jagex.game.runetek5.plugin.api.OverlayMenuEntry
+import com.jagex.game.runetek5.plugin.api.OverlayLayer
 import com.jagex.game.runetek5.plugin.api.PanelOverlay
 import com.jagex.game.runetek5.plugin.api.Size
 import com.jagex.game.runetek5.plugin.api.Task
@@ -41,6 +42,8 @@ object OwnedBotsLoadout {
 	val overlay: PanelOverlay = object : PanelOverlay("OwnedBotsLoadout") {
 		init {
 			menuOnRightClick = true
+			// a window: in front of the bank, so the player sees what is taking their clicks
+			layer = OverlayLayer.ABOVE_WIDGETS
 		}
 
 		override fun menuEntries(): List<OverlayMenuEntry> = entries(this)
