@@ -162,7 +162,16 @@ object Companions : Plugin {
 		fun bot(slot: Int): Bot? = bots.getOrNull(slot)
 	}
 
-	class TaskEntry(@JvmField val index: Int, @JvmField val id: String, @JvmField val label: String)
+	/** A task of the server's catalogue: grouped by [skill] and [location], needing [level] in that skill. */
+	class TaskEntry(
+		@JvmField val index: Int,
+		@JvmField val id: String,
+		@JvmField val skill: String,
+		@JvmField val level: Int,
+		@JvmField val location: String,
+		@JvmField val members: Boolean,
+		@JvmField val label: String,
+	)
 
 	@JvmField
 	var state: State = State(emptyList(), 0)
@@ -269,19 +278,55 @@ object Companions : Plugin {
 	@JvmStatic
 	fun itemAmount(packed: Int): Int = packed and 0xFFFF
 
-	/** A `[BotTasks] index|id|label` line, or null for the heading and anything else. */
+	/** A `[BotTasks] index|id|skill|level|location|members|label` line, or null for the heading and anything else. */
 	@JvmStatic
 	fun parseTask(text: String): TaskEntry? {
 		if (!text.startsWith(TASKS_PREFIX)) {
 			return null
 		}
 		val parts: List<String> = text.substring(TASKS_PREFIX.length).split('|')
-		if (parts.size != 3) {
+		if (parts.size != 7) {
 			return null
 		}
 		val index: Int = parts[0].toIntOrNull() ?: return null
-		return TaskEntry(index, parts[1], parts[2])
+		val level: Int = parts[3].toIntOrNull() ?: return null
+		return TaskEntry(index, parts[1], parts[2], level, parts[4], parts[5] == "1", parts[6])
 	}
+
+	/** The skills with tasks, in the catalogue's order. */
+	@JvmStatic
+	fun taskSkills(): List<String> {
+		val skills: ArrayList<String> = ArrayList()
+		for (task in tasks) {
+			if (task.skill !in skills) {
+				skills.add(task.skill)
+			}
+		}
+		return skills
+	}
+
+	/** The picker's rows for [skill]: a location heading (a String) before each place's tasks (TaskEntry), in catalogue order. */
+	@JvmStatic
+	fun taskRows(skill: String): List<Any> {
+		val rows: ArrayList<Any> = ArrayList()
+		var location: String? = null
+		for (task in tasks) {
+			if (task.skill != skill) {
+				continue
+			}
+			if (task.location != location) {
+				location = task.location
+				rows.add(if (location.isEmpty()) "Elsewhere" else location)
+			}
+			rows.add(task)
+		}
+		return rows
+	}
+
+	/** "woodcutting" as a tab reads: "Woodcutting". */
+	@JvmStatic
+	fun skillName(skill: String): String = skill.replaceFirstChar { it.uppercase() }
+
 
 	/** A `[BotLoadouts] name|item,item` line as name to items, or null for the heading and anything else. */
 	@JvmStatic
@@ -829,13 +874,18 @@ object Companions : Plugin {
 			return entries
 		}
 
-		/** A left click on a task gives it to the bot, as its menu entry does. */
+		/** A left click on a tab shows that skill; on a task gives it to the bot, as its menu entry does. */
 		override fun onClick(x: Int, y: Int, button: Int): Boolean {
 			val bot: Bot = state.bot(selected) ?: return false
-			val task: TaskEntry = taskAt(x, y) ?: return false
 			if (button != 0) {
 				return false
 			}
+			val tab: String? = tabAt(x, y)
+			if (tab != null) {
+				taskTab = tab
+				return true
+			}
+			val task: TaskEntry = taskAt(x, y) ?: return false
 			command("bot task " + (bot.slot + 1) + " " + task.id)
 			tasksOpen = false
 			return true
@@ -1105,31 +1155,50 @@ object Companions : Plugin {
 		g.font(Font.SMALL)
 	}
 
-	/** The task under the mouse: the list runs down [taskRows] rows a column, [TASK_COLUMN] wide. */
+	/** The task under the mouse, or null. */
 	private fun hoveredTask(overlay: PanelOverlay): TaskEntry? {
 		val client: ClientApi = context?.client() ?: return null
 		return taskAt(client.mouseX() - overlay.boundsX, client.mouseY() - overlay.boundsY)
 	}
 
-	/** The task at ([px], [py]) from the picker's top-left corner, or null. */
+	/** The task at ([px], [py]) from the picker's top-left corner, or null (a heading or nothing there). */
 	private fun taskAt(px: Int, py: Int): TaskEntry? {
-		val x: Int = px - EDGE - PAD
 		val y: Int = py - taskTop
-		if (x < 0 || y < 0 || taskLine <= 0 || taskRows <= 0) {
+		if (px < EDGE || px >= taskWidth - EDGE || y < 0 || taskLine <= 0) {
 			return null
 		}
-		val column: Int = x / TASK_COLUMN
-		val row: Int = y / taskLine
-		if (row >= taskRows) {
-			return null
-		}
-		return tasks.getOrNull(column * taskRows + row)
+		return rowsShown.getOrNull(y / taskLine) as? TaskEntry
 	}
 
+	/** The skill tab at ([px], [py]), or null. */
+	private fun tabAt(px: Int, py: Int): String? {
+		if (py < TOP || py >= TOP + tabLine) {
+			return null
+		}
+		for (i in tabsShown.indices) {
+			if (px >= tabLefts[i] && px < tabLefts[i] + tabWidths[i]) {
+				return tabsShown[i]
+			}
+		}
+		return null
+	}
+
+	/** The skill whose tasks the picker shows; the first with tasks until chosen. */
+	@JvmField
+	var taskTab: String = ""
 	private var taskTop: Int = 0
 	private var taskLine: Int = 0
-	private var taskRows: Int = 0
+	private var tabLine: Int = 0
+	private var taskWidth: Int = 0
+	private val rowsShown: ArrayList<Any> = ArrayList()
+	private val tabsShown: ArrayList<String> = ArrayList()
+	private val tabLefts: ArrayList<Int> = ArrayList()
+	private val tabWidths: ArrayList<Int> = ArrayList()
 
+	/**
+	 * The picker: a tab a skill across the top, named in full, and under the chosen one its tasks grouped by
+	 * place, each with the level it needs; the bot's own task in the title's colour.
+	 */
 	private fun drawTasks(g: Graphics, overlay: PanelOverlay): Size? {
 		val bot: Bot = state.bot(selected) ?: return null
 		if (!enabled || !tasksOpen || !g.fontReady()) {
@@ -1137,24 +1206,67 @@ object Companions : Plugin {
 		}
 		val line: Int = g.fontHeight()
 		taskLine = line
-		taskTop = TOP + PAD
-		// two columns, so the whole list fits the game view
-		taskRows = (tasks.size + 1) / 2
-		val columns: Int = if (tasks.size > 1) 2 else 1
-		val width: Int = EDGE + PAD + TASK_COLUMN * columns + PAD + EDGE
-		val height: Int = taskTop + (if (tasks.isEmpty()) 1 else taskRows) * line + PAD + EDGE
+		tabLine = line + TAB_PAD * 2
+		tabsShown.clear()
+		tabsShown.addAll(taskSkills())
+		if (taskTab !in tabsShown) {
+			taskTab = tabsShown.firstOrNull() ?: ""
+		}
+		// the tabs, each as wide as its name needs
+		tabLefts.clear()
+		tabWidths.clear()
+		var x: Int = EDGE + PAD
+		for (skill in tabsShown) {
+			val width: Int = g.textWidth(skillName(skill)) + TAB_PAD * 2
+			tabLefts.add(x)
+			tabWidths.add(width)
+			x += width + TAB_GAP
+		}
+		val tabsWidth: Int = x - TAB_GAP + PAD + EDGE
+		rowsShown.clear()
+		rowsShown.addAll(taskRows(taskTab))
+		var rowsWidth: Int = 0
+		for (row in rowsShown) {
+			val width: Int = if (row is TaskEntry) TASK_INDENT + g.textWidth(row.label) + LEVEL_GAP + g.textWidth("lvl " + row.level) else g.textWidth(row.toString())
+			if (width > rowsWidth) {
+				rowsWidth = width
+			}
+		}
+		val width: Int = maxOf(tabsWidth, EDGE + PAD + rowsWidth + PAD + EDGE, TASK_MIN_WIDTH)
+		taskWidth = width
+		taskTop = TOP + (if (tabsShown.isEmpty()) 0 else tabLine + PAD)
+		val height: Int = taskTop + (if (rowsShown.isEmpty()) 1 else rowsShown.size) * line + PAD + EDGE
 		window(g, width, height, "Task for " + bot.name)
 		if (tasks.isEmpty()) {
 			g.text(EDGE + PAD, taskTop + line - 2, "No task list yet (right-click: Reload list)", HINT, BLACK)
+			return size.set(width, height)
+		}
+		val client: ClientApi? = context?.client()
+		val mouseX: Int = (client?.mouseX() ?: 0) - overlay.boundsX
+		val mouseY: Int = (client?.mouseY() ?: 0) - overlay.boundsY
+		for ((i, skill) in tabsShown.withIndex()) {
+			val left: Int = tabLefts[i]
+			val active: Boolean = skill == taskTab
+			val over: Boolean = mouseY >= TOP && mouseY < TOP + tabLine && mouseX >= left && mouseX < left + tabWidths[i]
+			if (active || over) {
+				g.fillRect(left, TOP, tabWidths[i], tabLine, if (active) TAB_ACTIVE else HOVER)
+			}
+			g.drawRect(left, TOP, tabWidths[i], tabLine, BAR_LINE)
+			g.text(left + TAB_PAD, TOP + TAB_PAD + line - 2, skillName(skill), if (active) WHITE else if (over) WHITE else TASK_COLOUR, BLACK)
 		}
 		val hovered: TaskEntry? = hoveredTask(overlay)
-		for ((i, task) in tasks.withIndex()) {
-			val x: Int = EDGE + PAD + (i / taskRows) * TASK_COLUMN
-			val y: Int = taskTop + (i % taskRows) * line
-			if (task === hovered) {
-				g.fillRect(x - 2, y, TASK_COLUMN, line, HOVER)
+		for ((i, row) in rowsShown.withIndex()) {
+			val y: Int = taskTop + i * line
+			if (row is TaskEntry) {
+				if (row === hovered) {
+					g.fillRect(EDGE + PAD, y, width - (EDGE + PAD) * 2, line, HOVER)
+				}
+				val colour: Int = if (row === hovered) WHITE else if (row.index == bot.task) TITLE else TASK_COLOUR
+				g.text(EDGE + PAD + TASK_INDENT, y + line - 2, row.label + (if (row.members) " (members)" else ""), colour, BLACK)
+				g.textRight(width - EDGE - PAD, y + line - 2, "lvl " + row.level, if (row === hovered) WHITE else HINT, BLACK)
+			} else {
+				g.text(EDGE + PAD, y + line - 2, row.toString(), TITLE, BLACK)
 			}
-			g.text(x, y + line - 2, task.label, if (task === hovered) WHITE else if (task.index == bot.task) TITLE else TASK_COLOUR, BLACK)
 		}
 		return size.set(width, height)
 	}
@@ -1230,7 +1342,12 @@ object Companions : Plugin {
 	private const val BUTTON_RIGHT: Int = 10
 	private const val BUTTON_TOP: Int = 3
 	private const val PANEL_WIDTH: Int = 250
-	private const val TASK_COLUMN: Int = 222
+	private const val TASK_INDENT: Int = 10
+	private const val LEVEL_GAP: Int = 14
+	private const val TASK_MIN_WIDTH: Int = 240
+	private const val TAB_PAD: Int = 3
+	private const val TAB_GAP: Int = 2
+	private const val TAB_ACTIVE: Int = 0xFF5A4A32.toInt()
 
 	// the game's stone window (the worn-equipment screen's, interface 549)
 	// the resizable side tabs' see-through stone (746's tab backgrounds), alpha 153 in the sprite itself
