@@ -146,8 +146,10 @@ object Companions : Plugin {
 		@JvmField val run: Int,
 		/** The item id of the weapon it switches to for its special attack, 0 for none. */
 		@JvmField val spec: Int,
-		/** The component id, in its spellbook, of the spell it autocasts, 0 for none. */
+		/** The component id of the spell it autocasts, 0 for none, in the book [spellBook]. */
 		@JvmField val spell: Int,
+		/** The interface id of the spellbook [spell] is in: the bot opens that book itself, whatever the player's. */
+		@JvmField val spellBook: Int,
 		@JvmField val equipment: IntArray,
 		@JvmField val inventory: IntArray,
 	) {
@@ -253,7 +255,7 @@ object Companions : Plugin {
 					slot, name, alive, online, hp ushr 16, hp and 0xFFFF, prayer ushr 16, prayer and 0xFFFF, varc(base + STATUS) and 0xFF,
 					order and 0xFF, order ushr 8 and 0xF, order ushr 12 and 0xF == 1,
 					if (hidden) -1 else tile ushr 14 and 0x3FFF, if (hidden) -1 else tile and 0x3FFF, if (hidden) 0 else tile ushr 28 and 0x3,
-					varc(base + ENERGY) and 0xFF, varc(base + ENERGY) ushr 8, varc(base + STATUS) ushr 8, equipment, inventory,
+					varc(base + ENERGY) and 0xFF, varc(base + ENERGY) ushr 8, varc(base + STATUS) ushr 8 and 0xFFFF, SPELLBOOKS[varc(base + STATUS) ushr 24 and 0x3], equipment, inventory,
 				),
 			)
 		}
@@ -534,11 +536,12 @@ object Companions : Plugin {
 			return
 		}
 		val component: Int = event.widgetId and 0xFFFF
+		val book: Int = event.widgetId ushr 16
 		if (online.size == 1) {
 			val bot: Bot = online[0]
 			val action: Int = spellActions[bot.slot]
 			if (action >= 0) {
-				client.addMenuEntry((if (bot.spell == component) "Clear spell for " else "Autocast for ") + bot.name, action)
+				client.addMenuEntry((if (bot.spell == component && bot.spellBook == book) "Clear spell for " else "Autocast for ") + bot.name, action)
 			}
 			return
 		}
@@ -549,21 +552,16 @@ object Companions : Plugin {
 		for (bot in online) {
 			val action: Int = spellActions[bot.slot]
 			if (action >= 0) {
-				client.addSubmenuEntry(submenu, if (bot.spell == component) bot.name + " (clear)" else bot.name, action)
+				client.addSubmenuEntry(submenu, if (bot.spell == component && bot.spellBook == book) bot.name + " (clear)" else bot.name, action)
 			}
 		}
 	}
 
-	/** The name of the spell with [component] in whichever spellbook the client has it, or null. */
+	/** The name of the spell with [component] in the spellbook interface [book], or null. */
 	@JvmStatic
-	fun spellName(client: ClientApi, component: Int): String? {
-		for (book in SPELLBOOKS) {
-			val name: String? = client.widgetById((book shl 16) or component)?.name()
-			if (!name.isNullOrEmpty()) {
-				return ClientFeatures.plainText(name)
-			}
-		}
-		return null
+	fun spellName(client: ClientApi, book: Int, component: Int): String? {
+		val name: String? = client.widgetById((book shl 16) or component)?.name()
+		return if (name.isNullOrEmpty()) null else ClientFeatures.plainText(name)
 	}
 
 	/**
@@ -864,8 +862,8 @@ object Companions : Plugin {
 		for (slot in 0 until SLOTS) {
 			giveActions[slot] = context.registerMenuAction(MenuAction { _, _, _, id -> give(slot, id, false) })
 			giveBankActions[slot] = context.registerMenuAction(MenuAction { _, _, _, id -> give(slot, id, true) })
-			// a widget click carries the component's packed id as its second coordinate
-			spellActions[slot] = context.registerMenuAction(MenuAction { _, _, widget, _ -> command("bot spell " + (slot + 1) + " " + (widget and 0xFFFF)) })
+			// a widget click carries the component's packed id as its second coordinate: the book and the spell
+			spellActions[slot] = context.registerMenuAction(MenuAction { _, _, widget, _ -> command("bot spell " + (slot + 1) + " " + (widget ushr 16) + ":" + (widget and 0xFFFF)) })
 		}
 		// one action a kind of world order: which bot (or all) comes from the entry's label, read as the click arrives
 		sendAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, _ -> worldOrder("goto", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY())) })

@@ -40,7 +40,7 @@ class CompanionsTest {
 		map[base + Companions.NAME_LO] = lo
 		map[base + Companions.HP] = 45 shl 16 or 99
 		map[base + Companions.PRAYER] = 20 shl 16 or 43
-		map[base + Companions.STATUS] = (32 shl 8) or 2
+		map[base + Companions.STATUS] = (1 shl 24) or (32 shl 8) or 2
 		map[base + Companions.TASK] = (1 shl 12) or (1 shl 8) or 7
 		map[base + Companions.TILE] = pack(0, 3222, 3218)
 		map[base + Companions.ENERGY] = (1215 shl 8) or 80
@@ -71,6 +71,7 @@ class CompanionsTest {
 		assertEquals(43, woody.prayerMax)
 		assertEquals("Working", woody.statusName())
 		assertEquals(32, woody.spell, "the autocast spell's component rides above the status")
+		assertEquals(193, woody.spellBook, "and the book it is in, the ancient one here, above that")
 		assertEquals(7, woody.task)
 		assertEquals(1, woody.profile)
 		assertTrue(woody.aggressive)
