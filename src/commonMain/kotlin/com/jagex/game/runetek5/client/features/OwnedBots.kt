@@ -534,7 +534,9 @@ object OwnedBots : Plugin {
 					entries.add(OverlayMenuEntry("Profile: " + PROFILES[(bot.profile + 1) % PROFILES.size], target, Task { command("bot combat $slot " + PROFILES[(bot.profile + 1) % PROFILES.size]) }))
 					entries.add(OverlayMenuEntry("Dismiss", target, Task { command("bot dismiss $slot") }))
 				}
+				return entries
 			}
+			// off a bot's row (the title, a dead slot, the empty part): what concerns every bot
 			if (state.bots.any { it.online }) {
 				entries.add(OverlayMenuEntry("Follow all", "Bots", Task { command("bot follow all") }))
 				entries.add(OverlayMenuEntry("Stop all", "Bots", Task { command("bot stop all") }))
