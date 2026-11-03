@@ -1,3 +1,4 @@
+import com.jagex.game.runetek5.client.features.ClientWindows
 import com.jagex.game.runetek5.plugin.OverlayLayout
 import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.core.constants.MiniMenuAction
@@ -48,6 +49,10 @@ object MiniMenuActionExecutor {
 		}
 		@Pc(32) val entityUid: Long = miniMenuEntryInner.entityUid
 		@Pc(53) var packet: TcpPacket?
+		// Not part of the original client: with one of the client's own windows open, the Settings tab's Graphics and Audio buttons answer with the game's line (ClientWindows).
+		if (ClientWindows.menuClicked(clickType, param1)) {
+			return
+		}
 		// Not part of the original client: the plugins hear of the click, and a plugin's own entry is theirs (PluginRuntime).
 		if (PluginRuntime.menuClicked(miniMenuEntryInner, clickType)) {
 			return
