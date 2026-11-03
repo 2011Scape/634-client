@@ -501,7 +501,7 @@ object OwnedBots : Plugin {
 				verb = "Send "
 			}
 			MenuTarget.NPC -> {
-				val npc = client.npc(event.id) ?: return
+				val npc = client.npcByIndex(event.id) ?: return
 				val type = npc.type() ?: return
 				if ((0 until 5).none { type.action(it).equals("Attack", ignoreCase = true) }) {
 					return
