@@ -94,12 +94,12 @@ object OwnedBots : Plugin {
 	val AMOUNTS: Array<String> = arrayOf("1", "5", "10", "All")
 	const val ALL: String = "All"
 
-	/** The entry that makes an item a bot's special attack weapon. */
+	/** The entry in the loadout window that makes a weapon the bot's special attack weapon. */
 	const val SPECIAL: String = "Special attack"
 
 	/** What a world-order entry's label puts before the bot's name, and after it for a tile. */
 	@JvmField
-	val ORDER_PREFIXES: Array<String> = arrayOf("Send ", "Attack with ", "Pick up with ", SPECIAL + " ")
+	val ORDER_PREFIXES: Array<String> = arrayOf("Send ", "Attack with ", "Pick up with ")
 	const val HERE: String = " here"
 	const val BOT_PREFIX: String = "[Bot "
 
@@ -183,7 +183,6 @@ object OwnedBots : Plugin {
 	private var sendAction: Int = -1
 	private var attackAction: Int = -1
 	private var pickupAction: Int = -1
-	private var specAction: Int = -1
 
 	/** The bot a world-order entry named ("Send Woody here", a submenu's "Woody"), or "all"; "" when none, read as the click arrives. */
 	private var orderTarget: String = ""
@@ -461,10 +460,6 @@ object OwnedBots : Plugin {
 		if (online.isEmpty()) {
 			return@EventListener
 		}
-		// a weapon with a special attack can be a bot's special attack weapon (the server refuses one without)
-		if (client.itemInventoryOptions(event.itemId).any { it.equals("Wield", ignoreCase = true) }) {
-			specialAttackEntries(client, online, "")
-		}
 		// a stack offers how many, as the bank does, instead of the server asking
 		val slotWidget = client.widgetById(event.widgetId)?.child(event.slot)
 		val quantity: Int = if (slotWidget != null && slotWidget.itemId() == event.itemId) slotWidget.itemQuantity() else 1
@@ -554,44 +549,11 @@ object OwnedBots : Plugin {
 		overlay.boundsWidth > 0 && x >= overlay.boundsX && y >= overlay.boundsY && x < overlay.boundsX + overlay.boundsWidth && y < overlay.boundsY + overlay.boundsHeight
 	}
 
-	/** "Special attack <bot>" (one bot) or a "Special attack" submenu (one line a bot) on a wieldable item. */
-	private fun specialAttackEntries(client: ClientApi, online: List<Bot>, suffix: String) {
-		if (specAction < 0) {
-			return
-		}
-		if (online.size == 1) {
-			client.addMenuEntry(SPECIAL + " " + online[0].name + suffix, specAction)
-			return
-		}
-		val submenu: Int = client.addSubmenu(SPECIAL + suffix)
-		if (submenu < 0) {
-			return
-		}
-		for (bot in online) {
-			client.addSubmenuEntry(submenu, bot.name, specAction)
-		}
-	}
-
-	/**
-	 * Tags [itemId] as a bot's special attack weapon (`::bot spec`): the bot switches to it for its special when it
-	 * carries or wears one; otherwise the tag does nothing until it does.
-	 */
-	private fun specialAttack(itemId: Int) {
-		val target: String = orderTarget
-		orderTarget = ""
-		val client: ClientApi = context?.client() ?: return
-		val name: String = client.itemName(itemId) ?: return
-		if (target.isEmpty() || target == "all") {
-			return
-		}
-		command("bot spec $target " + commandName(name))
-	}
-
 	/** The amount on a give entry's label is read just before the entry's action runs with only the item id. */
 	private val optionListener: EventListener<MenuOptionClicked> = EventListener { event ->
 		if (event.clickType in giveActions || event.clickType in giveBankActions) {
 			giveAmount = amountOf(event.option ?: "")
-		} else if (event.clickType == sendAction || event.clickType == attackAction || event.clickType == pickupAction || event.clickType == specAction) {
+		} else if (event.clickType == sendAction || event.clickType == attackAction || event.clickType == pickupAction) {
 			orderTarget = botOf(event.option ?: "")
 		}
 	}
@@ -781,7 +743,6 @@ object OwnedBots : Plugin {
 		sendAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, _ -> worldOrder("goto", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY())) })
 		attackAction = context.registerMenuAction(MenuAction { _, _, _, id -> worldOrder("attack", id.toString()) })
 		pickupAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, id -> worldOrder("pickup", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY()) + " " + commandName(context.client().itemName(id) ?: return@MenuAction)) })
-		specAction = context.registerMenuAction(MenuAction { _, _, _, id -> specialAttack(id) })
 		context.events().subscribe(Events.KEY_PRESSED, keyListener)
 		context.registerCommand("ownedbots", toggle)
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
