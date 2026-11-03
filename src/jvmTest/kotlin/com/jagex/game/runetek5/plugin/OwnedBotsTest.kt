@@ -42,7 +42,7 @@ class OwnedBotsTest {
 		map[base + OwnedBots.STATUS] = 2
 		map[base + OwnedBots.TASK] = (1 shl 12) or (1 shl 8) or 7
 		map[base + OwnedBots.TILE] = pack(0, 3222, 3218)
-		map[base + OwnedBots.ENERGY] = 80
+		map[base + OwnedBots.ENERGY] = (1215 shl 8) or 80
 		map[base + OwnedBots.EQUIP + 3] = (1205 shl 16) or 1
 		map[base + OwnedBots.INV + 0] = (385 shl 16) or 12
 		val second = OwnedBots.BASE + 1 + OwnedBots.FIELDS
@@ -61,6 +61,8 @@ class OwnedBotsTest {
 		val woody = state.bot(0)!!
 		assertEquals("Woody", woody.name)
 		assertTrue(woody.alive)
+		assertEquals(80, woody.run)
+		assertEquals(1215, woody.spec, "the special attack weapon rides above the run energy")
 		assertTrue(woody.online)
 		assertEquals(45, woody.hp)
 		assertEquals(99, woody.hpMax)

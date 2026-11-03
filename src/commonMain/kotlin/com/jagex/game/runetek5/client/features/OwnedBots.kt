@@ -93,6 +93,9 @@ object OwnedBots : Plugin {
 	@JvmField
 	val AMOUNTS: Array<String> = arrayOf("1", "5", "10", "All")
 	const val ALL: String = "All"
+
+	/** The entry that makes an item a bot's special attack weapon. */
+	const val SPECIAL: String = "Special attack"
 	const val BOT_PREFIX: String = "[Bot "
 
 	/** What the plugin sends in `::bot ui`: a character the chat box can't type, so only a plugin opts in. */
@@ -131,6 +134,8 @@ object OwnedBots : Plugin {
 		@JvmField val y: Int,
 		@JvmField val level: Int,
 		@JvmField val run: Int,
+		/** The item id of the weapon it switches to for its special attack, 0 for none. */
+		@JvmField val spec: Int,
 		@JvmField val equipment: IntArray,
 		@JvmField val inventory: IntArray,
 	) {
@@ -173,6 +178,7 @@ object OwnedBots : Plugin {
 	private var sendAction: Int = -1
 	private var attackAction: Int = -1
 	private var pickupAction: Int = -1
+	private var specAction: Int = -1
 
 	/** The bot a world-order entry named ("Send Woody here", a submenu's "Woody"), or "all"; "" when none, read as the click arrives. */
 	private var orderTarget: String = ""
@@ -225,7 +231,7 @@ object OwnedBots : Plugin {
 					slot, name, alive, online, hp ushr 16, hp and 0xFFFF, prayer ushr 16, prayer and 0xFFFF, varc(base + STATUS),
 					order and 0xFF, order ushr 8 and 0xF, order ushr 12 and 0xF == 1,
 					if (hidden) -1 else tile ushr 14 and 0x3FFF, if (hidden) -1 else tile and 0x3FFF, if (hidden) 0 else tile ushr 28 and 0x3,
-					varc(base + ENERGY), equipment, inventory,
+					varc(base + ENERGY) and 0xFF, varc(base + ENERGY) ushr 8, equipment, inventory,
 				),
 			)
 		}
@@ -450,6 +456,10 @@ object OwnedBots : Plugin {
 		if (online.isEmpty()) {
 			return@EventListener
 		}
+		// a weapon with a special attack can be a bot's special attack weapon (the server refuses one without)
+		if (client.itemInventoryOptions(event.itemId).any { it.equals("Wield", ignoreCase = true) }) {
+			specialAttackEntries(client, online, "")
+		}
 		// a stack offers how many, as the bank does, instead of the server asking
 		val slotWidget = client.widgetById(event.widgetId)?.child(event.slot)
 		val quantity: Int = if (slotWidget != null && slotWidget.itemId() == event.itemId) slotWidget.itemQuantity() else 1
@@ -534,11 +544,50 @@ object OwnedBots : Plugin {
 		}
 	}
 
+	/** "Special attack <bot>" (one bot) or a "Special attack" submenu (each bot, All) on a wieldable item. */
+	private fun specialAttackEntries(client: ClientApi, online: List<Bot>, suffix: String) {
+		if (specAction < 0) {
+			return
+		}
+		if (online.size == 1) {
+			client.addMenuEntry(SPECIAL + " " + online[0].name + suffix, specAction)
+			return
+		}
+		val submenu: Int = client.addSubmenu(SPECIAL + suffix)
+		if (submenu < 0) {
+			return
+		}
+		for (bot in online) {
+			client.addSubmenuEntry(submenu, bot.name, specAction)
+		}
+		client.addSubmenuEntry(submenu, ALL, specAction)
+	}
+
+	/**
+	 * Makes [itemId] a bot's special attack weapon (`::bot spec`); a bot that does not carry it is given it first,
+	 * from the bank by a booth errand when it came from the bank.
+	 */
+	private fun specialAttack(itemId: Int, bank: Boolean) {
+		val target: String = orderTarget
+		orderTarget = ""
+		val client: ClientApi = context?.client() ?: return
+		val name: String = client.itemName(itemId) ?: return
+		val arg: String = commandName(name)
+		val bots: List<Bot> = if (target == "all") state.bots.filter { it.online } else state.bots.filter { it.online && (it.slot + 1).toString() == target }
+		for (bot in bots) {
+			val carries: Boolean = bot.inventory.any { itemId(it) == itemId } || bot.equipment.any { itemId(it) == itemId }
+			if (!carries) {
+				command("bot give " + (bot.slot + 1) + " " + arg + (if (bank) " bank" else ""))
+			}
+			command("bot spec " + (bot.slot + 1) + " " + arg)
+		}
+	}
+
 	/** The amount on a give entry's label is read just before the entry's action runs with only the item id. */
 	private val optionListener: EventListener<MenuOptionClicked> = EventListener { event ->
 		if (event.clickType in giveActions || event.clickType in giveBankActions) {
 			giveAmount = amountOf(event.option ?: "")
-		} else if (event.clickType == sendAction || event.clickType == attackAction || event.clickType == pickupAction) {
+		} else if (event.clickType == sendAction || event.clickType == attackAction || event.clickType == pickupAction || event.clickType == specAction) {
 			orderTarget = botOf(event.option ?: "")
 		}
 	}
@@ -628,6 +677,9 @@ object OwnedBots : Plugin {
 					entries.add(OverlayMenuEntry("Bank items", target, Task { command("bot bank $slot") }))
 					entries.add(OverlayMenuEntry(if (bot.aggressive) "Set passive" else "Set aggressive", target, Task { command("bot aggression $slot " + if (bot.aggressive) "passive" else "aggressive") }))
 					entries.add(OverlayMenuEntry("Profile: " + PROFILES[(bot.profile + 1) % PROFILES.size], target, Task { command("bot combat $slot " + PROFILES[(bot.profile + 1) % PROFILES.size]) }))
+					if (bot.spec > 0) {
+						entries.add(OverlayMenuEntry("Clear special attack", "<col=ff9040>" + (context?.client()?.itemName(bot.spec) ?: "weapon"), Task { command("bot spec $slot none") }))
+					}
 					entries.add(OverlayMenuEntry("Dismiss", target, Task { command("bot dismiss $slot") }))
 				}
 				return entries
@@ -711,6 +763,7 @@ object OwnedBots : Plugin {
 		sendAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, _ -> worldOrder("goto", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY())) })
 		attackAction = context.registerMenuAction(MenuAction { _, _, _, id -> worldOrder("attack", id.toString()) })
 		pickupAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, id -> worldOrder("pickup", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY()) + " " + commandName(context.client().itemName(id) ?: return@MenuAction)) })
+		specAction = context.registerMenuAction(MenuAction { _, _, widgetId, id -> specialAttack(id, widgetId ushr 16 == BANK_INTERFACE) })
 		context.events().subscribe(Events.KEY_PRESSED, keyListener)
 		context.registerCommand("ownedbots", toggle)
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)

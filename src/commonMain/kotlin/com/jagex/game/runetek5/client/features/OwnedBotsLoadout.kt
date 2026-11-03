@@ -105,6 +105,14 @@ object OwnedBotsLoadout {
 				val arg: String = commandName(name)
 				val target: String = "<col=ff9040>" + name
 				val carried: Int = hovered - EQUIPMENT
+				val wieldable: Boolean = client.itemInventoryOptions(id).any { it.equals("Wield", ignoreCase = true) }
+				if (wieldable) {
+					if (bot.spec == id) {
+						entries.add(OverlayMenuEntry("Clear special attack", target, Task { command("bot spec $slot none") }))
+					} else {
+						entries.add(OverlayMenuEntry(OwnedBots.SPECIAL, target, Task { command("bot spec $slot $arg") }))
+					}
+				}
 				if (worn) {
 					entries.add(OverlayMenuEntry("Remove", target, Task { command("bot unequip $slot " + EQUIPMENT_NAMES[hovered]) }))
 				} else if (useFrom >= 0) {
