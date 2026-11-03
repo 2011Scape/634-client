@@ -96,6 +96,11 @@ object OwnedBots : Plugin {
 
 	/** The entry that makes an item a bot's special attack weapon. */
 	const val SPECIAL: String = "Special attack"
+
+	/** What a world-order entry's label puts before the bot's name, and after it for a tile. */
+	@JvmField
+	val ORDER_PREFIXES: Array<String> = arrayOf("Send ", "Attack with ", "Pick up with ", SPECIAL + " ")
+	const val HERE: String = " here"
 	const val BOT_PREFIX: String = "[Bot "
 
 	/** What the plugin sends in `::bot ui`: a character the chat box can't type, so only a plugin opts in. */
@@ -597,15 +602,29 @@ object OwnedBots : Plugin {
 		}
 	}
 
-	/** The slot (as the command wants it, from 1) or "all" a world-order entry names: "Send Woody here", "Attack with bot" child "Woody", "All". */
+	/**
+	 * The slot (as the command wants it, from 1) or "all" a world-order entry names: "Send Woody here", "Attack with
+	 * Woody", "Special attack Woody", a submenu's "Woody" or "All". The name is matched whole, so "Woody" never
+	 * stands for "Woody2".
+	 */
 	@JvmStatic
 	fun botOf(option: String): String {
-		val text: String = ClientFeatures.plainText(option)
-		if (text.equals(ALL, ignoreCase = true) || text.contains(" all ", ignoreCase = true) || text.endsWith(" all", ignoreCase = true)) {
+		var text: String = ClientFeatures.plainText(option).trim()
+		for (prefix in ORDER_PREFIXES) {
+			if (text.startsWith(prefix, ignoreCase = true)) {
+				text = text.substring(prefix.length)
+				break
+			}
+		}
+		if (text.endsWith(HERE, ignoreCase = true)) {
+			text = text.substring(0, text.length - HERE.length)
+		}
+		text = text.trim()
+		if (text.equals(ALL, ignoreCase = true)) {
 			return "all"
 		}
 		for (bot in state.bots) {
-			if (bot.name.isNotEmpty() && text.contains(bot.name, ignoreCase = true)) {
+			if (bot.name.isNotEmpty() && text.equals(bot.name, ignoreCase = true)) {
 				return (bot.slot + 1).toString()
 			}
 		}

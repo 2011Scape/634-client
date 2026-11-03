@@ -169,8 +169,10 @@ class OwnedBotsTest {
 		assertEquals("1", OwnedBots.botOf("Send Woody here"))
 		assertEquals("2", OwnedBots.botOf("<col=ff9040>Minnie"))
 		assertEquals("all", OwnedBots.botOf("All"))
-		assertEquals("all", OwnedBots.botOf("Send all here"))
+		assertEquals("all", OwnedBots.botOf("Send All here"))
+		assertEquals("1", OwnedBots.botOf("Special attack Woody"))
 		assertEquals("", OwnedBots.botOf("Walk here"))
+		assertEquals("", OwnedBots.botOf("Send Woody2 here"), "a name is matched whole")
 		OwnedBots.state = OwnedBots.State(emptyList(), 0)
 	}
 
