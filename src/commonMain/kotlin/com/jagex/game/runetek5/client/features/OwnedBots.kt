@@ -438,6 +438,7 @@ object OwnedBots : Plugin {
 		val client: ClientApi = context?.client() ?: return@EventListener
 		if (enabled && showOnMap && state.active()) {
 			drawMinimap(event.graphics, client)
+			drawWorldMap(event.graphics, client)
 		}
 	}
 
@@ -762,7 +763,7 @@ object OwnedBots : Plugin {
 		val s: SettingsSchema = context.settings()
 		s.toggle("enabled", "Owned bots", false)
 		s.toggle("sounds", "Sound when a bot is in trouble", true)
-		s.toggle("showOnMap", "Show bots on the minimap", true)
+		s.toggle("showOnMap", "Show bots on the minimap and the world map", true)
 		s.toggle("showTags", "Tag your bots in the world", true)
 		s.toggle("hideTaskLines", "Hide the task list lines from the chat", true)
 		s.keybind("callKey", "Call all bots", 0)
@@ -1095,6 +1096,24 @@ object OwnedBots : Plugin {
 		g.unclip()
 	}
 
+	/** Each bot on the world map while it is shown: its dot where the map draws its tile, its tag under. */
+	private fun drawWorldMap(g: Graphics, client: ClientApi) {
+		if (!client.worldMapArea(area)) {
+			return
+		}
+		g.clip(area[0], area[1], area[2], area[3])
+		g.font(Font.SMALL)
+		for (bot in state.bots) {
+			if (!bot.online || bot.x < 0 || !client.projectWorldMap(bot.x, bot.y, bot.level, point)) {
+				continue
+			}
+			g.fillCircle(point[0], point[1], MAP_DOT, BLACK)
+			g.fillCircle(point[0], point[1], MAP_DOT - 1, colour(bot.slot))
+			g.textCentered(point[0], point[1] + MAP_DOT + MAP_LABEL_RISE, tag(bot), colour(bot.slot), BLACK)
+		}
+		g.unclip()
+	}
+
 	/** The tag over a bot in the world: its name and slot, "Jimmy [1]". */
 	@JvmStatic
 	fun tag(bot: Bot): String = bot.name + " [" + (bot.slot + 1) + "]"
@@ -1139,6 +1158,9 @@ object OwnedBots : Plugin {
 	internal const val PAD: Int = 8
 	internal const val CONTENT_Y: Int = TOP + PAD
 	private const val DOT: Int = 3
+	/** The world map's dot is bigger than the minimap's, the map being coarser, and its tag sits this far under it. */
+	private const val MAP_DOT: Int = 4
+	private const val MAP_LABEL_RISE: Int = 11
 	private const val TAG_RISE: Int = 12
 	internal const val WHITE: Int = -0x1
 	internal const val BLACK: Int = 0xFF000000.toInt()
