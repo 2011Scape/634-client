@@ -197,6 +197,8 @@ object Companions : Plugin {
 	private val area: IntArray = IntArray(4)
 	private val size: Size = Size()
 	private val rowTops: ArrayList<Int> = ArrayList()
+	/** The bot drawn on each row: not every slot has one, a dead unnamed slot takes no row. */
+	private val rowBots: ArrayList<Bot> = ArrayList()
 	private var rowHeight: Int = 0
 	private var statLine: Int = 14
 
@@ -855,7 +857,7 @@ object Companions : Plugin {
 	private fun rowAt(y: Int): Bot? {
 		for (i in rowTops.indices) {
 			if (y >= rowTops[i] && y < rowTops[i] + rowHeight) {
-				return state.bot(i)
+				return rowBots.getOrNull(i)
 			}
 		}
 		return null
@@ -892,6 +894,7 @@ object Companions : Plugin {
 		val button: Int = if (collapsed) (if (overButton) EXPAND_HOVER else EXPAND) else (if (overButton) COLLAPSE_HOVER else COLLAPSE)
 		g.sprite(button, width - BUTTON_RIGHT - BUTTON_SIZE, BUTTON_TOP)
 		rowTops.clear()
+		rowBots.clear()
 		if (collapsed) {
 			return size.set(width, height)
 		}
@@ -902,6 +905,7 @@ object Companions : Plugin {
 		}
 		for (bot in rows) {
 			rowTops.add(y)
+			rowBots.add(bot)
 			drawBot(g, bot, y, width, line)
 			y += botHeight
 		}
