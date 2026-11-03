@@ -30,6 +30,7 @@ import com.jagex.game.runetek5.plugin.api.events.GameStateChanged
 import com.jagex.game.runetek5.plugin.api.events.GameTick
 import com.jagex.game.runetek5.plugin.api.events.KeyPressed
 import com.jagex.game.runetek5.plugin.api.events.MenuEntryAdded
+import com.jagex.game.runetek5.plugin.api.events.MouseWheel
 import com.jagex.game.runetek5.plugin.api.events.MenuOptionClicked
 import com.jagex.game.runetek5.plugin.api.events.ServerTick
 import com.jagex.game.runetek5.plugin.api.events.SettingChanged
@@ -877,14 +878,33 @@ object Companions : Plugin {
 			return entries
 		}
 
-		/** A left click on a tab shows that skill; on a task gives it to the bot, as its menu entry does. */
+		/**
+		 * A left click: the close button shuts the picker; the scrollbar's thumb starts a drag and its track pages;
+		 * a tab shows that skill; a task gives it to the bot, as its menu entry does.
+		 */
 		override fun onClick(x: Int, y: Int, button: Int): Boolean {
 			val bot: Bot = state.bot(selected) ?: return false
 			if (button != 0) {
 				return false
 			}
+			if (onCloseButton(x, y)) {
+				tasksOpen = false
+				return true
+			}
+			if (scrollRows > 0 && x >= scrollX && x < scrollX + SCROLL_W && y >= taskTop && y < taskTop + scrollTrack) {
+				val thumbTop: Int = thumbTop()
+				if (y >= thumbTop && y < thumbTop + thumbHeight) {
+					scrollDrag = y - thumbTop
+				} else {
+					taskScroll = (taskScroll + if (y < thumbTop) -visibleRows else visibleRows).coerceIn(0, scrollRows)
+				}
+				return true
+			}
 			val tab: String? = tabAt(x, y)
 			if (tab != null) {
+				if (tab != taskTab) {
+					taskScroll = 0
+				}
 				taskTab = tab
 				return true
 			}
@@ -894,7 +914,7 @@ object Companions : Plugin {
 			return true
 		}
 
-		override fun render(g: Graphics, view: Viewport): Size? = drawTasks(g, this)
+		override fun render(g: Graphics, view: Viewport): Size? = drawTasks(g, this, view)
 	}
 
 	override fun start(context: PluginContext) {
@@ -923,6 +943,7 @@ object Companions : Plugin {
 		attackAction = context.registerMenuAction(MenuAction { _, _, _, id -> worldOrder("attack", id.toString()) })
 		pickupAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, id -> worldOrder("pickup", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY()) + " " + id) })
 		context.events().subscribe(Events.KEY_PRESSED, keyListener)
+		context.events().subscribe(Events.MOUSE_WHEEL, wheelListener)
 		context.registerCommand("companions", toggle)
 		context.registerCommand("ownedbots", toggle)
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
@@ -1164,112 +1185,193 @@ object Companions : Plugin {
 		return taskAt(client.mouseX() - overlay.boundsX, client.mouseY() - overlay.boundsY)
 	}
 
-	/** The task at ([px], [py]) from the picker's top-left corner, or null (a heading or nothing there). */
+	/** The task at ([px], [py]) from the picker's top-left corner, or null (a heading, the scrollbar or nothing there). */
 	private fun taskAt(px: Int, py: Int): TaskEntry? {
 		val y: Int = py - taskTop
-		if (px < EDGE || px >= taskWidth - EDGE || y < 0 || taskLine <= 0) {
+		if (px < EDGE || px >= rowsRight || y < 0 || taskLine <= 0 || y >= visibleRows * taskLine) {
 			return null
 		}
-		return rowsShown.getOrNull(y / taskLine) as? TaskEntry
+		return rowsShown.getOrNull(taskScroll + y / taskLine) as? TaskEntry
 	}
 
 	/** The skill tab at ([px], [py]), or null. */
 	private fun tabAt(px: Int, py: Int): String? {
-		if (py < TOP || py >= TOP + tabLine) {
-			return null
-		}
 		for (i in tabsShown.indices) {
-			if (px >= tabLefts[i] && px < tabLefts[i] + tabWidths[i]) {
+			if (px >= tabLefts[i] && px < tabLefts[i] + tabWidths[i] && py >= tabTops[i] && py < tabTops[i] + tabLine) {
 				return tabsShown[i]
 			}
 		}
 		return null
 	}
 
+	private fun onCloseButton(x: Int, y: Int): Boolean {
+		val left: Int = taskWidth - CLOSE_RIGHT - CLOSE_SIZE
+		return taskWidth > 0 && x >= left && x < left + CLOSE_SIZE && y >= CLOSE_TOP && y < CLOSE_TOP + CLOSE_SIZE
+	}
+
+	/** The mouse wheel over the picker scrolls its tasks. */
+	private val wheelListener: EventListener<MouseWheel> = EventListener { event ->
+		val client: ClientApi = context?.client() ?: return@EventListener
+		if (!enabled || !tasksOpen || scrollRows <= 0) {
+			return@EventListener
+		}
+		val x: Int = client.mouseX() - picker.boundsX
+		val y: Int = client.mouseY() - picker.boundsY
+		if (x < 0 || y < 0 || x >= picker.boundsWidth || y >= picker.boundsHeight) {
+			return@EventListener
+		}
+		taskScroll = (taskScroll + event.rotation).coerceIn(0, scrollRows)
+		event.consume()
+	}
+
 	/** The skill whose tasks the picker shows; the first with tasks until chosen. */
 	@JvmField
 	var taskTab: String = ""
+
+	/** The first row shown, when there are more than fit. */
+	@JvmField
+	var taskScroll: Int = 0
 	private var taskTop: Int = 0
 	private var taskLine: Int = 0
 	private var tabLine: Int = 0
 	private var taskWidth: Int = 0
+	private var rowsRight: Int = 0
+	private var visibleRows: Int = 0
+	private var scrollRows: Int = 0
+	private var scrollX: Int = 0
+	private var scrollTrack: Int = 0
+	private var thumbHeight: Int = 0
+	private var scrollDrag: Int = -1
 	private val rowsShown: ArrayList<Any> = ArrayList()
 	private val tabsShown: ArrayList<String> = ArrayList()
 	private val tabLefts: ArrayList<Int> = ArrayList()
+	private val tabTops: ArrayList<Int> = ArrayList()
 	private val tabWidths: ArrayList<Int> = ArrayList()
 
+	private fun thumbTop(): Int = taskTop + if (scrollRows <= 0) 0 else (scrollTrack - thumbHeight) * taskScroll / scrollRows
+
 	/**
-	 * The picker: a tab a skill across the top, named in full, and under the chosen one its tasks grouped by
-	 * place, each with the level it needs; the bot's own task in the title's colour.
+	 * The picker: a tab a skill across the top, named in full and wrapped to the view's width, and under the
+	 * chosen one its tasks grouped by place, each with the level it needs; the bot's own task in the title's
+	 * colour. Never taller than the view: what doesn't fit scrolls, by the wheel or the bar's thumb.
 	 */
-	private fun drawTasks(g: Graphics, overlay: PanelOverlay): Size? {
+	private fun drawTasks(g: Graphics, overlay: PanelOverlay, view: Viewport): Size? {
 		val bot: Bot = state.bot(selected) ?: return null
 		if (!enabled || !tasksOpen || !g.fontReady()) {
 			return null
 		}
+		val client: ClientApi? = context?.client()
+		val mouseX: Int = (client?.mouseX() ?: 0) - overlay.boundsX
+		val mouseY: Int = (client?.mouseY() ?: 0) - overlay.boundsY
 		val line: Int = g.fontHeight()
 		taskLine = line
 		tabLine = line + TAB_PAD * 2
+		val maxWidth: Int = maxOf(TASK_MIN_WIDTH, view.width - VIEW_MARGIN * 2)
+		val maxHeight: Int = maxOf(TOP + tabLine + PAD + line * 3 + PAD + EDGE, view.height - VIEW_MARGIN * 2)
 		tabsShown.clear()
 		tabsShown.addAll(taskSkills())
 		if (taskTab !in tabsShown) {
 			taskTab = tabsShown.firstOrNull() ?: ""
 		}
-		// the tabs, each as wide as its name needs
+		// the tabs, each as wide as its name needs, in as many rows as the view's width asks
 		tabLefts.clear()
+		tabTops.clear()
 		tabWidths.clear()
 		var x: Int = EDGE + PAD
+		var tabTop: Int = TOP
+		var tabsWidth: Int = 0
 		for (skill in tabsShown) {
 			val width: Int = g.textWidth(skillName(skill)) + TAB_PAD * 2
+			if (x > EDGE + PAD && x + width + PAD + EDGE > maxWidth) {
+				x = EDGE + PAD
+				tabTop += tabLine + TAB_GAP
+			}
 			tabLefts.add(x)
+			tabTops.add(tabTop)
 			tabWidths.add(width)
 			x += width + TAB_GAP
+			tabsWidth = maxOf(tabsWidth, x - TAB_GAP + PAD + EDGE)
 		}
-		val tabsWidth: Int = x - TAB_GAP + PAD + EDGE
+		taskTop = if (tabsShown.isEmpty()) TOP else tabTop + tabLine + PAD
 		rowsShown.clear()
 		rowsShown.addAll(taskRows(taskTab))
 		var rowsWidth: Int = 0
 		for (row in rowsShown) {
-			val width: Int = if (row is TaskEntry) TASK_INDENT + g.textWidth(row.label) + LEVEL_GAP + g.textWidth("lvl " + row.level) else g.textWidth(row.toString())
+			val width: Int = if (row is TaskEntry) TASK_INDENT + g.textWidth(row.label + (if (row.members) " (members)" else "")) + LEVEL_GAP + g.textWidth("lvl " + row.level) else g.textWidth(row.toString())
 			if (width > rowsWidth) {
 				rowsWidth = width
 			}
 		}
-		val width: Int = maxOf(tabsWidth, EDGE + PAD + rowsWidth + PAD + EDGE, TASK_MIN_WIDTH)
+		// what fits under the tabs; the rest scrolls, with a bar at the right
+		val rowsAll: Int = if (rowsShown.isEmpty()) 1 else rowsShown.size
+		visibleRows = minOf(rowsAll, maxOf(1, (maxHeight - taskTop - PAD - EDGE) / line))
+		scrollRows = rowsAll - visibleRows
+		if (scrollRows <= 0) {
+			taskScroll = 0
+			scrollDrag = -1
+		} else {
+			taskScroll = taskScroll.coerceIn(0, scrollRows)
+		}
+		val bar: Int = if (scrollRows > 0) SCROLL_W + SCROLL_GAP else 0
+		val width: Int = minOf(maxWidth, maxOf(tabsWidth, EDGE + PAD + rowsWidth + PAD + bar + EDGE, TASK_MIN_WIDTH))
 		taskWidth = width
-		taskTop = TOP + (if (tabsShown.isEmpty()) 0 else tabLine + PAD)
-		val height: Int = taskTop + (if (rowsShown.isEmpty()) 1 else rowsShown.size) * line + PAD + EDGE
+		rowsRight = width - EDGE - PAD - bar
+		scrollX = width - EDGE - PAD - SCROLL_W
+		scrollTrack = visibleRows * line
+		thumbHeight = if (scrollRows > 0) maxOf(THUMB_MIN, scrollTrack * visibleRows / rowsAll) else 0
+		// a drag of the thumb follows the mouse while the button is down
+		if (scrollDrag >= 0) {
+			if (client != null && client.isMouseButtonDown(0)) {
+				val room: Int = scrollTrack - thumbHeight
+				if (room > 0) {
+					taskScroll = ((mouseY - scrollDrag - taskTop) * scrollRows + room / 2) / room
+					taskScroll = taskScroll.coerceIn(0, scrollRows)
+				}
+			} else {
+				scrollDrag = -1
+			}
+		}
+		val height: Int = taskTop + visibleRows * line + PAD + EDGE
 		window(g, width, height, "Task for " + bot.name)
+		val overClose: Boolean = onCloseButton(mouseX, mouseY)
+		g.sprite(if (overClose) CLOSE_HOVER else CLOSE, width - CLOSE_RIGHT - CLOSE_SIZE, CLOSE_TOP)
 		if (tasks.isEmpty()) {
 			g.text(EDGE + PAD, taskTop + line - 2, "No task list yet (right-click: Reload list)", HINT, BLACK)
 			return size.set(width, height)
 		}
-		val client: ClientApi? = context?.client()
-		val mouseX: Int = (client?.mouseX() ?: 0) - overlay.boundsX
-		val mouseY: Int = (client?.mouseY() ?: 0) - overlay.boundsY
 		for ((i, skill) in tabsShown.withIndex()) {
 			val left: Int = tabLefts[i]
+			val top: Int = tabTops[i]
 			val active: Boolean = skill == taskTab
-			val over: Boolean = mouseY >= TOP && mouseY < TOP + tabLine && mouseX >= left && mouseX < left + tabWidths[i]
+			val over: Boolean = mouseY >= top && mouseY < top + tabLine && mouseX >= left && mouseX < left + tabWidths[i]
 			if (active || over) {
-				g.fillRect(left, TOP, tabWidths[i], tabLine, if (active) TAB_ACTIVE else HOVER)
+				g.fillRect(left, top, tabWidths[i], tabLine, if (active) TAB_ACTIVE else HOVER)
 			}
-			g.drawRect(left, TOP, tabWidths[i], tabLine, BAR_LINE)
-			g.text(left + TAB_PAD, TOP + TAB_PAD + line - 2, skillName(skill), if (active) WHITE else if (over) WHITE else TASK_COLOUR, BLACK)
+			g.drawRect(left, top, tabWidths[i], tabLine, BAR_LINE)
+			g.text(left + TAB_PAD, top + TAB_PAD + line - 2, skillName(skill), if (active || over) WHITE else TASK_COLOUR, BLACK)
 		}
 		val hovered: TaskEntry? = hoveredTask(overlay)
-		for ((i, row) in rowsShown.withIndex()) {
+		for (i in 0 until visibleRows) {
+			val row: Any = rowsShown.getOrNull(taskScroll + i) ?: break
 			val y: Int = taskTop + i * line
 			if (row is TaskEntry) {
 				if (row === hovered) {
-					g.fillRect(EDGE + PAD, y, width - (EDGE + PAD) * 2, line, HOVER)
+					g.fillRect(EDGE + PAD, y, rowsRight - EDGE - PAD, line, HOVER)
 				}
 				val colour: Int = if (row === hovered) WHITE else if (row.index == bot.task) TITLE else TASK_COLOUR
 				g.text(EDGE + PAD + TASK_INDENT, y + line - 2, row.label + (if (row.members) " (members)" else ""), colour, BLACK)
-				g.textRight(width - EDGE - PAD, y + line - 2, "lvl " + row.level, if (row === hovered) WHITE else HINT, BLACK)
+				g.textRight(rowsRight, y + line - 2, "lvl " + row.level, if (row === hovered) WHITE else HINT, BLACK)
 			} else {
 				g.text(EDGE + PAD, y + line - 2, row.toString(), TITLE, BLACK)
 			}
+		}
+		if (scrollRows > 0) {
+			g.fillRect(scrollX, taskTop, SCROLL_W, scrollTrack, BAR_BACK)
+			g.drawRect(scrollX, taskTop, SCROLL_W, scrollTrack, BAR_LINE)
+			val thumbTop: Int = thumbTop()
+			val overThumb: Boolean = scrollDrag >= 0 || (mouseX >= scrollX && mouseX < scrollX + SCROLL_W && mouseY >= thumbTop && mouseY < thumbTop + thumbHeight)
+			g.fillRect(scrollX + 1, thumbTop + 1, SCROLL_W - 2, thumbHeight - 2, if (overThumb) THUMB_HOVER else THUMB)
+			g.drawRect(scrollX + 1, thumbTop + 1, SCROLL_W - 2, thumbHeight - 2, BAR_LINE)
 		}
 		return size.set(width, height)
 	}
@@ -1351,6 +1453,17 @@ object Companions : Plugin {
 	private const val TAB_PAD: Int = 3
 	private const val TAB_GAP: Int = 2
 	private const val TAB_ACTIVE: Int = 0xFF5A4A32.toInt()
+	private const val VIEW_MARGIN: Int = 4
+	private const val SCROLL_W: Int = 12
+	private const val SCROLL_GAP: Int = 4
+	private const val THUMB_MIN: Int = 16
+	private const val THUMB: Int = 0xFF6E5A3A.toInt()
+	private const val THUMB_HOVER: Int = 0xFF8C7450.toInt()
+	private const val CLOSE: Int = 831
+	private const val CLOSE_HOVER: Int = 832
+	private const val CLOSE_SIZE: Int = 16
+	private const val CLOSE_RIGHT: Int = 10
+	private const val CLOSE_TOP: Int = 3
 
 	// the game's stone window (the worn-equipment screen's, interface 549)
 	// the resizable side tabs' see-through stone (746's tab backgrounds), alpha 153 in the sprite itself
