@@ -74,7 +74,7 @@ object Companions : Plugin {
 
 	/** The server's OwnedBotStatus, by ordinal. */
 	@JvmField
-	val STATUS_NAMES: Array<String> = arrayOf("Away", "Idle", "Working", "Banking", "Following", "Fighting", "Low health", "Fled", "Stopped", "Dead", "Guarding")
+	val STATUS_NAMES: Array<String> = arrayOf("Away", "Idle", "Working", "Banking", "Following", "Fighting", "Low health", "Fled", "Stopped", "Dead", "Guarding", "Recovering")
 
 	@JvmField
 	val PROFILES: Array<String> = arrayOf("passive", "melee", "ranged", "mage")
