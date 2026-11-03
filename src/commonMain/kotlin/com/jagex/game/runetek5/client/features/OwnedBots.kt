@@ -891,7 +891,7 @@ object OwnedBots : Plugin {
 	private const val FRAME_BOTTOM: Int = 822
 	private const val CORNER: Int = 32
 	internal const val EDGE: Int = 7
-	private const val EDGE_OFFSET: Int = 13
+	internal const val EDGE_OFFSET: Int = 13
 	internal const val TOP: Int = 22
 	private const val TITLE_BASELINE: Int = 17
 	internal const val PAD: Int = 8

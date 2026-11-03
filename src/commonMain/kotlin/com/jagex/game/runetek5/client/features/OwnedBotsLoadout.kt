@@ -266,9 +266,27 @@ object OwnedBotsLoadout {
 		val overClose: Boolean = client != null && onCloseButton(overlay, client.mouseX() - overlay.boundsX, client.mouseY() - overlay.boundsY)
 		g.sprite(if (overClose) CLOSE_HOVER else CLOSE, width - CLOSE_RIGHT - CLOSE_SIZE, CLOSE_TOP)
 		val hovered: Int = hoveredItem(overlay)
-		// the worn-equipment screen's layout: its connectors, then a slot sprite and the item in each
-		for (i in LINK_X.indices) {
-			g.sprite(if (LINK_VERTICAL[i]) LINK_V else LINK_H, WORN_X + LINK_X[i], OwnedBots.CONTENT_Y + LINK_Y[i])
+		// the equipment tab's layout: its bars behind the slots (only the gaps between slots show them), then a slot sprite and the item in each
+		for (i in BAR_X.indices) {
+			val x: Int = WORN_X + BAR_X[i]
+			val y: Int = OwnedBots.CONTENT_Y + BAR_Y[i]
+			// the strips are 32 long and carry a 13 pixel offset in the cache: tiled along the bar, clipped to it
+			if (BAR_VERTICAL[i]) {
+				g.clip(x, y, BAR, BAR_LENGTH[i])
+				var at: Int = y
+				while (at < y + BAR_LENGTH[i]) {
+					g.sprite(BAR_V, x - OwnedBots.EDGE_OFFSET, at)
+					at += BAR_TILE
+				}
+			} else {
+				g.clip(x, y, BAR_LENGTH[i], BAR)
+				var at: Int = x
+				while (at < x + BAR_LENGTH[i]) {
+					g.sprite(BAR_H, at, y - OwnedBots.EDGE_OFFSET)
+					at += BAR_TILE
+				}
+			}
+			g.unclip()
 		}
 		for (index in 0 until EQUIPMENT) {
 			val sx: Int = SLOT_X[index]
@@ -318,18 +336,25 @@ object OwnedBotsLoadout {
 	private const val CLOSE_RIGHT: Int = 10
 	private const val CLOSE_TOP: Int = 3
 
-	// the worn-equipment screen's slot layout (sprite 170 at each, 841/828 linking them), by equipment index
+	// the equipment tab's slot layout (interface 387, measured in game): slot sprite 170 at each, by equipment index;
+	// a column 36 wide with 4 between (cape 16, hat 57, ammo 97) and the weapon and shield columns 57 out from the middle
 	private const val SLOT_SPRITE: Int = 170
 	private const val SLOT: Int = 36
-	private const val LINK_V: Int = 841
-	private const val LINK_H: Int = 828
 	private const val WORN_X: Int = OwnedBots.EDGE + OwnedBots.PAD
-	private const val WORN_W: Int = 154
-	private val SLOT_X: IntArray = intArrayOf(64, 23, 64, 10, 64, 118, -1, 64, -1, 10, 64, -1, 118, 105)
-	private val SLOT_Y: IntArray = intArrayOf(3, 42, 42, 81, 81, 81, -1, 121, -1, 161, 161, -1, 161, 42)
-	private val LINK_X: IntArray = intArrayOf(120, 66, 11, 59, 43)
-	private val LINK_Y: IntArray = intArrayOf(116, 35, 116, 44, 82)
-	private val LINK_VERTICAL: BooleanArray = booleanArrayOf(true, true, true, false, false)
+	private const val WORN_W: Int = 149
+	private val SLOT_X: IntArray = intArrayOf(57, 16, 57, 0, 57, 113, -1, 57, -1, 0, 57, -1, 113, 97)
+	private val SLOT_Y: IntArray = intArrayOf(0, 38, 38, 78, 78, 78, -1, 117, -1, 157, 157, -1, 157, 38)
+
+	// the tab's bars (821 upright, 822 flat, both 7 thick) behind the slots: down the middle column, down the weapon
+	// and shield columns, and along the cape and the weapon rows, centre to centre
+	private const val BAR_V: Int = 821
+	private const val BAR_H: Int = 822
+	private const val BAR: Int = 7
+	private const val BAR_TILE: Int = 32
+	private val BAR_VERTICAL: BooleanArray = booleanArrayOf(true, true, true, false, false)
+	private val BAR_X: IntArray = intArrayOf(72, 15, 128, 34, 18)
+	private val BAR_Y: IntArray = intArrayOf(18, 96, 96, 53, 93)
+	private val BAR_LENGTH: IntArray = intArrayOf(157, 79, 79, 81, 113)
 
 	// the equipment tab's outlines for empty slots (32 by 32), by equipment index; -1 where no slot is drawn
 	private const val PLACEHOLDER_SIZE: Int = 32
