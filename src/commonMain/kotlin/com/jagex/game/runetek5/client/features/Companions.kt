@@ -29,6 +29,7 @@ import com.jagex.game.runetek5.plugin.api.events.GameStateChanged
 import com.jagex.game.runetek5.plugin.api.events.GameTick
 import com.jagex.game.runetek5.plugin.api.events.KeyPressed
 import com.jagex.game.runetek5.plugin.api.events.MenuEntryAdded
+import com.jagex.game.runetek5.plugin.api.events.MinimapDraw
 import com.jagex.game.runetek5.plugin.api.events.MouseWheel
 import com.jagex.game.runetek5.plugin.api.events.MenuOptionClicked
 import com.jagex.game.runetek5.plugin.api.events.ServerTick
@@ -546,10 +547,17 @@ object Companions : Plugin {
 		}
 	}
 
-	private val frameListener: EventListener<FrameDraw> = EventListener { event ->
+	/** The minimap was drawn: the dots go on now, under the orbs and frame the game paints over it afterwards. */
+	private val minimapListener: EventListener<MinimapDraw> = EventListener { event ->
 		val client: ClientApi = context?.client() ?: return@EventListener
 		if (enabled && showOnMap && state.active()) {
 			drawMinimap(event.graphics, client)
+		}
+	}
+
+	private val frameListener: EventListener<FrameDraw> = EventListener { event ->
+		val client: ClientApi = context?.client() ?: return@EventListener
+		if (enabled && showOnMap && state.active()) {
 			drawWorldMap(event.graphics, client)
 		}
 	}
@@ -1002,6 +1010,7 @@ object Companions : Plugin {
 		context.events().subscribe(Events.CHAT_MESSAGE, chatListener)
 		context.events().subscribe(Events.VIEWPORT_DRAW, viewportListener)
 		context.events().subscribe(Events.FRAME_DRAW, frameListener)
+		context.events().subscribe(Events.MINIMAP_DRAW, minimapListener)
 		context.events().subscribe(Events.MENU_ENTRY_ADDED, menuListener)
 		context.events().subscribe(Events.MENU_OPTION_CLICKED, optionListener)
 		context.addOverlay(panel)
