@@ -5,11 +5,11 @@ import com.jagex.game.runetek5.plugin.api.ChatType
 import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.CommandHandler
 import com.jagex.game.runetek5.plugin.api.GameState
+import com.jagex.game.runetek5.plugin.api.Font
 import com.jagex.game.runetek5.plugin.api.Graphics
 import com.jagex.game.runetek5.plugin.api.MenuAction
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.plugin.api.OverlayMenuEntry
-import com.jagex.game.runetek5.plugin.api.PanelComponent
 import com.jagex.game.runetek5.plugin.api.PanelOverlay
 import com.jagex.game.runetek5.plugin.api.Player
 import com.jagex.game.runetek5.plugin.api.Plugin
@@ -658,13 +658,11 @@ object OwnedBots : Plugin {
 		val botHeight: Int = line + statLine + GAP
 		val rows: List<Bot> = current.bots.filter { it.alive || it.name.isNotEmpty() }
 		val hint: Boolean = !current.active() || rows.isEmpty()
-		val height: Int = BORDER + line + (if (hint) line else 0) + rows.size * botHeight + BORDER
-		PanelComponent.background(g, 0, 0, width, height, overlay.backgroundColour)
-		var y: Int = BORDER
-		g.text(BORDER, y + line - 2, "Bots (" + current.bots.count { it.alive } + "/" + SLOTS + ")", TITLE, BLACK)
-		y += line
+		val height: Int = TOP + PAD + (if (hint) line else 0) + rows.size * botHeight + PAD + EDGE
+		window(g, width, height, "Bots (" + current.bots.count { it.alive } + "/" + SLOTS + ")")
+		var y: Int = TOP + PAD
 		if (hint) {
-			g.text(BORDER, y + line - 2, if (!current.active()) "No answer from the server" else "Visit a Bot Broker", HINT, BLACK)
+			g.text(EDGE + PAD, y + line - 2, if (!current.active()) "No answer from the server" else "Visit a Bot Broker", HINT, BLACK)
 			y += line
 		}
 		rowTops.clear()
@@ -678,21 +676,25 @@ object OwnedBots : Plugin {
 	}
 
 	private fun drawBot(g: Graphics, bot: Bot, top: Int, width: Int, line: Int) {
+		val left: Int = EDGE + PAD
+		val right: Int = width - EDGE - PAD
 		val flashing: Boolean = cycle - flash[bot.slot] < FLASH_CYCLES && (cycle / 10) % 2 == 0
 		if (flashing) {
-			g.fillRect(1, top - 1, width - 2, line + statLine + GAP, FLASH)
+			g.fillRect(left - 2, top - 1, right - left + 4, line + statLine + GAP, FLASH)
 		}
 		val nameColour: Int = if (!bot.alive) DEAD else if (!bot.online) AWAY else colour(bot.slot)
-		g.text(BORDER, top + line - 2, (bot.slot + 1).toString() + ". " + bot.name.ifEmpty { "-" }, nameColour, BLACK)
+		g.font(Font.BOLD)
+		g.text(left, top + line - 2, (bot.slot + 1).toString() + ". " + bot.name.ifEmpty { "-" }, nameColour, BLACK)
+		g.font(Font.SMALL)
 		val status: String = if (!bot.alive) "Dead" else if (!bot.online) "Away" else {
 			val task: TaskEntry? = if (bot.task != NO_TASK) tasks.firstOrNull { it.index == bot.task } else null
 			if (task != null && bot.status == 2) task.label.substringBefore(" (") else bot.statusName()
 		}
-		g.textRight(width - BORDER, top + line - 2, status, if (bot.status in 6..9 && bot.online) PVP else STATUS_COLOUR, BLACK)
+		g.textRight(right, top + line - 2, status, if (bot.status in 6..9 && bot.online) PVP else STATUS_COLOUR, BLACK)
 		if (bot.online) {
-			val half: Int = (width - BORDER * 2 - GAP) / 2
-			stat(g, BORDER, top + line, half, bot.hp, bot.hpMax, HP_COLOUR, "HP " + bot.hp)
-			stat(g, BORDER + half + GAP, top + line, half, bot.prayer, bot.prayerMax, PRAYER_COLOUR, "Pray " + bot.prayer)
+			val half: Int = (right - left - GAP) / 2
+			stat(g, left, top + line, half, bot.hp, bot.hpMax, HP_COLOUR, "HP " + bot.hp)
+			stat(g, left + half + GAP, top + line, half, bot.prayer, bot.prayerMax, PRAYER_COLOUR, "Pray " + bot.prayer)
 		}
 	}
 
@@ -702,79 +704,136 @@ object OwnedBots : Plugin {
 		if (max > 0) {
 			g.fillRect(x, y + 1, width * value.coerceIn(0, max) / max, height, colour)
 		}
+		g.drawRect(x, y + 1, width, height, BAR_LINE)
 		g.textCentered(x + width / 2, y + height - 2, label, WHITE, BLACK)
 	}
 
-	/** The item cell under the mouse: 0-13 worn, 14-41 carried, -1 none. */
+	/**
+	 * The game's stone window: the side panels' stone (297) under everything, the worn-equipment screen's
+	 * frame (corners 1123/1125/826/827, the title band 1124, edges 821/823/822) over it, and [title] in the band.
+	 */
+	private fun window(g: Graphics, width: Int, height: Int, title: String) {
+		g.clip(0, 0, width, height)
+		var y: Int = 0
+		while (y < height) {
+			var x: Int = 0
+			while (x < width) {
+				g.sprite(STONE, x, y)
+				x += STONE_W
+			}
+			y += STONE_H
+		}
+		g.clip(CORNER, 0, width - CORNER * 2, height)
+		// the edge strips carry a 13 pixel offset in the cache (their place inside the screen's own layer)
+		var x: Int = CORNER
+		while (x < width - CORNER) {
+			g.sprite(FRAME_TOP, x, 0)
+			g.sprite(FRAME_BOTTOM, x, height - EDGE - EDGE_OFFSET)
+			x += CORNER
+		}
+		g.clip(0, CORNER, width, height - CORNER * 2)
+		y = CORNER
+		while (y < height - CORNER) {
+			g.sprite(FRAME_LEFT, -EDGE_OFFSET, y)
+			g.sprite(FRAME_RIGHT, width - EDGE - EDGE_OFFSET, y)
+			y += CORNER
+		}
+		g.unclip()
+		g.sprite(FRAME_TOP_LEFT, 0, 0)
+		g.sprite(FRAME_TOP_RIGHT, width - CORNER, 0)
+		g.sprite(FRAME_BOTTOM_LEFT, 0, height - CORNER)
+		g.sprite(FRAME_BOTTOM_RIGHT, width - CORNER, height - CORNER)
+		g.font(Font.BOLD)
+		g.textCentered(width / 2, TITLE_BASELINE, title, TITLE, BLACK)
+		g.font(Font.SMALL)
+	}
+
+	/** The item cell under the mouse: 0-13 worn (by equipment index), 14-41 carried, -1 none. */
 	private fun hoveredItem(overlay: PanelOverlay): Int {
 		val client: ClientApi = context?.client() ?: return -1
 		val x: Int = client.mouseX() - overlay.boundsX
-		val y: Int = client.mouseY() - overlay.boundsY - loadoutTop
-		if (x < BORDER || y < 0) {
+		val y: Int = client.mouseY() - overlay.boundsY
+		for (index in 0 until EQUIPMENT) {
+			val sx: Int = SLOT_X[index]
+			if (sx < 0) {
+				continue
+			}
+			val left: Int = WORN_X + sx
+			val top: Int = CONTENT_Y + SLOT_Y[index]
+			if (x >= left && x < left + SLOT && y >= top && y < top + SLOT) {
+				return index
+			}
+		}
+		val column: Int = (x - CARRIED_X) / INV_W
+		val row: Int = (y - CONTENT_Y) / INV_H
+		if (x < CARRIED_X || y < CONTENT_Y || column !in 0 until INV_COLUMNS || row !in 0 until INV_ROWS) {
 			return -1
 		}
-		val column: Int = (x - BORDER) / CELL_W
-		val row: Int = y / CELL_H
-		if (column !in 0 until COLUMNS) {
-			return -1
-		}
-		val wornRows: Int = (EQUIPMENT + COLUMNS - 1) / COLUMNS
-		if (row < wornRows) {
-			val index: Int = row * COLUMNS + column
-			return if (index < EQUIPMENT) index else -1
-		}
-		val index: Int = (row - wornRows - 1) * COLUMNS + column
-		return if (row > wornRows && index in 0 until INVENTORY) EQUIPMENT + index else -1
+		return EQUIPMENT + row * INV_COLUMNS + column
 	}
-
-	private var loadoutTop: Int = 0
 
 	private fun drawLoadout(g: Graphics, overlay: PanelOverlay): Size? {
 		val bot: Bot = state.bot(selected) ?: return null
 		if (!enabled || !loadoutOpen || !bot.online || !g.fontReady()) {
 			return null
 		}
-		val line: Int = g.fontHeight()
-		val width: Int = BORDER * 2 + COLUMNS * CELL_W
-		val wornRows: Int = (EQUIPMENT + COLUMNS - 1) / COLUMNS
-		val carriedRows: Int = INVENTORY / COLUMNS
-		loadoutTop = BORDER + line
-		val height: Int = loadoutTop + (wornRows + 1 + carriedRows) * CELL_H + BORDER
-		PanelComponent.background(g, 0, 0, width, height, overlay.backgroundColour)
-		g.text(BORDER, BORDER + line - 2, bot.name + " - worn and carried", TITLE, BLACK)
-		var y: Int = loadoutTop
-		for (index in 0 until EQUIPMENT) {
-			cell(g, BORDER + (index % COLUMNS) * CELL_W, y + (index / COLUMNS) * CELL_H, bot.equipment[index])
+		val width: Int = CARRIED_X + INV_COLUMNS * INV_W + PAD + EDGE
+		val height: Int = CONTENT_Y + INV_ROWS * INV_H + PAD + EDGE
+		window(g, width, height, bot.name + "'s equipment")
+		val hovered: Int = hoveredItem(overlay)
+		// the worn-equipment screen's layout: its connectors, then a slot sprite and the item in each
+		for (i in LINK_X.indices) {
+			g.sprite(if (LINK_VERTICAL[i]) LINK_V else LINK_H, WORN_X + LINK_X[i], CONTENT_Y + LINK_Y[i])
 		}
-		y += wornRows * CELL_H
-		g.fillRect(BORDER, y + CELL_H / 2, width - BORDER * 2, 1, HINT)
-		y += CELL_H
+		for (index in 0 until EQUIPMENT) {
+			val sx: Int = SLOT_X[index]
+			if (sx < 0) {
+				continue
+			}
+			val x: Int = WORN_X + sx
+			val y: Int = CONTENT_Y + SLOT_Y[index]
+			g.sprite(SLOT_SPRITE, x, y)
+			if (index == hovered) {
+				g.fillRect(x + 1, y + 1, SLOT - 2, SLOT - 2, HOVER)
+			}
+			val id: Int = itemId(bot.equipment[index])
+			if (id >= 0) {
+				g.itemIcon(id, itemAmount(bot.equipment[index]), x, y + 2)
+			}
+		}
 		for (index in 0 until INVENTORY) {
-			cell(g, BORDER + (index % COLUMNS) * CELL_W, y + (index / COLUMNS) * CELL_H, bot.inventory[index])
+			val x: Int = CARRIED_X + (index % INV_COLUMNS) * INV_W
+			val y: Int = CONTENT_Y + (index / INV_COLUMNS) * INV_H
+			if (EQUIPMENT + index == hovered) {
+				g.fillRect(x, y, INV_W, INV_H, HOVER)
+			}
+			val id: Int = itemId(bot.inventory[index])
+			if (id >= 0) {
+				g.itemIcon(id, itemAmount(bot.inventory[index]), x + (INV_W - 36) / 2, y + (INV_H - 32) / 2)
+			}
 		}
 		return size.set(width, height)
 	}
 
-	private fun cell(g: Graphics, x: Int, y: Int, packed: Int) {
-		g.drawRect(x, y, CELL_W, CELL_H, CELL_BORDER)
-		val id: Int = itemId(packed)
-		if (id >= 0) {
-			g.itemIcon(id, itemAmount(packed), x + (CELL_W - 36) / 2, y + (CELL_H - 32) / 2)
-		}
-	}
-
+	/** The task under the mouse: the list runs down [taskRows] rows a column, [TASK_COLUMN] wide. */
 	private fun hoveredTask(overlay: PanelOverlay): TaskEntry? {
 		val client: ClientApi = context?.client() ?: return null
-		val x: Int = client.mouseX() - overlay.boundsX
+		val x: Int = client.mouseX() - overlay.boundsX - EDGE - PAD
 		val y: Int = client.mouseY() - overlay.boundsY - taskTop
-		if (x < 0 || x >= overlay.boundsWidth || y < 0 || taskLine <= 0) {
+		if (x < 0 || y < 0 || taskLine <= 0 || taskRows <= 0) {
 			return null
 		}
-		return tasks.getOrNull(y / taskLine)
+		val column: Int = x / TASK_COLUMN
+		val row: Int = y / taskLine
+		if (row >= taskRows) {
+			return null
+		}
+		return tasks.getOrNull(column * taskRows + row)
 	}
 
 	private var taskTop: Int = 0
 	private var taskLine: Int = 0
+	private var taskRows: Int = 0
 
 	private fun drawTasks(g: Graphics, overlay: PanelOverlay): Size? {
 		val bot: Bot = state.bot(selected) ?: return null
@@ -783,18 +842,24 @@ object OwnedBots : Plugin {
 		}
 		val line: Int = g.fontHeight()
 		taskLine = line
-		taskTop = BORDER + line
-		val width: Int = TASKS_WIDTH
-		val height: Int = taskTop + (if (tasks.isEmpty()) 1 else tasks.size) * line + BORDER
-		PanelComponent.background(g, 0, 0, width, height, overlay.backgroundColour)
-		g.text(BORDER, BORDER + line - 2, "Task for " + bot.name, TITLE, BLACK)
+		taskTop = TOP + PAD
+		// two columns, so the whole list fits the game view
+		taskRows = (tasks.size + 1) / 2
+		val columns: Int = if (tasks.size > 1) 2 else 1
+		val width: Int = EDGE + PAD + TASK_COLUMN * columns + PAD + EDGE
+		val height: Int = taskTop + (if (tasks.isEmpty()) 1 else taskRows) * line + PAD + EDGE
+		window(g, width, height, "Task for " + bot.name)
 		if (tasks.isEmpty()) {
-			g.text(BORDER, taskTop + line - 2, "No task list yet (right-click: Reload list)", HINT, BLACK)
+			g.text(EDGE + PAD, taskTop + line - 2, "No task list yet (right-click: Reload list)", HINT, BLACK)
 		}
 		val hovered: TaskEntry? = hoveredTask(overlay)
 		for ((i, task) in tasks.withIndex()) {
-			val y: Int = taskTop + i * line
-			g.text(BORDER, y + line - 2, task.label, if (task === hovered) WHITE else if (task.index == bot.task) TITLE else TASK_COLOUR, BLACK)
+			val x: Int = EDGE + PAD + (i / taskRows) * TASK_COLUMN
+			val y: Int = taskTop + (i % taskRows) * line
+			if (task === hovered) {
+				g.fillRect(x - 2, y, TASK_COLUMN, line, HOVER)
+			}
+			g.text(x, y + line - 2, task.label, if (task === hovered) WHITE else if (task.index == bot.task) TITLE else TASK_COLOUR, BLACK)
 		}
 		return size.set(width, height)
 	}
@@ -840,13 +905,49 @@ object OwnedBots : Plugin {
 	fun colour(slot: Int): Int = PALETTE[slot.coerceIn(0, PALETTE.size - 1)]
 
 	private const val BASE37: String = "_abcdefghijklmnopqrstuvwxyz0123456789"
-	private const val BORDER: Int = 4
 	private const val GAP: Int = 2
-	private const val PANEL_WIDTH: Int = 170
-	private const val TASKS_WIDTH: Int = 230
-	private const val COLUMNS: Int = 7
-	private const val CELL_W: Int = 40
-	private const val CELL_H: Int = 36
+	private const val PANEL_WIDTH: Int = 190
+	private const val TASK_COLUMN: Int = 222
+
+	// the game's stone window (the worn-equipment screen's, interface 549)
+	private const val STONE: Int = 297
+	private const val STONE_W: Int = 88
+	private const val STONE_H: Int = 60
+	private const val FRAME_TOP_LEFT: Int = 1123
+	private const val FRAME_TOP: Int = 1124
+	private const val FRAME_TOP_RIGHT: Int = 1125
+	private const val FRAME_BOTTOM_LEFT: Int = 826
+	private const val FRAME_BOTTOM_RIGHT: Int = 827
+	private const val FRAME_LEFT: Int = 821
+	private const val FRAME_RIGHT: Int = 823
+	private const val FRAME_BOTTOM: Int = 822
+	private const val CORNER: Int = 32
+	private const val EDGE: Int = 7
+	private const val EDGE_OFFSET: Int = 13
+	private const val TOP: Int = 22
+	private const val TITLE_BASELINE: Int = 17
+	private const val PAD: Int = 8
+	private const val CONTENT_Y: Int = TOP + PAD
+
+	// the worn-equipment screen's slot layout (sprite 170 at each, 841/828 linking them), by equipment index
+	private const val SLOT_SPRITE: Int = 170
+	private const val SLOT: Int = 36
+	private const val LINK_V: Int = 841
+	private const val LINK_H: Int = 828
+	private const val WORN_X: Int = EDGE + PAD
+	private const val WORN_W: Int = 154
+	private val SLOT_X: IntArray = intArrayOf(64, 23, 64, 10, 64, 118, -1, 64, -1, 10, 64, -1, 118, 105)
+	private val SLOT_Y: IntArray = intArrayOf(3, 42, 42, 81, 81, 81, -1, 121, -1, 161, 161, -1, 161, 42)
+	private val LINK_X: IntArray = intArrayOf(120, 66, 11, 59, 43)
+	private val LINK_Y: IntArray = intArrayOf(116, 35, 116, 44, 82)
+	private val LINK_VERTICAL: BooleanArray = booleanArrayOf(true, true, true, false, false)
+
+	// the inventory's 4 by 7 grid, 42 by 36 a slot (interface 149)
+	private const val INV_COLUMNS: Int = 4
+	private const val INV_ROWS: Int = 7
+	private const val INV_W: Int = 42
+	private const val INV_H: Int = 36
+	private const val CARRIED_X: Int = WORN_X + WORN_W + 14
 	private const val DOT: Int = 3
 	private const val TAG_RISE: Int = 12
 	private const val WHITE: Int = -0x1
@@ -862,7 +963,8 @@ object OwnedBots : Plugin {
 	private const val DEAD: Int = 0xFF806060.toInt()
 	private const val AWAY: Int = 0xFF909090.toInt()
 	private const val FLASH: Int = 0x60FF3030
-	private const val CELL_BORDER: Int = 0x60FFFFFF
+	private const val HOVER: Int = 0x40FFFFFF
+	private const val BAR_LINE: Int = 0xFF3A3630.toInt()
 
 	private val PALETTE: IntArray = intArrayOf(0xFFFF9F1C.toInt(), 0xFF4CC9F0.toInt(), 0xFF9EF01A.toInt(), 0xFFFF5DA2.toInt())
 }
