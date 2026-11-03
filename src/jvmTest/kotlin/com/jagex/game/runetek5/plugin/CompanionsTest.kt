@@ -137,7 +137,7 @@ class CompanionsTest {
 		assertEquals(0 to "1351/1349/1353:1", Companions.parseTaskItems("[BotTaskItems] 0|1351/1349/1353:1"))
 		assertNull(Companions.parseTaskItems("[BotTasks] 0|woodcutting|1|Draynor|0|Chop logs"))
 		val names = mapOf(1351 to "Bronze hatchet", 1349 to "Iron hatchet", 1353 to "Steel hatchet", 385 to "Shark")
-		assertEquals(listOf("Bronze hatchet or Iron hatchet or Steel hatchet", "16 x Shark"), Companions.needLines("1351/1349/1353:1,385:16") { names[it] })
+		assertEquals(listOf("at least Bronze hatchet", "16 x Shark"), Companions.needLines("1351/1349/1353:1,385:16") { names[it] })
 		assertEquals(emptyList(), Companions.needLines("") { names[it] })
 		Companions.tasks.clear()
 	}

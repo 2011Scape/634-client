@@ -318,8 +318,8 @@ object Companions : Plugin {
 	}
 
 	/**
-	 * The tooltip's lines for [needs] (the server's `id/id:amount,...`), an item a line, "3 x " before more than one
-	 * and the choices joined by " or ", named by [name].
+	 * The tooltip's lines for [needs] (the server's `id/id:amount,...`), an item a line, "3 x " before more than one;
+	 * a choice of items is "At least <the first>", the server sending the cheapest first; named by [name].
 	 */
 	@JvmStatic
 	fun needLines(needs: String, name: (Int) -> String?): List<String> {
@@ -334,7 +334,7 @@ object Companions : Plugin {
 			if (names.isEmpty()) {
 				continue
 			}
-			lines.add((if (amount > 1) "$amount x " else "") + names.joinToString(" or "))
+			lines.add((if (amount > 1) "$amount x " else "") + (if (names.size > 1) "at least " + names[0] else names[0]))
 		}
 		return lines
 	}
