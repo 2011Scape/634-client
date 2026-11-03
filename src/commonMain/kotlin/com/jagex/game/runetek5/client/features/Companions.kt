@@ -446,6 +446,17 @@ object Companions : Plugin {
 
 	/** `::companions [on|off]` (or `::ownedbots`) turns the plugin on or off (or over), as the other built-in plugins' commands do. */
 	private val toggle: CommandHandler = CommandHandler { _, args ->
+		if (args.getOrNull(0).equals("map", ignoreCase = true)) {
+			// ::companions map: what the minimap drawing sees, a line a companion
+			val client: ClientApi = context?.client() ?: return@CommandHandler
+			val shown: Boolean = client.minimapArea(area)
+			client.consolePrint("minimap shown=" + shown + " area=" + area.joinToString(",") + " active=" + state.active() + " showOnMap=" + showOnMap + " local level=" + (client.localPlayer()?.level() ?: -1) + " base=" + client.sceneBaseX() + "," + client.sceneBaseY())
+			for (bot in state.bots) {
+				val projected: Boolean = bot.x >= 0 && client.projectMinimap(bot.x - client.sceneBaseX(), bot.y - client.sceneBaseY(), point)
+				client.consolePrint(bot.name + " online=" + bot.online + " at=" + bot.x + "," + bot.y + "," + bot.level + " projected=" + projected + " point=" + point[0] + "," + point[1])
+			}
+			return@CommandHandler
+		}
 		val config: PluginConfig = context?.config() ?: return@CommandHandler
 		val on: Boolean = when (args.firstOrNull()?.lowercase()) {
 			"on" -> true
@@ -1499,8 +1510,10 @@ object Companions : Plugin {
 			if (!bot.online || bot.x < 0 || bot.level != level || !client.projectMinimap(bot.x - client.sceneBaseX(), bot.y - client.sceneBaseY(), point)) {
 				continue
 			}
-			g.fillCircle(point[0], point[1], DOT, BLACK)
-			g.fillCircle(point[0], point[1], DOT - 1, colour(bot.slot))
+			// squares, not circles: the HD toolkit draws a circle as a smoothed point, which many drivers drop,
+			// while a filled rectangle is a quad everywhere
+			g.fillRect(point[0] - DOT, point[1] - DOT, DOT * 2 + 1, DOT * 2 + 1, BLACK)
+			g.fillRect(point[0] - DOT + 1, point[1] - DOT + 1, DOT * 2 - 1, DOT * 2 - 1, colour(bot.slot))
 		}
 		g.unclip()
 	}
