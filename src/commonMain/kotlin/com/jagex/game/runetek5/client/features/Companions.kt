@@ -10,7 +10,6 @@ import com.jagex.game.runetek5.plugin.api.Graphics
 import com.jagex.game.runetek5.plugin.api.MenuAction
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.plugin.api.OverlayMenuEntry
-import com.jagex.game.runetek5.plugin.api.OverlayLayer
 import com.jagex.game.runetek5.plugin.api.PanelOverlay
 import com.jagex.game.runetek5.plugin.api.Player
 import com.jagex.game.runetek5.plugin.api.Plugin
@@ -912,8 +911,8 @@ object Companions : Plugin {
 	@JvmField
 	val picker: PanelOverlay = object : PanelOverlay("CompanionsTasks") {
 		init {
+			// under the game's interfaces, as the roster is: the bank or the settings draw over it and keep the clicks
 			menuOnRightClick = true
-			layer = OverlayLayer.ABOVE_WIDGETS
 		}
 
 		override fun menuEntries(): List<OverlayMenuEntry> {
@@ -1267,11 +1266,18 @@ object Companions : Plugin {
 		}
 		val x: Int = client.mouseX() - picker.boundsX
 		val y: Int = client.mouseY() - picker.boundsY
-		if (x < 0 || y < 0 || x >= picker.boundsWidth || y >= picker.boundsHeight) {
+		if (x < 0 || y < 0 || x >= picker.boundsWidth || y >= picker.boundsHeight || modalOpen(client)) {
 			return@EventListener
 		}
 		taskScroll = (taskScroll + event.rotation).coerceIn(0, scrollRows)
 		event.consume()
+	}
+
+	/** Whether a modal game interface (the bank, the settings) is open, drawn over the picker. */
+	private fun modalOpen(client: ClientApi): Boolean {
+		var modal = false
+		client.openInterfaces { _, _, openType -> if (openType == 0) modal = true }
+		return modal
 	}
 
 	/** The skill whose tasks the picker shows; the first with tasks until chosen. */

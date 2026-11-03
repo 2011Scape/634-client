@@ -244,7 +244,7 @@ class CompanionsTest {
 	@Test
 	fun theWindowsDrawOverTheGamesInterfacesAndTheRosterUnderThem() {
 		assertEquals(OverlayLayer.ABOVE_WIDGETS, CompanionsLoadout.overlay.layer, "the loadout window stays in front of the bank")
-		assertEquals(OverlayLayer.ABOVE_WIDGETS, Companions.picker.layer)
+		assertEquals(OverlayLayer.UNDER_WIDGETS, Companions.picker.layer, "the task picker sits under the bank, as the roster does")
 		assertEquals(OverlayLayer.UNDER_WIDGETS, Companions.panel.layer, "the roster is a HUD panel")
 	}
 
