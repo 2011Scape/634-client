@@ -27,6 +27,7 @@ import com.jagex.game.runetek5.plugin.api.events.Events
 import com.jagex.game.runetek5.plugin.api.events.FrameDraw
 import com.jagex.game.runetek5.plugin.api.events.GameStateChanged
 import com.jagex.game.runetek5.plugin.api.events.GameTick
+import com.jagex.game.runetek5.plugin.api.events.KeyPressed
 import com.jagex.game.runetek5.plugin.api.events.MenuEntryAdded
 import com.jagex.game.runetek5.plugin.api.events.MenuOptionClicked
 import com.jagex.game.runetek5.plugin.api.events.ServerTick
@@ -72,7 +73,7 @@ object OwnedBots : Plugin {
 
 	/** The server's OwnedBotStatus, by ordinal. */
 	@JvmField
-	val STATUS_NAMES: Array<String> = arrayOf("Away", "Idle", "Working", "Banking", "Following", "Fighting", "Low health", "Fled", "Stopped", "Dead")
+	val STATUS_NAMES: Array<String> = arrayOf("Away", "Idle", "Working", "Banking", "Following", "Fighting", "Low health", "Fled", "Stopped", "Dead", "Holding")
 
 	@JvmField
 	val PROFILES: Array<String> = arrayOf("passive", "melee", "ranged", "mage")
@@ -169,6 +170,15 @@ object OwnedBots : Plugin {
 	private val giveActions: IntArray = IntArray(SLOTS) { -1 }
 	private val giveBankActions: IntArray = IntArray(SLOTS) { -1 }
 	private var giveAmount: String = ""
+	private var sendAction: Int = -1
+	private var attackAction: Int = -1
+	private var pickupAction: Int = -1
+
+	/** The bot a world-order entry named ("Send Woody here", a submenu's "Woody"), or "all"; "" when none, read as the click arrives. */
+	private var orderTarget: String = ""
+	@JvmField var callKey: Int = 0
+	@JvmField var followKey: Int = 0
+	@JvmField var stopKey: Int = 0
 	private val point: IntArray = IntArray(2)
 	private val area: IntArray = IntArray(4)
 	private val size: Size = Size()
@@ -420,7 +430,14 @@ object OwnedBots : Plugin {
 	/** Give-to-bot entries on the player's own inventory and, with the bank open, on the bank's items: one entry for one bot, a submenu for more. */
 	private val menuListener: EventListener<MenuEntryAdded> = EventListener { event ->
 		val client: ClientApi = context?.client() ?: return@EventListener
-		if (!enabled || !state.active() || event.target !== MenuTarget.WIDGET || event.itemId < 0) {
+		if (!enabled || !state.active()) {
+			return@EventListener
+		}
+		if (event.target === MenuTarget.TILE || event.target === MenuTarget.NPC || event.target === MenuTarget.GROUND_ITEM) {
+			worldEntries(client, event)
+			return@EventListener
+		}
+		if (event.target !== MenuTarget.WIDGET || event.itemId < 0) {
 			return@EventListener
 		}
 		val interfaceId: Int = event.widgetId ushr 16
@@ -466,11 +483,102 @@ object OwnedBots : Plugin {
 		}
 	}
 
+	/**
+	 * Orders on the world: "Send <bot> here" on a tile, "Attack with <bot>" on an npc that can be attacked,
+	 * "Pick up with <bot>" on a ground item; one entry for one bot, a submenu (each bot, then All) for more.
+	 */
+	private fun worldEntries(client: ClientApi, event: MenuEntryAdded) {
+		val online: List<Bot> = state.bots.filter { it.online }
+		if (online.isEmpty()) {
+			return
+		}
+		val action: Int
+		val verb: String
+		val one: Boolean = online.size == 1
+		when (event.target) {
+			MenuTarget.TILE -> {
+				action = sendAction
+				verb = "Send "
+			}
+			MenuTarget.NPC -> {
+				val npc = client.npc(event.id) ?: return
+				val type = npc.type() ?: return
+				if ((0 until 5).none { type.action(it).equals("Attack", ignoreCase = true) }) {
+					return
+				}
+				action = attackAction
+				verb = "Attack with "
+			}
+			else -> {
+				action = pickupAction
+				verb = "Pick up with "
+			}
+		}
+		if (action < 0) {
+			return
+		}
+		val here: String = if (event.target === MenuTarget.TILE) " here" else ""
+		if (one) {
+			client.addMenuEntry(verb + online[0].name + here, action)
+			return
+		}
+		val submenu: Int = client.addSubmenu(verb + "bot" + here)
+		if (submenu < 0) {
+			return
+		}
+		for (bot in online) {
+			client.addSubmenuEntry(submenu, bot.name, action)
+		}
+		if (event.target !== MenuTarget.GROUND_ITEM) {
+			client.addSubmenuEntry(submenu, ALL, action)
+		}
+	}
+
 	/** The amount on a give entry's label is read just before the entry's action runs with only the item id. */
 	private val optionListener: EventListener<MenuOptionClicked> = EventListener { event ->
 		if (event.clickType in giveActions || event.clickType in giveBankActions) {
 			giveAmount = amountOf(event.option ?: "")
+		} else if (event.clickType == sendAction || event.clickType == attackAction || event.clickType == pickupAction) {
+			orderTarget = botOf(event.option ?: "")
 		}
+	}
+
+	/** The slot (as the command wants it, from 1) or "all" a world-order entry names: "Send Woody here", "Attack with bot" child "Woody", "All". */
+	@JvmStatic
+	fun botOf(option: String): String {
+		val text: String = ClientFeatures.plainText(option)
+		if (text.equals(ALL, ignoreCase = true) || text.contains(" all ", ignoreCase = true) || text.endsWith(" all", ignoreCase = true)) {
+			return "all"
+		}
+		for (bot in state.bots) {
+			if (bot.name.isNotEmpty() && text.contains(bot.name, ignoreCase = true)) {
+				return (bot.slot + 1).toString()
+			}
+		}
+		return ""
+	}
+
+	private fun worldOrder(kind: String, args: String) {
+		val target: String = orderTarget
+		orderTarget = ""
+		if (target.isNotEmpty()) {
+			command("bot $kind $target $args")
+		}
+	}
+
+	/** Hotkeys for the orders that matter mid-fight; a matched key never reaches the game. */
+	private val keyListener: EventListener<KeyPressed> = EventListener { event ->
+		if (!enabled || !state.active() || event.keyCode == 0) {
+			return@EventListener
+		}
+		val order: String = when (event.keyCode) {
+			callKey -> "call all"
+			followKey -> "follow all"
+			stopKey -> "stop all"
+			else -> return@EventListener
+		}
+		command("bot $order")
+		event.consume()
 	}
 
 	/** The amount a give entry's label carries, "5", "all" (from "All (12)" or "Woody: All (12)"), or "" for one. */
@@ -509,6 +617,7 @@ object OwnedBots : Plugin {
 				} else {
 					entries.add(OverlayMenuEntry("Follow", target, Task { command("bot follow $slot") }))
 					entries.add(OverlayMenuEntry("Stop", target, Task { command("bot stop $slot") }))
+					entries.add(OverlayMenuEntry("Hold", target, Task { command("bot hold $slot") }))
 					entries.add(OverlayMenuEntry("Call", target, Task { command("bot call $slot") }))
 					entries.add(OverlayMenuEntry("Task...", target, Task { selected = bot.slot; tasksOpen = true; OwnedBotsLoadout.useFrom = -1 }))
 					entries.add(OverlayMenuEntry("Loadout", target, Task { OwnedBotsLoadout.show(bot.slot) }))
@@ -527,6 +636,7 @@ object OwnedBots : Plugin {
 			if (state.bots.any { it.online }) {
 				entries.add(OverlayMenuEntry("Follow all", "Bots", Task { command("bot follow all") }))
 				entries.add(OverlayMenuEntry("Stop all", "Bots", Task { command("bot stop all") }))
+				entries.add(OverlayMenuEntry("Hold all", "Bots", Task { command("bot hold all") }))
 				entries.add(OverlayMenuEntry("Call all", "Bots", Task { command("bot call all") }))
 			}
 			entries.add(OverlayMenuEntry("Refresh", "Bots", Task { handshake() }))
@@ -589,11 +699,19 @@ object OwnedBots : Plugin {
 		s.toggle("showOnMap", "Show bots on the minimap", true)
 		s.toggle("showTags", "Tag your bots in the world", true)
 		s.toggle("hideTaskLines", "Hide the task list lines from the chat", true)
+		s.keybind("callKey", "Call all bots", 0)
+		s.keybind("followKey", "Follow me, all bots", 0)
+		s.keybind("stopKey", "Stop all bots", 0)
 		readSettings(context.config())
 		for (slot in 0 until SLOTS) {
 			giveActions[slot] = context.registerMenuAction(MenuAction { _, _, _, id -> give(slot, id, false) })
 			giveBankActions[slot] = context.registerMenuAction(MenuAction { _, _, _, id -> give(slot, id, true) })
 		}
+		// one action a kind of world order: which bot (or all) comes from the entry's label, read as the click arrives
+		sendAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, _ -> worldOrder("goto", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY())) })
+		attackAction = context.registerMenuAction(MenuAction { _, _, _, id -> worldOrder("attack", id.toString()) })
+		pickupAction = context.registerMenuAction(MenuAction { _, sceneX, sceneY, id -> worldOrder("pickup", (sceneX + context.client().sceneBaseX()).toString() + " " + (sceneY + context.client().sceneBaseY()) + " " + commandName(context.client().itemName(id) ?: return@MenuAction)) })
+		context.events().subscribe(Events.KEY_PRESSED, keyListener)
 		context.registerCommand("ownedbots", toggle)
 		context.events().subscribe(Events.SETTING_CHANGED, settingListener)
 		context.events().subscribe(Events.GAME_STATE_CHANGED, stateListener)
@@ -624,6 +742,9 @@ object OwnedBots : Plugin {
 		showOnMap = config.getBoolean("showOnMap", true)
 		showTags = config.getBoolean("showTags", true)
 		hideTaskLines = config.getBoolean("hideTaskLines", true)
+		callKey = config.getInt("callKey", 0)
+		followKey = config.getInt("followKey", 0)
+		stopKey = config.getInt("stopKey", 0)
 		if (enabled && !was && context?.client()?.gameState() === GameState.LOGGED_IN) {
 			handshakeDue = cycle + 1
 		}

@@ -162,6 +162,17 @@ class OwnedBotsTest {
 	}
 
 	@Test
+	fun worldOrderLabelsNameTheirBot() {
+		OwnedBots.state = OwnedBots.read { vars()[it] ?: 0 }
+		assertEquals("1", OwnedBots.botOf("Send Woody here"))
+		assertEquals("2", OwnedBots.botOf("<col=ff9040>Minnie"))
+		assertEquals("all", OwnedBots.botOf("All"))
+		assertEquals("all", OwnedBots.botOf("Send all here"))
+		assertEquals("", OwnedBots.botOf("Walk here"))
+		OwnedBots.state = OwnedBots.State(emptyList(), 0)
+	}
+
+	@Test
 	fun giveEntryLabelsCarryTheirAmount() {
 		assertEquals("", OwnedBots.amountOf("Give to Woody"))
 		assertEquals("5", OwnedBots.amountOf("5"))
