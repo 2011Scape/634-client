@@ -989,18 +989,21 @@ object OverlayLayout {
 	/**
 	 * The menu for what is under the mouse is built (MiniMenuInputTick): with Shift held over a panel, its
 	 * entries just under the top one (RuneLite's onPostMenuSort) and, for a movable one, an Overlay Origin
-	 * submenu just above Cancel (RuneLite's addOriginMenu).
+	 * submenu just above Cancel (RuneLite's addOriginMenu). A panel with [PanelOverlay.menuOnRightClick] gets
+	 * its entries without Shift too, in place of the game's for what is under it (API 42).
+	 * @return whether the menu changed
 	 */
 	@JvmStatic
-	fun menuBuilt() {
+	fun menuBuilt(): Boolean {
 		lastHovered = hovered
-		val entry: Entry = hovered ?: return
+		val entry: Entry = hovered ?: return false
 		if (MiniMenu.isOpen || !loggedIn()) {
-			return
+			return false
 		}
-		val keys: KeyRecorder = KeyRecorder.keyRecorder ?: return
-		if (!(if (testMouse) testShift else keys.isPressed(KeyCode.SHIFT))) {
-			return
+		val keys: KeyRecorder = KeyRecorder.keyRecorder ?: return false
+		val shift: Boolean = if (testMouse) testShift else keys.isPressed(KeyCode.SHIFT)
+		if (!shift && !entry.overlay.menuOnRightClick) {
+			return false
 		}
 		offeredEntries.clear()
 		offeredFor = entry
@@ -1012,6 +1015,10 @@ object OverlayLayout {
 		}
 		if (menu.isNotEmpty()) {
 			val top: MiniMenuEntry? = MiniMenu.entryList.last() as MiniMenuEntry?
+			if (!shift) {
+				// the panel's own menu: what the game offers for the tile or npc under the panel is a misclick
+				hideGameEntries(top)
+			}
 			// entries sharing a submenu label go under one entry of that label (API 41); -1 means no room, plain entries then
 			val submenus: HashMap<String, Int> = HashMap()
 			for (i in menu.size - 1 downTo 0) {
@@ -1044,8 +1051,24 @@ object OverlayLayout {
 				MiniMenu.entryList.addLast(top)
 			}
 		}
-		if (entry.overlay.movable && entry.overlay !is SnapCorner.CornerOverlay) {
+		if (shift && entry.overlay.movable && entry.overlay !is SnapCorner.CornerOverlay) {
 			addOriginMenu(entry)
+		}
+		return true
+	}
+
+	/** Drops the game's entries (not a plugin's, whose click types are 1000 up) other than [top], the left click. */
+	private fun hideGameEntries(top: MiniMenuEntry?) {
+		val game: ArrayList<MiniMenuEntry> = ArrayList()
+		var item: MiniMenuEntry? = MiniMenu.entryList.first() as MiniMenuEntry?
+		while (item != null) {
+			if (item !== top && item.clickType < 1000) {
+				game.add(item)
+			}
+			item = MiniMenu.entryList.next() as MiniMenuEntry?
+		}
+		for (entry in game) {
+			MiniMenu.removeEntry(entry)
 		}
 	}
 

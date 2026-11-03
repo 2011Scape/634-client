@@ -436,6 +436,7 @@ object OwnedBots : Plugin {
 	val panel: PanelOverlay = object : PanelOverlay("OwnedBotsPanel") {
 		init {
 			resizable = true
+			menuOnRightClick = true
 		}
 
 		override fun menuEntries(): List<OverlayMenuEntry> {
@@ -478,6 +479,10 @@ object OwnedBots : Plugin {
 	/** The selected bot's worn and carried items, as the bank shows them; items can be taken back from here. */
 	@JvmField
 	val loadout: PanelOverlay = object : PanelOverlay("OwnedBotsLoadout") {
+		init {
+			menuOnRightClick = true
+		}
+
 		override fun menuEntries(): List<OverlayMenuEntry> {
 			val entries: ArrayList<OverlayMenuEntry> = ArrayList()
 			val bot: Bot = state.bot(selected) ?: return entries
@@ -520,6 +525,10 @@ object OwnedBots : Plugin {
 	/** The task catalogue: hover a task and give it to the selected bot. */
 	@JvmField
 	val picker: PanelOverlay = object : PanelOverlay("OwnedBotsTasks") {
+		init {
+			menuOnRightClick = true
+		}
+
 		override fun menuEntries(): List<OverlayMenuEntry> {
 			val entries: ArrayList<OverlayMenuEntry> = ArrayList()
 			val bot: Bot = state.bot(selected) ?: return entries

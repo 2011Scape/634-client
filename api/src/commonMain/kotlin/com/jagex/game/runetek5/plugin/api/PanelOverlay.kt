@@ -44,6 +44,14 @@ abstract class PanelOverlay(
 	@JvmField
 	var minimumSize: Int = 32
 
+	/**
+	 * Whether a plain right click on it offers its [menuEntries], not only Shift and one: the game's entries for
+	 * what is under the panel are then left out, but its left click. Shift and a right click still gives the
+	 * whole menu with the Overlay Origin submenu. Since API 42.
+	 */
+	@JvmField
+	var menuOnRightClick: Boolean = false
+
 	/** Whether another drag-targetable panel can be dropped on it ([onDrag]). */
 	@JvmField
 	var dragTargetable: Boolean = false

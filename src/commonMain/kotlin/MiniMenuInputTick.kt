@@ -48,9 +48,9 @@ object MiniMenuInputTick {
 		}
 		MiniMenu.aClass341_46.transferAllTo(MiniMenu.entryList)
 		MiniMenu.aClass341_36.transferAllTo(MiniMenu.entryList)
-		// Not part of the original client: with Shift held over a plugin's panel, its entries (OverlayLayout)
-		OverlayLayout.menuBuilt()
-		if (PluginRuntime.menuBuilt()) {
+		// Not part of the original client: over a plugin's panel (with Shift held, or one with its own right-click menu), its entries (OverlayLayout)
+		val panelMenu: Boolean = OverlayLayout.menuBuilt()
+		if (PluginRuntime.menuBuilt() || panelMenu) {
 			// Not part of the original client: the plugins' MenuBuilt, where they read and edit the finished menu; one they shortened may fit uncollapsed
 			MiniMenu.isCollapsed = MiniMenu.maxVisibleEntries != -1 && MiniMenu.entryCount >= MiniMenu.maxVisibleEntries || GameShell.screenCanvasHeight < MiniMenu.entryCount * 16 + (if (FontMetrics.useBoldFont) 26 else 22)
 		}
