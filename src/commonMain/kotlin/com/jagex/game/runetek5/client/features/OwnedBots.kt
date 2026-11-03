@@ -499,7 +499,8 @@ object OwnedBots : Plugin {
 	 */
 	private fun worldEntries(client: ClientApi, event: MenuEntryAdded) {
 		val online: List<Bot> = state.bots.filter { it.online }
-		if (online.isEmpty()) {
+		// not through one of the plugin's own panels: their menus are their own
+		if (online.isEmpty() || overPanel(client.mouseX(), client.mouseY())) {
 			return
 		}
 		val action: Int
@@ -542,6 +543,10 @@ object OwnedBots : Plugin {
 		if (event.target !== MenuTarget.GROUND_ITEM) {
 			client.addSubmenuEntry(submenu, ALL, action)
 		}
+	}
+
+	private fun overPanel(x: Int, y: Int): Boolean = listOf(panel, OwnedBotsLoadout.overlay, picker).any { overlay ->
+		overlay.boundsWidth > 0 && x >= overlay.boundsX && y >= overlay.boundsY && x < overlay.boundsX + overlay.boundsWidth && y < overlay.boundsY + overlay.boundsHeight
 	}
 
 	/** "Special attack <bot>" (one bot) or a "Special attack" submenu (each bot, All) on a wieldable item. */
