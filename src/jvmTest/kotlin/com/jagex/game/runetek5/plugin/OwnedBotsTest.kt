@@ -185,6 +185,23 @@ class OwnedBotsTest {
 	}
 
 	@Test
+	fun theFoldedRosterOffersEveryBotUnderItsOwnSubmenu() {
+		OwnedBots.state = OwnedBots.read { vars()[it] ?: 0 }
+		OwnedBots.collapsed = true
+		try {
+			val entries: List<OverlayMenuEntry> = OwnedBots.panel.menuEntries()
+			val woody: List<String> = entries.filter { it.submenu == "1." }.map { it.option }
+			assertTrue("Follow" in woody && "Guard" in woody && "Loadout" in woody, "the online bot's orders: $woody")
+			assertEquals(listOf("Summon"), entries.filter { it.submenu == "2." }.map { it.option }, "the away bot can only be summoned")
+			assertTrue(entries.none { it.submenu == "3." || it.submenu == "4." }, "empty slots have no submenu")
+			assertTrue(entries.any { it.option == "Guard all" && it.submenu.isEmpty() }, "the orders for every bot stay at the top level")
+		} finally {
+			OwnedBots.collapsed = false
+			OwnedBots.state = OwnedBots.State(emptyList(), 0)
+		}
+	}
+
+	@Test
 	fun leftClickIsTheFirstOfTheFirstThreeOptions() {
 		assertEquals("Eat", OwnedBotsLoadout.leftClickOption(arrayOf("Eat", null, null, null, "Drop")))
 		assertEquals("Wield", OwnedBotsLoadout.leftClickOption(arrayOf(null, "Wield", null, null, "Drop")))

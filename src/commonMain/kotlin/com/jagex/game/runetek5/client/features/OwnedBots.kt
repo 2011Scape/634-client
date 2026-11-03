@@ -73,7 +73,7 @@ object OwnedBots : Plugin {
 
 	/** The server's OwnedBotStatus, by ordinal. */
 	@JvmField
-	val STATUS_NAMES: Array<String> = arrayOf("Away", "Idle", "Working", "Banking", "Following", "Fighting", "Low health", "Fled", "Stopped", "Dead", "Holding")
+	val STATUS_NAMES: Array<String> = arrayOf("Away", "Idle", "Working", "Banking", "Following", "Fighting", "Low health", "Fled", "Stopped", "Dead", "Guarding")
 
 	@JvmField
 	val PROFILES: Array<String> = arrayOf("passive", "melee", "ranged", "mage")
@@ -169,6 +169,9 @@ object OwnedBots : Plugin {
 	/** The slot whose loadout and task picker show. */
 	@JvmField var selected: Int = 0
 	@JvmField var tasksOpen: Boolean = false
+
+	/** The roster folded to its title bar; its menu then offers every bot's orders under the bot's own submenu. */
+	@JvmField var collapsed: Boolean = false
 
 	private var context: PluginContext? = null
 
@@ -620,6 +623,49 @@ object OwnedBots : Plugin {
 		return text.toIntOrNull()?.toString() ?: ""
 	}
 
+	/**
+	 * [bot]'s orders: from its row's menu, or with [submenu] (its slot, "1.") from the folded roster's, where the
+	 * presets, a submenu of their own on the row, are plain "Load <preset>" entries.
+	 */
+	private fun botEntries(entries: ArrayList<OverlayMenuEntry>, bot: Bot, submenu: String) {
+		val target: String = "<col=" + (colour(bot.slot) and 0xFFFFFF).toString(16) + ">" + bot.name
+		fun add(option: String, action: Task, entryTarget: String = target) {
+			entries.add(OverlayMenuEntry(option, entryTarget, action, submenu))
+		}
+		if (!bot.alive) {
+			// a dead bot: only where to replace it
+			add("Replace at a Bot Broker", Task { context?.client()?.consolePrint("Bot Brokers stand in Lumbridge, Varrock and Falador; a dead bot's slot is bought again there.") }, "<col=ff9040>" + bot.name)
+			return
+		}
+		val slot: Int = bot.slot + 1
+		if (!bot.online) {
+			add("Summon", Task { command("bot summon $slot") })
+			return
+		}
+		add("Follow", Task { command("bot follow $slot") })
+		add("Stop", Task { command("bot stop $slot") })
+		add("Guard", Task { command("bot guard $slot") })
+		add("Call", Task { command("bot call $slot") })
+		add("Task...", Task { selected = bot.slot; tasksOpen = true; OwnedBotsLoadout.useFrom = -1 })
+		add("Loadout", Task { OwnedBotsLoadout.show(bot.slot) })
+		for (preset in presets) {
+			val load = Task { command("bot loadout load $slot " + preset.first) }
+			if (submenu.isEmpty()) {
+				entries.add(OverlayMenuEntry(preset.first, target, load, LOAD_PRESET))
+			} else {
+				add("Load " + preset.first, load)
+			}
+		}
+		add("Save gear as preset...", Task { command("bot loadout save $slot") })
+		add("Bank items", Task { command("bot bank $slot") })
+		add(if (bot.aggressive) "Set passive" else "Set aggressive", Task { command("bot aggression $slot " + if (bot.aggressive) "passive" else "aggressive") })
+		add("Profile: " + PROFILES[(bot.profile + 1) % PROFILES.size], Task { command("bot combat $slot " + PROFILES[(bot.profile + 1) % PROFILES.size]) })
+		if (bot.spec > 0) {
+			add("Clear special attack", Task { command("bot spec $slot none") }, "<col=ff9040>" + (context?.client()?.itemName(bot.spec) ?: "weapon"))
+		}
+		add("Dismiss", Task { command("bot dismiss $slot") })
+	}
+
 	// ---- panels ------------------------------------------------------------------------------------------
 
 	/** The roster: one row a slot, with the bot's name, what it is doing and its hitpoints and prayer. */
@@ -632,43 +678,25 @@ object OwnedBots : Plugin {
 
 		override fun menuEntries(): List<OverlayMenuEntry> {
 			val entries: ArrayList<OverlayMenuEntry> = ArrayList()
-			val bot: Bot? = hovered(this)
-			if (bot != null && !bot.alive && bot.name.isNotEmpty()) {
-				// a dead bot's row: only where to replace it
-				entries.add(OverlayMenuEntry("Replace at a Bot Broker", "<col=ff9040>" + bot.name, Task { context?.client()?.consolePrint("Bot Brokers stand in Lumbridge, Varrock and Falador; a dead bot's slot is bought again there.") }))
-				return entries
-			}
-			if (bot != null && bot.alive) {
-				val slot: Int = bot.slot + 1
-				val target: String = "<col=" + (colour(bot.slot) and 0xFFFFFF).toString(16) + ">" + bot.name
-				if (!bot.online) {
-					entries.add(OverlayMenuEntry("Summon", target, Task { command("bot summon $slot") }))
-				} else {
-					entries.add(OverlayMenuEntry("Follow", target, Task { command("bot follow $slot") }))
-					entries.add(OverlayMenuEntry("Stop", target, Task { command("bot stop $slot") }))
-					entries.add(OverlayMenuEntry("Hold", target, Task { command("bot hold $slot") }))
-					entries.add(OverlayMenuEntry("Call", target, Task { command("bot call $slot") }))
-					entries.add(OverlayMenuEntry("Task...", target, Task { selected = bot.slot; tasksOpen = true; OwnedBotsLoadout.useFrom = -1 }))
-					entries.add(OverlayMenuEntry("Loadout", target, Task { OwnedBotsLoadout.show(bot.slot) }))
-					for (preset in presets) {
-						entries.add(OverlayMenuEntry(preset.first, target, Task { command("bot loadout load $slot " + preset.first) }, LOAD_PRESET))
+			if (collapsed) {
+				// folded: every bot's orders, each under a submenu named as its row is
+				for (bot in state.bots) {
+					if (bot.alive || bot.name.isNotEmpty()) {
+						botEntries(entries, bot, (bot.slot + 1).toString() + ".")
 					}
-					entries.add(OverlayMenuEntry("Save gear as preset...", target, Task { command("bot loadout save $slot") }))
-					entries.add(OverlayMenuEntry("Bank items", target, Task { command("bot bank $slot") }))
-					entries.add(OverlayMenuEntry(if (bot.aggressive) "Set passive" else "Set aggressive", target, Task { command("bot aggression $slot " + if (bot.aggressive) "passive" else "aggressive") }))
-					entries.add(OverlayMenuEntry("Profile: " + PROFILES[(bot.profile + 1) % PROFILES.size], target, Task { command("bot combat $slot " + PROFILES[(bot.profile + 1) % PROFILES.size]) }))
-					if (bot.spec > 0) {
-						entries.add(OverlayMenuEntry("Clear special attack", "<col=ff9040>" + (context?.client()?.itemName(bot.spec) ?: "weapon"), Task { command("bot spec $slot none") }))
-					}
-					entries.add(OverlayMenuEntry("Dismiss", target, Task { command("bot dismiss $slot") }))
 				}
-				return entries
+			} else {
+				val bot: Bot? = hovered(this)
+				if (bot != null && (bot.alive || bot.name.isNotEmpty())) {
+					botEntries(entries, bot, "")
+					return entries
+				}
 			}
 			// off a bot's row (the title, a dead slot, the empty part): what concerns every bot
 			if (state.bots.any { it.online }) {
 				entries.add(OverlayMenuEntry("Follow all", "Bots", Task { command("bot follow all") }))
 				entries.add(OverlayMenuEntry("Stop all", "Bots", Task { command("bot stop all") }))
-				entries.add(OverlayMenuEntry("Hold all", "Bots", Task { command("bot hold all") }))
+				entries.add(OverlayMenuEntry("Guard all", "Bots", Task { command("bot guard all") }))
 				entries.add(OverlayMenuEntry("Call all", "Bots", Task { command("bot call all") }))
 			}
 			entries.add(OverlayMenuEntry("Refresh", "Bots", Task { handshake() }))
@@ -676,8 +704,12 @@ object OwnedBots : Plugin {
 			return entries
 		}
 
-		/** A left click on a living bot's row opens its equipment and inventory. */
+		/** A left click on the title's button folds or unfolds the roster; on a living bot's row it opens its equipment and inventory. */
 		override fun onClick(x: Int, y: Int, button: Int): Boolean {
+			if (button == 0 && onFoldButton(this, x, y)) {
+				setCollapsed(!collapsed)
+				return true
+			}
 			val bot: Bot = rowAt(y) ?: return false
 			if (button != 0 || !bot.alive || !bot.online) {
 				return false
@@ -777,6 +809,7 @@ object OwnedBots : Plugin {
 		callKey = config.getInt("callKey", 0)
 		followKey = config.getInt("followKey", 0)
 		stopKey = config.getInt("stopKey", 0)
+		collapsed = config.getBoolean("collapsed", false)
 		if (enabled && !was && context?.client()?.gameState() === GameState.LOGGED_IN) {
 			handshakeDue = cycle + 1
 		}
@@ -828,6 +861,19 @@ object OwnedBots : Plugin {
 		return null
 	}
 
+	private fun setCollapsed(value: Boolean) {
+		collapsed = value
+		val config: PluginConfig = context?.config() ?: return
+		config.setBoolean("collapsed", value)
+		config.save()
+	}
+
+	/** The fold button at the title's right, where the game's windows have their close button. */
+	private fun onFoldButton(overlay: PanelOverlay, x: Int, y: Int): Boolean {
+		val left: Int = overlay.boundsWidth - BUTTON_RIGHT - BUTTON_SIZE
+		return overlay.boundsWidth > 0 && x >= left && x < left + BUTTON_SIZE && y >= BUTTON_TOP && y < BUTTON_TOP + BUTTON_SIZE
+	}
+
 	private fun drawPanel(g: Graphics, overlay: PanelOverlay): Size? {
 		val current: State = state
 		val client: ClientApi = context?.client() ?: return null
@@ -840,14 +886,20 @@ object OwnedBots : Plugin {
 		val botHeight: Int = line + statLine + GAP
 		val rows: List<Bot> = current.bots.filter { it.alive || it.name.isNotEmpty() }
 		val hint: Boolean = !current.active() || rows.isEmpty()
-		val height: Int = TOP + PAD + (if (hint) line else 0) + rows.size * botHeight + PAD + EDGE
+		val height: Int = if (collapsed) COLLAPSED_HEIGHT else TOP + PAD + (if (hint) line else 0) + rows.size * botHeight + PAD + EDGE
 		window(g, width, height, "Bots (" + current.bots.count { it.alive } + "/" + SLOTS + ")")
+		val overButton: Boolean = onFoldButton(overlay, client.mouseX() - overlay.boundsX, client.mouseY() - overlay.boundsY)
+		val button: Int = if (collapsed) (if (overButton) EXPAND_HOVER else EXPAND) else (if (overButton) COLLAPSE_HOVER else COLLAPSE)
+		g.sprite(button, width - BUTTON_RIGHT - BUTTON_SIZE, BUTTON_TOP)
+		rowTops.clear()
+		if (collapsed) {
+			return size.set(width, height)
+		}
 		var y: Int = TOP + PAD
 		if (hint) {
 			g.text(EDGE + PAD, y + line - 2, if (!current.active()) "No answer from the server" else "Visit a Bot Broker", HINT, BLACK)
 			y += line
 		}
-		rowTops.clear()
 		for (bot in rows) {
 			rowTops.add(y)
 			drawBot(g, bot, y, width, line)
@@ -866,18 +918,32 @@ object OwnedBots : Plugin {
 		}
 		val nameColour: Int = if (!bot.alive) DEAD else if (!bot.online) AWAY else colour(bot.slot)
 		g.font(Font.BOLD)
-		g.text(left, top + line - 2, (bot.slot + 1).toString() + ". " + bot.name.ifEmpty { "-" }, nameColour, BLACK)
+		val name: String = (bot.slot + 1).toString() + ". " + bot.name.ifEmpty { "-" }
+		g.text(left, top + line - 2, name, nameColour, BLACK)
+		val nameRight: Int = left + g.textWidth(name)
 		g.font(Font.SMALL)
 		val status: String = if (!bot.alive) "Dead" else if (!bot.online) "Away" else {
 			val task: TaskEntry? = if (bot.task != NO_TASK) tasks.firstOrNull { it.index == bot.task } else null
 			if (task != null && bot.status == 2) task.label.substringBefore(" (") else bot.statusName()
 		}
-		g.textRight(right, top + line - 2, status, if (bot.status in 6..9 && bot.online) PVP else STATUS_COLOUR, BLACK)
+		g.textRight(right, top + line - 2, fit(g, status, right - nameRight - STATUS_GAP), if (bot.status in 6..9 && bot.online) PVP else STATUS_COLOUR, BLACK)
 		if (bot.online) {
 			val half: Int = (right - left - GAP) / 2
 			stat(g, left, top + line, half, bot.hp, bot.hpMax, HP_COLOUR, "HP " + bot.hp)
 			stat(g, left + half + GAP, top + line, half, bot.prayer, bot.prayerMax, PRAYER_COLOUR, "Pray " + bot.prayer)
 		}
+	}
+
+	/** [text] cut to [room] pixels in the current font, ending in ".." when cut. */
+	internal fun fit(g: Graphics, text: String, room: Int): String {
+		if (g.textWidth(text) <= room) {
+			return text
+		}
+		var end: Int = text.length
+		while (end > 0 && g.textWidth(text.substring(0, end).trimEnd() + "..") > room) {
+			end--
+		}
+		return if (end == 0) "" else text.substring(0, end).trimEnd() + ".."
 	}
 
 	private fun stat(g: Graphics, x: Int, y: Int, width: Int, value: Int, max: Int, colour: Int, label: String) {
@@ -921,10 +987,21 @@ object OwnedBots : Plugin {
 			y += CORNER
 		}
 		g.unclip()
-		g.sprite(FRAME_TOP_LEFT, 0, 0)
-		g.sprite(FRAME_TOP_RIGHT, width - CORNER, 0)
-		g.sprite(FRAME_BOTTOM_LEFT, 0, height - CORNER)
-		g.sprite(FRAME_BOTTOM_RIGHT, width - CORNER, height - CORNER)
+		if (height >= CORNER * 2) {
+			g.sprite(FRAME_TOP_LEFT, 0, 0)
+			g.sprite(FRAME_TOP_RIGHT, width - CORNER, 0)
+			g.sprite(FRAME_BOTTOM_LEFT, 0, height - CORNER)
+			g.sprite(FRAME_BOTTOM_RIGHT, width - CORNER, height - CORNER)
+		} else {
+			// too short for whole corners (the folded roster): the bottom corners below the title band, the top ones in it
+			g.clip(0, TOP, width, height - TOP)
+			g.sprite(FRAME_BOTTOM_LEFT, 0, height - CORNER)
+			g.sprite(FRAME_BOTTOM_RIGHT, width - CORNER, height - CORNER)
+			g.clip(0, 0, width, TOP)
+			g.sprite(FRAME_TOP_LEFT, 0, 0)
+			g.sprite(FRAME_TOP_RIGHT, width - CORNER, 0)
+			g.unclip()
+		}
 		g.font(Font.BOLD)
 		g.textCentered(width / 2, TITLE_BASELINE, title, TITLE, BLACK)
 		g.font(Font.SMALL)
@@ -1026,7 +1103,17 @@ object OwnedBots : Plugin {
 
 	private const val BASE37: String = "_abcdefghijklmnopqrstuvwxyz0123456789"
 	private const val GAP: Int = 2
-	private const val PANEL_WIDTH: Int = 190
+	private const val STATUS_GAP: Int = 6
+	/** The title band ([TOP]), the bottom edge ([EDGE]) and a pixel between. */
+	private const val COLLAPSED_HEIGHT: Int = 30
+	private const val COLLAPSE: Int = 2556
+	private const val COLLAPSE_HOVER: Int = 2557
+	private const val EXPAND: Int = 2554
+	private const val EXPAND_HOVER: Int = 2555
+	private const val BUTTON_SIZE: Int = 16
+	private const val BUTTON_RIGHT: Int = 10
+	private const val BUTTON_TOP: Int = 3
+	private const val PANEL_WIDTH: Int = 250
 	private const val TASK_COLUMN: Int = 222
 
 	// the game's stone window (the worn-equipment screen's, interface 549)
