@@ -90,6 +90,8 @@ object Companions : Plugin {
 
 	/** Submenus the presets sit under in the roster's and the loadout's menus. */
 	const val LOAD_PRESET: String = "Load preset"
+	const val GEAR: String = "Gear"
+	const val COMBAT: String = "Combat"
 	const val DELETE_PRESET: String = "Delete preset"
 
 	/** The amounts a stack is given or taken in, the bank's choices. */
@@ -832,8 +834,8 @@ object Companions : Plugin {
 	 */
 	private fun botEntries(entries: ArrayList<OverlayMenuEntry>, bot: Bot, submenu: String) {
 		val target: String = "<col=" + (colour(bot.slot) and 0xFFFFFF).toString(16) + ">" + bot.name
-		fun add(option: String, action: Task, entryTarget: String = target) {
-			entries.add(OverlayMenuEntry(option, entryTarget, action, submenu))
+		fun add(option: String, action: Task, entryTarget: String = target, group: String = submenu) {
+			entries.add(OverlayMenuEntry(option, entryTarget, action, group))
 		}
 		if (!bot.alive) {
 			// a dead bot: only where to replace it
@@ -845,27 +847,35 @@ object Companions : Plugin {
 			add("Summon", Task { command("bot summon $slot") })
 			return
 		}
+		// the orders given every minute stay on the row's menu, in the order they are reached for: the two modes,
+		// the one that ends them, then the two for trouble
 		add("Follow", Task { command("bot follow $slot") })
-		add("Stop", Task { command("bot stop $slot") })
 		add("Guard", Task { command("bot guard $slot") })
+		add("Stop", Task { command("bot stop $slot") })
 		add("Call", Task { command("bot call $slot") })
 		add("Recover", Task { command("bot recover $slot") })
 		add("Task...", Task { selected = bot.slot; tasksOpen = true; CompanionsLoadout.useFrom = -1 })
 		add("Loadout", Task { CompanionsLoadout.show(bot.slot) })
+		// the rarer gear and combat orders fold into a submenu each; the folded roster already holds the bot in a
+		// submenu of its own, and a submenu cannot nest, so there they stay flat under it
+		val gear: String = if (submenu.isEmpty()) GEAR else submenu
+		val combat: String = if (submenu.isEmpty()) COMBAT else submenu
 		for (preset in presets) {
-			val load = Task { command("bot loadout load $slot " + preset.first) }
-			if (submenu.isEmpty()) {
-				entries.add(OverlayMenuEntry(preset.first, target, load, LOAD_PRESET))
+			add("Load " + preset.first, Task { command("bot loadout load $slot " + preset.first) }, group = gear)
+		}
+		add("Save gear as preset...", Task { command("bot loadout save $slot") }, group = gear)
+		add("Bank everything", Task { command("bot bank $slot") }, group = gear)
+		add(if (bot.aggressive) "Set passive" else "Set aggressive", Task { command("bot aggression $slot " + if (bot.aggressive) "passive" else "aggressive") }, group = combat)
+		// every profile listed, the one in use marked, so the choice is one click and the current one is in view
+		for (profile in PROFILES) {
+			if (profile == PROFILES.getOrNull(bot.profile)) {
+				add("Profile: $profile (current)", Task {}, group = combat)
 			} else {
-				add("Load " + preset.first, load)
+				add("Profile: $profile", Task { command("bot combat $slot $profile") }, group = combat)
 			}
 		}
-		add("Save gear as preset...", Task { command("bot loadout save $slot") })
-		add("Bank items", Task { command("bot bank $slot") })
-		add(if (bot.aggressive) "Set passive" else "Set aggressive", Task { command("bot aggression $slot " + if (bot.aggressive) "passive" else "aggressive") })
-		add("Profile: " + PROFILES[(bot.profile + 1) % PROFILES.size], Task { command("bot combat $slot " + PROFILES[(bot.profile + 1) % PROFILES.size]) })
 		if (bot.spec > 0) {
-			add("Clear special attack", Task { command("bot spec $slot none") }, "<col=ff9040>" + (context?.client()?.itemName(bot.spec) ?: "weapon"))
+			add("Clear special attack", Task { command("bot spec $slot none") }, "<col=ff9040>" + (context?.client()?.itemName(bot.spec) ?: "weapon"), group = combat)
 		}
 		add("Dismiss", Task { command("bot dismiss $slot") })
 	}

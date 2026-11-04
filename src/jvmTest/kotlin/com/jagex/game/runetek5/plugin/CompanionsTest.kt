@@ -170,14 +170,16 @@ class CompanionsTest {
 	}
 
 	@Test
-	fun presetEntriesSitUnderSubmenus() {
+	fun rarerOrdersSitUnderSubmenus() {
 		val plain = OverlayMenuEntry("Close", "Loadout", Task {})
 		assertEquals("", plain.submenu, "an entry is a plain one unless given a submenu")
-		val load = OverlayMenuEntry("melee", "Woody", Task {}, Companions.LOAD_PRESET)
+		val load = OverlayMenuEntry("Load melee", "Woody", Task {}, Companions.GEAR)
+		val profile = OverlayMenuEntry("Profile: mage", "Woody", Task {}, Companions.COMBAT)
 		val delete = OverlayMenuEntry("melee", "preset", Task {}, Companions.DELETE_PRESET)
-		assertEquals("Load preset", load.submenu)
+		assertEquals("Gear", load.submenu)
+		assertEquals("Combat", profile.submenu)
 		assertEquals("Delete preset", delete.submenu)
-		assertTrue(load.submenu != delete.submenu, "loading and deleting are separate submenus")
+		assertTrue(load.submenu != profile.submenu && load.submenu != delete.submenu, "gear, combat and deleting are separate submenus")
 	}
 
 	@Test
