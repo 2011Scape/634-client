@@ -228,7 +228,7 @@ object Companions : Plugin {
 	private val rowTops: ArrayList<Int> = ArrayList()
 	/** The bot drawn on each row: not every slot has one, a dead unnamed slot takes no row. */
 	private val rowBots: ArrayList<Bot> = ArrayList()
-	private var rowHeight: Int = 0
+	private val rowHeights: ArrayList<Int> = ArrayList()
 	private var statLine: Int = 14
 
 	/** For the tests, which cannot move the mouse: the row taken as hovered, -1 for the mouse's. */
@@ -1093,7 +1093,7 @@ object Companions : Plugin {
 	/** The bot whose row is [y] pixels down the roster, or null. */
 	private fun rowAt(y: Int): Bot? {
 		for (i in rowTops.indices) {
-			if (y >= rowTops[i] && y < rowTops[i] + rowHeight) {
+			if (y >= rowTops[i] && y < rowTops[i] + rowHeights[i]) {
 				return rowBots.getOrNull(i)
 			}
 		}
@@ -1125,13 +1125,16 @@ object Companions : Plugin {
 		val botHeight: Int = line + statLine + GAP
 		val rows: List<Bot> = current.bots.filter { it.alive || it.name.isNotEmpty() }
 		val hint: Boolean = !current.active() || rows.isEmpty()
-		val height: Int = if (collapsed) COLLAPSED_HEIGHT else TOP + PAD + (if (hint) line else 0) + rows.size * botHeight + PAD + EDGE
+		// a row with bars (a bot that is out) is taller than one without (away, dead)
+		fun rowHeightOf(bot: Bot): Int = if (bot.online) botHeight else line + ROW_GAP
+		val height: Int = if (collapsed) COLLAPSED_HEIGHT else TOP + PAD + (if (hint) line else 0) + rows.sumOf { rowHeightOf(it) } + PAD + EDGE
 		window(g, width, height, "Companions (" + current.bots.count { it.alive } + "/" + SLOTS + ")")
 		val overButton: Boolean = onFoldButton(overlay, client.mouseX() - overlay.boundsX, client.mouseY() - overlay.boundsY)
 		val button: Int = if (collapsed) (if (overButton) EXPAND_HOVER else EXPAND) else (if (overButton) COLLAPSE_HOVER else COLLAPSE)
 		g.sprite(button, width - BUTTON_RIGHT - BUTTON_SIZE, BUTTON_TOP)
 		rowTops.clear()
 		rowBots.clear()
+		rowHeights.clear()
 		if (collapsed) {
 			return size.set(width, height)
 		}
@@ -1143,10 +1146,10 @@ object Companions : Plugin {
 		for (bot in rows) {
 			rowTops.add(y)
 			rowBots.add(bot)
+			rowHeights.add(rowHeightOf(bot))
 			drawBot(g, bot, y, width, line)
-			y += botHeight
+			y += rowHeightOf(bot)
 		}
-		rowHeight = botHeight
 		return size.set(width, height)
 	}
 
@@ -1157,6 +1160,8 @@ object Companions : Plugin {
 		if (flashing) {
 			g.fillRect(left - 2, top - 1, right - left + 4, line + statLine + GAP, FLASH)
 		}
+		// a dark band under the row: the text reads over whatever the scene has behind the stone
+		g.fillRect(left - 2, top - 1, right - left + 4, (if (bot.online) line + statLine + GAP else line + ROW_GAP) - 1, ROW_BACK)
 		val nameColour: Int = if (!bot.alive) DEAD else if (!bot.online) AWAY else colour(bot.slot)
 		g.font(Font.BOLD)
 		val name: String = (bot.slot + 1).toString() + ". " + bot.name.ifEmpty { "-" }
@@ -1167,7 +1172,13 @@ object Companions : Plugin {
 			val task: TaskEntry? = if (bot.task != NO_TASK) tasks.firstOrNull { it.index == bot.task } else null
 			if (task != null && bot.status == 2) task.label.substringBefore(" (") else bot.statusName()
 		}
-		g.textRight(right, top + line - 2, fit(g, status, right - nameRight - STATUS_GAP), if (bot.status in 6..9 && bot.online) PVP else STATUS_COLOUR, BLACK)
+		val statusColour: Int = statusColour(bot)
+		val statusText: String = fit(g, status, right - nameRight - STATUS_GAP - DOT_SIZE - DOT_GAP)
+		g.textRight(right, top + line - 2, statusText, statusColour, BLACK)
+		// a dot in the status's colour before it: the state at a glance, even before the word is read
+		val dotX: Int = right - g.textWidth(statusText) - DOT_GAP - DOT_SIZE
+		g.fillRect(dotX, top + line - 2 - DOT_SIZE, DOT_SIZE, DOT_SIZE, statusColour)
+		g.drawRect(dotX, top + line - 2 - DOT_SIZE, DOT_SIZE, DOT_SIZE, BLACK)
 		if (bot.online) {
 			val half: Int = (right - left - GAP) / 2
 			stat(g, left, top + line, half, bot.hp, bot.hpMax, HP_COLOUR, "HP " + bot.hp)
@@ -1187,6 +1198,16 @@ object Companions : Plugin {
 		return if (end == 0) "" else text.substring(0, end).trimEnd() + ".."
 	}
 
+	/** The colour a status reads in: green at work, white following or guarding, red in trouble, amber recovering, grey away or dead. */
+	private fun statusColour(bot: Bot): Int = when {
+		!bot.alive -> DEAD
+		!bot.online -> AWAY
+		bot.status == 2 || bot.status == 3 -> STATUS_GOOD
+		bot.status == 5 || bot.status in 6..9 -> PVP
+		bot.status == 11 -> STATUS_WAIT
+		else -> STATUS_COLOUR
+	}
+
 	private fun stat(g: Graphics, x: Int, y: Int, width: Int, value: Int, max: Int, colour: Int, label: String) {
 		val height: Int = statLine - 1
 		g.fillRect(x, y + 1, width, height, BAR_BACK)
@@ -1201,8 +1222,13 @@ object Companions : Plugin {
 	 * The game's stone window: the resizable side tabs' see-through stone (1131) under everything, the worn-equipment screen's
 	 * frame (corners 1123/1125/826/827, the title band 1124, edges 821/823/822) over it, and [title] in the band.
 	 */
-	internal fun window(g: Graphics, width: Int, height: Int, title: String) {
+	internal fun window(g: Graphics, width: Int, height: Int, title: String, backing: Int = 0) {
 		g.clip(0, 0, width, height)
+		if (backing != 0) {
+			// an opaque backdrop under the see-through stone: the stone keeps its grain and nothing behind the window
+			// shows through anywhere, the title band included
+			g.fillRect(0, 0, width, height, backing)
+		}
 		var y: Int = 0
 		while (y < height) {
 			var x: Int = 0
@@ -1349,15 +1375,20 @@ object Companions : Plugin {
 		if (taskTab !in tabsShown) {
 			taskTab = tabsShown.firstOrNull() ?: ""
 		}
-		// the tabs, each as wide as its name needs, in as many rows as the view's width asks
+		// the tabs, all as wide as the widest name, so a second row lines up under the first; as many rows as the
+		// view's width asks
 		tabLefts.clear()
 		tabTops.clear()
 		tabWidths.clear()
+		var tabWidth: Int = 0
+		for (skill in tabsShown) {
+			tabWidth = maxOf(tabWidth, g.textWidth(skillName(skill)) + TAB_PAD * 2)
+		}
 		var x: Int = EDGE + PAD
 		var tabTop: Int = TOP
 		var tabsWidth: Int = 0
 		for (skill in tabsShown) {
-			val width: Int = g.textWidth(skillName(skill)) + TAB_PAD * 2
+			val width: Int = tabWidth
 			if (x > EDGE + PAD && x + width + PAD + EDGE > maxWidth) {
 				x = EDGE + PAD
 				tabTop += tabLine + TAB_GAP
@@ -1373,7 +1404,7 @@ object Companions : Plugin {
 		rowsShown.addAll(taskRows(taskTab))
 		var rowsWidth: Int = 0
 		for (row in rowsShown) {
-			val width: Int = if (row is TaskEntry) TASK_INDENT + g.textWidth(row.label + (if (row.members) " (members)" else "")) + LEVEL_GAP + g.textWidth("lvl " + row.level) else g.textWidth(row.toString())
+			val width: Int = if (row is TaskEntry) TASK_INDENT + g.textWidth(row.label) + (if (row.members) MEMBERS_GAP + g.textWidth("members") else 0) + LEVEL_GAP + g.textWidth("Lvl " + row.level) else g.textWidth(row.toString())
 			if (width > rowsWidth) {
 				rowsWidth = width
 			}
@@ -1408,7 +1439,7 @@ object Companions : Plugin {
 			}
 		}
 		val height: Int = taskTop + visibleRows * line + PAD + EDGE
-		window(g, width, height, "Task for " + bot.name)
+		window(g, width, height, "Task for " + bot.name, WINDOW_BACK)
 		val overClose: Boolean = onCloseButton(mouseX, mouseY)
 		g.sprite(if (overClose) CLOSE_HOVER else CLOSE, width - CLOSE_RIGHT - CLOSE_SIZE, CLOSE_TOP)
 		if (tasks.isEmpty()) {
@@ -1424,21 +1455,38 @@ object Companions : Plugin {
 				g.fillRect(left, top, tabWidths[i], tabLine, if (active) TAB_ACTIVE else HOVER)
 			}
 			g.drawRect(left, top, tabWidths[i], tabLine, BAR_LINE)
-			g.text(left + TAB_PAD, top + TAB_PAD + line - 2, skillName(skill), if (active || over) WHITE else TASK_COLOUR, BLACK)
+			if (active) {
+				// the chosen tab carries the title's colour as an underline, as the game's own tabs mark the open one
+				g.fillRect(left, top + tabLine - 2, tabWidths[i], 2, TITLE)
+			}
+			g.textCentered(left + tabWidths[i] / 2, top + TAB_PAD + line - 2, skillName(skill), if (active) TITLE else if (over) WHITE else TASK_COLOUR, BLACK)
 		}
 		val hovered: TaskEntry? = hoveredTask(overlay)
 		for (i in 0 until visibleRows) {
 			val row: Any = rowsShown.getOrNull(taskScroll + i) ?: break
 			val y: Int = taskTop + i * line
 			if (row is TaskEntry) {
+				val current: Boolean = row.index == bot.task
 				if (row === hovered) {
 					g.fillRect(EDGE + PAD, y, rowsRight - EDGE - PAD, line, HOVER)
+				} else if (current) {
+					g.fillRect(EDGE + PAD, y, rowsRight - EDGE - PAD, line, CURRENT_BACK)
 				}
-				val colour: Int = if (row === hovered) WHITE else if (row.index == bot.task) TITLE else TASK_COLOUR
-				g.text(EDGE + PAD + TASK_INDENT, y + line - 2, row.label + (if (row.members) " (members)" else ""), colour, BLACK)
-				g.textRight(rowsRight, y + line - 2, "lvl " + row.level, if (row === hovered) WHITE else HINT, BLACK)
+				if (current) {
+					// the task it is on: a mark in the margin, in its own colour, not the headings'
+					g.fillRect(EDGE + PAD + 2, y + line / 2 - 2, 4, 4, CURRENT)
+				}
+				val colour: Int = if (row === hovered) WHITE else if (current) CURRENT else TASK_COLOUR
+				g.text(EDGE + PAD + TASK_INDENT, y + line - 2, row.label, colour, BLACK)
+				if (row.members) {
+					// members' tasks: a dim tag after the name rather than a longer name
+					g.text(EDGE + PAD + TASK_INDENT + g.textWidth(row.label) + MEMBERS_GAP, y + line - 2, "members", HINT, BLACK)
+				}
+				g.textRight(rowsRight, y + line - 2, "Lvl " + row.level, if (row === hovered) WHITE else HINT, BLACK)
 			} else {
 				g.text(EDGE + PAD, y + line - 2, row.toString(), TITLE, BLACK)
+				// a rule under each place's name, the row's width
+				g.fillRect(EDGE + PAD, y + line - 1, rowsRight - EDGE - PAD, 1, RULE)
 			}
 		}
 		if (scrollRows > 0) {
@@ -1619,6 +1667,17 @@ object Companions : Plugin {
 	private const val FLASH: Int = 0x60FF3030
 	internal const val HOVER: Int = 0x40FFFFFF
 	private const val BAR_LINE: Int = 0xFF3A3630.toInt()
+	internal const val ROW_BACK: Int = 0x66000000
+	internal const val WINDOW_BACK: Int = 0xFF14110E.toInt()
+	private const val ROW_GAP: Int = 4
+	private const val RULE: Int = 0x80FF981F.toInt()
+	private const val CURRENT: Int = 0xFF8CE68C.toInt()
+	private const val CURRENT_BACK: Int = 0x2A8CE68C
+	private const val STATUS_GOOD: Int = 0xFF8CE68C.toInt()
+	private const val STATUS_WAIT: Int = 0xFFE6C85A.toInt()
+	private const val DOT_SIZE: Int = 5
+	private const val DOT_GAP: Int = 4
+	private const val MEMBERS_GAP: Int = 6
 
 	private val PALETTE: IntArray = intArrayOf(0xFFFF9F1C.toInt(), 0xFF4CC9F0.toInt(), 0xFF9EF01A.toInt(), 0xFFFF5DA2.toInt())
 }

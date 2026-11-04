@@ -8,6 +8,7 @@ import com.jagex.game.runetek5.client.features.Companions.command
 import com.jagex.game.runetek5.client.features.Companions.itemAmount
 import com.jagex.game.runetek5.client.features.Companions.itemId
 import com.jagex.game.runetek5.plugin.api.ClientApi
+import com.jagex.game.runetek5.plugin.api.Font
 import com.jagex.game.runetek5.plugin.api.Graphics
 import com.jagex.game.runetek5.plugin.api.OverlayMenuEntry
 import com.jagex.game.runetek5.plugin.api.OverlayLayer
@@ -254,14 +255,14 @@ object CompanionsLoadout {
 				continue
 			}
 			val left: Int = WORN_X + sx
-			val top: Int = Companions.CONTENT_Y + SLOT_Y[index]
+			val top: Int = GRID_Y + SLOT_Y[index]
 			if (x >= left && x < left + SLOT && y >= top && y < top + SLOT) {
 				return index
 			}
 		}
 		val column: Int = (x - CARRIED_X) / INV_W
-		val row: Int = (y - Companions.CONTENT_Y) / INV_H
-		if (x < CARRIED_X || y < Companions.CONTENT_Y || column !in 0 until INV_COLUMNS || row !in 0 until INV_ROWS) {
+		val row: Int = (y - GRID_Y) / INV_H
+		if (x < CARRIED_X || y < GRID_Y || column !in 0 until INV_COLUMNS || row !in 0 until INV_ROWS) {
 			return -1
 		}
 		return EQUIPMENT + row * INV_COLUMNS + column
@@ -273,16 +274,20 @@ object CompanionsLoadout {
 			return null
 		}
 		val width: Int = CARRIED_X + INV_COLUMNS * INV_W + Companions.PAD + Companions.EDGE
-		val height: Int = Companions.CONTENT_Y + INV_ROWS * INV_H + Companions.PAD + Companions.EDGE
-		Companions.window(g, width, height, bot.name + "'s Equipment & Inventory")
+		val height: Int = GRID_Y + INV_ROWS * INV_H + Companions.PAD + Companions.EDGE
+		Companions.window(g, width, height, bot.name + "'s Equipment & Inventory", Companions.WINDOW_BACK)
 		val client: ClientApi? = Companions.client
 		val overClose: Boolean = client != null && onCloseButton(overlay, client.mouseX() - overlay.boundsX, client.mouseY() - overlay.boundsY)
 		g.sprite(if (overClose) CLOSE_HOVER else CLOSE, width - CLOSE_RIGHT - CLOSE_SIZE, CLOSE_TOP)
 		val hovered: Int = hoveredItem(overlay)
+		// each side named
+		g.font(Font.SMALL)
+		g.text(WORN_X, GRID_Y - 3, "Worn", Companions.TITLE, Companions.BLACK)
+		g.text(CARRIED_X + 3, GRID_Y - 3, "Carried", Companions.TITLE, Companions.BLACK)
 		// the equipment tab's layout: its bars behind the slots (only the gaps between slots show them), then a slot sprite and the item in each
 		for (i in BAR_X.indices) {
 			val x: Int = WORN_X + BAR_X[i]
-			val y: Int = Companions.CONTENT_Y + BAR_Y[i]
+			val y: Int = GRID_Y + BAR_Y[i]
 			// the strips are 32 long and carry a 13 pixel offset in the cache: tiled along the bar, clipped to it
 			if (BAR_VERTICAL[i]) {
 				g.clip(x, y, BAR, BAR_LENGTH[i])
@@ -307,7 +312,7 @@ object CompanionsLoadout {
 				continue
 			}
 			val x: Int = WORN_X + sx
-			val y: Int = Companions.CONTENT_Y + SLOT_Y[index]
+			val y: Int = GRID_Y + SLOT_Y[index]
 			g.sprite(SLOT_SPRITE, x, y)
 			if (index == hovered) {
 				g.fillRect(x + 1, y + 1, SLOT - 2, SLOT - 2, Companions.HOVER)
@@ -322,7 +327,9 @@ object CompanionsLoadout {
 		}
 		for (index in 0 until INVENTORY) {
 			val x: Int = CARRIED_X + (index % INV_COLUMNS) * INV_W
-			val y: Int = Companions.CONTENT_Y + (index / INV_COLUMNS) * INV_H
+			val y: Int = GRID_Y + (index / INV_COLUMNS) * INV_H
+			// a faint cell for each slot, so an empty bag still reads as 28 places
+			g.drawRect(x + 1, y + 1, INV_W - 2, INV_H - 2, CELL)
 			if (EQUIPMENT + index == hovered) {
 				g.fillRect(x, y, INV_W, INV_H, Companions.HOVER)
 			}
@@ -343,6 +350,10 @@ object CompanionsLoadout {
 	}
 
 	// the worn-equipment screen's close button (667:74): 16 by 16, 10 in from the right and 3 down, 832 on hover
+	private const val CELL: Int = 0x28FFFFFF
+
+	/** The grids start a label's height under the title band: "Worn" and "Carried" sit on the line above them. */
+	private const val GRID_Y: Int = Companions.CONTENT_Y + 14
 	private const val CLOSE: Int = 831
 	private const val CLOSE_HOVER: Int = 832
 	private const val CLOSE_SIZE: Int = 16
