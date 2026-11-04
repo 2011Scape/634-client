@@ -76,9 +76,14 @@ package com.jagex.game.runetek5.plugin.api
  *   minimap's round mask, and drawing under the orbs ([com.jagex.game.runetek5.plugin.api.events.Events.MINIMAP_DRAW]).
  * - 39: a chat box line's text changed in place ([ClientApi.setChatLine]).
  * - 40: animations the server plays on locations ([com.jagex.game.runetek5.plugin.api.events.Events.LOC_ANIMATION_CHANGED]).
+ * - 41: submenus in a panel's or an info box's shift-right-click menu ([OverlayMenuEntry.submenu]).
+ * - 42: a panel's menu on a plain right click ([PanelOverlay.menuOnRightClick]).
+ * - 43: an item's inventory options ([ClientApi.itemInventoryOptions]) and whether a menu is open ([ClientApi.isMenuOpen]).
+ * - 44: a click on a panel ([PanelOverlay.onClick]).
+ * - 45: a panel over the game's interfaces ([PanelOverlay.layer]).
  * - 31: the drag ([ClientApi.isDraggingWidget], [ClientApi.draggedWidget], [ClientApi.draggedOnWidget], [ClientApi.itemPressedDuration]) and [Graphics.itemIconAlpha].
  */
 object PluginApi {
 	/** This client's API version. */
-	const val VERSION: Int = 40
+	const val VERSION: Int = 45
 }

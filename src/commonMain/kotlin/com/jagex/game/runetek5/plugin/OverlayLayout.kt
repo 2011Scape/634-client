@@ -21,6 +21,11 @@ import com.jagex.game.runetek5.plugin.api.OverlayMenuEntry
 import com.jagex.game.runetek5.plugin.api.OverlayOrigin
 import com.jagex.game.runetek5.plugin.api.OverlayOriginX
 import com.jagex.game.runetek5.plugin.api.OverlayOriginY
+import com.jagex.game.runetek5.InterfaceManager
+import com.jagex.game.runetek5.cache.node.HashTableIterator
+import com.jagex.game.runetek5.config.iftype.SubInterfaceType
+import com.jagex.game.runetek5.config.rsinterface.SubInterface
+import com.jagex.game.runetek5.plugin.api.OverlayLayer
 import com.jagex.game.runetek5.plugin.api.OverlayPosition
 import com.jagex.game.runetek5.plugin.api.PanelOverlay
 import com.jagex.game.runetek5.plugin.api.Size
@@ -131,6 +136,9 @@ object OverlayLayout {
 	private var dragTarget: Entry? = null
 	private var hovered: Entry? = null
 	private var lastHovered: Entry? = null
+
+	/** The panels of this frame drawn over the interfaces, in order, between [draw] and [drawAboveInterfaces]. */
+	private val above: ArrayList<Entry> = ArrayList()
 	private var offsetX: Int = 0
 	private var offsetY: Int = 0
 	private var resizeEdges: Int = 0
@@ -263,9 +271,31 @@ object OverlayLayout {
 			}
 		}
 		sortEntries()
+		above.clear()
 		for (entry in entries) {
+			if (entry.overlay.layer === OverlayLayer.ABOVE_WIDGETS) {
+				above.add(entry)
+			} else {
+				drawEntry(entry, mouseX, mouseY)
+			}
+		}
+		if (above.isEmpty()) {
+			hovered?.overlay?.onMouseOver()
+		}
+	}
+
+	/** The panels over the game's interfaces ([OverlayLayer.ABOVE_WIDGETS]), after [draw] and the interfaces, before the menu. */
+	@JvmStatic
+	fun drawAboveInterfaces() {
+		if (above.isEmpty() || !loggedIn()) {
+			return
+		}
+		val mouseX: Int = mouseX()
+		val mouseY: Int = mouseY()
+		for (entry in above) {
 			drawEntry(entry, mouseX, mouseY)
 		}
+		above.clear()
 		hovered?.overlay?.onMouseOver()
 	}
 
@@ -350,11 +380,8 @@ object OverlayLayout {
 			}
 			ToolkitGraphics.drawRect(entry.x, entry.y, entry.width + 1, entry.height + 1, colour)
 		}
-		if (!MiniMenu.isOpen && !MiniMenu.interfaceSelectionActive && entry.contains(mouseX, mouseY)) {
-			val h: Entry? = hovered
-			if (h == null || entry.width * entry.height <= h.width * h.height) {
-				hovered = entry
-			}
+		if (!MiniMenu.isOpen && !MiniMenu.interfaceSelectionActive && entry.contains(mouseX, mouseY) && takesHover(hovered?.overlay, overlay)) {
+			hovered = entry
 		}
 	}
 
@@ -609,6 +636,14 @@ object OverlayLayout {
 		setCursor(CursorType.DEFAULT_CURSOR)
 	}
 
+	/**
+	 * Whether [candidate], drawn after [current] and under the mouse too, takes the hover from it: the panel drawn
+	 * last of a layer is the one seen on top (a window opened over a HUD panel takes the clicks aimed at it), and a
+	 * panel over the interfaces keeps it from any under them.
+	 */
+	@JvmStatic
+	fun takesHover(current: PanelOverlay?, candidate: PanelOverlay): Boolean = current == null || current.layer.ordinal <= candidate.layer.ordinal
+
 	/** The panel under the mouse last frame, the snap corners included while managing. */
 	private fun lastHoveredEntry(mouseX: Int, mouseY: Int): Entry? {
 		var found: Entry? = lastHovered
@@ -728,6 +763,55 @@ object OverlayLayout {
 		}
 		return true
 	}
+
+	/**
+	 * A mouse button went down at ([mouseX], [mouseY]) and the game has not had it yet: the panel under it
+	 * hears of it ([PanelOverlay.onClick], API 44). True when the panel kept the click. Not while managing
+	 * (the press moves the panel), nor with a menu open (the press is on one of its entries).
+	 */
+	@JvmStatic
+	fun clicked(mouseX: Int, mouseY: Int, clickType: Int): Boolean {
+		if (editMode || MiniMenu.isOpen || !loggedIn()) {
+			return false
+		}
+		val entry: Entry = lastHovered ?: return false
+		if (!entry.contains(mouseX, mouseY) || coveredByInterface(entry)) {
+			return false
+		}
+		return try {
+			entry.overlay.onClick(mouseX - entry.x, mouseY - entry.y, clickType)
+		} catch (error: Throwable) {
+			PluginRuntime.fail(entry.owner, error)
+			false
+		}
+	}
+
+	/**
+	 * Whether a game interface is drawn over [entry]: a panel under the interfaces ([OverlayLayer.UNDER_WIDGETS])
+	 * while a modal one (the bank, the settings) is open. Such a panel offers no menu and takes no click then, so
+	 * the interface over it keeps them.
+	 */
+	private fun coveredByInterface(entry: Entry): Boolean {
+		if (entry.overlay.layer !== OverlayLayer.UNDER_WIDGETS) {
+			return false
+		}
+		if (testMouse) {
+			return testModal
+		}
+		val open: HashTableIterator = HashTableIterator(InterfaceManager.OPEN_INTERFACES)
+		var sub: SubInterface? = open.first() as SubInterface?
+		while (sub != null) {
+			if (sub.openType === SubInterfaceType.MODAL) {
+				return true
+			}
+			sub = open.next() as SubInterface?
+		}
+		return false
+	}
+
+	/** For the tests, with [testMouse]: whether a modal interface counts as open. */
+	@JvmField
+	var testModal: Boolean = false
 
 	/** RuneLite's mouseDragged: the panel follows the mouse, or its edges do. */
 	private fun dragged(mouseX: Int, mouseY: Int) {
@@ -989,18 +1073,24 @@ object OverlayLayout {
 	/**
 	 * The menu for what is under the mouse is built (MiniMenuInputTick): with Shift held over a panel, its
 	 * entries just under the top one (RuneLite's onPostMenuSort) and, for a movable one, an Overlay Origin
-	 * submenu just above Cancel (RuneLite's addOriginMenu).
+	 * submenu just above Cancel (RuneLite's addOriginMenu). A panel with [PanelOverlay.menuOnRightClick] gets
+	 * its entries without Shift too, in place of the game's for what is under it (API 42).
+	 * @return whether the menu changed
 	 */
 	@JvmStatic
-	fun menuBuilt() {
+	fun menuBuilt(): Boolean {
 		lastHovered = hovered
-		val entry: Entry = hovered ?: return
+		val entry: Entry = hovered ?: return false
 		if (MiniMenu.isOpen || !loggedIn()) {
-			return
+			return false
 		}
-		val keys: KeyRecorder = KeyRecorder.keyRecorder ?: return
-		if (!(if (testMouse) testShift else keys.isPressed(KeyCode.SHIFT))) {
-			return
+		val keys: KeyRecorder = KeyRecorder.keyRecorder ?: return false
+		val shift: Boolean = if (testMouse) testShift else keys.isPressed(KeyCode.SHIFT)
+		if (!shift && !entry.overlay.menuOnRightClick) {
+			return false
+		}
+		if (!shift && coveredByInterface(entry)) {
+			return false
 		}
 		offeredEntries.clear()
 		offeredFor = entry
@@ -1011,9 +1101,37 @@ object OverlayLayout {
 			PluginRuntime.fail(entry.owner, error)
 		}
 		if (menu.isNotEmpty()) {
-			val top: MiniMenuEntry? = MiniMenu.entryList.last() as MiniMenuEntry?
+			// the panel's own menu (a plain right click) is a window's: what the game offers for the tile or npc under
+			// it, the walk included, is a misclick, so none of it is kept and the panel's first entry is the hover
+			// text; the shift menu keeps the game's top entry as the left click
+			val top: MiniMenuEntry? = if (shift) MiniMenu.entryList.last() as MiniMenuEntry? else null
+			if (!shift) {
+				hideGameEntries(null)
+			}
+			// entries sharing a submenu label go under one entry of that label (API 41); -1 means no room, plain entries then
+			val submenus: HashMap<String, Int> = HashMap()
 			for (i in menu.size - 1 downTo 0) {
 				val item: OverlayMenuEntry = menu[i]
+				if (item.submenu.isNotEmpty()) {
+					val submenu: Int = submenus[item.submenu] ?: run {
+						// the submenu's own target is the first grouped entry's, in the plugin's order
+						val first: OverlayMenuEntry = menu.first { it.submenu == item.submenu }
+						val opened: Int = PluginRuntime.clientSubmenu(item.submenu, MENU_TARGET + first.target, entry.serial)
+						submenus[item.submenu] = opened
+						if (opened >= 0) {
+							for (child in menu) {
+								if (child.submenu == item.submenu) {
+									offeredEntries.add(child)
+									PluginRuntime.clientSubmenuEntry(opened, child.option, entry.serial, offeredEntries.size - 1)
+								}
+							}
+						}
+						opened
+					}
+					if (submenu >= 0) {
+						continue
+					}
+				}
 				offeredEntries.add(item)
 				MiniMenu.addEntry(false, MENU_TARGET + item.target, offeredEntries.size - 1, true, entry.serial, -1, true, MiniMenuAction.OVERLAY_MENU, 0L, item.option, 0L, -1)
 			}
@@ -1023,9 +1141,31 @@ object OverlayLayout {
 				MiniMenu.entryList.addLast(top)
 			}
 		}
-		if (entry.overlay.movable && entry.overlay !is SnapCorner.CornerOverlay) {
+		if (shift && entry.overlay.movable && entry.overlay !is SnapCorner.CornerOverlay) {
 			addOriginMenu(entry)
 		}
+		return true
+	}
+
+	/** Drops the game's entries (everything that is not a plugin's) other than [top], the left click, when one is kept. */
+	private fun hideGameEntries(top: MiniMenuEntry?) {
+		val game: ArrayList<MiniMenuEntry> = ArrayList()
+		var item: MiniMenuEntry? = MiniMenu.entryList.first() as MiniMenuEntry?
+		while (item != null) {
+			if (item !== top && !pluginEntry(item.clickType)) {
+				game.add(item)
+			}
+			item = MiniMenu.entryList.next() as MiniMenuEntry?
+		}
+		for (entry in game) {
+			MiniMenu.removeEntry(entry)
+		}
+	}
+
+	/** Whether [clickType] (2000 up while an item is selected) is one of the plugins' own: a submenu, a panel's entry or a plugin's menu entry. */
+	private fun pluginEntry(clickType: Int): Boolean {
+		val type: Int = clickType % 2000
+		return type == MiniMenuAction.PLUGIN_SUBMENU || type == MiniMenuAction.OVERLAY_MENU || type in MiniMenuAction.PLUGIN_FIRST..MiniMenuAction.PLUGIN_LAST
 	}
 
 	/** RuneLite's addOriginMenu options, and the origins they choose. */

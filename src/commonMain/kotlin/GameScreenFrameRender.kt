@@ -1,7 +1,7 @@
 import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.client.menu.MiniMenu
+import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.camera.CameraMode
-import com.jagex.game.runetek5.js5.MessageBoxBackgroundSprite
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
@@ -52,6 +52,7 @@ object GameScreenFrameRender {
 			Static701.method5594()
 		}
 		ClientState.activeToolkit!!.la()
+		PluginRuntime.drawAboveInterfaces() // Not part of the original client: the plugins' panels over the interfaces, under the menu.
 		MiniMenu.render(ClientState.activeToolkit)
 		@Pc(94) var cursorId: Int = MiniMenu.getMinimenuCursor()
 		if (cursorId == -1) {

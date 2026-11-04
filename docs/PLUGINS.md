@@ -947,7 +947,13 @@ that corner with a higher `priority`, or where the player dragged it, and calls 
 the drawing moved so that the panel's top-left corner is (0, 0); `render` returns the size it drew, or
 null for nothing this frame. Give it a `name` that stays the same between versions: its place is kept
 under the plugin's id and that name. `resizable` panels read `preferredWidth`; `addMenuEntry` adds a
-Shift-right-click entry; `backgroundColour` is the one the player chose.
+Shift-right-click entry, and entries given the same `submenu` label sit under one entry of that label
+that opens them as a submenu (API 41); with `menuOnRightClick` a plain right click offers them too, in
+place of the game's entries for what is under the panel (API 42); `onClick(x, y, button)` hears of a
+mouse button going down on the panel, at panel coordinates, and keeps the click from the game by
+returning true (API 44); `backgroundColour` is the one the player chose. A panel draws in the game view,
+under the game's interfaces: `layer = OverlayLayer.ABOVE_WIDGETS` draws it after them and before the
+right-click menu instead, for a window that must stay in front of the bank (API 45).
 
 **`OverlayPanel`** is a `PanelOverlay` that is a `PanelComponent`, as RuneLite's: add this frame's
 lines in `render` and return `super.render(g, view)`.

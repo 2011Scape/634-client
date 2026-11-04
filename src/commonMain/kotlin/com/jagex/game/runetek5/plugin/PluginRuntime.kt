@@ -891,6 +891,18 @@ object PluginRuntime {
 		compactOverlays()
 	}
 
+	/** After the game's interfaces, before the right-click menu: the panels over the interfaces (API 45). */
+	@JvmStatic
+	fun drawAboveInterfaces() {
+		if (!started) {
+			return
+		}
+		drawingOverlays = true
+		OverlayLayout.drawAboveInterfaces()
+		ToolkitGraphics.reset()
+		drawingOverlays = false
+	}
+
 	/** After the whole frame is drawn, before it is shown. */
 	@JvmStatic
 	fun drawFrame(width: Int, height: Int) {

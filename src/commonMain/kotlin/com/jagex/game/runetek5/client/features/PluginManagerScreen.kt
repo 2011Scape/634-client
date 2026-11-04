@@ -36,7 +36,9 @@ import kotlin.jvm.JvmStatic
  * or `::pluginmanager`. Built from [ClientPage]'s pieces
  * as flat children of the window's content layer (742:2); hooks carry [SENTINEL], which
  * CS2Interpreter.executeHookInternal routes to [hook]. The server knows nothing of the window: one
- * it opens in the same slot replaces it, and the game goes on.
+ * it opens in the same slot replaces it, and the game goes on. While it (or a plugin's screen) is open the
+ * game world's menu entries go and the Graphics and Audio Settings buttons answer with the game's line
+ * instead of opening over it ([ClientWindows]).
  */
 object PluginManagerScreen {
 

@@ -63,6 +63,12 @@ interface ClientApi {
 	/** The item's name; [item] has the rest of its type. */
 	fun itemName(id: Int): String?
 
+	/** The item's five inventory options as the game lists them ("Eat", null, null, null, "Drop"), null where it has none. Since API 43. */
+	fun itemInventoryOptions(id: Int): Array<String?>
+
+	/** Whether a right-click menu is open: a click then is on one of its entries, wherever it lands. Since API 43. */
+	fun isMenuOpen(): Boolean
+
 	/** The npc type's name; [npcType] has the rest. */
 	fun npcName(id: Int): String?
 
