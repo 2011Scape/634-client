@@ -75,7 +75,7 @@ object Companions : Plugin {
 
 	/** The server's OwnedBotStatus, by ordinal. */
 	@JvmField
-	val STATUS_NAMES: Array<String> = arrayOf("Away", "Standing by", "Working", "Banking", "Following", "Fighting", "Low health", "Fled", "Stopped", "Dead", "Holding", "Recovering")
+	val STATUS_NAMES: Array<String> = arrayOf("Away", "Standing by", "Working", "Banking", "Following", "Fighting", "Low health", "Fled", "Stopped", "Dead", "Holding", "Restoring")
 
 	@JvmField
 	val PROFILES: Array<String> = arrayOf("passive", "melee", "ranged", "mage")
@@ -848,11 +848,11 @@ object Companions : Plugin {
 			return
 		}
 		// the orders given every minute stay on the row's menu, in the order they are reached for: Call (which has
-		// the bot follow, teleporting it over only when it is not near), hold, stand down, then recovery
+		// the bot follow, teleporting it over only when it is not near), hold, stand down, then restoring
 		add("Call", Task { command("bot call $slot") })
 		add("Hold position", Task { command("bot guard $slot") })
 		add("Stand down", Task { command("bot stop $slot") })
-		add("Recover", Task { command("bot recover $slot") })
+		add("Restore", Task { command("bot restore $slot") })
 		add("Task...", Task { selected = bot.slot; tasksOpen = true; CompanionsLoadout.useFrom = -1 })
 		add("Loadout", Task { CompanionsLoadout.show(bot.slot) })
 		// the rarer gear and combat orders fold into a submenu each; the folded roster already holds the bot in a
@@ -910,7 +910,7 @@ object Companions : Plugin {
 				entries.add(OverlayMenuEntry("Call all", "Bots", Task { command("bot call all") }))
 				entries.add(OverlayMenuEntry("Hold position, all", "Bots", Task { command("bot guard all") }))
 				entries.add(OverlayMenuEntry("Stand down, all", "Bots", Task { command("bot stop all") }))
-				entries.add(OverlayMenuEntry("Recover all", "Bots", Task { command("bot recover all") }))
+				entries.add(OverlayMenuEntry("Restore all", "Bots", Task { command("bot restore all") }))
 			}
 			entries.add(OverlayMenuEntry("Refresh", "Companions", Task { handshake() }))
 			entries.add(OverlayMenuEntry("Configure", "Companions", Task { PluginManagerScreen.openSettings(DESCRIPTOR.id) }))
@@ -1206,7 +1206,7 @@ object Companions : Plugin {
 		return if (end == 0) "" else text.substring(0, end).trimEnd() + ".."
 	}
 
-	/** The colour a status reads in: green at work, white following or guarding, red in trouble, amber recovering, grey away or dead. */
+	/** The colour a status reads in: green at work, white following or guarding, red in trouble, amber restoring, grey away or dead. */
 	private fun statusColour(bot: Bot): Int = when {
 		!bot.alive -> DEAD
 		!bot.online -> AWAY
