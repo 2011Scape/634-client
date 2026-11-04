@@ -1227,16 +1227,11 @@ object Companions : Plugin {
 	}
 
 	/**
-	 * The game's stone window: the resizable side tabs' see-through stone (1131) under everything, the worn-equipment screen's
+	 * The game's stone window: the windows' tiling stone (297) under everything, the worn-equipment screen's
 	 * frame (corners 1123/1125/826/827, the title band 1124, edges 821/823/822) over it, and [title] in the band.
 	 */
 	internal fun window(g: Graphics, width: Int, height: Int, title: String, backing: Int = 0) {
 		g.clip(0, 0, width, height)
-		if (backing != 0) {
-			// an opaque backdrop under the see-through stone: the stone keeps its grain and nothing behind the window
-			// shows through anywhere, the title band included
-			g.fillRect(0, 0, width, height, backing)
-		}
 		var y: Int = 0
 		while (y < height) {
 			var x: Int = 0
@@ -1245,6 +1240,10 @@ object Companions : Plugin {
 				x += STONE_W
 			}
 			y += STONE_H
+		}
+		if (backing != 0) {
+			// a tint over the stone, under the frame and title: darker for the text, the grain still through it
+			g.fillRect(0, 0, width, height, backing)
 		}
 		g.clip(CORNER, 0, width - CORNER * 2, height)
 		// the edge strips carry a 13 pixel offset in the cache (their place inside the screen's own layer)
@@ -1636,10 +1635,11 @@ object Companions : Plugin {
 	private const val TIP_BACK: Int = 0xE0000000.toInt()
 
 	// the game's stone window (the worn-equipment screen's, interface 549)
-	// the resizable side tabs' see-through stone (746's tab backgrounds), alpha 153 in the sprite itself
-	private const val STONE: Int = 1131
-	private const val STONE_W: Int = 190
-	private const val STONE_H: Int = 261
+	// the stone the game's windows tile (88x60, made to repeat): the side tabs' see-through stone (1131) is one shaded
+	// image and showed its edges as lines wherever it repeated
+	private const val STONE: Int = 297
+	private const val STONE_W: Int = 88
+	private const val STONE_H: Int = 60
 	private const val FRAME_TOP_LEFT: Int = 1123
 	private const val FRAME_TOP: Int = 1124
 	private const val FRAME_TOP_RIGHT: Int = 1125
@@ -1676,7 +1676,7 @@ object Companions : Plugin {
 	internal const val HOVER: Int = 0x40FFFFFF
 	private const val BAR_LINE: Int = 0xFF3A3630.toInt()
 	internal const val ROW_BACK: Int = 0x66000000
-	internal const val WINDOW_BACK: Int = 0xFF14110E.toInt()
+	internal const val WINDOW_BACK: Int = 0x70000000
 	private const val ROW_GAP: Int = 4
 	private const val RULE: Int = 0x80FF981F.toInt()
 	private const val CURRENT: Int = 0xFF8CE68C.toInt()
