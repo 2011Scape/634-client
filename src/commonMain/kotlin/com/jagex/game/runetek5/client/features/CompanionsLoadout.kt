@@ -109,7 +109,10 @@ object CompanionsLoadout {
 				val arg: String = id.toString()
 				val target: String = "<col=ff9040>" + name
 				val carried: Int = hovered - EQUIPMENT
-				val wieldable: Boolean = client.itemInventoryOptions(id).any { it.equals("Wield", ignoreCase = true) }
+				// a weapon is wielded, or worn (dragon claws, among others); what sits in the weapon slot is one whatever
+				// its option says. The server refuses an item with no special attack, so armour that is "worn" only earns
+				// a line saying so
+				val wieldable: Boolean = (worn && hovered == WEAPON) || client.itemInventoryOptions(id).any { it.equals("Wield", ignoreCase = true) || it.equals("Wear", ignoreCase = true) }
 				if (wieldable) {
 					if (bot.spec == id) {
 						entries.add(OverlayMenuEntry("Clear special attack", target, Task { command("bot spec $slot none") }))
@@ -354,6 +357,9 @@ object CompanionsLoadout {
 
 	/** The grids start a label's height under the title band: "Worn" and "Carried" sit on the line above them. */
 	private const val GRID_Y: Int = Companions.CONTENT_Y + 14
+	/** The weapon's index among the worn slots. */
+	private const val WEAPON: Int = 3
+
 	private const val CLOSE: Int = 831
 	private const val CLOSE_HOVER: Int = 832
 	private const val CLOSE_SIZE: Int = 16
