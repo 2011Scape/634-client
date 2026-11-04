@@ -1677,10 +1677,11 @@ object Companions : Plugin {
 	// the game's stone window (the worn-equipment screen's, interface 549)
 	// the stone the game's windows tile (88x60, made to repeat): the side tabs' see-through stone (1131) is one shaded
 	// image and showed its edges as lines wherever it repeated
-	/** The stone with its alpha scaled to [opacity] percent, built once per value it is asked at. */
+	/** The stone with its alpha scaled to [opacity] percent, built once per value asked for (each window has its own). */
 	private fun stoneAt(opacity: Int): Image? {
-		if (stoneOpacity == opacity) {
-			return stoneImage
+		val made: Image? = stones[opacity]
+		if (made != null) {
+			return made
 		}
 		val client: ClientApi = context?.client() ?: return null
 		val source: PluginImage = client.spriteImage(STONE) as? PluginImage ?: return null
@@ -1689,13 +1690,12 @@ object Companions : Plugin {
 			val argb: Int = source.pixels[i]
 			pixels[i] = (((argb ushr 24) * opacity / 100) shl 24) or (argb and 0xFFFFFF)
 		}
-		stoneImage = client.createImage(source.width, source.height, pixels)
-		stoneOpacity = if (stoneImage != null) opacity else -1
-		return stoneImage
+		val image: Image = client.createImage(source.width, source.height, pixels) ?: return null
+		stones[opacity] = image
+		return image
 	}
 
-	private var stoneImage: Image? = null
-	private var stoneOpacity: Int = -1
+	private val stones: HashMap<Int, Image> = HashMap()
 
 	/**
 	 * The bars' icons, 12 by 12 pixel art of the plugin's own: the orbs' heart and prayer symbol (sprites 1197 and
