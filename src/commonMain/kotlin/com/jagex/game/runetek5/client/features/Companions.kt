@@ -1152,8 +1152,7 @@ object Companions : Plugin {
 		}
 		val line: Int = g.fontHeight()
 		val width: Int = if (overlay.preferredWidth > 0) overlay.preferredWidth else PANEL_WIDTH
-		// the bars are tall enough for the heart orb icon (15 by 14) as it is; the prayer icon (20 by 20) is scaled to fit
-		statLine = maxOf(line + 2, BAR_LINE_MIN)
+		statLine = line + 2
 		val botHeight: Int = line + statLine + GAP
 		val rows: List<Bot> = current.bots.filter { it.alive || it.name.isNotEmpty() }
 		val hint: Boolean = !current.active() || rows.isEmpty()
@@ -1240,7 +1239,7 @@ object Companions : Plugin {
 		else -> STATUS_COLOUR
 	}
 
-	/** A bar of [value] out of [max] in [colour], the orb's [icon] at its left end and [label] centred in the rest. */
+	/** A bar of [value] out of [max] in [colour], the [icon] ([HP_ICON] or [PRAYER_ICON]) at its left end and [label] centred in the rest. */
 	private fun stat(g: Graphics, x: Int, y: Int, width: Int, value: Int, max: Int, colour: Int, icon: Int, label: String) {
 		val height: Int = statLine - 1
 		g.fillRect(x, y + 1, width, height, BAR_BACK)
@@ -1248,18 +1247,14 @@ object Companions : Plugin {
 			g.fillRect(x, y + 1, width * value.coerceIn(0, max) / max, height, colour)
 		}
 		g.drawRect(x, y + 1, width, height, BAR_LINE)
-		// the icon as it is when it fits the bar, scaled down to the bar's height when it does not
-		val size: Int = height - 2
-		val iconWidth: Int = g.spriteWidth(icon)
-		val iconHeight: Int = g.spriteHeight(icon)
-		val iconRoom: Int
-		if (iconWidth in 1..size && iconHeight in 1..size) {
-			g.sprite(icon, x + 2, y + 1 + (height - iconHeight) / 2)
-			iconRoom = iconWidth + 4
-		} else {
-			g.spriteScaled(icon, x + 2, y + 2, size, size)
-			iconRoom = size + 4
+		// the icon, 12 by 12, inset inside the bar and clipped to it, so it never sits on the border
+		val image: Image? = barIcon(icon)
+		g.clip(x + 1, y + 2, width - 2, height - 2)
+		if (image != null) {
+			g.image(image, x + BAR_ICON_INSET, y + 1 + (height - BAR_ICON) / 2)
 		}
+		g.unclip()
+		val iconRoom: Int = BAR_ICON_INSET + BAR_ICON + 2
 		g.textCentered(x + iconRoom + (width - iconRoom) / 2, y + height - 2, label, WHITE, BLACK)
 	}
 
@@ -1702,10 +1697,57 @@ object Companions : Plugin {
 	private var stoneImage: Image? = null
 	private var stoneOpacity: Int = -1
 
-	/** The minimap orbs' heart (1197, 15 by 14) and prayer (1198, 20 by 20) icons, as interfaces 748 and 749 draw them. */
-	private const val HP_ICON: Int = 1197
-	private const val BAR_LINE_MIN: Int = 17
-	private const val PRAYER_ICON: Int = 1198
+	/**
+	 * The bars' icons, 12 by 12 pixel art of the plugin's own: the orbs' heart and prayer symbol (sprites 1197 and
+	 * 1198) are 15 and 20 pixels and come out as a blob and a wedge scaled to a bar. Row-major ARGB; the icons sit
+	 * [BAR_ICON_INSET] in from the bar's left edge.
+	 */
+	private const val HP_ICON: Int = 0
+	private const val PRAYER_ICON: Int = 1
+	private const val BAR_ICON: Int = 12
+	private const val BAR_ICON_INSET: Int = 2
+	private val BAR_ICON_PIXELS: Array<IntArray> = arrayOf(
+		intArrayOf(
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0xFF200000.toInt(), 0xFF200000.toInt(), 0xFF200000.toInt(), 0x00000000, 0x00000000, 0xFF200000.toInt(), 0xFF200000.toInt(), 0xFF200000.toInt(), 0x00000000, 0x00000000,
+			0x00000000, 0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFFFFFFF.toInt(), 0xFFE81010.toInt(), 0xFF200000.toInt(), 0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFF200000.toInt(), 0x00000000,
+			0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFFFFFFF.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFA00808.toInt(), 0xFF200000.toInt(),
+			0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFF200000.toInt(),
+			0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFF200000.toInt(),
+			0x00000000, 0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFF200000.toInt(), 0x00000000,
+			0x00000000, 0x00000000, 0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFF200000.toInt(), 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000000, 0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFF200000.toInt(), 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF200000.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFF200000.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF200000.toInt(), 0xFF200000.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+		),
+		intArrayOf(
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0xFF202020.toInt(), 0xFF202020.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFB8B8B8.toInt(), 0xFF202020.toInt(), 0xFF202020.toInt(), 0x00000000,
+			0xFF202020.toInt(), 0xFF202020.toInt(), 0xFF202020.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFB8B8B8.toInt(), 0xFFB8B8B8.toInt(), 0xFF202020.toInt(), 0xFF202020.toInt(), 0xFF202020.toInt(),
+			0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFB8B8B8.toInt(), 0xFFB8B8B8.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFFB8B8B8.toInt(), 0xFFB8B8B8.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFFB8B8B8.toInt(), 0xFFB8B8B8.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+		),
+	)
+	private val barIcons: Array<Image?> = arrayOfNulls(2)
+
+	/** The bar icon [which] as an image, made once from its pixels. */
+	private fun barIcon(which: Int): Image? {
+		val made: Image? = barIcons[which]
+		if (made != null) {
+			return made
+		}
+		val image: Image? = context?.client()?.createImage(BAR_ICON, BAR_ICON, BAR_ICON_PIXELS[which])
+		barIcons[which] = image
+		return image
+	}
 
 	private const val STONE: Int = 297
 	private const val STONE_W: Int = 88
