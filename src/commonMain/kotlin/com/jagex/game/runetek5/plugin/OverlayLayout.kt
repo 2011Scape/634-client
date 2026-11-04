@@ -381,9 +381,10 @@ object OverlayLayout {
 			ToolkitGraphics.drawRect(entry.x, entry.y, entry.width + 1, entry.height + 1, colour)
 		}
 		if (!MiniMenu.isOpen && !MiniMenu.interfaceSelectionActive && entry.contains(mouseX, mouseY)) {
-			// the smallest panel under the mouse, a panel over the interfaces before any under them
+			// the panel drawn last under the mouse (the one seen on top: a window opened over a HUD panel takes the
+			// clicks the player aims at it), a panel over the interfaces before any under them
 			val h: Entry? = hovered
-			if (h == null || h.overlay.layer.ordinal < overlay.layer.ordinal || (h.overlay.layer === overlay.layer && entry.width * entry.height <= h.width * h.height)) {
+			if (h == null || h.overlay.layer.ordinal <= overlay.layer.ordinal) {
 				hovered = entry
 			}
 		}
