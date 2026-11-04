@@ -233,10 +233,10 @@ class CompanionsTest {
 		try {
 			val entries: List<OverlayMenuEntry> = Companions.panel.menuEntries()
 			val woody: List<String> = entries.filter { it.submenu == "1." }.map { it.option }
-			assertTrue("Follow" in woody && "Guard" in woody && "Loadout" in woody, "the online bot's orders: $woody")
+			assertTrue("Call" in woody && "Hold position" in woody && "Loadout" in woody, "the online bot's orders: $woody")
 			assertEquals(listOf("Summon"), entries.filter { it.submenu == "2." }.map { it.option }, "the away bot can only be summoned")
 			assertTrue(entries.none { it.submenu == "3." || it.submenu == "4." }, "empty slots have no submenu")
-			assertTrue(entries.any { it.option == "Guard all" && it.submenu.isEmpty() }, "the orders for every bot stay at the top level")
+			assertTrue(entries.any { it.option == "Hold position, all" && it.submenu.isEmpty() }, "the orders for every bot stay at the top level")
 		} finally {
 			Companions.collapsed = false
 			Companions.state = Companions.State(emptyList(), 0)

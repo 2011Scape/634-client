@@ -75,7 +75,7 @@ object Companions : Plugin {
 
 	/** The server's OwnedBotStatus, by ordinal. */
 	@JvmField
-	val STATUS_NAMES: Array<String> = arrayOf("Away", "Idle", "Working", "Banking", "Following", "Fighting", "Low health", "Fled", "Stopped", "Dead", "Guarding", "Recovering")
+	val STATUS_NAMES: Array<String> = arrayOf("Away", "Standing by", "Working", "Banking", "Following", "Fighting", "Low health", "Fled", "Stopped", "Dead", "Holding", "Recovering")
 
 	@JvmField
 	val PROFILES: Array<String> = arrayOf("passive", "melee", "ranged", "mage")
@@ -847,12 +847,11 @@ object Companions : Plugin {
 			add("Summon", Task { command("bot summon $slot") })
 			return
 		}
-		// the orders given every minute stay on the row's menu, in the order they are reached for: the two modes,
-		// the one that ends them, then the two for trouble
-		add("Follow", Task { command("bot follow $slot") })
-		add("Guard", Task { command("bot guard $slot") })
-		add("Stop", Task { command("bot stop $slot") })
+		// the orders given every minute stay on the row's menu, in the order they are reached for: Call (which has
+		// the bot follow, teleporting it over only when it is not near), hold, stand down, then recovery
 		add("Call", Task { command("bot call $slot") })
+		add("Hold position", Task { command("bot guard $slot") })
+		add("Stand down", Task { command("bot stop $slot") })
 		add("Recover", Task { command("bot recover $slot") })
 		add("Task...", Task { selected = bot.slot; tasksOpen = true; CompanionsLoadout.useFrom = -1 })
 		add("Loadout", Task { CompanionsLoadout.show(bot.slot) })
@@ -908,10 +907,9 @@ object Companions : Plugin {
 			}
 			// off a bot's row (the title, a dead slot, the empty part): what concerns every bot
 			if (state.bots.any { it.online }) {
-				entries.add(OverlayMenuEntry("Follow all", "Bots", Task { command("bot follow all") }))
-				entries.add(OverlayMenuEntry("Stop all", "Bots", Task { command("bot stop all") }))
-				entries.add(OverlayMenuEntry("Guard all", "Bots", Task { command("bot guard all") }))
 				entries.add(OverlayMenuEntry("Call all", "Bots", Task { command("bot call all") }))
+				entries.add(OverlayMenuEntry("Hold position, all", "Bots", Task { command("bot guard all") }))
+				entries.add(OverlayMenuEntry("Stand down, all", "Bots", Task { command("bot stop all") }))
 				entries.add(OverlayMenuEntry("Recover all", "Bots", Task { command("bot recover all") }))
 			}
 			entries.add(OverlayMenuEntry("Refresh", "Companions", Task { handshake() }))
@@ -1005,7 +1003,7 @@ object Companions : Plugin {
 		s.toggle("hideTaskLines", "Hide the task list lines from the chat", true)
 		s.keybind("callKey", "Call all companions", 0)
 		s.keybind("followKey", "Follow me, all companions", 0)
-		s.keybind("stopKey", "Stop all companions", 0)
+		s.keybind("stopKey", "Stand down, all companions", 0)
 		for (slot in 0 until SLOTS) {
 			s.keybind("loadoutKey" + (slot + 1), "Loadout of companion " + (slot + 1), 0)
 		}
