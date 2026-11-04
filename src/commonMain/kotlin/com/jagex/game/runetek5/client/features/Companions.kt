@@ -884,6 +884,9 @@ object Companions : Plugin {
 		if (bot.spec > 0) {
 			add("Clear special attack", Task { command("bot spec $slot none") }, "<col=ff9040>" + (context?.client()?.itemName(bot.spec) ?: "weapon"), group = combat)
 		}
+		if (bot.spell != 0) {
+			add("Clear autocast", Task { command("bot spell $slot none") }, "<col=ff9040>" + (context?.client()?.let { spellName(it, bot.spellBook, bot.spell) } ?: "spell"), group = combat)
+		}
 		add("Dismiss", Task { command("bot dismiss $slot") })
 	}
 
@@ -1699,43 +1702,75 @@ object Companions : Plugin {
 
 	/**
 	 * The bars' icons, 12 by 12 pixel art of the plugin's own: the orbs' heart and prayer symbol (sprites 1197 and
-	 * 1198) are 15 and 20 pixels and come out as a blob and a wedge scaled to a bar. Row-major ARGB; the icons sit
-	 * [BAR_ICON_INSET] in from the bar's left edge.
+	 * 1198) are 15 and 20 pixels and come out as a blob and a wedge scaled to a bar. Each is a mask (# for a pixel)
+	 * coloured at first use: a one-pixel outline round the edge, the fill, a darker shade over the bottom-right half,
+	 * and a highlight where given. The icons sit [BAR_ICON_INSET] in from the bar's left edge.
 	 */
 	private const val HP_ICON: Int = 0
 	private const val PRAYER_ICON: Int = 1
 	private const val BAR_ICON: Int = 12
 	private const val BAR_ICON_INSET: Int = 2
-	private val BAR_ICON_PIXELS: Array<IntArray> = arrayOf(
-		intArrayOf(
-			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-			0x00000000, 0x00000000, 0xFF200000.toInt(), 0xFF200000.toInt(), 0xFF200000.toInt(), 0x00000000, 0x00000000, 0xFF200000.toInt(), 0xFF200000.toInt(), 0xFF200000.toInt(), 0x00000000, 0x00000000,
-			0x00000000, 0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFFFFFFF.toInt(), 0xFFE81010.toInt(), 0xFF200000.toInt(), 0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFF200000.toInt(), 0x00000000,
-			0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFFFFFFF.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFA00808.toInt(), 0xFF200000.toInt(),
-			0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFF200000.toInt(),
-			0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFF200000.toInt(),
-			0x00000000, 0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFF200000.toInt(), 0x00000000,
-			0x00000000, 0x00000000, 0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFE81010.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFF200000.toInt(), 0x00000000, 0x00000000,
-			0x00000000, 0x00000000, 0x00000000, 0xFF200000.toInt(), 0xFFE81010.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFF200000.toInt(), 0x00000000, 0x00000000, 0x00000000,
-			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF200000.toInt(), 0xFFA00808.toInt(), 0xFFA00808.toInt(), 0xFF200000.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF200000.toInt(), 0xFF200000.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	private val BAR_ICON_ART: Array<IconArt> = arrayOf(
+		IconArt(
+			"............",
+			"..###..###..",
+			".##########.",
+			"############",
+			"############",
+			"############",
+			".##########.",
+			"..########..",
+			"...######...",
+			"....####....",
+			".....##.....",
+			"............",
+			fill = 0xFFE81010.toInt(), shade = 0xFFA00808.toInt(), outline = 0xFF200000.toInt(), highlight = intArrayOf(3, 2, 2, 3),
 		),
-		intArrayOf(
-			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-			0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000,
-			0x00000000, 0xFF202020.toInt(), 0xFF202020.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFB8B8B8.toInt(), 0xFF202020.toInt(), 0xFF202020.toInt(), 0x00000000,
-			0xFF202020.toInt(), 0xFF202020.toInt(), 0xFF202020.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFB8B8B8.toInt(), 0xFFB8B8B8.toInt(), 0xFF202020.toInt(), 0xFF202020.toInt(), 0xFF202020.toInt(),
-			0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFFF4F4F4.toInt(), 0xFFF4F4F4.toInt(), 0xFFB8B8B8.toInt(), 0xFFB8B8B8.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000,
-			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFFB8B8B8.toInt(), 0xFFB8B8B8.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFFB8B8B8.toInt(), 0xFFB8B8B8.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF202020.toInt(), 0xFF202020.toInt(), 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+		IconArt(
+			".....##.....",
+			".....##.....",
+			"....####....",
+			"....####....",
+			"...######...",
+			".##########.",
+			"############",
+			"...######...",
+			"....####....",
+			"....####....",
+			".....##.....",
+			".....##.....",
+			fill = 0xFFF4F4F4.toInt(), shade = 0xFFB8B8B8.toInt(), outline = 0xFF202020.toInt(),
 		),
 	)
+
+	/** A bar icon's mask and colours; [highlight] is x, y pairs of pixels left white. */
+	private class IconArt(vararg val rows: String, val fill: Int, val shade: Int, val outline: Int, val highlight: IntArray = IntArray(0)) {
+		fun pixels(): IntArray {
+			val size: Int = rows.size
+			fun on(x: Int, y: Int): Boolean = x in 0 until size && y in 0 until size && rows[y][x] == '#'
+			val out = IntArray(size * size)
+			for (y in 0 until size) {
+				for (x in 0 until size) {
+					if (!on(x, y)) {
+						continue
+					}
+					val edge: Boolean = !on(x + 1, y) || !on(x - 1, y) || !on(x, y + 1) || !on(x, y - 1)
+					out[y * size + x] = if (edge) outline else if (x + y >= size + 1) shade else fill
+				}
+			}
+			var i = 0
+			while (i + 1 < highlight.size) {
+				val x: Int = highlight[i]
+				val y: Int = highlight[i + 1]
+				if (on(x, y)) {
+					out[y * size + x] = WHITE
+				}
+				i += 2
+			}
+			return out
+		}
+	}
+
 	private val barIcons: Array<Image?> = arrayOfNulls(2)
 
 	/** The bar icon [which] as an image, made once from its pixels. */
@@ -1744,7 +1779,7 @@ object Companions : Plugin {
 		if (made != null) {
 			return made
 		}
-		val image: Image? = context?.client()?.createImage(BAR_ICON, BAR_ICON, BAR_ICON_PIXELS[which])
+		val image: Image? = context?.client()?.createImage(BAR_ICON, BAR_ICON, BAR_ICON_ART[which].pixels())
 		barIcons[which] = image
 		return image
 	}
