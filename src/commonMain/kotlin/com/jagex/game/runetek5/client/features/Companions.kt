@@ -928,10 +928,12 @@ object Companions : Plugin {
 				return true
 			}
 			// a left click on the roster stays on it (nothing walks the player through the window); a bot that
-			// is out opens its loadout
+			// is out opens its loadout, one that is away is summoned
 			val bot: Bot = rowAt(y) ?: return true
 			if (bot.alive && bot.online) {
 				CompanionsLoadout.show(bot.slot)
+			} else if (bot.alive) {
+				command("bot summon " + (bot.slot + 1))
 			}
 			return true
 		}
