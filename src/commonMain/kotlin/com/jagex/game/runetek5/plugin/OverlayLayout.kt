@@ -1113,24 +1113,23 @@ object OverlayLayout {
 			for (i in menu.size - 1 downTo 0) {
 				val item: OverlayMenuEntry = menu[i]
 				if (item.submenu.isNotEmpty()) {
-					val existing: Int? = submenus[item.submenu]
-					if (existing != null && existing >= 0) {
-						continue
-					}
-					if (existing == null) {
+					val submenu: Int = submenus[item.submenu] ?: run {
 						// the submenu's own target is the first grouped entry's, in the plugin's order
 						val first: OverlayMenuEntry = menu.first { it.submenu == item.submenu }
-						val submenu: Int = PluginRuntime.clientSubmenu(item.submenu, MENU_TARGET + first.target, entry.serial)
-						submenus[item.submenu] = submenu
-						if (submenu >= 0) {
+						val opened: Int = PluginRuntime.clientSubmenu(item.submenu, MENU_TARGET + first.target, entry.serial)
+						submenus[item.submenu] = opened
+						if (opened >= 0) {
 							for (child in menu) {
 								if (child.submenu == item.submenu) {
 									offeredEntries.add(child)
-									PluginRuntime.clientSubmenuEntry(submenu, child.option, entry.serial, offeredEntries.size - 1)
+									PluginRuntime.clientSubmenuEntry(opened, child.option, entry.serial, offeredEntries.size - 1)
 								}
 							}
-							continue
 						}
+						opened
+					}
+					if (submenu >= 0) {
+						continue
 					}
 				}
 				offeredEntries.add(item)

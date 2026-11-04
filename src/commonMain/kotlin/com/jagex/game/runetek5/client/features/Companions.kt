@@ -334,9 +334,7 @@ object Companions : Plugin {
 	fun needLines(needs: String, name: (Int) -> String?): List<String> {
 		val lines: ArrayList<String> = ArrayList()
 		for (need in needs.split(',')) {
-			if (need.isEmpty()) {
-				continue
-			}
+			// an empty need has no ids and so no names
 			val ids: String = need.substringBefore(':')
 			val amount: Int = need.substringAfter(':', "1").toIntOrNull() ?: 1
 			val names: List<String> = ids.split('/').mapNotNull { it.toIntOrNull() }.mapNotNull { name(it) }
@@ -381,7 +379,6 @@ object Companions : Plugin {
 	/** "woodcutting" as a tab reads: "Woodcutting". */
 	@JvmStatic
 	fun skillName(skill: String): String = skill.replaceFirstChar { it.uppercase() }
-
 
 	/** A `[BotLoadouts] name|item,item` line as name to items, or null for the heading and anything else. */
 	@JvmStatic
@@ -633,11 +630,11 @@ object Companions : Plugin {
 			}
 			if (!stack) {
 				client.addSubmenuEntry(submenu, bot.name, action)
-				continue
-			}
-			for (amount in AMOUNTS) {
-				val label: String = if (amount == ALL) "$ALL ($quantity)" else amount
-				client.addSubmenuEntry(submenu, if (online.size == 1) label else bot.name + ": " + label, action)
+			} else {
+				for (amount in AMOUNTS) {
+					val label: String = if (amount == ALL) "$ALL ($quantity)" else amount
+					client.addSubmenuEntry(submenu, if (online.size == 1) label else bot.name + ": " + label, action)
+				}
 			}
 		}
 	}
@@ -1585,10 +1582,9 @@ object Companions : Plugin {
 			return
 		}
 		for (i in 0 until client.playerCount()) {
-			val player: Player = client.player(i) ?: continue
-			val name: String = player.name() ?: continue
-			val bot: Bot = state.bots.firstOrNull { it.online && it.name.equals(name, ignoreCase = true) } ?: continue
-			if (!player.isDrawnThisFrame() || !client.projectActor(player, player.overheadHeight() + TAG_RISE, point)) {
+			val player: Player? = client.player(i)
+			val bot: Bot? = player?.name()?.let { name -> state.bots.firstOrNull { it.online && it.name.equals(name, ignoreCase = true) } }
+			if (player == null || bot == null || !player.isDrawnThisFrame() || !client.projectActor(player, player.overheadHeight() + TAG_RISE, point)) {
 				continue
 			}
 			g.textCentered(point[0], point[1], tag(bot), colour(bot.slot), BLACK)

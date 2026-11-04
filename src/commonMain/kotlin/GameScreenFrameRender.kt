@@ -2,7 +2,6 @@ import com.jagex.game.runetek5.client.input.camera.Camera
 import com.jagex.game.runetek5.client.menu.MiniMenu
 import com.jagex.game.runetek5.plugin.PluginRuntime
 import com.jagex.game.runetek5.camera.CameraMode
-import com.jagex.game.runetek5.js5.MessageBoxBackgroundSprite
 import org.openrs2.deob.annotation.OriginalArg
 import org.openrs2.deob.annotation.OriginalMember
 import org.openrs2.deob.annotation.Pc
