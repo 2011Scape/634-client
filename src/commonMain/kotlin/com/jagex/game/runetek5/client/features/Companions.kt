@@ -1152,7 +1152,8 @@ object Companions : Plugin {
 		}
 		val line: Int = g.fontHeight()
 		val width: Int = if (overlay.preferredWidth > 0) overlay.preferredWidth else PANEL_WIDTH
-		statLine = line + 2
+		// the bars are tall enough for the heart orb icon (15 by 14) as it is; the prayer icon (20 by 20) is scaled to fit
+		statLine = maxOf(line + 2, BAR_LINE_MIN)
 		val botHeight: Int = line + statLine + GAP
 		val rows: List<Bot> = current.bots.filter { it.alive || it.name.isNotEmpty() }
 		val hint: Boolean = !current.active() || rows.isEmpty()
@@ -1212,8 +1213,8 @@ object Companions : Plugin {
 		g.drawRect(dotX, top + line - 2 - DOT_SIZE, DOT_SIZE, DOT_SIZE, BLACK)
 		if (bot.online) {
 			val half: Int = (right - left - GAP) / 2
-			stat(g, left, top + line, half, bot.hp, bot.hpMax, HP_COLOUR, "HP " + bot.hp)
-			stat(g, left + half + GAP, top + line, half, bot.prayer, bot.prayerMax, PRAYER_COLOUR, "Pray " + bot.prayer)
+			stat(g, left, top + line, half, bot.hp, bot.hpMax, HP_COLOUR, HP_ICON, bot.hp.toString())
+			stat(g, left + half + GAP, top + line, half, bot.prayer, bot.prayerMax, PRAYER_COLOUR, PRAYER_ICON, bot.prayer.toString())
 		}
 	}
 
@@ -1239,14 +1240,27 @@ object Companions : Plugin {
 		else -> STATUS_COLOUR
 	}
 
-	private fun stat(g: Graphics, x: Int, y: Int, width: Int, value: Int, max: Int, colour: Int, label: String) {
+	/** A bar of [value] out of [max] in [colour], the orb's [icon] at its left end and [label] centred in the rest. */
+	private fun stat(g: Graphics, x: Int, y: Int, width: Int, value: Int, max: Int, colour: Int, icon: Int, label: String) {
 		val height: Int = statLine - 1
 		g.fillRect(x, y + 1, width, height, BAR_BACK)
 		if (max > 0) {
 			g.fillRect(x, y + 1, width * value.coerceIn(0, max) / max, height, colour)
 		}
 		g.drawRect(x, y + 1, width, height, BAR_LINE)
-		g.textCentered(x + width / 2, y + height - 2, label, WHITE, BLACK)
+		// the icon as it is when it fits the bar, scaled down to the bar's height when it does not
+		val size: Int = height - 2
+		val iconWidth: Int = g.spriteWidth(icon)
+		val iconHeight: Int = g.spriteHeight(icon)
+		val iconRoom: Int
+		if (iconWidth in 1..size && iconHeight in 1..size) {
+			g.sprite(icon, x + 2, y + 1 + (height - iconHeight) / 2)
+			iconRoom = iconWidth + 4
+		} else {
+			g.spriteScaled(icon, x + 2, y + 2, size, size)
+			iconRoom = size + 4
+		}
+		g.textCentered(x + iconRoom + (width - iconRoom) / 2, y + height - 2, label, WHITE, BLACK)
 	}
 
 	/**
@@ -1687,6 +1701,11 @@ object Companions : Plugin {
 
 	private var stoneImage: Image? = null
 	private var stoneOpacity: Int = -1
+
+	/** The minimap orbs' heart (1197, 15 by 14) and prayer (1198, 20 by 20) icons, as interfaces 748 and 749 draw them. */
+	private const val HP_ICON: Int = 1197
+	private const val BAR_LINE_MIN: Int = 17
+	private const val PRAYER_ICON: Int = 1198
 
 	private const val STONE: Int = 297
 	private const val STONE_W: Int = 88
