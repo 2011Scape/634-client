@@ -919,15 +919,19 @@ object Companions : Plugin {
 
 		/** A left click on the title's button folds or unfolds the roster; on a living bot's row it opens its equipment and inventory. */
 		override fun onClick(x: Int, y: Int, button: Int): Boolean {
-			if (button == 0 && onFoldButton(this, x, y)) {
+			if (button != 0) {
+				return false
+			}
+			if (onFoldButton(this, x, y)) {
 				setCollapsed(!collapsed)
 				return true
 			}
-			val bot: Bot = rowAt(y) ?: return false
-			if (button != 0 || !bot.alive || !bot.online) {
-				return false
+			// a left click on the roster stays on it (nothing walks the player through the window); a bot that
+			// is out opens its loadout
+			val bot: Bot = rowAt(y) ?: return true
+			if (bot.alive && bot.online) {
+				CompanionsLoadout.show(bot.slot)
 			}
-			CompanionsLoadout.show(bot.slot)
 			return true
 		}
 
@@ -956,10 +960,11 @@ object Companions : Plugin {
 
 		/**
 		 * A left click: the close button shuts the picker; the scrollbar's thumb starts a drag and its track pages;
-		 * a tab shows that skill; a task gives it to the bot, as its menu entry does.
+		 * a tab shows that skill; a task gives it to the bot, as its menu entry does. A left click anywhere else on
+		 * the window is kept too, so nothing walks the player through it, as the game's own windows keep theirs.
 		 */
 		override fun onClick(x: Int, y: Int, button: Int): Boolean {
-			val bot: Bot = state.bot(selected) ?: return false
+			val bot: Bot = state.bot(selected) ?: return true
 			if (button != 0) {
 				return false
 			}
@@ -984,7 +989,7 @@ object Companions : Plugin {
 				taskTab = tab
 				return true
 			}
-			val task: TaskEntry = taskAt(x, y) ?: return false
+			val task: TaskEntry = taskAt(x, y) ?: return true
 			command("bot task " + (bot.slot + 1) + " " + task.id)
 			tasksOpen = false
 			return true
@@ -1409,16 +1414,10 @@ object Companions : Plugin {
 		taskTop = if (tabsShown.isEmpty()) TOP else tabTop + tabLine + PAD
 		rowsShown.clear()
 		rowsShown.addAll(taskRows(taskTab))
-		var rowsWidth: Int = 0
-		for (row in rowsShown) {
-			val width: Int = if (row is TaskEntry) TASK_INDENT + g.textWidth(row.label) + (if (row.members) MEMBERS_GAP + g.textWidth("members") else 0) + LEVEL_GAP + g.textWidth("Lvl " + row.level) else g.textWidth(row.toString())
-			if (width > rowsWidth) {
-				rowsWidth = width
-			}
-		}
-		// what fits under the tabs; the rest scrolls, with a bar at the right
+		// a set number of rows under the tabs (fewer only in a view too short for them), whatever the tab holds: the
+		// window keeps one size from tab to tab, and the rest scrolls with a bar at the right
 		val rowsAll: Int = if (rowsShown.isEmpty()) 1 else rowsShown.size
-		visibleRows = minOf(rowsAll, maxOf(1, (maxHeight - taskTop - PAD - EDGE) / line))
+		visibleRows = minOf(TASK_ROWS, maxOf(1, (maxHeight - taskTop - PAD - EDGE) / line))
 		scrollRows = rowsAll - visibleRows
 		if (scrollRows <= 0) {
 			taskScroll = 0
@@ -1426,8 +1425,9 @@ object Companions : Plugin {
 		} else {
 			taskScroll = taskScroll.coerceIn(0, scrollRows)
 		}
-		val bar: Int = if (scrollRows > 0) SCROLL_W + SCROLL_GAP else 0
-		val width: Int = minOf(maxWidth, maxOf(tabsWidth, EDGE + PAD + rowsWidth + PAD + bar + EDGE, TASK_MIN_WIDTH))
+		// the bar's room is kept whether or not this tab needs one, so the rows' edge stays put
+		val bar: Int = SCROLL_W + SCROLL_GAP
+		val width: Int = minOf(maxWidth, maxOf(tabsWidth, TASK_MIN_WIDTH))
 		taskWidth = width
 		rowsRight = width - EDGE - PAD - bar
 		scrollX = width - EDGE - PAD - SCROLL_W
@@ -1484,12 +1484,15 @@ object Companions : Plugin {
 					g.fillRect(EDGE + PAD + 2, y + line / 2 - 2, 4, 4, CURRENT)
 				}
 				val colour: Int = if (row === hovered) WHITE else if (current) CURRENT else TASK_COLOUR
-				g.text(EDGE + PAD + TASK_INDENT, y + line - 2, row.label, colour, BLACK)
+				val levelText: String = "Lvl " + row.level
+				val tag: Int = if (row.members) MEMBERS_GAP + g.textWidth("members") else 0
+				val label: String = fit(g, row.label, rowsRight - LEVEL_GAP - g.textWidth(levelText) - tag - (EDGE + PAD + TASK_INDENT))
+				g.text(EDGE + PAD + TASK_INDENT, y + line - 2, label, colour, BLACK)
 				if (row.members) {
 					// members' tasks: a dim tag after the name rather than a longer name
-					g.text(EDGE + PAD + TASK_INDENT + g.textWidth(row.label) + MEMBERS_GAP, y + line - 2, "members", HINT, BLACK)
+					g.text(EDGE + PAD + TASK_INDENT + g.textWidth(label) + MEMBERS_GAP, y + line - 2, "members", HINT, BLACK)
 				}
-				g.textRight(rowsRight, y + line - 2, "Lvl " + row.level, if (row === hovered) WHITE else HINT, BLACK)
+				g.textRight(rowsRight, y + line - 2, levelText, if (row === hovered) WHITE else HINT, BLACK)
 			} else {
 				g.text(EDGE + PAD, y + line - 2, row.toString(), TITLE, BLACK)
 				// a rule under each place's name, the row's width
@@ -1615,6 +1618,9 @@ object Companions : Plugin {
 	private const val TASK_INDENT: Int = 10
 	private const val LEVEL_GAP: Int = 14
 	private const val TASK_MIN_WIDTH: Int = 240
+
+	/** The rows the task picker shows at once: its height does not follow a tab's content. */
+	private const val TASK_ROWS: Int = 12
 	private const val TAB_PAD: Int = 3
 	private const val TAB_GAP: Int = 2
 	private const val TAB_ACTIVE: Int = 0xFF5A4A32.toInt()
