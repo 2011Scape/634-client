@@ -278,7 +278,7 @@ object CompanionsLoadout {
 		}
 		val width: Int = CARRIED_X + INV_COLUMNS * INV_W + Companions.PAD + Companions.EDGE
 		val height: Int = GRID_Y + INV_ROWS * INV_H + Companions.PAD + Companions.EDGE
-		Companions.window(g, width, height, bot.name + "'s Equipment & Inventory", Companions.WINDOW_BACK)
+		Companions.window(g, width, height, bot.name + "'s Equipment & Inventory", Companions.WINDOW_BACK, Companions.loadoutOpacity)
 		val client: ClientApi? = Companions.client
 		val overClose: Boolean = client != null && onCloseButton(overlay, client.mouseX() - overlay.boundsX, client.mouseY() - overlay.boundsY)
 		g.sprite(if (overClose) CLOSE_HOVER else CLOSE, width - CLOSE_RIGHT - CLOSE_SIZE, CLOSE_TOP)

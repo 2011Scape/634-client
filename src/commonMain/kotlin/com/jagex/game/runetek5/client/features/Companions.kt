@@ -7,6 +7,8 @@ import com.jagex.game.runetek5.plugin.api.CommandHandler
 import com.jagex.game.runetek5.plugin.api.GameState
 import com.jagex.game.runetek5.plugin.api.Font
 import com.jagex.game.runetek5.plugin.api.Graphics
+import com.jagex.game.runetek5.plugin.PluginImage
+import com.jagex.game.runetek5.plugin.api.Image
 import com.jagex.game.runetek5.plugin.api.MenuAction
 import com.jagex.game.runetek5.plugin.api.MenuTarget
 import com.jagex.game.runetek5.plugin.api.OverlayMenuEntry
@@ -218,6 +220,11 @@ object Companions : Plugin {
 
 	/** The bot a world-order entry named ("Send Woody here", a submenu's "Woody"), or "all"; "" when none, read as the click arrives. */
 	private var orderTarget: String = ""
+	/** The rows the task picker shows at once, and each window's background opacity in percent: the player's settings. */
+	@JvmField var taskRows: Int = TASK_ROWS
+	@JvmField var rosterOpacity: Int = 100
+	@JvmField var taskOpacity: Int = 100
+	@JvmField var loadoutOpacity: Int = 100
 	@JvmField var callKey: Int = 0
 	@JvmField var followKey: Int = 0
 	@JvmField var stopKey: Int = 0
@@ -1009,6 +1016,10 @@ object Companions : Plugin {
 		s.toggle("showOnMap", "Show companions on the minimap and the world map", true)
 		s.toggle("showTags", "Tag your companions in the world", true)
 		s.toggle("hideTaskLines", "Hide the task list lines from the chat", true)
+		s.number("taskRows", "Task picker rows", TASK_ROWS, 4, 30, 1)
+		s.number("rosterOpacity", "Roster background opacity (%)", 100, 0, 100, 5)
+		s.number("taskOpacity", "Task picker background opacity (%)", 100, 0, 100, 5)
+		s.number("loadoutOpacity", "Loadout background opacity (%)", 100, 0, 100, 5)
 		s.keybind("callKey", "Call all companions", 0)
 		s.keybind("followKey", "Follow me, all companions", 0)
 		s.keybind("stopKey", "Stand down, all companions", 0)
@@ -1060,6 +1071,10 @@ object Companions : Plugin {
 		showOnMap = config.getBoolean("showOnMap", true)
 		showTags = config.getBoolean("showTags", true)
 		hideTaskLines = config.getBoolean("hideTaskLines", true)
+		taskRows = config.getInt("taskRows", TASK_ROWS).coerceIn(4, 30)
+		rosterOpacity = config.getInt("rosterOpacity", 100).coerceIn(0, 100)
+		taskOpacity = config.getInt("taskOpacity", 100).coerceIn(0, 100)
+		loadoutOpacity = config.getInt("loadoutOpacity", 100).coerceIn(0, 100)
 		callKey = config.getInt("callKey", 0)
 		followKey = config.getInt("followKey", 0)
 		stopKey = config.getInt("stopKey", 0)
@@ -1144,7 +1159,7 @@ object Companions : Plugin {
 		// a row with bars (a bot that is out) is taller than one without (away, dead)
 		fun rowHeightOf(bot: Bot): Int = if (bot.online) botHeight else line + ROW_GAP
 		val height: Int = if (collapsed) COLLAPSED_HEIGHT else TOP + PAD + (if (hint) line else 0) + rows.sumOf { rowHeightOf(it) } + PAD + EDGE
-		window(g, width, height, "Companions (" + current.bots.count { it.alive } + "/" + SLOTS + ")")
+		window(g, width, height, "Companions (" + current.bots.count { it.alive } + "/" + SLOTS + ")", 0, rosterOpacity)
 		val overButton: Boolean = onFoldButton(overlay, client.mouseX() - overlay.boundsX, client.mouseY() - overlay.boundsY)
 		val button: Int = if (collapsed) (if (overButton) EXPAND_HOVER else EXPAND) else (if (overButton) COLLAPSE_HOVER else COLLAPSE)
 		g.sprite(button, width - BUTTON_RIGHT - BUTTON_SIZE, BUTTON_TOP)
@@ -1238,20 +1253,27 @@ object Companions : Plugin {
 	 * The game's stone window: the windows' tiling stone (297) under everything, the worn-equipment screen's
 	 * frame (corners 1123/1125/826/827, the title band 1124, edges 821/823/822) over it, and [title] in the band.
 	 */
-	internal fun window(g: Graphics, width: Int, height: Int, title: String, backing: Int = 0) {
+	internal fun window(g: Graphics, width: Int, height: Int, title: String, backing: Int = 0, opacity: Int = 100) {
 		g.clip(0, 0, width, height)
+		// the stone at the window's opacity: the cache's sprite as it is at 100, else a copy of it with its alpha
+		// scaled (a sprite cannot be drawn see-through, a plugin image can)
+		val stone: Image? = if (opacity >= 100) null else stoneAt(opacity)
 		var y: Int = 0
-		while (y < height) {
-			var x: Int = 0
-			while (x < width) {
-				g.sprite(STONE, x, y)
-				x += STONE_W
+		if (opacity > 0) {
+			while (y < height) {
+				var x: Int = 0
+				while (x < width) {
+					if (stone != null) g.image(stone, x, y) else g.sprite(STONE, x, y)
+					x += STONE_W
+				}
+				y += STONE_H
 			}
-			y += STONE_H
 		}
-		if (backing != 0) {
-			// a tint over the stone, under the frame and title: darker for the text, the grain still through it
-			g.fillRect(0, 0, width, height, backing)
+		if (backing != 0 && opacity > 0) {
+			// a tint over the stone, under the frame and title: darker for the text, the grain still through it; it
+			// fades with the stone
+			val alpha: Int = ((backing ushr 24) * opacity / 100) shl 24
+			g.fillRect(0, 0, width, height, alpha or (backing and 0xFFFFFF))
 		}
 		g.clip(CORNER, 0, width - CORNER * 2, height)
 		// the edge strips carry a 13 pixel offset in the cache (their place inside the screen's own layer)
@@ -1420,7 +1442,7 @@ object Companions : Plugin {
 		// a set number of rows under the tabs (fewer only in a view too short for them), whatever the tab holds: the
 		// window keeps one size from tab to tab, and the rest scrolls with a bar at the right
 		val rowsAll: Int = if (rowsShown.isEmpty()) 1 else rowsShown.size
-		visibleRows = minOf(TASK_ROWS, maxOf(1, (maxHeight - taskTop - PAD - EDGE) / line))
+		visibleRows = minOf(taskRows, maxOf(1, (maxHeight - taskTop - PAD - EDGE) / line))
 		scrollRows = rowsAll - visibleRows
 		if (scrollRows <= 0) {
 			taskScroll = 0
@@ -1449,7 +1471,7 @@ object Companions : Plugin {
 			}
 		}
 		val height: Int = taskTop + visibleRows * line + PAD + EDGE
-		window(g, width, height, "Task for " + bot.name, WINDOW_BACK)
+		window(g, width, height, "Task for " + bot.name, WINDOW_BACK, taskOpacity)
 		val overClose: Boolean = onCloseButton(mouseX, mouseY)
 		g.sprite(if (overClose) CLOSE_HOVER else CLOSE, width - CLOSE_RIGHT - CLOSE_SIZE, CLOSE_TOP)
 		if (tasks.isEmpty()) {
@@ -1646,6 +1668,26 @@ object Companions : Plugin {
 	// the game's stone window (the worn-equipment screen's, interface 549)
 	// the stone the game's windows tile (88x60, made to repeat): the side tabs' see-through stone (1131) is one shaded
 	// image and showed its edges as lines wherever it repeated
+	/** The stone with its alpha scaled to [opacity] percent, built once per value it is asked at. */
+	private fun stoneAt(opacity: Int): Image? {
+		if (stoneOpacity == opacity) {
+			return stoneImage
+		}
+		val client: ClientApi = context?.client() ?: return null
+		val source: PluginImage = client.spriteImage(STONE) as? PluginImage ?: return null
+		val pixels: IntArray = IntArray(source.pixels.size)
+		for (i in pixels.indices) {
+			val argb: Int = source.pixels[i]
+			pixels[i] = (((argb ushr 24) * opacity / 100) shl 24) or (argb and 0xFFFFFF)
+		}
+		stoneImage = client.createImage(source.width, source.height, pixels)
+		stoneOpacity = if (stoneImage != null) opacity else -1
+		return stoneImage
+	}
+
+	private var stoneImage: Image? = null
+	private var stoneOpacity: Int = -1
+
 	private const val STONE: Int = 297
 	private const val STONE_W: Int = 88
 	private const val STONE_H: Int = 60
