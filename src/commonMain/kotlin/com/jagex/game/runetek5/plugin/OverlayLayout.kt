@@ -380,13 +380,8 @@ object OverlayLayout {
 			}
 			ToolkitGraphics.drawRect(entry.x, entry.y, entry.width + 1, entry.height + 1, colour)
 		}
-		if (!MiniMenu.isOpen && !MiniMenu.interfaceSelectionActive && entry.contains(mouseX, mouseY)) {
-			// the panel drawn last under the mouse (the one seen on top: a window opened over a HUD panel takes the
-			// clicks the player aims at it), a panel over the interfaces before any under them
-			val h: Entry? = hovered
-			if (h == null || h.overlay.layer.ordinal <= overlay.layer.ordinal) {
-				hovered = entry
-			}
+		if (!MiniMenu.isOpen && !MiniMenu.interfaceSelectionActive && entry.contains(mouseX, mouseY) && takesHover(hovered?.overlay, overlay)) {
+			hovered = entry
 		}
 	}
 
@@ -640,6 +635,14 @@ object OverlayLayout {
 		}
 		setCursor(CursorType.DEFAULT_CURSOR)
 	}
+
+	/**
+	 * Whether [candidate], drawn after [current] and under the mouse too, takes the hover from it: the panel drawn
+	 * last of a layer is the one seen on top (a window opened over a HUD panel takes the clicks aimed at it), and a
+	 * panel over the interfaces keeps it from any under them.
+	 */
+	@JvmStatic
+	fun takesHover(current: PanelOverlay?, candidate: PanelOverlay): Boolean = current == null || current.layer.ordinal <= candidate.layer.ordinal
 
 	/** The panel under the mouse last frame, the snap corners included while managing. */
 	private fun lastHoveredEntry(mouseX: Int, mouseY: Int): Entry? {
