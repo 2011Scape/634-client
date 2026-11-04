@@ -1097,10 +1097,12 @@ object OverlayLayout {
 			PluginRuntime.fail(entry.owner, error)
 		}
 		if (menu.isNotEmpty()) {
-			val top: MiniMenuEntry? = MiniMenu.entryList.last() as MiniMenuEntry?
+			// the panel's own menu (a plain right click) is a window's: what the game offers for the tile or npc under
+			// it, the walk included, is a misclick, so none of it is kept and the panel's first entry is the hover
+			// text; the shift menu keeps the game's top entry as the left click
+			val top: MiniMenuEntry? = if (shift) MiniMenu.entryList.last() as MiniMenuEntry? else null
 			if (!shift) {
-				// the panel's own menu: what the game offers for the tile or npc under the panel is a misclick
-				hideGameEntries(top)
+				hideGameEntries(null)
 			}
 			// entries sharing a submenu label go under one entry of that label (API 41); -1 means no room, plain entries then
 			val submenus: HashMap<String, Int> = HashMap()
@@ -1142,7 +1144,7 @@ object OverlayLayout {
 		return true
 	}
 
-	/** Drops the game's entries (everything that is not a plugin's) other than [top], the left click. */
+	/** Drops the game's entries (everything that is not a plugin's) other than [top], the left click, when one is kept. */
 	private fun hideGameEntries(top: MiniMenuEntry?) {
 		val game: ArrayList<MiniMenuEntry> = ArrayList()
 		var item: MiniMenuEntry? = MiniMenu.entryList.first() as MiniMenuEntry?

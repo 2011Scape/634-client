@@ -847,14 +847,15 @@ object Companions : Plugin {
 			add("Summon", Task { command("bot summon $slot") })
 			return
 		}
-		// the orders given every minute stay on the row's menu, in the order they are reached for: Call (which has
-		// the bot follow, teleporting it over only when it is not near), hold, stand down, then restoring
+		// the loadout first: it is what a left click on the row opens, and the first entry is the hover text; then
+		// the orders given every minute, in the order they are reached for: Call (which has the bot follow,
+		// teleporting it over only when it is not near), hold, stand down, restoring, and the task picker
+		add("Loadout", Task { CompanionsLoadout.show(bot.slot) })
 		add("Call", Task { command("bot call $slot") })
 		add("Hold position", Task { command("bot guard $slot") })
 		add("Stand down", Task { command("bot stop $slot") })
 		add("Restore", Task { command("bot restore $slot") })
 		add("Task...", Task { selected = bot.slot; tasksOpen = true; CompanionsLoadout.useFrom = -1 })
-		add("Loadout", Task { CompanionsLoadout.show(bot.slot) })
 		// the rarer gear and combat orders fold into a submenu each; the folded roster already holds the bot in a
 		// submenu of its own, and a submenu cannot nest, so there they stay flat under it
 		val gear: String = if (submenu.isEmpty()) GEAR else submenu
@@ -953,8 +954,8 @@ object Companions : Plugin {
 			if (task != null) {
 				entries.add(OverlayMenuEntry("Assign to " + bot.name, "<col=ff9040>" + task.label, Task { command("bot task " + (bot.slot + 1) + " " + task.id); tasksOpen = false }))
 			}
-			entries.add(OverlayMenuEntry("Reload list", "Tasks", Task { tasks.clear(); command("bot tasks") }))
 			entries.add(OverlayMenuEntry("Close", "Tasks", Task { tasksOpen = false }))
+			entries.add(OverlayMenuEntry("Reload list", "Tasks", Task { tasks.clear(); command("bot tasks") }))
 			return entries
 		}
 
