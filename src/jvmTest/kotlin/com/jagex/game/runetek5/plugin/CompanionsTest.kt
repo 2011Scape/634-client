@@ -257,4 +257,33 @@ class CompanionsTest {
 		// only options 4 and 5 (Drop): the game's left click is Use
 		assertNull(CompanionsLoadout.leftClickOption(arrayOf(null, null, null, "Empty", "Drop")))
 	}
+
+	@Test
+	fun `A task line may carry its wage, and a server without wages leaves it off`() {
+		val paid = Companions.parseTask("[BotTasks] 3|woodcutting|1|Draynor|0|Normal trees (Draynor)|6")
+		assertEquals(6, paid?.wage)
+		assertEquals("Normal trees (Draynor)", paid?.label)
+		val free = Companions.parseTask("[BotTasks] 3|woodcutting|1|Draynor|0|Normal trees (Draynor)")
+		assertEquals(0, free?.wage)
+	}
+
+	@Test
+	fun `The wage coffers are read from their own variables`() {
+		val varcs = HashMap<Int, Int>()
+		varcs[Companions.BASE] = (1 shl 12) or (1 shl 4) or 1
+		varcs[Companions.WAGES] = 12_345
+		val state = Companions.read { varcs[it] ?: -1 }
+		assertEquals(12_345, state.bots[0].wages)
+		assertEquals(0, state.bots[1].wages)
+	}
+
+	@Test
+	fun `Coins shorten as the game's stacks do`() {
+		assertEquals("0", Companions.shortCoins(0))
+		assertEquals("99,999", Companions.shortCoins(99_999))
+		assertEquals("100K", Companions.shortCoins(100_000))
+		assertEquals("9999K", Companions.shortCoins(9_999_999))
+		assertEquals("10M", Companions.shortCoins(10_000_000))
+		assertEquals("1,234,567", Companions.groupDigits(1_234_567))
+	}
 }
