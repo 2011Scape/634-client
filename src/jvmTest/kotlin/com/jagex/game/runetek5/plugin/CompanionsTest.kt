@@ -280,10 +280,27 @@ class CompanionsTest {
 	@Test
 	fun `Coins shorten as the game's stacks do`() {
 		assertEquals("0", Companions.shortCoins(0))
-		assertEquals("99,999", Companions.shortCoins(99_999))
+		assertEquals("9,999", Companions.shortCoins(9_999))
 		assertEquals("100K", Companions.shortCoins(100_000))
-		assertEquals("9999K", Companions.shortCoins(9_999_999))
+		assertEquals("999K", Companions.shortCoins(999_999))
+		assertEquals("1.5M", Companions.shortCoins(1_500_000))
 		assertEquals("10M", Companions.shortCoins(10_000_000))
+		assertEquals("999M", Companions.shortCoins(999_999_999))
+		assertEquals("1.0B", Companions.shortCoins(1_000_000_000))
+		assertEquals("2.1B", Companions.shortCoins(Int.MAX_VALUE))
 		assertEquals("1,234,567", Companions.groupDigits(1_234_567))
+	}
+
+	@Test
+	fun `A stack past 65,535 reads whole from its own variable`() {
+		val varcs = HashMap<Int, Int>()
+		varcs[Companions.BASE] = (1 shl 12) or (1 shl 4) or 1
+		val inv: Int = Companions.BASE + 1 + Companions.INV
+		varcs[inv] = (995 shl 16) or 0xFFFF
+		varcs[inv + 1] = (314 shl 16) or 500
+		varcs[Companions.AMOUNT_VARCS + Companions.EQUIPMENT] = 1_000_000_000
+		val bot = Companions.read { varcs[it] ?: -1 }.bots[0]
+		assertEquals(1_000_000_000, bot.inventoryAmount(0))
+		assertEquals(500, bot.inventoryAmount(1), "a small stack reads from its packed variable")
 	}
 }
