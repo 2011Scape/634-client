@@ -953,6 +953,11 @@ object Companions : Plugin {
 		}
 		add("Pay all coins", Task { command("bot pay $slot all") }, group = wages)
 		add("Pay amount...", Task { command("bot pay $slot") }, group = wages)
+		// unspent wages come back to the pack
+		if (bot.wages > 0) {
+			add("Withdraw all wages", Task { command("bot withdraw $slot all") }, group = wages)
+			add("Withdraw amount...", Task { command("bot withdraw $slot") }, group = wages)
+		}
 		add("Dismiss", Task { command("bot dismiss $slot") })
 	}
 

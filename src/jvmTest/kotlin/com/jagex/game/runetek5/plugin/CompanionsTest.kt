@@ -244,6 +244,23 @@ class CompanionsTest {
 	}
 
 	@Test
+	fun unspentWagesCanOnlyBeWithdrawnWhenThereAreSome() {
+		val empty: Companions.State = Companions.read { vars()[it] ?: 0 }
+		assertEquals(0, empty.bots[0].wages)
+		Companions.state = empty
+		Companions.collapsed = true
+		try {
+			assertTrue(Companions.panel.menuEntries().none { it.option.startsWith("Withdraw") }, "nothing in hand, nothing to take back")
+			Companions.state = Companions.read { (vars() + (Companions.WAGES to 5_000))[it] ?: 0 }
+			val withdraw: List<String> = Companions.panel.menuEntries().filter { it.option.startsWith("Withdraw") }.map { it.option }
+			assertEquals(listOf("Withdraw all wages", "Withdraw amount..."), withdraw)
+		} finally {
+			Companions.collapsed = false
+			Companions.state = Companions.State(emptyList(), 0)
+		}
+	}
+
+	@Test
 	fun theWindowsDrawOverTheGamesInterfacesAndTheRosterUnderThem() {
 		assertEquals(OverlayLayer.ABOVE_WIDGETS, CompanionsLoadout.overlay.layer, "the loadout window stays in front of the bank")
 		assertEquals(OverlayLayer.UNDER_WIDGETS, Companions.picker.layer, "the task picker sits under the bank, as the roster does")
