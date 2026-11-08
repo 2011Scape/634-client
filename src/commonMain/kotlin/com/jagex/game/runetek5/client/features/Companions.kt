@@ -909,8 +909,16 @@ object Companions : Plugin {
 			return
 		}
 		val slot: Int = bot.slot + 1
+		// unspent wages come back to the pack, from a bot away as well as one out
+		fun withdrawEntries(group: String) {
+			if (bot.wages > 0) {
+				add("Withdraw all wages", Task { command("bot withdraw $slot all") }, group = group)
+				add("Withdraw amount...", Task { command("bot withdraw $slot") }, group = group)
+			}
+		}
 		if (!bot.online) {
 			add("Summon", Task { command("bot summon $slot") })
+			withdrawEntries(submenu)
 			return
 		}
 		// the loadout first: it is what a left click on the row opens, and the first entry is the hover text; then
@@ -953,11 +961,7 @@ object Companions : Plugin {
 		}
 		add("Pay all coins", Task { command("bot pay $slot all") }, group = wages)
 		add("Pay amount...", Task { command("bot pay $slot") }, group = wages)
-		// unspent wages come back to the pack
-		if (bot.wages > 0) {
-			add("Withdraw all wages", Task { command("bot withdraw $slot all") }, group = wages)
-			add("Withdraw amount...", Task { command("bot withdraw $slot") }, group = wages)
-		}
+		withdrawEntries(wages)
 		add("Dismiss", Task { command("bot dismiss $slot") })
 	}
 

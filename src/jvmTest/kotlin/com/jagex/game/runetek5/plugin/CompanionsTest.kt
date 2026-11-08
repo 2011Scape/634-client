@@ -234,7 +234,7 @@ class CompanionsTest {
 			val entries: List<OverlayMenuEntry> = Companions.panel.menuEntries()
 			val woody: List<String> = entries.filter { it.submenu == "1." }.map { it.option }
 			assertTrue("Call" in woody && "Hold position" in woody && "Loadout" in woody, "the online bot's orders: $woody")
-			assertEquals(listOf("Summon"), entries.filter { it.submenu == "2." }.map { it.option }, "the away bot can only be summoned")
+			assertEquals(listOf("Summon"), entries.filter { it.submenu == "2." }.map { it.option }, "the away bot with no wages can only be summoned")
 			assertTrue(entries.none { it.submenu == "3." || it.submenu == "4." }, "empty slots have no submenu")
 			assertTrue(entries.any { it.option == "Hold position, all" && it.submenu.isEmpty() }, "the orders for every bot stay at the top level")
 		} finally {
@@ -254,6 +254,9 @@ class CompanionsTest {
 			Companions.state = Companions.read { (vars() + (Companions.WAGES to 5_000))[it] ?: 0 }
 			val withdraw: List<String> = Companions.panel.menuEntries().filter { it.option.startsWith("Withdraw") }.map { it.option }
 			assertEquals(listOf("Withdraw all wages", "Withdraw amount..."), withdraw)
+			Companions.state = Companions.read { (vars() + (Companions.WAGES + 1 to 5_000))[it] ?: 0 }
+			val away: List<String> = Companions.panel.menuEntries().filter { it.submenu == "2." }.map { it.option }
+			assertEquals(listOf("Summon", "Withdraw all wages", "Withdraw amount..."), away, "an away bot's wages can be taken back too")
 		} finally {
 			Companions.collapsed = false
 			Companions.state = Companions.State(emptyList(), 0)
