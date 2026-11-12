@@ -75,6 +75,15 @@ object Companions : Plugin {
 	const val EQUIP: Int = 8
 	const val INV: Int = 22
 
+	/** The wage coffers' variables, one a slot, after the slot blocks (owned_bot_<slot>_wages). */
+	const val WAGES: Int = 2201
+
+	/**
+	 * Whole amounts, [EQUIPMENT] + [INVENTORY] a slot: a worn then carried item's amount when its packed variable
+	 * can't hold it (over 65,535), else unset (owned_bot_<slot>_amount_<n>).
+	 */
+	const val AMOUNT_VARCS: Int = 2205
+
 	/** The server's OwnedBotStatus, by ordinal. */
 	@JvmField
 	val STATUS_NAMES: Array<String> = arrayOf("Away", "Standing by", "Working", "Banking", "Following", "Fighting", "Low health", "Fled", "Stopped", "Dead", "Holding", "Restoring")
@@ -94,6 +103,11 @@ object Companions : Plugin {
 	const val LOAD_PRESET: String = "Load preset"
 	const val GEAR: String = "Gear"
 	const val COMBAT: String = "Combat"
+	const val WAGES_MENU: String = "Wages"
+
+	/** What the Wages submenu offers to pay in, besides all the coins carried and a typed amount. */
+	@JvmField
+	val WAGE_AMOUNTS: IntArray = intArrayOf(10_000, 100_000, 1_000_000)
 	const val DELETE_PRESET: String = "Delete preset"
 
 	/** The amounts a stack is given or taken in, the bank's choices. */
@@ -158,7 +172,17 @@ object Companions : Plugin {
 		@JvmField val spellBook: Int,
 		@JvmField val equipment: IntArray,
 		@JvmField val inventory: IntArray,
+		/** Coins in the slot's wage coffer, paid in for tasks and drained as the bot gathers. */
+		@JvmField val wages: Int = 0,
+		/** Whole amounts of stacks too big for their packed variable, worn then carried; 0 where the packed one holds it. */
+		@JvmField val amounts: IntArray = IntArray(0),
 	) {
+		/** The amount of the worn item in equipment slot [index], whole even past 65,535. */
+		fun equipmentAmount(index: Int): Int = amounts.getOrNull(index)?.takeIf { it > 0 } ?: itemAmount(equipment[index])
+
+		/** The amount of the carried item in inventory slot [index], whole even past 65,535. */
+		fun inventoryAmount(index: Int): Int = amounts.getOrNull(EQUIPMENT + index)?.takeIf { it > 0 } ?: itemAmount(inventory[index])
+
 		fun statusName(): String = STATUS_NAMES.getOrNull(if (online) status else 0) ?: "?"
 	}
 
@@ -181,6 +205,10 @@ object Companions : Plugin {
 		/** What the bot fetches from the owner's bank for it, as the server encodes it: `id/id:amount,id:amount`. */
 		@JvmField
 		var needs: String = ""
+
+		/** Coins in wages for each item the task gathers, the dearest of them; 0 when tasks are free. */
+		@JvmField
+		var wage: Int = 0
 	}
 
 	@JvmField
@@ -280,6 +308,7 @@ object Companions : Plugin {
 					order and 0xFF, order ushr 8 and 0xF, order ushr 12 and 0xF == 1,
 					if (hidden) -1 else tile ushr 14 and 0x3FFF, if (hidden) -1 else tile and 0x3FFF, if (hidden) 0 else tile ushr 28 and 0x3,
 					varc(base + ENERGY) and 0xFF, varc(base + ENERGY) ushr 8, varc(base + STATUS) ushr 8 and 0xFFFF, SPELLBOOKS[varc(base + STATUS) ushr 24 and 0x3], equipment, inventory,
+					varc(WAGES + slot), IntArray(EQUIPMENT + INVENTORY) { varc(AMOUNT_VARCS + slot * (EQUIPMENT + INVENTORY) + it) },
 				),
 			)
 		}
@@ -294,8 +323,9 @@ object Companions : Plugin {
 	fun itemAmount(packed: Int): Int = packed and 0xFFFF
 
 	/**
-	 * A `[BotTasks] index|skill|level|location|members|label` line, or null for the heading and anything else. The
-	 * server names no id (a chat line wraps at the box's width); the task is given back by its index.
+	 * A `[BotTasks] index|skill|level|location|members|label[|wage]` line, or null for the heading and anything else.
+	 * The server names no id (a chat line wraps at the box's width); the task is given back by its index. The wage,
+	 * coins an item, is left off by a server without wages.
 	 */
 	@JvmStatic
 	fun parseTask(text: String): TaskEntry? {
@@ -303,13 +333,45 @@ object Companions : Plugin {
 			return null
 		}
 		val parts: List<String> = text.substring(TASKS_PREFIX.length).split('|')
-		if (parts.size != 6) {
+		if (parts.size != 6 && parts.size != 7) {
 			return null
 		}
 		val index: Int = parts[0].toIntOrNull() ?: return null
 		val level: Int = parts[2].toIntOrNull() ?: return null
-		return TaskEntry(index, index.toString(), parts[1], level, parts[3], parts[4] == "1", parts[5])
+		val task = TaskEntry(index, index.toString(), parts[1], level, parts[3], parts[4] == "1", parts[5])
+		task.wage = parts.getOrNull(6)?.toIntOrNull() ?: 0
+		return task
 	}
+
+	/** [value] with a comma between each three digits, as the game writes an amount: 12,345. */
+	@JvmStatic
+	fun groupDigits(value: Int): String {
+		val digits: String = kotlin.math.abs(value.toLong()).toString()
+		val grouped: StringBuilder = StringBuilder()
+		for ((i, digit) in digits.withIndex()) {
+			if (i > 0 && (digits.length - i) % 3 == 0) {
+				grouped.append(',')
+			}
+			grouped.append(digit)
+		}
+		return if (value < 0) "-$grouped" else grouped.toString()
+	}
+
+	/**
+	 * Coins as the roster shows them in a narrow column, five characters at most: in full under 10,000, then K, then
+	 * M (one decimal under 10M), then B with one decimal.
+	 */
+	@JvmStatic
+	fun shortCoins(coins: Int): String = when {
+		coins < 10_000 -> groupDigits(coins)
+		coins < 1_000_000 -> (coins / 1_000).toString() + "K"
+		coins < 10_000_000 -> tenths(coins / 100_000) + "M"
+		coins < 1_000_000_000 -> (coins / 1_000_000).toString() + "M"
+		else -> tenths(coins / 100_000_000) + "B"
+	}
+
+	/** [tenths] of a unit written with one decimal: 15 is "1.5". */
+	private fun tenths(tenths: Int): String = (tenths / 10).toString() + "." + (tenths % 10).toString()
 
 	/** A `[BotTaskItems] index|id/id:amount,...` line as the index and the encoded needs, or null for anything else. */
 	@JvmStatic
@@ -847,8 +909,16 @@ object Companions : Plugin {
 			return
 		}
 		val slot: Int = bot.slot + 1
+		// unspent wages come back to the pack, from a bot away as well as one out
+		fun withdrawEntries(group: String) {
+			if (bot.wages > 0) {
+				add("Withdraw all wages", Task { command("bot withdraw $slot all") }, group = group)
+				add("Withdraw amount...", Task { command("bot withdraw $slot") }, group = group)
+			}
+		}
 		if (!bot.online) {
 			add("Summon", Task { command("bot summon $slot") })
+			withdrawEntries(submenu)
 			return
 		}
 		// the loadout first: it is what a left click on the row opens, and the first entry is the hover text; then
@@ -884,6 +954,14 @@ object Companions : Plugin {
 		if (bot.spell != 0) {
 			add("Clear autocast", Task { command("bot spell $slot none") }, "<col=ff9040>" + (context?.client()?.let { spellName(it, bot.spellBook, bot.spell) } ?: "spell"), group = combat)
 		}
+		// wages for its tasks, in hand shown in the submenu's label; the coffer stays with the slot
+		val wages: String = if (submenu.isEmpty()) WAGES_MENU + " (" + shortCoins(bot.wages) + ")" else submenu
+		for (amount in WAGE_AMOUNTS) {
+			add("Pay " + groupDigits(amount) + " coins", Task { command("bot pay $slot $amount") }, group = wages)
+		}
+		add("Pay all coins", Task { command("bot pay $slot all") }, group = wages)
+		add("Pay amount...", Task { command("bot pay $slot") }, group = wages)
+		withdrawEntries(wages)
 		add("Dismiss", Task { command("bot dismiss $slot") })
 	}
 
@@ -1211,9 +1289,28 @@ object Companions : Plugin {
 		g.fillRect(dotX, top + line - 2 - DOT_SIZE, DOT_SIZE, DOT_SIZE, statusColour)
 		g.drawRect(dotX, top + line - 2 - DOT_SIZE, DOT_SIZE, DOT_SIZE, BLACK)
 		if (bot.online) {
-			val half: Int = (right - left - GAP) / 2
+			// the two bars, then the wage coffer at the right end: a coin and the amount, as wide as it needs
+			val coins: String = shortCoins(bot.wages)
+			val coinsWidth: Int = g.textWidth(coins)
+			val column: Int = BAR_ICON + COIN_GAP + coinsWidth
+			val half: Int = (right - left - GAP * 3 - column) / 2
 			stat(g, left, top + line, half, bot.hp, bot.hpMax, HP_COLOUR, HP_ICON, bot.hp.toString())
 			stat(g, left + half + GAP, top + line, half, bot.prayer, bot.prayerMax, PRAYER_COLOUR, PRAYER_ICON, bot.prayer.toString())
+			val coin: Image? = barIcon(COIN_ICON)
+			if (coin != null) {
+				g.image(coin, right - column, top + line + 1 + (statLine - 1 - BAR_ICON) / 2)
+			}
+			g.textRight(right, top + line + statLine - 3, coins, wageColour(bot), BLACK)
+		}
+	}
+
+	/** Gold with wages in hand; amber under ten items' worth of the bot's task; red when there is nothing to pay it. */
+	private fun wageColour(bot: Bot): Int {
+		val task: TaskEntry? = if (bot.task != NO_TASK) tasks.firstOrNull { it.index == bot.task } else null
+		return when {
+			bot.wages <= 0 -> PVP
+			task != null && task.wage > 0 && bot.wages < task.wage * WAGE_WARN_ITEMS -> STATUS_WAIT
+			else -> COINS
 		}
 	}
 
@@ -1541,7 +1638,7 @@ object Companions : Plugin {
 			g.fillRect(scrollX + 1, thumbTop + 1, SCROLL_W - 2, thumbHeight - 2, if (overThumb) THUMB_HOVER else THUMB)
 			g.drawRect(scrollX + 1, thumbTop + 1, SCROLL_W - 2, thumbHeight - 2, BAR_LINE)
 		}
-		if (hovered != null && hovered.needs.isNotEmpty() && client != null) {
+		if (hovered != null && (hovered.needs.isNotEmpty() || hovered.wage > 0) && client != null) {
 			drawNeeds(g, hovered, mouseX, mouseY, width, height, line, client)
 		}
 		return size.set(width, height)
@@ -1549,11 +1646,14 @@ object Companions : Plugin {
 
 	/** The tooltip under the mouse: what the bot fetches from the owner's bank for the hovered task. */
 	private fun drawNeeds(g: Graphics, task: TaskEntry, mouseX: Int, mouseY: Int, width: Int, height: Int, line: Int, client: ClientApi) {
-		val lines: List<String> = needLines(task.needs) { client.itemName(it) }
+		val needs: List<String> = needLines(task.needs) { client.itemName(it) }
+		val wage: String? = if (task.wage > 0) "Wages: " + groupDigits(task.wage) + " coins an item" else null
+		val lines: List<String> = if (wage == null) needs else needs + wage
 		if (lines.isEmpty()) {
 			return
 		}
-		var tipWidth: Int = g.textWidth(NEEDS_TITLE)
+		val title: String = if (needs.isEmpty()) WAGES_TITLE else NEEDS_TITLE
+		var tipWidth: Int = g.textWidth(title)
 		for (text in lines) {
 			tipWidth = maxOf(tipWidth, g.textWidth(text))
 		}
@@ -1570,9 +1670,9 @@ object Companions : Plugin {
 		}
 		g.fillRect(x, y, tipWidth, tipHeight, TIP_BACK)
 		g.drawRect(x, y, tipWidth, tipHeight, BAR_LINE)
-		g.text(x + TIP_PAD, y + TIP_PAD + line - 2, NEEDS_TITLE, TITLE, BLACK)
+		g.text(x + TIP_PAD, y + TIP_PAD + line - 2, title, TITLE, BLACK)
 		for ((i, text) in lines.withIndex()) {
-			g.text(x + TIP_PAD, y + TIP_PAD + (i + 2) * line - 2, text, WHITE, BLACK)
+			g.text(x + TIP_PAD, y + TIP_PAD + (i + 2) * line - 2, text, if (text === wage) COINS else WHITE, BLACK)
 		}
 	}
 
@@ -1669,6 +1769,11 @@ object Companions : Plugin {
 	private const val CLOSE_RIGHT: Int = 10
 	private const val CLOSE_TOP: Int = 3
 	private const val NEEDS_TITLE: String = "Needs from your bank:"
+	private const val WAGES_TITLE: String = "Paid for from its wages:"
+
+	/** The space between the coin and its amount, and the items' worth under which the amount turns amber. */
+	private const val COIN_GAP: Int = 1
+	private const val WAGE_WARN_ITEMS: Int = 10
 	private const val TIP_PAD: Int = 4
 	private const val TIP_OFFSET: Int = 12
 	private const val TIP_BACK: Int = 0xE0000000.toInt()
@@ -1704,6 +1809,7 @@ object Companions : Plugin {
 	 */
 	private const val HP_ICON: Int = 0
 	private const val PRAYER_ICON: Int = 1
+	private const val COIN_ICON: Int = 2
 	private const val BAR_ICON: Int = 12
 	private const val BAR_ICON_INSET: Int = 2
 	private val BAR_ICON_ART: Array<IconArt> = arrayOf(
@@ -1737,6 +1843,21 @@ object Companions : Plugin {
 			".....##.....",
 			fill = 0xFFF4F4F4.toInt(), shade = 0xFFB8B8B8.toInt(), outline = 0xFF202020.toInt(),
 		),
+		IconArt(
+			"............",
+			"....####....",
+			"..########..",
+			".##########.",
+			".##########.",
+			"############",
+			"############",
+			".##########.",
+			".##########.",
+			"..########..",
+			"....####....",
+			"............",
+			fill = 0xFFFFD700.toInt(), shade = 0xFFC08A00.toInt(), outline = 0xFF3A2400.toInt(), highlight = intArrayOf(4, 3, 3, 4, 5, 2),
+		),
 	)
 
 	/** A bar icon's mask and colours; [highlight] is x, y pairs of pixels left white. */
@@ -1767,7 +1888,7 @@ object Companions : Plugin {
 		}
 	}
 
-	private val barIcons: Array<Image?> = arrayOfNulls(2)
+	private val barIcons: Array<Image?> = arrayOfNulls(3)
 
 	/** The bar icon [which] as an image, made once from its pixels. */
 	private fun barIcon(which: Int): Image? {
@@ -1813,6 +1934,7 @@ object Companions : Plugin {
 	private const val STATUS_COLOUR: Int = 0xFFD8D8D8.toInt()
 	private const val TASK_COLOUR: Int = 0xFFC8C8C8.toInt()
 	private const val PVP: Int = 0xFFFF3030.toInt()
+	private const val COINS: Int = 0xFFFFD700.toInt()
 	private const val DEAD: Int = 0xFF806060.toInt()
 	private const val AWAY: Int = 0xFF909090.toInt()
 	private const val FLASH: Int = 0x60FF3030

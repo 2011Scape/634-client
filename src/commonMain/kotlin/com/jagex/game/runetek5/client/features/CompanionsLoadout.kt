@@ -5,7 +5,6 @@ import com.jagex.game.runetek5.client.features.Companions.EQUIPMENT
 import com.jagex.game.runetek5.client.features.Companions.EQUIPMENT_NAMES
 import com.jagex.game.runetek5.client.features.Companions.INVENTORY
 import com.jagex.game.runetek5.client.features.Companions.command
-import com.jagex.game.runetek5.client.features.Companions.itemAmount
 import com.jagex.game.runetek5.client.features.Companions.itemId
 import com.jagex.game.runetek5.plugin.api.ClientApi
 import com.jagex.game.runetek5.plugin.api.Font
@@ -141,7 +140,7 @@ object CompanionsLoadout {
 						entries.add(OverlayMenuEntry(option, target, Task { itemOption(bot, carried, option, arg) }))
 					}
 					// a stack: how many, as the bank asks
-					val amount: Int = itemAmount(packed)
+					val amount: Int = if (worn) bot.equipmentAmount(hovered) else bot.inventoryAmount(hovered - EQUIPMENT)
 					if (amount > 1) {
 						for (choice in Companions.AMOUNTS) {
 							val label: String = if (choice == Companions.ALL) "$choice ($amount)" else choice
@@ -322,7 +321,7 @@ object CompanionsLoadout {
 			}
 			val id: Int = itemId(bot.equipment[index])
 			if (id >= 0) {
-				g.itemIcon(id, itemAmount(bot.equipment[index]), x, y + 2)
+				g.itemIcon(id, bot.equipmentAmount(index), x, y + 2)
 			} else {
 				// an empty slot shows its outline, as the equipment tab does
 				g.sprite(SLOT_PLACEHOLDER[index], x + (SLOT - PLACEHOLDER_SIZE) / 2, y + (SLOT - PLACEHOLDER_SIZE) / 2)
@@ -346,7 +345,7 @@ object CompanionsLoadout {
 				}
 			}
 			if (id >= 0) {
-				g.itemIcon(id, itemAmount(bot.inventory[index]), x + (INV_W - 36) / 2, y + (INV_H - 32) / 2)
+				g.itemIcon(id, bot.inventoryAmount(index), x + (INV_W - 36) / 2, y + (INV_H - 32) / 2)
 			}
 		}
 		return size.set(width, height)

@@ -234,9 +234,29 @@ class CompanionsTest {
 			val entries: List<OverlayMenuEntry> = Companions.panel.menuEntries()
 			val woody: List<String> = entries.filter { it.submenu == "1." }.map { it.option }
 			assertTrue("Call" in woody && "Hold position" in woody && "Loadout" in woody, "the online bot's orders: $woody")
-			assertEquals(listOf("Summon"), entries.filter { it.submenu == "2." }.map { it.option }, "the away bot can only be summoned")
+			assertEquals(listOf("Summon"), entries.filter { it.submenu == "2." }.map { it.option }, "the away bot with no wages can only be summoned")
 			assertTrue(entries.none { it.submenu == "3." || it.submenu == "4." }, "empty slots have no submenu")
 			assertTrue(entries.any { it.option == "Hold position, all" && it.submenu.isEmpty() }, "the orders for every bot stay at the top level")
+		} finally {
+			Companions.collapsed = false
+			Companions.state = Companions.State(emptyList(), 0)
+		}
+	}
+
+	@Test
+	fun unspentWagesCanOnlyBeWithdrawnWhenThereAreSome() {
+		val empty: Companions.State = Companions.read { vars()[it] ?: 0 }
+		assertEquals(0, empty.bots[0].wages)
+		Companions.state = empty
+		Companions.collapsed = true
+		try {
+			assertTrue(Companions.panel.menuEntries().none { it.option.startsWith("Withdraw") }, "nothing in hand, nothing to take back")
+			Companions.state = Companions.read { (vars() + (Companions.WAGES to 5_000))[it] ?: 0 }
+			val withdraw: List<String> = Companions.panel.menuEntries().filter { it.option.startsWith("Withdraw") }.map { it.option }
+			assertEquals(listOf("Withdraw all wages", "Withdraw amount..."), withdraw)
+			Companions.state = Companions.read { (vars() + (Companions.WAGES + 1 to 5_000))[it] ?: 0 }
+			val away: List<String> = Companions.panel.menuEntries().filter { it.submenu == "2." }.map { it.option }
+			assertEquals(listOf("Summon", "Withdraw all wages", "Withdraw amount..."), away, "an away bot's wages can be taken back too")
 		} finally {
 			Companions.collapsed = false
 			Companions.state = Companions.State(emptyList(), 0)
@@ -256,5 +276,51 @@ class CompanionsTest {
 		assertEquals("Wield", CompanionsLoadout.leftClickOption(arrayOf(null, "Wield", null, null, "Drop")))
 		// only options 4 and 5 (Drop): the game's left click is Use
 		assertNull(CompanionsLoadout.leftClickOption(arrayOf(null, null, null, "Empty", "Drop")))
+	}
+
+	@Test
+	fun `A task line may carry its wage, and a server without wages leaves it off`() {
+		val paid = Companions.parseTask("[BotTasks] 3|woodcutting|1|Draynor|0|Normal trees (Draynor)|6")
+		assertEquals(6, paid?.wage)
+		assertEquals("Normal trees (Draynor)", paid?.label)
+		val free = Companions.parseTask("[BotTasks] 3|woodcutting|1|Draynor|0|Normal trees (Draynor)")
+		assertEquals(0, free?.wage)
+	}
+
+	@Test
+	fun `The wage coffers are read from their own variables`() {
+		val varcs = HashMap<Int, Int>()
+		varcs[Companions.BASE] = (1 shl 12) or (1 shl 4) or 1
+		varcs[Companions.WAGES] = 12_345
+		val state = Companions.read { varcs[it] ?: -1 }
+		assertEquals(12_345, state.bots[0].wages)
+		assertEquals(0, state.bots[1].wages)
+	}
+
+	@Test
+	fun `Coins shorten as the game's stacks do`() {
+		assertEquals("0", Companions.shortCoins(0))
+		assertEquals("9,999", Companions.shortCoins(9_999))
+		assertEquals("100K", Companions.shortCoins(100_000))
+		assertEquals("999K", Companions.shortCoins(999_999))
+		assertEquals("1.5M", Companions.shortCoins(1_500_000))
+		assertEquals("10M", Companions.shortCoins(10_000_000))
+		assertEquals("999M", Companions.shortCoins(999_999_999))
+		assertEquals("1.0B", Companions.shortCoins(1_000_000_000))
+		assertEquals("2.1B", Companions.shortCoins(Int.MAX_VALUE))
+		assertEquals("1,234,567", Companions.groupDigits(1_234_567))
+	}
+
+	@Test
+	fun `A stack past 65,535 reads whole from its own variable`() {
+		val varcs = HashMap<Int, Int>()
+		varcs[Companions.BASE] = (1 shl 12) or (1 shl 4) or 1
+		val inv: Int = Companions.BASE + 1 + Companions.INV
+		varcs[inv] = (995 shl 16) or 0xFFFF
+		varcs[inv + 1] = (314 shl 16) or 500
+		varcs[Companions.AMOUNT_VARCS + Companions.EQUIPMENT] = 1_000_000_000
+		val bot = Companions.read { varcs[it] ?: -1 }.bots[0]
+		assertEquals(1_000_000_000, bot.inventoryAmount(0))
+		assertEquals(500, bot.inventoryAmount(1), "a small stack reads from its packed variable")
 	}
 }
